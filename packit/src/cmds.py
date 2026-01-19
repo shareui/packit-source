@@ -80,9 +80,25 @@ class CommandProcessor:
         version = plugin.get("version", "unknown")
         description = plugin.get("description", "No description")
         rawUrl = plugin.get("raw", "")
+        link = plugin.get("link", "")
+        author = plugin.get("author", "")
         repoNameFound = plugin.get("repo_name", "unknown")
         
-        headerText = f"*{displayName} v{version}*\n[Open raw]({rawUrl})\n\n*Description*\n"
+        if link and not link.startswith("http"):
+            link = f"https://{link}"
+        
+        if rawUrl and not rawUrl.startswith("http"):
+            rawUrl = f"https://{rawUrl}"
+        
+        headerText = f"*{displayName} v{version}*\n"
+        
+        if author:
+            headerText += f"*Author:* {author}\n"
+        
+        if link:
+            headerText += f"[.plugin file]({link})\n"
+        
+        headerText += f"[Open raw]({rawUrl})\n\n*Description*\n"
         fullText = headerText + description
         
         try:
