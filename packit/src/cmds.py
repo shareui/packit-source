@@ -1,10 +1,11 @@
 from typing import Any
 from base_plugin import HookResult, HookStrategy
 from elyx import strings, settings
-from client_utils import send_message
+from client_utils import send_message, get_last_fragment
 from markdown_utils import parse_markdown
 from org.telegram.tgnet import TLRPC
 from android_utils import log
+from ui.alert import AlertDialogBuilder
 
 
 class CommandProcessor:

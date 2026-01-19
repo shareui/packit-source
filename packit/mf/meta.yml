@@ -1,7 +1,7 @@
 name: PackIt
 description: "A universal plugin manager for exteraGram/AyuGram. With the ability to add multiple replicas, as well as create your own."
 id: shareui_packit
-version: "1.0.0(2) Alpha"
+version: "1.0.0(3) Alpha"
 author: "@shareui"
 min_version: "12.2.10"
 icon: packit/mf/frieren.png
