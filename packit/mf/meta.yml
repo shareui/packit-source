@@ -1,5 +1,11 @@
 name: PackIt
-description: "A universal plugin manager for exteraGram/AyuGram. With the ability to add multiple replicas, as well as create your own."
+description: |
+  **A universal plugin manager for exteraGram/AyuGram. With the ability to add multiple replicas, as well as create your own.**
+
+  Docs: link later
+  Source code: [shareui/packit](https://github.com/shareui/packit)
+
+  This is not a fork, the plugin is completely written from scratch using the ElyxCore library.
 id: shareui_packit
 version: "1.0.0(6) Alpha"
 author: "@shareui"
