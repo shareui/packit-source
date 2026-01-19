@@ -96,112 +96,99 @@ class CommandSettings:
                 default=settings.get("cmd_info", "packit info"),
                 icon="msg_info"
             ),
-            Text(
-                text="About command",
-                icon="msg_help",
-                on_click=self._showInfoAbout
-            ),
-            Divider(),
-            
             Input(
                 key="cmd_search",
                 text=strings.cmd_search,
                 default=settings.get("cmd_search", "packit search"),
                 icon="msg_search"
             ),
-            Text(
-                text="About command",
-                icon="msg_help",
-                on_click=self._showSearchAbout
-            ),
-            Divider(),
-            
             Input(
                 key="cmd_install",
                 text=strings.cmd_install,
                 default=settings.get("cmd_install", "packit install"),
                 icon="msg_download"
             ),
-            Text(
-                text="About command",
-                icon="msg_help",
-                on_click=self._showInstallAbout
-            ),
-            Divider(),
-            
             Input(
                 key="cmd_uninstall",
                 text=strings.cmd_uninstall,
                 default=settings.get("cmd_uninstall", "packit uninstall"),
                 icon="msg_delete"
             ),
-            Text(
-                text="About command",
-                icon="msg_help",
-                on_click=self._showUninstallAbout
-            ),
-            Divider(),
-            
             Input(
                 key="cmd_update",
                 text="Update command",
                 default=settings.get("cmd_update", "packit update"),
                 icon="msg_retry"
             ),
-            Text(
-                text="About command",
-                icon="msg_help",
-                on_click=self._showUpdateAbout
-            ),
-            Divider(),
-            
             Input(
                 key="cmd_upgrade",
                 text="Upgrade command",
                 default=settings.get("cmd_upgrade", "packit upgrade"),
                 icon="gift_upgrade"
             ),
-            Text(
-                text="About command",
-                icon="msg_help",
-                on_click=self._showUpgradeAbout
-            ),
-            Divider(),
-            
             Input(
                 key="cmd_pluginlist",
                 text=strings.cmd_pluginlist,
                 default=settings.get("cmd_pluginlist", "packit pluginlist"),
                 icon="msg_list"
             ),
-            Text(
-                text="About command",
-                icon="msg_help",
-                on_click=self._showPluginlistAbout
-            ),
-            Divider(),
-            
             Input(
                 key="cmd_repolist",
                 text=strings.cmd_repolist,
                 default=settings.get("cmd_repolist", "packit repolist"),
                 icon="msg_folders"
             ),
-            Text(
-                text="About command",
-                icon="msg_help",
-                on_click=self._showRepolistAbout
-            ),
-            Divider(),
-            
             Input(
                 key="cmd_share",
                 text=strings.cmd_share,
                 default=settings.get("cmd_share", "packit share"),
                 icon="msg_share"
             ),
+            
+            Header(text="About commands"),
+            
             Text(
-                text="About command",
+                text="About Info",
+                icon="msg_help",
+                on_click=self._showInfoAbout
+            ),
+            Text(
+                text="About Search",
+                icon="msg_help",
+                on_click=self._showSearchAbout
+            ),
+            Text(
+                text="About Install",
+                icon="msg_help",
+                on_click=self._showInstallAbout
+            ),
+            Text(
+                text="About Uninstall",
+                icon="msg_help",
+                on_click=self._showUninstallAbout
+            ),
+            Text(
+                text="About Update",
+                icon="msg_help",
+                on_click=self._showUpdateAbout
+            ),
+            Text(
+                text="About Upgrade",
+                icon="msg_help",
+                on_click=self._showUpgradeAbout
+            ),
+            Text(
+                text="About Plugin List",
+                icon="msg_help",
+                on_click=self._showPluginlistAbout
+            ),
+            Text(
+                text="About Repository List",
+                icon="msg_help",
+                on_click=self._showRepolistAbout
+            ),
+            Text(
+                text="About Share",
                 icon="msg_help",
                 on_click=self._showShareAbout
             )
