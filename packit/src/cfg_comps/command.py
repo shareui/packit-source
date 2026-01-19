@@ -1,14 +1,95 @@
-from ui.settings import Header, Input
+from ui.settings import Header, Input, Text, Divider
+from ui.alert import AlertDialogBuilder
 from elyx import strings, settings
+from client_utils import get_last_fragment
 
 
 class CommandSettings:
     def __init__(self):
         pass
     
+    def _showCommandInfo(self, title, description, usage):
+        fragment = get_last_fragment()
+        if not fragment:
+            return
+        
+        activity = fragment.getParentActivity()
+        if not activity:
+            return
+        
+        builder = AlertDialogBuilder(activity)
+        builder.set_title(title)
+        builder.set_message(f"{description}\n\nUsage:\n{usage}")
+        builder.set_positive_button("OK", lambda b, w: b.dismiss())
+        builder.show()
+    
+    def _showInfoAbout(self, view):
+        self._showCommandInfo(
+            "Info Command",
+            "Shows detailed information about a plugin including name, version, author, description and download links.",
+            "packit info [plugin] [repository_name]\n\nExamples:\npackit info loggerplus\npackit info theme-switcher Official"
+        )
+    
+    def _showSearchAbout(self, view):
+        self._showCommandInfo(
+            "Search Command",
+            "Searches for plugins by query in their names and descriptions across all enabled repositories.",
+            "packit search [query]\n\nExample:\npackit search logger"
+        )
+    
+    def _showInstallAbout(self, view):
+        self._showCommandInfo(
+            "Install Command",
+            "Downloads and installs a plugin from repository. Use -r flag to automatically restart the app after installation.",
+            "packit install [plugin_id] [repository_name] [-r]\n\nExamples:\npackit install lolcat\npackit install theme-switcher Official\npackit install lolcat -r"
+        )
+    
+    def _showUninstallAbout(self, view):
+        self._showCommandInfo(
+            "Uninstall Command",
+            "Removes an installed plugin by its ID. Use -r flag to automatically restart the app after uninstall.",
+            "packit uninstall [plugin_id] [-r]\n\nExamples:\npackit uninstall shareui_lolcat\npackit uninstall shareui_lolcat -r"
+        )
+    
+    def _showUpdateAbout(self, view):
+        self._showCommandInfo(
+            "Update Command",
+            "Updates the plugin cache from all enabled repositories and shows statistics of successful and failed updates.",
+            "packit update"
+        )
+    
+    def _showUpgradeAbout(self, view):
+        self._showCommandInfo(
+            "Upgrade Command",
+            "Not ready",
+            ""
+        )
+    
+    def _showPluginlistAbout(self, view):
+        self._showCommandInfo(
+            "Plugin List Command",
+            "Shows a list of all plugins available in the cache from all enabled repositories with their versions and repository names.",
+            "packit pluginlist"
+        )
+    
+    def _showRepolistAbout(self, view):
+        self._showCommandInfo(
+            "Repository List Command",
+            "Shows a list of all enabled repositories with their names and URLs.",
+            "packit repolist"
+        )
+    
+    def _showShareAbout(self, view):
+        self._showCommandInfo(
+            "Share Command",
+            "Shares a plugin download link. Finds the plugin in repositories and sends its download link.",
+            "packit share [plugin] [repository_name]\n\nExamples:\npackit share loggerplus\npackit share theme-switcher Official"
+        )
+    
     def build(self):
         return [
             Header(text=strings.command_settings),
+            
             Input(
                 key="cmd_info",
                 text=strings.cmd_info,
@@ -62,5 +143,53 @@ class CommandSettings:
                 text=strings.cmd_share,
                 default=settings.get("cmd_share", "packit share"),
                 icon="msg_share"
+            ),
+            
+            Header(text="About commands"),
+            
+            Text(
+                text="About Info",
+                icon="msg_help",
+                on_click=self._showInfoAbout
+            ),
+            Text(
+                text="About Search",
+                icon="msg_help",
+                on_click=self._showSearchAbout
+            ),
+            Text(
+                text="About Install",
+                icon="msg_help",
+                on_click=self._showInstallAbout
+            ),
+            Text(
+                text="About Uninstall",
+                icon="msg_help",
+                on_click=self._showUninstallAbout
+            ),
+            Text(
+                text="About Update",
+                icon="msg_help",
+                on_click=self._showUpdateAbout
+            ),
+            Text(
+                text="About Upgrade",
+                icon="msg_help",
+                on_click=self._showUpgradeAbout
+            ),
+            Text(
+                text="About Plugin List",
+                icon="msg_help",
+                on_click=self._showPluginlistAbout
+            ),
+            Text(
+                text="About Repository List",
+                icon="msg_help",
+                on_click=self._showRepolistAbout
+            ),
+            Text(
+                text="About Share",
+                icon="msg_help",
+                on_click=self._showShareAbout
             )
         ]

@@ -3,6 +3,7 @@ from base_plugin import BasePlugin, HookResult
 from elyx import settings
 from .cmds import CommandProcessor
 from .repom import RepositoryManager
+from .core import PackItCore
 from .settings import SettingsBuilder
 
 
@@ -10,12 +11,14 @@ class PackItPlugin(BasePlugin):
     def __init__(self):
         super().__init__()
         self.repoManager = RepositoryManager()
+        self.core = PackItCore(self.repoManager)
         self.settingsBuilder = SettingsBuilder(self.repoManager)
         self.commandProcessor = CommandProcessor(self)
     
     def on_plugin_load(self):
         self.add_on_send_message_hook()
         self._initDefaultCommands()
+        self.core.initializeRepositories()
     
     def _initDefaultCommands(self):
         if settings.get("cmd_info") is None:
@@ -32,6 +35,10 @@ class PackItPlugin(BasePlugin):
             settings.set("cmd_repolist", "packit repolist")
         if settings.get("cmd_share") is None:
             settings.set("cmd_share", "packit share")
+        if settings.get("cmd_update") is None:
+            settings.set("cmd_update", "packit update")
+        if settings.get("cmd_upgrade") is None:
+            settings.set("cmd_upgrade", "packit upgrade")
     
     def create_settings(self):
         return self.settingsBuilder.buildMainSettings()
