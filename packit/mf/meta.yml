@@ -8,7 +8,7 @@ description: |
   
   This is not a fork, the plugin is completely written from scratch using the ElyxCore library.
 id: shareui_packit
-version: "1.0.0(12) Alpha"
+version: "1.0.0(13) Alpha"
 author: "@packitGround"
 min_version: "12.2.10"
 icon: packit/mf/frieren.png

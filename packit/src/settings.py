@@ -8,9 +8,11 @@ from .cfg_comps.docs import DocumentationSettings
 
 
 class SettingsBuilder:
-    def __init__(self, repoManager):
+    def __init__(self, repoManager, plugin):
         self.repoManager = repoManager
+        self.plugin = plugin
         self.interfaceSettings = InterfaceSettings()
+        self.interfaceSettings.setPlugin(plugin)
         self.commandSettings = CommandSettings()
         self.repositoriesSettings = RepositoriesSettings(repoManager)
         self.otherSettings = OtherSettings()

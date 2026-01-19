@@ -5,4 +5,5 @@ packit/src/cmds.py - команды (будет снесно постепенн�
 packit/src/repom.py - движок настроек репо
 packit/src/settings.py - главные настройки
 packit/src/cfg_comps/* - отдельные вкладки настроек
-packit/src/core.py - ядро, там весь функционал с UI и командами
+packit/src/core.py - ядро, там весь функционал с interface и командами
+packit/src/chat_ui.py - небольшое ui чата
