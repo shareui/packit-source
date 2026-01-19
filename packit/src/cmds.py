@@ -135,8 +135,63 @@ class CommandProcessor:
         return HookResult(strategy=HookStrategy.CANCEL)
     
     def _handleSearch(self, messageText: str, params: Any) -> HookResult:
-        params.message = strings.not_ready
-        return HookResult(strategy=HookStrategy.MODIFY, params=params)
+        cmdSearch = settings.get("cmd_search", "packit search")
+        query = messageText[len(cmdSearch):].strip()
+        
+        if not query:
+            params.message = "Usage: packit search [query]"
+            return HookResult(strategy=HookStrategy.MODIFY, params=params)
+        
+        results = self.plugin.core.searchInCache(query)
+        
+        if not results:
+            params.message = f"No matches found for '{query}'"
+            return HookResult(strategy=HookStrategy.MODIFY, params=params)
+        
+        countMatches = len(results)
+        headerText = f"*{countMatches} matches found!*\n"
+        
+        resultLines = []
+        for result in results:
+            displayName = result.get("displayName", result.get("id", "Unknown"))
+            repoName = result.get("repo_name", "unknown")
+            resultLines.append(f"{displayName} | repo: {repoName}")
+        
+        listText = "\n".join(resultLines)
+        fullText = headerText + listText
+        
+        try:
+            parsedMessage = parse_markdown(fullText)
+            
+            headerLength = len(f"{countMatches} matches found!\n")
+            blockquoteStart = headerLength
+            blockquoteLength = len(parsedMessage.text) - headerLength
+            
+            messageParams = {
+                "message": parsedMessage.text,
+                "peer": params.peer,
+                "entities": [],
+                "searchLinks": False
+            }
+            
+            for rawEntity in parsedMessage.entities:
+                tlrpcEntity = rawEntity.to_tlrpc_object()
+                messageParams["entities"].append(tlrpcEntity)
+            
+            blockquoteEntity = TLRPC.TL_messageEntityBlockquote()
+            blockquoteEntity.offset = blockquoteStart
+            blockquoteEntity.length = blockquoteLength
+            blockquoteEntity.collapsed = True
+            messageParams["entities"].append(blockquoteEntity)
+            
+            send_message(messageParams)
+            
+        except Exception as e:
+            log(f"error sending search results: {e}")
+            params.message = f"Error: {str(e)}"
+            return HookResult(strategy=HookStrategy.MODIFY, params=params)
+        
+        return HookResult(strategy=HookStrategy.CANCEL)
     
     def _handleInstall(self, messageText: str, params: Any) -> HookResult:
         params.message = strings.not_ready
@@ -258,8 +313,59 @@ class CommandProcessor:
         return HookResult(strategy=HookStrategy.CANCEL)
     
     def _handleShare(self, messageText: str, params: Any) -> HookResult:
-        params.message = strings.not_ready
-        return HookResult(strategy=HookStrategy.MODIFY, params=params)
+        cmdShare = settings.get("cmd_share", "packit share")
+        args = messageText[len(cmdShare):].strip().split(maxsplit=1)
+        
+        if not args or not args[0]:
+            params.message = "Usage: packit share [plugin_id] [repository_name]"
+            return HookResult(strategy=HookStrategy.MODIFY, params=params)
+        
+        pluginId = args[0]
+        repoName = args[1] if len(args) > 1 else None
+        
+        plugin = self.plugin.core.findPlugin(pluginId, repoName)
+        
+        if not plugin:
+            if repoName:
+                params.message = f"Plugin '{pluginId}' not found in repository '{repoName}'"
+            else:
+                params.message = f"Plugin '{pluginId}' not found"
+            return HookResult(strategy=HookStrategy.MODIFY, params=params)
+        
+        displayName = plugin.get("displayName", pluginId)
+        link = plugin.get("link", "")
+        
+        if not link:
+            params.message = f"Plugin '{displayName}' has no download link"
+            return HookResult(strategy=HookStrategy.MODIFY, params=params)
+        
+        if not link.startswith("http"):
+            link = f"https://{link}"
+        
+        shareText = f"*{displayName} shared!*\n\n{link}"
+        
+        try:
+            parsedMessage = parse_markdown(shareText)
+            
+            messageParams = {
+                "message": parsedMessage.text,
+                "peer": params.peer,
+                "entities": [],
+                "searchLinks": False
+            }
+            
+            for rawEntity in parsedMessage.entities:
+                tlrpcEntity = rawEntity.to_tlrpc_object()
+                messageParams["entities"].append(tlrpcEntity)
+            
+            send_message(messageParams)
+            
+        except Exception as e:
+            log(f"error sending share: {e}")
+            params.message = f"Error: {str(e)}"
+            return HookResult(strategy=HookStrategy.MODIFY, params=params)
+        
+        return HookResult(strategy=HookStrategy.CANCEL)
     
     def _handleUpdate(self, messageText: str, params: Any) -> HookResult:
         self.plugin.core.updateAllRepositories(silent=False)
