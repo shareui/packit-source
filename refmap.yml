@@ -1,3 +1,5 @@
 metainfo: packit/mf/meta.yml
 main: packit/src/main.py
 strings: packit/locales
+
+# test
