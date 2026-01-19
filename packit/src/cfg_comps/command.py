@@ -47,8 +47,8 @@ class CommandSettings:
     def _showUninstallAbout(self, view):
         self._showCommandInfo(
             "Uninstall Command",
-            "Removes an installed plugin by its ID. Use -r flag to automatically restart the app after uninstall.",
-            "packit uninstall [plugin_id] [-r]\n\nExamples:\npackit uninstall shareui_lolcat\npackit uninstall shareui_lolcat -r"
+            "Removes an installed plugin by query. Query can be plugin key from repository or displayName. Plugin ID is resolved from repository JSON. Use -r flag to automatically restart the app after uninstall.",
+            "packit uninstall [query] [repository_name] [-r]\n\nExamples:\npackit uninstall lolcat\npackit uninstall theme-switcher Official\npackit uninstall lolcat -r"
         )
     
     def _showUpdateAbout(self, view):
@@ -61,8 +61,8 @@ class CommandSettings:
     def _showUpgradeAbout(self, view):
         self._showCommandInfo(
             "Upgrade Command",
-            "Not ready",
-            ""
+            "Upgrades an installed plugin to the latest version from repository. Query can be plugin key from repository or displayName. Plugin ID is resolved from repository JSON to find and replace the correct file. Removes old version and installs new one. Use -r flag to automatically restart the app.",
+            "packit upgrade [query] [repository_name] [-r]\n\nExamples:\npackit upgrade lolcat\npackit upgrade theme-switcher Official\npackit upgrade lolcat -r"
         )
     
     def _showPluginlistAbout(self, view):
