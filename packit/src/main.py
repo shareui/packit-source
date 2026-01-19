@@ -13,7 +13,7 @@ class PackItPlugin(BasePlugin):
         super().__init__()
         self.repoManager = RepositoryManager()
         self.core = PackItCore(self.repoManager)
-        self.settingsBuilder = SettingsBuilder(self.repoManager)
+        self.settingsBuilder = SettingsBuilder(self.repoManager, self)
         self.commandProcessor = CommandProcessor(self)
         self.chatUI = ChatUI(self)
     
