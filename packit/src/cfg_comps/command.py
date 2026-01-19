@@ -40,15 +40,15 @@ class CommandSettings:
     def _showInstallAbout(self, view):
         self._showCommandInfo(
             "Install Command",
-            "Not ready",
-            ""
+            "Downloads and installs a plugin from repository. Use -r flag to automatically restart the app after installation.",
+            "packit install [plugin_id] [repository_name] [-r]\n\nExamples:\npackit install lolcat\npackit install theme-switcher Official\npackit install lolcat -r"
         )
     
     def _showUninstallAbout(self, view):
         self._showCommandInfo(
             "Uninstall Command",
-            "Not ready",
-            ""
+            "Removes an installed plugin by its ID. Use -r flag to automatically restart the app after uninstall.",
+            "packit uninstall [plugin_id] [-r]\n\nExamples:\npackit uninstall shareui_lolcat\npackit uninstall shareui_lolcat -r"
         )
     
     def _showUpdateAbout(self, view):

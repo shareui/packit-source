@@ -195,12 +195,49 @@ class CommandProcessor:
         return HookResult(strategy=HookStrategy.CANCEL)
     
     def _handleInstall(self, messageText: str, params: Any) -> HookResult:
-        params.message = strings.not_ready
-        return HookResult(strategy=HookStrategy.MODIFY, params=params)
+        cmdInstall = settings.get("cmd_install", "packit install")
+        args = messageText[len(cmdInstall):].strip().split()
+        
+        if not args or not args[0]:
+            params.message = "Usage: packit install [plugin_id] [repository_name] [-r]"
+            return HookResult(strategy=HookStrategy.MODIFY, params=params)
+        
+        autoRestart = "-r" in args
+        if autoRestart:
+            args.remove("-r")
+        
+        if not args:
+            params.message = "Usage: packit install [plugin_id] [repository_name] [-r]"
+            return HookResult(strategy=HookStrategy.MODIFY, params=params)
+        
+        pluginId = args[0]
+        repoName = args[1] if len(args) > 1 else None
+        
+        self.plugin.core.installPlugin(pluginId, repoName, autoRestart)
+        
+        return HookResult(strategy=HookStrategy.CANCEL)
     
     def _handleUninstall(self, messageText: str, params: Any) -> HookResult:
-        params.message = strings.not_ready
-        return HookResult(strategy=HookStrategy.MODIFY, params=params)
+        cmdUninstall = settings.get("cmd_uninstall", "packit uninstall")
+        args = messageText[len(cmdUninstall):].strip().split()
+        
+        if not args or not args[0]:
+            params.message = "Usage: packit uninstall [plugin_id] [-r]"
+            return HookResult(strategy=HookStrategy.MODIFY, params=params)
+        
+        autoRestart = "-r" in args
+        if autoRestart:
+            args.remove("-r")
+        
+        if not args:
+            params.message = "Usage: packit uninstall [plugin_id] [-r]"
+            return HookResult(strategy=HookStrategy.MODIFY, params=params)
+        
+        pluginId = args[0]
+        
+        self.plugin.core.uninstallPlugin(pluginId, autoRestart)
+        
+        return HookResult(strategy=HookStrategy.CANCEL)
     
     def _handlePluginList(self, messageText: str, params: Any) -> HookResult:
         allPlugins = self.plugin.core.getAllPluginsFromCache()
@@ -214,12 +251,12 @@ class CommandProcessor:
         
         pluginLines = []
         for plugin in allPlugins:
-            displayName = plugin.get("displayName", plugin.get("id", "Unknown"))
-            pluginId = plugin.get("id", "unknown")
+            displayName = plugin.get("displayName", plugin.get("packId", "Unknown"))
+            packId = plugin.get("packId", "unknown")
             version = plugin.get("version", "unknown")
             repoName = plugin.get("repo_name", "unknown")
             
-            pluginLines.append(f"*{displayName}* (v{version})\nID: `{pluginId}` | Repo: {repoName}")
+            pluginLines.append(f"*{displayName}* (v{version})\nPackID: `{packId}` | Repo: {repoName}")
         
         listText = "\n\n".join(pluginLines)
         fullText = headerText + listText
