@@ -222,7 +222,7 @@ class CommandProcessor:
         args = messageText[len(cmdUninstall):].strip().split()
         
         if not args or not args[0]:
-            params.message = "Usage: packit uninstall [plugin_id] [-r]"
+            params.message = "Usage: packit uninstall [query] [repository_name] [-r]"
             return HookResult(strategy=HookStrategy.MODIFY, params=params)
         
         autoRestart = "-r" in args
@@ -230,12 +230,13 @@ class CommandProcessor:
             args.remove("-r")
         
         if not args:
-            params.message = "Usage: packit uninstall [plugin_id] [-r]"
+            params.message = "Usage: packit uninstall [query] [repository_name] [-r]"
             return HookResult(strategy=HookStrategy.MODIFY, params=params)
         
-        pluginId = args[0]
+        query = args[0]
+        repoName = args[1] if len(args) > 1 else None
         
-        self.plugin.core.uninstallPlugin(pluginId, autoRestart)
+        self.plugin.core.uninstallPlugin(query, repoName, autoRestart)
         
         return HookResult(strategy=HookStrategy.CANCEL)
     
@@ -410,5 +411,24 @@ class CommandProcessor:
         return HookResult(strategy=HookStrategy.CANCEL)
     
     def _handleUpgrade(self, messageText: str, params: Any) -> HookResult:
-        params.message = strings.not_ready
-        return HookResult(strategy=HookStrategy.MODIFY, params=params)
+        cmdUpgrade = settings.get("cmd_upgrade", "packit upgrade")
+        args = messageText[len(cmdUpgrade):].strip().split()
+        
+        if not args or not args[0]:
+            params.message = "Usage: packit upgrade [query] [repository_name] [-r]"
+            return HookResult(strategy=HookStrategy.MODIFY, params=params)
+        
+        autoRestart = "-r" in args
+        if autoRestart:
+            args.remove("-r")
+        
+        if not args:
+            params.message = "Usage: packit upgrade [query] [repository_name] [-r]"
+            return HookResult(strategy=HookStrategy.MODIFY, params=params)
+        
+        query = args[0]
+        repoName = args[1] if len(args) > 1 else None
+        
+        self.plugin.core.upgradePlugin(query, repoName, autoRestart)
+        
+        return HookResult(strategy=HookStrategy.CANCEL)
