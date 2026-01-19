@@ -138,3 +138,32 @@ class PackItCore:
                 log(f"failed to get plugins from {repo['name']}: {e}")
         
         return allPlugins
+    
+    def findPlugin(self, pluginId, repoName=None):
+        repos = self.repoManager.getRepositories()
+        
+        for repo in repos:
+            if not repo.get("enabled"):
+                continue
+            
+            if repoName and repo["name"].lower() != repoName.lower():
+                continue
+            
+            cacheKey = f"{repo['id']}_cache"
+            cacheJson = settings.get(cacheKey, "{}")
+            
+            try:
+                cache = json.loads(cacheJson)
+                plugins = cache.get("plugins", {})
+                
+                if pluginId in plugins:
+                    return {
+                        "id": pluginId,
+                        "repo_id": repo["id"],
+                        "repo_name": repo["name"],
+                        **plugins[pluginId]
+                    }
+            except Exception as e:
+                log(f"failed to search in {repo['name']}: {e}")
+        
+        return None
