@@ -147,12 +147,115 @@ class CommandProcessor:
         return HookResult(strategy=HookStrategy.MODIFY, params=params)
     
     def _handlePluginList(self, messageText: str, params: Any) -> HookResult:
-        params.message = strings.not_ready
-        return HookResult(strategy=HookStrategy.MODIFY, params=params)
+        allPlugins = self.plugin.core.getAllPluginsFromCache()
+        
+        if not allPlugins:
+            params.message = "No plugins found in cache. Try: packit update"
+            return HookResult(strategy=HookStrategy.MODIFY, params=params)
+        
+        countPlugins = len(allPlugins)
+        headerText = f"*Found {countPlugins} plugins*\n"
+        
+        pluginLines = []
+        for plugin in allPlugins:
+            displayName = plugin.get("displayName", plugin.get("id", "Unknown"))
+            pluginId = plugin.get("id", "unknown")
+            version = plugin.get("version", "unknown")
+            repoName = plugin.get("repo_name", "unknown")
+            
+            pluginLines.append(f"*{displayName}* (v{version})\nID: `{pluginId}` | Repo: {repoName}")
+        
+        listText = "\n\n".join(pluginLines)
+        fullText = headerText + listText
+        
+        try:
+            parsedMessage = parse_markdown(fullText)
+            
+            headerLength = len(f"Found {countPlugins} plugins\n")
+            blockquoteStart = headerLength
+            blockquoteLength = len(parsedMessage.text) - headerLength
+            
+            messageParams = {
+                "message": parsedMessage.text,
+                "peer": params.peer,
+                "entities": [],
+                "searchLinks": False
+            }
+            
+            for rawEntity in parsedMessage.entities:
+                tlrpcEntity = rawEntity.to_tlrpc_object()
+                messageParams["entities"].append(tlrpcEntity)
+            
+            blockquoteEntity = TLRPC.TL_messageEntityBlockquote()
+            blockquoteEntity.offset = blockquoteStart
+            blockquoteEntity.length = blockquoteLength
+            blockquoteEntity.collapsed = True
+            messageParams["entities"].append(blockquoteEntity)
+            
+            send_message(messageParams)
+            
+        except Exception as e:
+            log(f"error sending plugin list: {e}")
+            params.message = f"Error: {str(e)}"
+            return HookResult(strategy=HookStrategy.MODIFY, params=params)
+        
+        return HookResult(strategy=HookStrategy.CANCEL)
     
     def _handleRepoList(self, messageText: str, params: Any) -> HookResult:
-        params.message = strings.not_ready
-        return HookResult(strategy=HookStrategy.MODIFY, params=params)
+        repos = [r for r in self.plugin.repoManager.getRepositories() if r.get("enabled")]
+        
+        if not repos:
+            params.message = "No repositories configured"
+            return HookResult(strategy=HookStrategy.MODIFY, params=params)
+        
+        totalRepos = len(repos)
+        headerText = f"*Total {totalRepos} repositories*\n"
+        
+        repoLines = []
+        for repo in repos:
+            repoName = repo.get("name", "Unnamed")
+            repoUrl = repo.get("url", "")
+            
+            if repoUrl:
+                repoLines.append(f"[{repoName}]({repoUrl})")
+            else:
+                repoLines.append(f"*{repoName}*")
+        
+        listText = "\n".join(repoLines)
+        fullText = headerText + listText
+        
+        try:
+            parsedMessage = parse_markdown(fullText)
+            
+            headerLength = len(f"Total {totalRepos} repositories\n")
+            blockquoteStart = headerLength
+            blockquoteLength = len(parsedMessage.text) - headerLength
+            
+            messageParams = {
+                "message": parsedMessage.text,
+                "peer": params.peer,
+                "entities": [],
+                "searchLinks": False
+            }
+            
+            for rawEntity in parsedMessage.entities:
+                tlrpcEntity = rawEntity.to_tlrpc_object()
+                messageParams["entities"].append(tlrpcEntity)
+            
+            blockquoteEntity = TLRPC.TL_messageEntityBlockquote()
+            blockquoteEntity.offset = blockquoteStart
+            blockquoteEntity.length = blockquoteLength
+            blockquoteEntity.collapsed = True
+            messageParams["entities"].append(blockquoteEntity)
+            
+            send_message(messageParams)
+            
+        except Exception as e:
+            log(f"error sending repo list: {e}")
+            params.message = f"Error: {str(e)}"
+            return HookResult(strategy=HookStrategy.MODIFY, params=params)
+        
+        return HookResult(strategy=HookStrategy.CANCEL)
     
     def _handleShare(self, messageText: str, params: Any) -> HookResult:
         params.message = strings.not_ready
