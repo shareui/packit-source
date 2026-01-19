@@ -18,6 +18,214 @@ class InterfaceSettings:
     def _showNotReady(self, view):
         BulletinHelper.show_info("Not ready")
     
+    def _handleInstall(self, view):
+        if not self.plugin:
+            BulletinHelper.show_error("Plugin not initialized")
+            return
+        
+        fragment = get_last_fragment()
+        if not fragment:
+            return
+        
+        activity = fragment.getParentActivity()
+        if not activity:
+            return
+        
+        builder = AlertDialogBuilder(activity)
+        builder.set_title("Install Plugin")
+        
+        from android.widget import EditText, LinearLayout
+        from android.view import ViewGroup
+        from org.telegram.messenger import AndroidUtilities
+        
+        layout = LinearLayout(activity)
+        layout.setOrientation(LinearLayout.VERTICAL)
+        layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        layout.setLayoutParams(layoutParams)
+        
+        paddingDp = AndroidUtilities.dp(16)
+        layout.setPadding(paddingDp, paddingDp, paddingDp, paddingDp)
+        
+        pluginIdInput = EditText(activity)
+        pluginIdInput.setHint("Pack ID")
+        pluginIdInput.setSingleLine(True)
+        layout.addView(pluginIdInput)
+        
+        repoNameInput = EditText(activity)
+        repoNameInput.setHint("Repository name (optional)")
+        repoNameInput.setSingleLine(True)
+        marginParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        marginParams.setMargins(0, AndroidUtilities.dp(8), 0, 0)
+        repoNameInput.setLayoutParams(marginParams)
+        layout.addView(repoNameInput)
+        
+        builder.set_view(layout)
+        
+        def onInstall(bld, which):
+            pluginId = str(pluginIdInput.getText()).strip()
+            repoName = str(repoNameInput.getText()).strip()
+            
+            if not pluginId:
+                BulletinHelper.show_error("Pack ID cannot be empty")
+                return
+            
+            repoNameToUse = repoName if repoName else None
+            
+            self.plugin.core.installPlugin(pluginId, repoNameToUse, autoRestart=False)
+            bld.dismiss()
+        
+        builder.set_positive_button("Install", onInstall)
+        builder.set_negative_button("Cancel", lambda b, w: b.dismiss())
+        builder.show()
+    
+    def _handleSearch(self, view):
+        if not self.plugin:
+            BulletinHelper.show_error("Plugin not initialized")
+            return
+        
+        fragment = get_last_fragment()
+        if not fragment:
+            return
+        
+        activity = fragment.getParentActivity()
+        if not activity:
+            return
+        
+        builder = AlertDialogBuilder(activity)
+        builder.set_title("Search Plugins")
+        
+        from android.widget import EditText, LinearLayout
+        from android.view import ViewGroup
+        from org.telegram.messenger import AndroidUtilities
+        
+        layout = LinearLayout(activity)
+        layout.setOrientation(LinearLayout.VERTICAL)
+        layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        layout.setLayoutParams(layoutParams)
+        
+        paddingDp = AndroidUtilities.dp(16)
+        layout.setPadding(paddingDp, paddingDp, paddingDp, paddingDp)
+        
+        queryInput = EditText(activity)
+        queryInput.setHint("Search query")
+        queryInput.setSingleLine(True)
+        layout.addView(queryInput)
+        
+        builder.set_view(layout)
+        
+        def onSearch(bld, which):
+            query = str(queryInput.getText()).strip()
+            
+            if not query:
+                BulletinHelper.show_error("Query cannot be empty")
+                return
+            
+            results = self.plugin.core.searchInCache(query)
+            
+            if not results:
+                BulletinHelper.show_info(f"No matches found for '{query}'")
+                bld.dismiss()
+                return
+            
+            countMatches = len(results)
+            
+            resultLines = []
+            for result in results:
+                displayName = result.get("displayName", result.get("id", "Unknown"))
+                repoName = result.get("repo_name", "unknown")
+                description = result.get("description", "No description")
+                resultLines.append(f"{displayName} | repo: {repoName}\n{description}")
+            
+            listText = "\n\n".join(resultLines)
+            fullMessage = f"{countMatches} matches found!\n\n{listText}"
+            
+            bld.dismiss()
+            
+            resultBuilder = AlertDialogBuilder(activity)
+            resultBuilder.set_title("Search Results")
+            resultBuilder.set_message(fullMessage)
+            resultBuilder.set_positive_button("OK", lambda b, w: b.dismiss())
+            resultBuilder.show()
+        
+        builder.set_positive_button("Search", onSearch)
+        builder.set_negative_button("Cancel", lambda b, w: b.dismiss())
+        builder.show()
+    
+    def _handleUninstall(self, view):
+        if not self.plugin:
+            BulletinHelper.show_error("Plugin not initialized")
+            return
+        
+        fragment = get_last_fragment()
+        if not fragment:
+            return
+        
+        activity = fragment.getParentActivity()
+        if not activity:
+            return
+        
+        builder = AlertDialogBuilder(activity)
+        builder.set_title("Uninstall Plugin")
+        
+        from android.widget import EditText, LinearLayout
+        from android.view import ViewGroup
+        from org.telegram.messenger import AndroidUtilities
+        
+        layout = LinearLayout(activity)
+        layout.setOrientation(LinearLayout.VERTICAL)
+        layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        layout.setLayoutParams(layoutParams)
+        
+        paddingDp = AndroidUtilities.dp(16)
+        layout.setPadding(paddingDp, paddingDp, paddingDp, paddingDp)
+        
+        queryInput = EditText(activity)
+        queryInput.setHint("Query")
+        queryInput.setSingleLine(True)
+        layout.addView(queryInput)
+        
+        repoNameInput = EditText(activity)
+        repoNameInput.setHint("Repository name (optional)")
+        repoNameInput.setSingleLine(True)
+        marginParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        marginParams.setMargins(0, AndroidUtilities.dp(8), 0, 0)
+        repoNameInput.setLayoutParams(marginParams)
+        layout.addView(repoNameInput)
+        
+        builder.set_view(layout)
+        
+        def onUninstall(bld, which):
+            query = str(queryInput.getText()).strip()
+            repoName = str(repoNameInput.getText()).strip()
+            
+            if not query:
+                BulletinHelper.show_error("Query cannot be empty")
+                return
+            
+            repoNameToUse = repoName if repoName else None
+            
+            self.plugin.core.uninstallPlugin(query, repoNameToUse, autoRestart=False)
+            bld.dismiss()
+        
+        builder.set_positive_button("Uninstall", onUninstall)
+        builder.set_negative_button("Cancel", lambda b, w: b.dismiss())
+        builder.show()
+    
     def _handleUpdate(self, view):
         if not self.plugin:
             BulletinHelper.show_error("Plugin not initialized")
@@ -141,7 +349,7 @@ class InterfaceSettings:
             Text(
                 text="Install",
                 icon="msg_download",
-                on_click=self._showNotReady
+                on_click=self._handleInstall
             ),
             Text(
                 text="Update",
@@ -157,13 +365,13 @@ class InterfaceSettings:
                 text="Uninstall",
                 icon="msg_delete",
                 red=True,
-                on_click=self._showNotReady
+                on_click=self._handleUninstall
             ),
             Divider(),
             Text(
                 text="Search",
                 icon="msg_search",
-                on_click=self._showNotReady
+                on_click=self._handleSearch
             ),
             Text(
                 text="Plugin List",
