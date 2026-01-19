@@ -5,6 +5,7 @@ from .cmds import CommandProcessor
 from .repom import RepositoryManager
 from .core import PackItCore
 from .settings import SettingsBuilder
+from .chat_ui import ChatUI
 
 
 class PackItPlugin(BasePlugin):
@@ -14,11 +15,13 @@ class PackItPlugin(BasePlugin):
         self.core = PackItCore(self.repoManager)
         self.settingsBuilder = SettingsBuilder(self.repoManager)
         self.commandProcessor = CommandProcessor(self)
+        self.chatUI = ChatUI(self)
     
     def on_plugin_load(self):
         self.add_on_send_message_hook()
         self._initDefaultCommands()
         self.core.initializeRepositories()
+        self.chatUI.initialize_chat_menu()
     
     def _initDefaultCommands(self):
         if settings.get("cmd_info") is None:
