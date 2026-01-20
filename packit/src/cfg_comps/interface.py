@@ -3,9 +3,13 @@ from ui.bulletin import BulletinHelper
 from ui.alert import AlertDialogBuilder
 from client_utils import get_last_fragment, run_on_queue
 from android_utils import run_on_ui_thread, log
+from hook_utils import find_class
 import requests
 import json
 from datetime import datetime
+
+Theme = find_class("org.telegram.ui.ActionBar.Theme")
+PorterDuff = find_class("android.graphics.PorterDuff")
 
 
 class InterfaceSettings:
@@ -52,11 +56,23 @@ class InterfaceSettings:
         pluginIdInput = EditText(activity)
         pluginIdInput.setHint("Pack ID")
         pluginIdInput.setSingleLine(True)
+        pluginIdInput.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
+        pluginIdInput.setHintTextColor(Theme.getColor(Theme.key_dialogTextGray3))
+        pluginIdInput.getBackground().setColorFilter(
+            Theme.getColor(Theme.key_dialogTextBlack),
+            PorterDuff.Mode.SRC_ATOP
+        )
         layout.addView(pluginIdInput)
         
         repoNameInput = EditText(activity)
         repoNameInput.setHint("Repository name (optional)")
         repoNameInput.setSingleLine(True)
+        repoNameInput.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
+        repoNameInput.setHintTextColor(Theme.getColor(Theme.key_dialogTextGray3))
+        repoNameInput.getBackground().setColorFilter(
+            Theme.getColor(Theme.key_dialogTextBlack),
+            PorterDuff.Mode.SRC_ATOP
+        )
         marginParams = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
@@ -118,6 +134,12 @@ class InterfaceSettings:
         queryInput = EditText(activity)
         queryInput.setHint("Search query")
         queryInput.setSingleLine(True)
+        queryInput.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
+        queryInput.setHintTextColor(Theme.getColor(Theme.key_dialogTextGray3))
+        queryInput.getBackground().setColorFilter(
+            Theme.getColor(Theme.key_dialogTextBlack),
+            PorterDuff.Mode.SRC_ATOP
+        )
         layout.addView(queryInput)
         
         builder.set_view(layout)
@@ -194,11 +216,23 @@ class InterfaceSettings:
         queryInput = EditText(activity)
         queryInput.setHint("Query")
         queryInput.setSingleLine(True)
+        queryInput.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
+        queryInput.setHintTextColor(Theme.getColor(Theme.key_dialogTextGray3))
+        queryInput.getBackground().setColorFilter(
+            Theme.getColor(Theme.key_dialogTextBlack),
+            PorterDuff.Mode.SRC_ATOP
+        )
         layout.addView(queryInput)
         
         repoNameInput = EditText(activity)
         repoNameInput.setHint("Repository name (optional)")
         repoNameInput.setSingleLine(True)
+        repoNameInput.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
+        repoNameInput.setHintTextColor(Theme.getColor(Theme.key_dialogTextGray3))
+        repoNameInput.getBackground().setColorFilter(
+            Theme.getColor(Theme.key_dialogTextBlack),
+            PorterDuff.Mode.SRC_ATOP
+        )
         marginParams = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
@@ -223,6 +257,84 @@ class InterfaceSettings:
             bld.dismiss()
         
         builder.set_positive_button("Uninstall", onUninstall)
+        builder.set_negative_button("Cancel", lambda b, w: b.dismiss())
+        builder.show()
+    
+    def _handleUpgrade(self, view):
+        if not self.plugin:
+            BulletinHelper.show_error("Plugin not initialized")
+            return
+        
+        fragment = get_last_fragment()
+        if not fragment:
+            return
+        
+        activity = fragment.getParentActivity()
+        if not activity:
+            return
+        
+        builder = AlertDialogBuilder(activity)
+        builder.set_title("Upgrade Plugin")
+        
+        from android.widget import EditText, LinearLayout
+        from android.view import ViewGroup
+        from org.telegram.messenger import AndroidUtilities
+        
+        layout = LinearLayout(activity)
+        layout.setOrientation(LinearLayout.VERTICAL)
+        layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        layout.setLayoutParams(layoutParams)
+        
+        paddingDp = AndroidUtilities.dp(16)
+        layout.setPadding(paddingDp, paddingDp, paddingDp, paddingDp)
+        
+        queryInput = EditText(activity)
+        queryInput.setHint("Query")
+        queryInput.setSingleLine(True)
+        queryInput.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
+        queryInput.setHintTextColor(Theme.getColor(Theme.key_dialogTextGray3))
+        queryInput.getBackground().setColorFilter(
+            Theme.getColor(Theme.key_dialogTextBlack),
+            PorterDuff.Mode.SRC_ATOP
+        )
+        layout.addView(queryInput)
+        
+        repoNameInput = EditText(activity)
+        repoNameInput.setHint("Repository name (optional)")
+        repoNameInput.setSingleLine(True)
+        repoNameInput.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
+        repoNameInput.setHintTextColor(Theme.getColor(Theme.key_dialogTextGray3))
+        repoNameInput.getBackground().setColorFilter(
+            Theme.getColor(Theme.key_dialogTextBlack),
+            PorterDuff.Mode.SRC_ATOP
+        )
+        marginParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        marginParams.setMargins(0, AndroidUtilities.dp(8), 0, 0)
+        repoNameInput.setLayoutParams(marginParams)
+        layout.addView(repoNameInput)
+        
+        builder.set_view(layout)
+        
+        def onUpgrade(bld, which):
+            query = str(queryInput.getText()).strip()
+            repoName = str(repoNameInput.getText()).strip()
+            
+            if not query:
+                BulletinHelper.show_error("Query cannot be empty")
+                return
+            
+            repoNameToUse = repoName if repoName else None
+            
+            self.plugin.core.upgradePlugin(query, repoNameToUse, autoRestart=False)
+            bld.dismiss()
+        
+        builder.set_positive_button("Upgrade", onUpgrade)
         builder.set_negative_button("Cancel", lambda b, w: b.dismiss())
         builder.show()
     
@@ -359,7 +471,7 @@ class InterfaceSettings:
             Text(
                 text="Upgrade",
                 icon="gift_upgrade",
-                on_click=self._showNotReady
+                on_click=self._handleUpgrade
             ),
             Text(
                 text="Uninstall",
