@@ -9,9 +9,8 @@ from .cfg_comps.contributors import ContributorsSettings
 from base_plugin import BasePlugin, MethodHook
 from android_utils import log, run_on_ui_thread
 from hook_utils import find_class, get_private_field
-from org.telegram.messenger import MediaDataController, ImageLocation, AndroidUtilities
 from org.telegram.ui.ActionBar import Theme
-from org.telegram.ui.Components import LayoutHelper, BackupImageView, UItem
+from org.telegram.ui.Components import LayoutHelper, UItem
 from com.exteragram.messenger.plugins.models import HeaderSetting
 from android.widget import FrameLayout, TextView
 from android.view import Gravity
@@ -78,26 +77,6 @@ class SettingsBuilder:
         try:
             container = FrameLayout(context)
             
-            imageView = BackupImageView(context)
-            imageView.setRoundRadius(AndroidUtilities.dp(54))
-            
-            def try_load_sticker(img):
-                pack_name = "frieren"
-                sticker_index = 0
-                
-                ss = MediaDataController.getInstance(0).getStickerSetByName(pack_name) or MediaDataController.getInstance(0).getStickerSetByEmojiOrName(pack_name)
-                if ss and ss.documents and ss.documents.size() > 0:
-                    sticker_index = min(sticker_index, ss.documents.size() - 1)
-                    img.setImage(ImageLocation.getForDocument(ss.documents.get(sticker_index)), "108_108", None, None, 0, 1)
-                    return True
-                return False
-            
-            if not try_load_sticker(imageView):
-                MediaDataController.getInstance(0).loadStickersByEmojiOrName("frieren", False, False)
-                run_on_ui_thread(lambda: try_load_sticker(imageView), 1500)
-            
-            container.addView(imageView, LayoutHelper.createFrame(108, 108, Gravity.CENTER | Gravity.TOP, 0, 20, 0, 0))
-            
             title = TextView(context)
             title.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
             title.setTypeface(AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_MEDIUM))
@@ -105,14 +84,14 @@ class SettingsBuilder:
             title.setText("Settings")
             title.setSingleLine(True)
             title.setGravity(Gravity.CENTER)
-            container.addView(title, LayoutHelper.createFrame(-2, -2, Gravity.CENTER | Gravity.TOP, 50, 145, 50, 0))
+            container.addView(title, LayoutHelper.createFrame(-2, -2, Gravity.CENTER | Gravity.TOP, 50, 60, 50, 0))
             
             subtitle = TextView(context)
             subtitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
             subtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
             subtitle.setText("Packit Plugin Manager")
             subtitle.setGravity(Gravity.CENTER)
-            container.addView(subtitle, LayoutHelper.createFrame(-2, -2, Gravity.CENTER | Gravity.TOP, 60, 180, 60, 27))
+            container.addView(subtitle, LayoutHelper.createFrame(-2, -2, Gravity.CENTER | Gravity.TOP, 60, 95, 60, 27))
             
             return container
         except Exception as e:
@@ -181,5 +160,4 @@ class SettingsBuilder:
                 create_sub_fragment=self.contributorsSettings.build
             ),
             
-            Divider(text="With love <3")
         ]
