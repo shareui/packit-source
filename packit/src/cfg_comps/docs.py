@@ -42,7 +42,7 @@ class DocumentationSettings:
         self._openUrl("https://t.me/c/3663388991/85")
     
     def _openForum(self, view):
-        self._openUrl("https://t.me/c/3663388991")
+        self._openUrl("https://t.me/+MlXY77j5URE2MTU8")
     
     def build(self):
         return [
@@ -67,5 +67,5 @@ class DocumentationSettings:
                 icon="msg_info",
                 on_click=self._openForum
             ),
-            Divider(text="Documentation and help resources")
+
         ]
