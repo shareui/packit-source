@@ -8,8 +8,7 @@ class RepositoriesSettings:
     
     def build(self):
         repos = self.repoManager.getRepositories()
-        
-        # Если репозиториев нет, создаем первый с дефолтными значениями
+
         if not repos:
             self.repoManager.addRepository(isFirst=True)
             repos = self.repoManager.getRepositories()
@@ -28,7 +27,33 @@ class RepositoriesSettings:
             return lambda value: self.repoManager.updateRepoField(i, field, value)
         
         def makeOnRemove(i):
-            return lambda view: self.repoManager.removeRepository(i)
+            def show_confirm_dialog(view):
+                try:
+                    from ui.alert import AlertDialogBuilder
+                    from client_utils import get_last_fragment
+                    frag = get_last_fragment()
+                    act = frag.getParentActivity() if frag else None
+                    if not act:
+                        return
+                    
+                    builder = AlertDialogBuilder(act)
+                    builder.set_title("Delete repository")
+                    builder.set_message("Are you sure you want to delete repository?")
+                    
+                    def on_yes(b, w):
+                        self.repoManager.removeRepository(i)
+                    
+                    builder.set_positive_button("Delete", on_yes)
+                    builder.set_negative_button("Close", lambda b, w: b.dismiss())
+                    try:
+                        builder.make_button_red(AlertDialogBuilder.BUTTON_POSITIVE)
+                    except Exception:
+                        pass
+                    builder.show()
+                except Exception:
+                    self.repoManager.removeRepository(i)
+            
+            return show_confirm_dialog
         
         def makeOnToggleCollapse(i):
             def toggle(view):
