@@ -53,13 +53,15 @@ class InterfaceSettings:
         paddingDp = AndroidUtilities.dp(16)
         layout.setPadding(paddingDp, paddingDp, paddingDp, paddingDp)
         
+        accentColor = Theme.getColor(Theme.key_windowBackgroundWhiteBlueHeader)
+        
         pluginIdInput = EditText(activity)
         pluginIdInput.setHint("Pack ID")
         pluginIdInput.setSingleLine(True)
         pluginIdInput.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
         pluginIdInput.setHintTextColor(Theme.getColor(Theme.key_dialogTextGray3))
         pluginIdInput.getBackground().setColorFilter(
-            Theme.getColor(Theme.key_dialogTextBlack),
+            accentColor,
             PorterDuff.Mode.SRC_ATOP
         )
         layout.addView(pluginIdInput)
@@ -70,7 +72,7 @@ class InterfaceSettings:
         repoNameInput.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
         repoNameInput.setHintTextColor(Theme.getColor(Theme.key_dialogTextGray3))
         repoNameInput.getBackground().setColorFilter(
-            Theme.getColor(Theme.key_dialogTextBlack),
+            accentColor,
             PorterDuff.Mode.SRC_ATOP
         )
         marginParams = LinearLayout.LayoutParams(
@@ -131,13 +133,15 @@ class InterfaceSettings:
         paddingDp = AndroidUtilities.dp(16)
         layout.setPadding(paddingDp, paddingDp, paddingDp, paddingDp)
         
+        accentColor = Theme.getColor(Theme.key_windowBackgroundWhiteBlueHeader)
+        
         queryInput = EditText(activity)
         queryInput.setHint("Search query")
         queryInput.setSingleLine(True)
         queryInput.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
         queryInput.setHintTextColor(Theme.getColor(Theme.key_dialogTextGray3))
         queryInput.getBackground().setColorFilter(
-            Theme.getColor(Theme.key_dialogTextBlack),
+            accentColor,
             PorterDuff.Mode.SRC_ATOP
         )
         layout.addView(queryInput)
@@ -213,13 +217,15 @@ class InterfaceSettings:
         paddingDp = AndroidUtilities.dp(16)
         layout.setPadding(paddingDp, paddingDp, paddingDp, paddingDp)
         
+        accentColor = Theme.getColor(Theme.key_windowBackgroundWhiteBlueHeader)
+        
         queryInput = EditText(activity)
         queryInput.setHint("Query")
         queryInput.setSingleLine(True)
         queryInput.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
         queryInput.setHintTextColor(Theme.getColor(Theme.key_dialogTextGray3))
         queryInput.getBackground().setColorFilter(
-            Theme.getColor(Theme.key_dialogTextBlack),
+            accentColor,
             PorterDuff.Mode.SRC_ATOP
         )
         layout.addView(queryInput)
@@ -230,7 +236,7 @@ class InterfaceSettings:
         repoNameInput.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
         repoNameInput.setHintTextColor(Theme.getColor(Theme.key_dialogTextGray3))
         repoNameInput.getBackground().setColorFilter(
-            Theme.getColor(Theme.key_dialogTextBlack),
+            accentColor,
             PorterDuff.Mode.SRC_ATOP
         )
         marginParams = LinearLayout.LayoutParams(
@@ -291,13 +297,15 @@ class InterfaceSettings:
         paddingDp = AndroidUtilities.dp(16)
         layout.setPadding(paddingDp, paddingDp, paddingDp, paddingDp)
         
+        accentColor = Theme.getColor(Theme.key_windowBackgroundWhiteBlueHeader)
+        
         queryInput = EditText(activity)
         queryInput.setHint("Query")
         queryInput.setSingleLine(True)
         queryInput.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
         queryInput.setHintTextColor(Theme.getColor(Theme.key_dialogTextGray3))
         queryInput.getBackground().setColorFilter(
-            Theme.getColor(Theme.key_dialogTextBlack),
+            accentColor,
             PorterDuff.Mode.SRC_ATOP
         )
         layout.addView(queryInput)
@@ -308,7 +316,7 @@ class InterfaceSettings:
         repoNameInput.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
         repoNameInput.setHintTextColor(Theme.getColor(Theme.key_dialogTextGray3))
         repoNameInput.getBackground().setColorFilter(
-            Theme.getColor(Theme.key_dialogTextBlack),
+            accentColor,
             PorterDuff.Mode.SRC_ATOP
         )
         marginParams = LinearLayout.LayoutParams(
