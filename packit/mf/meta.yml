@@ -9,7 +9,7 @@ description: |
 
   This is not a fork, the plugin is completely written from scratch using the ElyxCore library.
 id: shareui_packit
-version: "0.1.0(15) Alpha"
+version: "1.0.0(20) Alpha"
 author: "@packitGround"
 min_version: "12.2.10"
 icon: PluginsStickers/0
