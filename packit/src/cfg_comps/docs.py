@@ -9,30 +9,40 @@ class DocumentationSettings:
     
     def _openUrl(self, url):
         try:
-            from android.content import Intent
-            from android.net import Uri
-            from org.telegram.messenger import ApplicationLoader
-            
-            context = ApplicationLoader.applicationContext
-            intent = Intent(Intent.ACTION_VIEW)
-            intent.setData(Uri.parse(url))
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            context.startActivity(intent)
+            if url.startswith("https://t.me/"):
+                from client_utils import get_last_fragment
+                from org.telegram.messenger.browser import Browser
+                from android.net import Uri
+                frag = get_last_fragment()
+                act = frag.getParentActivity() if frag else None
+                if act:
+                    uri = Uri.parse(url)
+                    Browser.openUrl(act, uri, True, True, True, None, None, False, False, False)
+            else:
+                from android.content import Intent
+                from android.net import Uri
+                from org.telegram.messenger import ApplicationLoader
+                
+                context = ApplicationLoader.applicationContext
+                intent = Intent(Intent.ACTION_VIEW)
+                intent.setData(Uri.parse(url))
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
         except Exception as e:
             log(f"failed to open url: {e}")
             BulletinHelper.show_error("Failed to open link")
     
     def _openFaq(self, view):
-        self._openUrl("https://t.me/packitGround/13")
+        self._openUrl("https://t.me/c/3663388991/13")
     
     def _openRepoGuide(self, view):
         self._openUrl("https://github.com/shareui/packit/blob/main/docs/ownrepo.md")
     
     def _openBugReport(self, view):
-        self._openUrl("https://t.me/packitGround/85")
+        self._openUrl("https://t.me/c/3663388991/85")
     
     def _openForum(self, view):
-        self._openUrl("https://t.me/packitGround")
+        self._openUrl("https://t.me/c/3663388991")
     
     def build(self):
         return [
