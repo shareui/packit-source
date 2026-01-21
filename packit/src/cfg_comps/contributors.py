@@ -37,17 +37,17 @@ class ContributorsSettings:
             Header(text="Founder: @shareui"),
             
             Text(
-                text="GitHub - github.com/shareui",
+                text="GitHub",
                 icon="msg_link",
                 on_click=lambda v: self._open_url("https://github.com/shareui")
             ),
             Text(
-                text="Direct message - @shareui",
+                text="Direct message",
                 icon="msg_message",
                 on_click=lambda v: self._open_url("https://t.me/shareui")
             ),
             Text(
-                text="Personal channel - @shuiilog",
+                text="Personal channel",
                 icon="msg_channel",
                 on_click=lambda v: self._open_url("https://t.me/shuiilog")
             ),
@@ -57,17 +57,17 @@ class ContributorsSettings:
             Header(text="Lead Developer: @mr_Vestr"),
 
             Text(
-                text="GitHub - github.com/mr-vestr",
+                text="GitHub",
                 icon="msg_link",
                 on_click=lambda v: self._open_url("https://github.com/mr-vestr")
             ),
             Text(
-                text="Direct message - @mr_Vestr",
+                text="Direct message",
                 icon="msg_message",
                 on_click=lambda v: self._open_url("https://t.me/mr_Vestr")
             ),
             Text(
-                text="Personal channel - @I_am_Vestr",
+                text="Personal channel",
                 icon="msg_channel",
                 on_click=lambda v: self._open_url("https://t.me/I_am_Vestr")
             ),
