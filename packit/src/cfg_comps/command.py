@@ -145,6 +145,7 @@ class CommandSettings:
                 icon="msg_share"
             ),
             
+            Divider(),
             Header(text="About commands"),
             
             Text(
