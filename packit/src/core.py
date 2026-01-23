@@ -36,7 +36,8 @@ class PackItCore:
                         "last_update": datetime.now().isoformat(),
                         "url": repo["url"],
                         "name": repo["name"],
-                        "plugins": config.get("plugins", {})
+                        "plugins": config.get("plugins", {}),
+                        "repometa": config.get("repometa", {})
                     }
                     
                     settings.set(cacheKey, json.dumps(cacheData))
@@ -53,6 +54,36 @@ class PackItCore:
                 run_on_ui_thread(showResult)
         
         run_on_queue(task)
+    
+    def getRepometaText(self):
+        repos = self.repoManager.getRepositories()
+        lines = []
+        
+        for repo in repos:
+            if not repo.get("enabled"):
+                continue
+            
+            cacheKey = f"{repo['id']}_cache"
+            cacheJson = settings.get(cacheKey, "{}")
+            
+            try:
+                cache = json.loads(cacheJson)
+                repometa = cache.get("repometa", {})
+                
+                rmName = repometa.get("rm_name", "Unknown")
+                rmMaintainer = repometa.get("rm_maintainer", "Unknown")
+                rmUrl = repometa.get("rm_url", "Unknown")
+                
+                lines.append(f"{rmName}")
+                lines.append(f"{rmName}, {rmMaintainer}, {rmUrl}")
+                lines.append("")
+            except Exception as e:
+                log(f"failed to parse repometa for {repo['name']}: {e}")
+        
+        if lines and lines[-1] == "":
+            lines.pop()
+        
+        return "\n".join(lines) if lines else "No repositories found"
     
     def installPlugin(self, pluginId, repoName=None, autoRestart=False):
         def task():

@@ -1,4 +1,4 @@
-from ui.settings import Header, Selector
+from ui.settings import Header, Switch
 from elyx import strings, settings
 
 
@@ -9,11 +9,11 @@ class OtherSettings:
     def build(self):
         return [
             Header(text=strings.other_settings),
-            Selector(
-                key="auto_update_interval",
+            Switch(
+                key="auto_update_on_start",
                 text="Auto-update",
-                default=0,
-                items=["Never", "30m", "1h", "4h", "8h", "12h", "24h"],
+                subtext="Update repos when starting app",
+                default=False,
                 icon="msg_retry"
             )
         ]
