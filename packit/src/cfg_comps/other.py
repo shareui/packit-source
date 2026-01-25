@@ -1,4 +1,4 @@
-from ui.settings import Header, Switch
+from ui.settings import Header, Switch, Divider
 from elyx import strings, settings
 
 
@@ -8,7 +8,7 @@ class OtherSettings:
     
     def build(self):
         return [
-            Header(text=strings.other_settings),
+            Header(text="Buttons"),
             Switch(
                 key="show_chat_menu",
                 text="Button in chat menu",
@@ -33,11 +33,14 @@ class OtherSettings:
                 icon="msg_plugins",
                 on_change=self.chat_button.on_chat_plugins_switch if self.chat_button else None
             ),
+            Divider(),
+            Header(text="Updates"),
             Switch(
                 key="auto_update_on_start",
                 text="Auto-update",
                 subtext="Update repos when starting app",
                 default=False,
                 icon="msg_retry"
-            )
+            ),
+            Divider()
         ]
