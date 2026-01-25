@@ -18,7 +18,7 @@ from android.view import Gravity
 from android.util import TypedValue
 from org.telegram.messenger import AndroidUtilities, ImageLocation, MediaDataController
 
-__icon__ = "PluginsStickers/0"
+__icon__ = "PluginsStickers/1"
 
 
 class SettingsBuilder:
