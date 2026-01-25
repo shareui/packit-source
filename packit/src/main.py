@@ -1,11 +1,12 @@
 from typing import Any
 from base_plugin import BasePlugin, HookResult
 from elyx import settings
+from client_utils import run_on_queue
 from .cmds import CommandProcessor
 from .repom import RepositoryManager
 from .core import PackItCore
 from .settings import SettingsBuilder
-from .chat_ui import ChatUI
+from .chat_ui import ChatButton
 
 
 class PackItPlugin(BasePlugin):
@@ -13,15 +14,16 @@ class PackItPlugin(BasePlugin):
         super().__init__()
         self.repoManager = RepositoryManager()
         self.core = PackItCore(self.repoManager)
+        self.chatUI = ChatButton(self)
         self.settingsBuilder = SettingsBuilder(self.repoManager, self)
         self.commandProcessor = CommandProcessor(self)
-        self.chatUI = ChatUI(self)
     
     def on_plugin_load(self):
         self.add_on_send_message_hook()
         self._initDefaultCommands()
         self.core.initializeRepositories()
         self.chatUI.initialize_chat_menu()
+        self._scheduleAutoUpdate()
     
     def _initDefaultCommands(self):
         if settings.get("cmd_info") is None:
@@ -42,6 +44,19 @@ class PackItPlugin(BasePlugin):
             settings.set("cmd_update", "packit update")
         if settings.get("cmd_upgrade") is None:
             settings.set("cmd_upgrade", "packit upgrade")
+    
+    def _scheduleAutoUpdate(self):
+        autoUpdateEnabled = settings.get("auto_update_on_start", False)
+        
+        if not autoUpdateEnabled:
+            return
+        
+        def delayedUpdate():
+            import time
+            time.sleep(10)
+            self.core.updateAllRepositories(silent=False)
+        
+        run_on_queue(delayedUpdate)
     
     def create_settings(self):
         return self.settingsBuilder.buildMainSettings()
