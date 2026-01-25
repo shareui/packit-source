@@ -1,12 +1,9 @@
 from ui.settings import Header, Text, Divider
 from ui.bulletin import BulletinHelper
 from ui.alert import AlertDialogBuilder
-from client_utils import get_last_fragment, run_on_queue
-from android_utils import run_on_ui_thread, log
+from client_utils import get_last_fragment
+from android_utils import log
 from hook_utils import find_class
-import requests
-import json
-from datetime import datetime
 
 Theme = find_class("org.telegram.ui.ActionBar.Theme")
 PorterDuff = find_class("android.graphics.PorterDuff")
@@ -53,13 +50,15 @@ class InterfaceSettings:
         paddingDp = AndroidUtilities.dp(16)
         layout.setPadding(paddingDp, paddingDp, paddingDp, paddingDp)
         
+        accentColor = Theme.getColor(Theme.key_windowBackgroundWhiteBlueHeader)
+        
         pluginIdInput = EditText(activity)
         pluginIdInput.setHint("Pack ID")
         pluginIdInput.setSingleLine(True)
         pluginIdInput.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
         pluginIdInput.setHintTextColor(Theme.getColor(Theme.key_dialogTextGray3))
         pluginIdInput.getBackground().setColorFilter(
-            Theme.getColor(Theme.key_dialogTextBlack),
+            accentColor,
             PorterDuff.Mode.SRC_ATOP
         )
         layout.addView(pluginIdInput)
@@ -70,7 +69,7 @@ class InterfaceSettings:
         repoNameInput.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
         repoNameInput.setHintTextColor(Theme.getColor(Theme.key_dialogTextGray3))
         repoNameInput.getBackground().setColorFilter(
-            Theme.getColor(Theme.key_dialogTextBlack),
+            accentColor,
             PorterDuff.Mode.SRC_ATOP
         )
         marginParams = LinearLayout.LayoutParams(
@@ -131,13 +130,15 @@ class InterfaceSettings:
         paddingDp = AndroidUtilities.dp(16)
         layout.setPadding(paddingDp, paddingDp, paddingDp, paddingDp)
         
+        accentColor = Theme.getColor(Theme.key_windowBackgroundWhiteBlueHeader)
+        
         queryInput = EditText(activity)
         queryInput.setHint("Search query")
         queryInput.setSingleLine(True)
         queryInput.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
         queryInput.setHintTextColor(Theme.getColor(Theme.key_dialogTextGray3))
         queryInput.getBackground().setColorFilter(
-            Theme.getColor(Theme.key_dialogTextBlack),
+            accentColor,
             PorterDuff.Mode.SRC_ATOP
         )
         layout.addView(queryInput)
@@ -213,13 +214,15 @@ class InterfaceSettings:
         paddingDp = AndroidUtilities.dp(16)
         layout.setPadding(paddingDp, paddingDp, paddingDp, paddingDp)
         
+        accentColor = Theme.getColor(Theme.key_windowBackgroundWhiteBlueHeader)
+        
         queryInput = EditText(activity)
         queryInput.setHint("Query")
         queryInput.setSingleLine(True)
         queryInput.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
         queryInput.setHintTextColor(Theme.getColor(Theme.key_dialogTextGray3))
         queryInput.getBackground().setColorFilter(
-            Theme.getColor(Theme.key_dialogTextBlack),
+            accentColor,
             PorterDuff.Mode.SRC_ATOP
         )
         layout.addView(queryInput)
@@ -230,7 +233,7 @@ class InterfaceSettings:
         repoNameInput.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
         repoNameInput.setHintTextColor(Theme.getColor(Theme.key_dialogTextGray3))
         repoNameInput.getBackground().setColorFilter(
-            Theme.getColor(Theme.key_dialogTextBlack),
+            accentColor,
             PorterDuff.Mode.SRC_ATOP
         )
         marginParams = LinearLayout.LayoutParams(
@@ -291,13 +294,15 @@ class InterfaceSettings:
         paddingDp = AndroidUtilities.dp(16)
         layout.setPadding(paddingDp, paddingDp, paddingDp, paddingDp)
         
+        accentColor = Theme.getColor(Theme.key_windowBackgroundWhiteBlueHeader)
+        
         queryInput = EditText(activity)
         queryInput.setHint("Query")
         queryInput.setSingleLine(True)
         queryInput.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
         queryInput.setHintTextColor(Theme.getColor(Theme.key_dialogTextGray3))
         queryInput.getBackground().setColorFilter(
-            Theme.getColor(Theme.key_dialogTextBlack),
+            accentColor,
             PorterDuff.Mode.SRC_ATOP
         )
         layout.addView(queryInput)
@@ -308,7 +313,7 @@ class InterfaceSettings:
         repoNameInput.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
         repoNameInput.setHintTextColor(Theme.getColor(Theme.key_dialogTextGray3))
         repoNameInput.getBackground().setColorFilter(
-            Theme.getColor(Theme.key_dialogTextBlack),
+            accentColor,
             PorterDuff.Mode.SRC_ATOP
         )
         marginParams = LinearLayout.LayoutParams(
@@ -343,38 +348,7 @@ class InterfaceSettings:
             BulletinHelper.show_error("Plugin not initialized")
             return
         
-        def task():
-            repos = [r for r in self.plugin.repoManager.getRepositories() if r.get("enabled")]
-            successCount = 0
-            failedCount = 0
-            
-            for repo in repos:
-                try:
-                    from elyx import settings
-                    response = requests.get(repo["url"], timeout=10)
-                    config = response.json()
-                    
-                    cacheKey = f"{repo['id']}_cache"
-                    cacheData = {
-                        "last_update": datetime.now().isoformat(),
-                        "url": repo["url"],
-                        "name": repo["name"],
-                        "plugins": config.get("plugins", {})
-                    }
-                    
-                    settings.set(cacheKey, json.dumps(cacheData))
-                    successCount += 1
-                    log(f"updated repo cache: {repo['name']}")
-                except Exception as e:
-                    failedCount += 1
-                    log(f"failed to update repo {repo['name']}: {e}")
-            
-            def showResult():
-                BulletinHelper.show_info(f"Successful: {successCount} Failed: {failedCount}")
-            
-            run_on_ui_thread(showResult)
-        
-        run_on_queue(task)
+        self.plugin.core.updateAllRepositories(silent=False)
     
     def _handlePluginList(self, view):
         if not self.plugin:
