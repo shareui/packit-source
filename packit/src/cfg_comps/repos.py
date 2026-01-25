@@ -129,10 +129,7 @@ class RepositoriesSettings:
                         on_change=makeOnChange("url", idx)
                     )
                 ])
-            Divider(),
+
             settingsList.append(Divider())
-        
-        if settingsList and isinstance(settingsList[-1], Divider):
-            settingsList.pop()
         
         return settingsList

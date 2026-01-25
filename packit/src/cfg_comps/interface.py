@@ -468,5 +468,6 @@ class InterfaceSettings:
                 text="Repository List",
                 icon="msg_folders",
                 on_click=self._handleRepoList
-            )
+            ),
+            Divider()
         ]
