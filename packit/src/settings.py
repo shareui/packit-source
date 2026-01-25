@@ -26,7 +26,7 @@ class SettingsBuilder:
         self.interfaceSettings.setPlugin(plugin)
         self.commandSettings = CommandSettings()
         self.repositoriesSettings = RepositoriesSettings(repoManager)
-        self.otherSettings = OtherSettings()
+        self.otherSettings = OtherSettings(plugin.chatUI)
         self.documentationSettings = DocumentationSettings()
         self.contributorsSettings = ContributorsSettings()
         self.debugSettings = DebugSettings(plugin.core)

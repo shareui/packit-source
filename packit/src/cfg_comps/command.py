@@ -192,5 +192,6 @@ class CommandSettings:
                 text="About Share",
                 icon="msg_help",
                 on_click=self._showShareAbout
-            )
+            ),
+            Divider()
         ]

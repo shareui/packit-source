@@ -12,7 +12,8 @@ from hook_utils import find_class
 from com.exteragram.messenger.plugins import PluginsController
 from com.exteragram.messenger.plugins.ui import PluginSettingsActivity
 
-class ChatUI:
+
+class ChatButton:
     def __init__(self, plugin):
         self.plugin = plugin
         self.packit_menu_id = 880034
@@ -26,8 +27,9 @@ class ChatUI:
     
     def initialize_chat_menu(self):
         try:
-            self._add_buton_to_chat_header()
-            self._hook_chat_activity_resume()
+            self._update_chat_menu()
+            self._update_drawer_menu()
+            self._update_chat_plugins_menu()
         except Exception as e:
             log(f"Failed to initialize chat menu: {e}")
     
@@ -60,10 +62,10 @@ class ChatUI:
                 return
             R = find_class("org.telegram.messenger.R")
             try:
-                icon_id = getattr(R.drawable, 'msg_settings')
+                icon_id = getattr(R.drawable, 'msg_plugins')
             except Exception:
                 try:
-                    icon_id = getattr(R.drawable, 'msg_settings_14')
+                    icon_id = getattr(R.drawable, 'msg_plugins_14')
                 except Exception:
                     icon_id = 0
             
@@ -153,16 +155,16 @@ class ChatUI:
             onItemClickMethod = callback_class.getDeclaredMethod("onItemClick", jint)
             onItemClickMethod.setAccessible(True)
             
-            chat_ui = self
+            chat_button = self
             class PackItActionBarMenuItemClickHook(MethodHook):
-                def __init__(self, chat_ui_ref, activity_ref):
-                    self.chat_ui_ref = chat_ui_ref
+                def __init__(self, chat_button_ref, activity_ref):
+                    self.chat_button_ref = chat_button_ref
                     self.activity_ref = activity_ref
                 def before_hooked_method(self, param):
                     try:
                         item_id = int(param.args[0])
-                        if item_id == self.chat_ui_ref.packit_menu_id:
-                            run_on_ui_thread(self.chat_ui_ref.open_packit_settings)
+                        if item_id == self.chat_button_ref.packit_menu_id:
+                            run_on_ui_thread(self.chat_button_ref.open_packit_settings)
                             param.setResult(None)
                     except Exception:
                         pass
@@ -195,13 +197,13 @@ class ChatUI:
             if target_method is None:
                 return
             
-            chat_ui = self
+            chat_button = self
             class ChatResumeHook(MethodHook):
-                def __init__(self, chat_ui_ref):
-                    self.chat_ui_ref = chat_ui_ref
+                def __init__(self, chat_button_ref):
+                    self.chat_button_ref = chat_button_ref
                 def after_hooked_method(self, param):
                     try:
-                        run_on_ui_thread(self.chat_ui_ref._add_buton_to_chat_header)
+                        run_on_ui_thread(self.chat_button_ref._add_buton_to_chat_header)
                     except Exception:
                         pass
             self.plugin.hook_method(target_method, ChatResumeHook(self))
@@ -224,3 +226,107 @@ class ChatUI:
             run_on_ui_thread(_open_settings)
         except Exception as e:
             BulletinHelper.show_error(f"Error: {e}")
+    
+    def _update_chat_menu(self):
+        try:
+            from elyx import settings
+            show_chat = settings.get("show_chat_menu", True)
+            if show_chat:
+                self._add_buton_to_chat_header()
+                self._hook_chat_activity_resume()
+            else:
+                self._remove_chat_button()
+        except Exception as e:
+            log(f"Failed to update chat menu: {e}")
+    
+    def _remove_chat_button(self):
+        try:
+            frag = get_last_fragment()
+            if not frag or not isinstance(frag, ChatActivity):
+                return
+            
+            chat_activity = frag
+            headerItem = self._get_private_field(chat_activity, "headerItem")
+            if headerItem is None:
+                return
+            
+            lazy_list = self._get_private_field(headerItem, "lazyList")
+            lazy_map = self._get_private_field(headerItem, "lazyMap")
+            
+            if lazy_map is not None:
+                lazy_map.remove(self.packit_menu_id)
+            if lazy_list is not None:
+                items_to_remove = []
+                for i in range(lazy_list.size()):
+                    item = lazy_list.get(i)
+                    try:
+                        item_id = self._get_private_field(item, "id")
+                        if item_id == self.packit_menu_id:
+                            items_to_remove.append(i)
+                    except Exception:
+                        continue
+                for i in reversed(items_to_remove):
+                    lazy_list.remove(i)
+        except Exception as e:
+            log(f"Failed to remove chat button: {e}")
+    
+    def _update_drawer_menu(self):
+        try:
+            from elyx import settings
+            show_drawer = settings.get("show_drawer_menu", False)
+            self.plugin.remove_menu_item('packit_drawer')
+            if show_drawer:
+                self.plugin.add_menu_item(MenuItemData(
+                    menu_type=MenuItemType.DRAWER_MENU,
+                    text=self.get_text('packit'),
+                    icon='msg_plugins',
+                    item_id='packit_drawer',
+                    on_click=lambda ctx: self.open_packit_settings()
+                ))
+        except Exception as e:
+            log(f"Failed to update drawer menu: {e}")
+    
+    def _update_chat_plugins_menu(self):
+        try:
+            from elyx import settings
+            show_chat_plugins = settings.get("show_chat_plugins_menu", False)
+            self.plugin.remove_menu_item('packit_chat_plugins')
+            if show_chat_plugins:
+                try:
+                    menu_type = MenuItemType.CHAT_ACTION_MENU
+                except Exception:
+                    menu_type = None
+                if menu_type:
+                    self.plugin.add_menu_item(MenuItemData(
+                        menu_type=menu_type,
+                        text=self.get_text('packit'),
+                        icon='msg_plugins',
+                        item_id='packit_chat_plugins',
+                        on_click=lambda ctx: self.open_packit_settings()
+                    ))
+        except Exception as e:
+            log(f"Failed to update chat plugins menu: {e}")
+    
+    def on_drawer_switch(self, val):
+        try:
+            from elyx import settings
+            settings.set("show_drawer_menu", bool(val))
+            run_on_ui_thread(self._update_drawer_menu)
+        except Exception as e:
+            log(f"Failed to handle drawer switch: {e}")
+    
+    def on_chat_plugins_switch(self, val):
+        try:
+            from elyx import settings
+            settings.set("show_chat_plugins_menu", bool(val))
+            run_on_ui_thread(self._update_chat_plugins_menu)
+        except Exception as e:
+            log(f"Failed to handle chat plugins switch: {e}")
+    
+    def on_chat_switch(self, val):
+        try:
+            from elyx import settings
+            settings.set("show_chat_menu", bool(val))
+            run_on_ui_thread(self._update_chat_menu)
+        except Exception as e:
+            log(f"Failed to handle chat switch: {e}")

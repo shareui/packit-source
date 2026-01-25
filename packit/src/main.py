@@ -6,7 +6,7 @@ from .cmds import CommandProcessor
 from .repom import RepositoryManager
 from .core import PackItCore
 from .settings import SettingsBuilder
-from .chat_ui import ChatUI
+from .chat_ui import ChatButton
 
 
 class PackItPlugin(BasePlugin):
@@ -14,9 +14,9 @@ class PackItPlugin(BasePlugin):
         super().__init__()
         self.repoManager = RepositoryManager()
         self.core = PackItCore(self.repoManager)
+        self.chatUI = ChatButton(self)
         self.settingsBuilder = SettingsBuilder(self.repoManager, self)
         self.commandProcessor = CommandProcessor(self)
-        self.chatUI = ChatUI(self)
     
     def on_plugin_load(self):
         self.add_on_send_message_hook()

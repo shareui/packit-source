@@ -13,12 +13,32 @@ class RepositoriesSettings:
             self.repoManager.addRepository(isFirst=True)
             repos = self.repoManager.getRepositories()
         
+        def add_new_repository(view):
+            repos = self.repoManager.getRepositories()
+            for repo in repos:
+                if repo.get('isFirst', False):
+                    continue
+                    
+                if not repo.get('name', '').strip() or not repo.get('url', '').strip():
+                    try:
+                        from ui.bulletin import BulletinHelper
+                        BulletinHelper.show_error("Fill in the previous repository first")
+                    except Exception:
+                        try:
+                            from android_utils import log
+                            log("Please fill in the previous repository first")
+                        except Exception:
+                            pass
+                    return
+        
+            self.repoManager.addRepository(isFirst=False)
+        
         settingsList = [
             Header(text=strings.repositories),
             Text(
                 text=strings.add_repository,
                 icon="msg_add",
-                on_click=lambda view: self.repoManager.addRepository(isFirst=False)
+                on_click=add_new_repository
             ),
             Divider()
         ]
@@ -109,7 +129,7 @@ class RepositoriesSettings:
                         on_change=makeOnChange("url", idx)
                     )
                 ])
-            
+            Divider(),
             settingsList.append(Divider())
         
         if settingsList and isinstance(settingsList[-1], Divider):
