@@ -129,7 +129,7 @@ class SettingsBuilder:
             title.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
             title.setTypeface(AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_MEDIUM))
             title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 22)
-            title.setText(f"Packit — {metainfo['version']}")
+            title.setText(f"Packit v{metainfo['version']}")
             title.setSingleLine(True)
             title.setGravity(Gravity.CENTER)
             text_container.addView(title, LayoutHelper.createLinear(-1, -2, 0, 0, 4, 0))
