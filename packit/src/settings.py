@@ -1,5 +1,5 @@
 from ui.settings import Header, Text, Divider
-from elyx import strings
+from elyx import strings, metainfo
 from .cfg_comps.interface import InterfaceSettings
 from .cfg_comps.command import CommandSettings
 from .cfg_comps.repos import RepositoriesSettings
@@ -129,7 +129,7 @@ class SettingsBuilder:
             title.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
             title.setTypeface(AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_MEDIUM))
             title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 22)
-            title.setText("Packit — 0.1.0")
+            title.setText(f"Packit — {metainfo['version']}")
             title.setSingleLine(True)
             title.setGravity(Gravity.CENTER)
             text_container.addView(title, LayoutHelper.createLinear(-1, -2, 0, 0, 4, 0))
