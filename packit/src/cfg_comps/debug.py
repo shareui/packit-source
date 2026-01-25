@@ -1,4 +1,4 @@
-from ui.settings import Header, Text
+from ui.settings import Header, Divider, Text
 from elyx import strings, metainfo
 from ui.alert import AlertDialogBuilder
 from client_utils import get_last_fragment
@@ -35,5 +35,6 @@ class DebugSettings:
                 text="Repometa",
                 icon="msg_info",
                 on_click=self._showRepometa
-            )
+            ),
+            Divider()
         ]

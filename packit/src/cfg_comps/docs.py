@@ -67,5 +67,5 @@ class DocumentationSettings:
                 icon="msg_info",
                 on_click=self._openForum
             ),
-
+            Divider()
         ]

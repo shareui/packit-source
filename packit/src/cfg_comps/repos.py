@@ -15,6 +15,18 @@ class RepositoriesSettings:
         
         def add_new_repository(view):
             repos = self.repoManager.getRepositories()
+            if len(repos) >= 30:
+                try:
+                    from ui.bulletin import BulletinHelper
+                    BulletinHelper.show_error("Maximum 30 repositories allowed")
+                except Exception:
+                    try:
+                        from android_utils import log
+                        log("Maximum 30 repositories allowed")
+                    except Exception:
+                        pass
+                return
+            
             for repo in repos:
                 if repo.get('isFirst', False):
                     continue
@@ -129,10 +141,7 @@ class RepositoriesSettings:
                         on_change=makeOnChange("url", idx)
                     )
                 ])
-            Divider(),
+
             settingsList.append(Divider())
-        
-        if settingsList and isinstance(settingsList[-1], Divider):
-            settingsList.pop()
         
         return settingsList
