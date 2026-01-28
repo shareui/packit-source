@@ -18,7 +18,7 @@ from android.view import Gravity
 from android.util import TypedValue
 from org.telegram.messenger import AndroidUtilities, ImageLocation, MediaDataController
 
-__icon__ = "PluginsStickers/1"
+__icon__ = "plugin232/17"
 
 
 class SettingsBuilder:
@@ -136,7 +136,7 @@ class SettingsBuilder:
             subtitle = TextView(context)
             subtitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
             subtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
-            subtitle.setText("Plugin Manager on ElyxCore library")
+            subtitle.setText("Multifunctional plugin manager for exteraGram")
             subtitle.setGravity(Gravity.CENTER)
             text_container.addView(subtitle, LayoutHelper.createLinear(-1, -2))
             main_layout.addView(text_container, LayoutHelper.createLinear(-1, -2, Gravity.CENTER))

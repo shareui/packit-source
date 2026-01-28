@@ -11,7 +11,7 @@ packit/src/cmds.py — обработчик текстовых команд
 packit/src/repom.py — движок конфигурации репозиториев  
 packit/src/settings.py — конструктор главного экрана настроек  
 packit/src/core.py — ядро, должна находиться вся логика
-packit/src/chat_ui.py — интеграция кнопки управления в интерфейс чата  # переместить в chat_ui/packit.py
+packit/src/chat_ui/button.py — интеграция кнопки управления в интерфейс чата
 packit/src/cfg_comps/command.py — экран со справкой по синтаксису команд  
 packit/src/cfg_comps/contributors.py — вкладка с информацией об авторах проекта  
 packit/src/cfg_comps/debug.py — инструменты для теста(НЕ ВЫРЕЗАТЬ НА РЕЛИ9АХ)
@@ -20,5 +20,7 @@ packit/src/cfg_comps/interface.py — базовы1 GUI для управлен�
 packit/src/cfg_comps/other.py — прочие параметры
 packit/src/cfg_comps/repos.py — интерфейс добавления и правки репозиториев  
 ```
+
+разделы настроек должны быть в cfg_comps, интерфейс в чатах в chat\_ui
 
 > ЗАПОЛНЯТЬ!!!
