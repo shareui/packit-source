@@ -17,9 +17,12 @@ class PackItPlugin(BasePlugin):
         self.chatUI = ChatButton(self)
         self.settingsBuilder = SettingsBuilder(self.repoManager, self)
         self.commandProcessor = CommandProcessor(self)
+        self.on_send_message_hook_ref = None
+        self.hook_settings_header_ref = None
     
     def on_plugin_load(self):
-        self.add_on_send_message_hook()
+        self.on_send_message_hook_ref = self.add_on_send_message_hook()
+        self.hook_settings_header_ref = self.settingsBuilder._setup_settings_header_hook()
         self._initDefaultCommands()
         self.core.initializeRepositories()
         self.chatUI.initialize_chat_menu()

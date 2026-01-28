@@ -33,7 +33,6 @@ class SettingsBuilder:
         self.documentationSettings = DocumentationSettings()
         self.contributorsSettings = ContributorsSettings()
         self.debugSettings = DebugSettings(plugin.core)
-        self._setup_settings_header_hook()
 
     def _setup_settings_header_hook(self):
         try:
@@ -48,7 +47,8 @@ class SettingsBuilder:
                         
                         if not items or items.size() == 0:
                             return
-                        for i in range(min(items.size(), 3)):
+
+                        for i in range(items.size()):
                             item = items.get(i)
                             if hasattr(item, 'settingItem') and str(item.settingItem) == "packit_header":
                                 return
@@ -79,12 +79,12 @@ class SettingsBuilder:
 
             PSA = find_class("com.exteragram.messenger.plugins.ui.PluginSettingsActivity")
             if PSA:
-                method = PSA.getClass().getDeclaredMethod("fillItems", find_class("java.util.ArrayList"),
-                                                          find_class("org.telegram.ui.Components.UniversalAdapter"))
+                method = PSA.getClass().getDeclaredMethod("fillItems", find_class("java.util.ArrayList"), find_class("org.telegram.ui.Components.UniversalAdapter"))
                 method.setAccessible(True)
-                self.plugin.hook_method(method, PackitSettingsHeaderHook(self))
+                return self.plugin.hook_method(method, PackitSettingsHeaderHook(self))
         except Exception as e:
             pass
+        return None
 
     def _create_settings_header(self, context):
         try:
