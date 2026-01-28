@@ -7,7 +7,7 @@ from .repom import RepositoryManager
 from .core import PackItCore
 from .settings import SettingsBuilder
 from .chat_ui import ChatButton
-
+from .deeplink import setup_deeplink_hook
 
 class PackItPlugin(BasePlugin):
     def __init__(self):
@@ -17,9 +17,14 @@ class PackItPlugin(BasePlugin):
         self.chatUI = ChatButton(self)
         self.settingsBuilder = SettingsBuilder(self.repoManager, self)
         self.commandProcessor = CommandProcessor(self)
+        self.on_send_message_hook_ref = None
+        self.hook_settings_header_ref = None
+        self.deeplink_hook_ref = None
     
     def on_plugin_load(self):
-        self.add_on_send_message_hook()
+        self.on_send_message_hook_ref = self.add_on_send_message_hook()
+        self.hook_settings_header_ref = self.settingsBuilder._setup_settings_header_hook()
+        self.deeplink_hook_ref = setup_deeplink_hook(self)
         self._initDefaultCommands()
         self.core.initializeRepositories()
         self.chatUI.initialize_chat_menu()
