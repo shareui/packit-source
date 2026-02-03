@@ -6,6 +6,8 @@ from .core import PackItCore
 from .settings import SettingsBuilder
 from .chat_ui import ChatButton
 from .deeplink import setup_deeplink_hook
+from android_utils import log
+
 
 class PackItPlugin(BasePlugin):
     def __init__(self):
@@ -21,28 +23,19 @@ class PackItPlugin(BasePlugin):
     def on_plugin_load(self):
         self.hook_settings_header_ref = self.settingsBuilder._setup_settings_header_hook()
         self.deeplink_hook_ref = setup_deeplink_hook(self)
-        self._initDefaultCommands()
         self.chatUI.initialize_chat_menu()
+        self._init_official_repository()
     
-    def _initDefaultCommands(self):
-        if settings.get("cmd_info") is None:
-            settings.set("cmd_info", "packit info")
-        if settings.get("cmd_search") is None:
-            settings.set("cmd_search", "packit search")
-        if settings.get("cmd_install") is None:
-            settings.set("cmd_install", "packit install")
-        if settings.get("cmd_uninstall") is None:
-            settings.set("cmd_uninstall", "packit uninstall")
-        if settings.get("cmd_pluginlist") is None:
-            settings.set("cmd_pluginlist", "packit pluginlist")
-        if settings.get("cmd_repolist") is None:
-            settings.set("cmd_repolist", "packit repolist")
-        if settings.get("cmd_share") is None:
-            settings.set("cmd_share", "packit share")
-        if settings.get("cmd_update") is None:
-            settings.set("cmd_update", "packit update")
-        if settings.get("cmd_upgrade") is None:
-            settings.set("cmd_upgrade", "packit upgrade")
+    def _init_official_repository(self):
+        try:
+            repos = self.repoManager.getRepositories()
+            if not repos:
+                self.repoManager.addRepository(isFirst=True)
+        except Exception as e:
+            try:
+                log(f"Failed to initialize official repository: {e}")
+            except Exception:
+                pass
     
     def create_settings(self):
         return self.settingsBuilder.buildMainSettings()

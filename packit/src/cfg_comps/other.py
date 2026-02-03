@@ -34,13 +34,4 @@ class OtherSettings:
                 on_change=self.chat_button.on_chat_plugins_switch if self.chat_button else None
             ),
             Divider(),
-            Header(text="Updates"),
-            Switch(
-                key="auto_update_on_start",
-                text="Auto-update",
-                subtext="Update repos when starting app",
-                default=False,
-                icon="msg_retry"
-            ),
-            Divider()
         ]

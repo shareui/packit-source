@@ -1,5 +1,9 @@
 from ui.settings import Header, Input, Divider, Switch, Text
 from elyx import strings
+from client_utils import get_last_fragment
+from ui.bulletin import BulletinHelper
+from android_utils import log
+from ui.alert import AlertDialogBuilder
 
 
 class RepositoriesSettings:
@@ -12,19 +16,20 @@ class RepositoriesSettings:
         if not repos:
             self.repoManager.addRepository(isFirst=True)
             repos = self.repoManager.getRepositories()
+            try:
+                fragment = get_last_fragment()
+                if fragment and hasattr(fragment, "rebuildAllItems"):
+                    fragment.rebuildAllItems()
+            except Exception:
+                pass
         
         def add_new_repository(view):
             repos = self.repoManager.getRepositories()
             if len(repos) >= 10:
                 try:
-                    from ui.bulletin import BulletinHelper
                     BulletinHelper.show_error("Maximum 10 repositories allowed")
                 except Exception:
-                    try:
-                        from android_utils import log
-                        log("Maximum 10 repositories allowed")
-                    except Exception:
-                        pass
+                    log("Maximum 10 repositories allowed")
                 return
             
             for repo in repos:
@@ -32,15 +37,8 @@ class RepositoriesSettings:
                     continue
                     
                 if not repo.get('name', '').strip() or not repo.get('url', '').strip():
-                    try:
-                        from ui.bulletin import BulletinHelper
-                        BulletinHelper.show_error("Fill in the previous repository first")
-                    except Exception:
-                        try:
-                            from android_utils import log
-                            log("Please fill in the previous repository first")
-                        except Exception:
-                            pass
+                    BulletinHelper.show_error("Fill in the previous repository first")
+                    log("Please fill in the previous repository first")
                     return
         
             self.repoManager.addRepository(isFirst=False)
@@ -61,8 +59,6 @@ class RepositoriesSettings:
         def makeOnRemove(i):
             def show_confirm_dialog(view):
                 try:
-                    from ui.alert import AlertDialogBuilder
-                    from client_utils import get_last_fragment
                     frag = get_last_fragment()
                     act = frag.getParentActivity() if frag else None
                     if not act:

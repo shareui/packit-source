@@ -268,7 +268,7 @@ class InstallUI:
                 all_repos_name.setTypeface(AndroidUtilities.bold())
                 all_repos_url = TextView(act)
                 all_repos_url.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
-                all_repos_url.setText("Search across all repositories...")
+                all_repos_url.setText("Search across all repositories")
                 try:
                     all_repos_url.setTextColor(Theme.getColor(Theme.key_dialogTextGray2))
                 except Exception:
@@ -624,7 +624,7 @@ class InstallUI:
                 search_container.setBackground(pill)
                 search_container.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(3), AndroidUtilities.dp(16), AndroidUtilities.dp(3))
                 search = EditTextBoldCursor(act)
-                search.setHint("Search plugins in this repository...")
+                search.setHint("Search plugins...")
                 search.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
                 search.setSingleLine(True)
                 search.setInputType(InputType.TYPE_CLASS_TEXT)

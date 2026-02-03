@@ -1,6 +1,11 @@
 from ui.settings import Header, Text, Divider
 from ui.bulletin import BulletinHelper
 from android_utils import log
+from android.content import Intent
+from android.net import Uri
+from org.telegram.messenger import ApplicationLoader
+from client_utils import get_last_fragment
+from org.telegram.messenger.browser import Browser
 
 
 class DocumentationSettings:
@@ -10,19 +15,12 @@ class DocumentationSettings:
     def _openUrl(self, url):
         try:
             if url.startswith("https://t.me/"):
-                from client_utils import get_last_fragment
-                from org.telegram.messenger.browser import Browser
-                from android.net import Uri
                 frag = get_last_fragment()
                 act = frag.getParentActivity() if frag else None
                 if act:
                     uri = Uri.parse(url)
                     Browser.openUrl(act, uri, True, True, True, None, None, False, False, False)
             else:
-                from android.content import Intent
-                from android.net import Uri
-                from org.telegram.messenger import ApplicationLoader
-                
                 context = ApplicationLoader.applicationContext
                 intent = Intent(Intent.ACTION_VIEW)
                 intent.setData(Uri.parse(url))

@@ -24,31 +24,3 @@ class PackItCore:
         def show():
             BulletinHelper.show_success(text)
         run_on_ui_thread(show)
-
-    def _killApp(self):
-        try:
-            pid = os.getpid()
-            log(f"killing app with pid: {pid}")
-            os.kill(pid, signal.SIGKILL)
-        except Exception as e:
-            log(f"failed to kill app: {e}")
-
-    def getRepometaText(self):
-        repos = self.repoManager.getRepositories()
-        lines = []
-
-        for repo in repos:
-            if not repo.get("enabled"):
-                continue
-            
-            repo_name = repo.get("name", "Unknown")
-            repo_url = repo.get("url", "Unknown")
-            
-            lines.append(f"{repo_name}")
-            lines.append(f"URL: {repo_url}")
-            lines.append("")
-        
-        if lines and lines[-1] == "":
-            lines.pop()
-        
-        return "\n".join(lines) if lines else "No repositories found"
