@@ -203,10 +203,10 @@ class InstallUI:
 
                 def make_repo_button(repo):
                     btn = LinearLayout(act)
-                    btn.setOrientation(LinearLayout.VERTICAL)
+                    btn.setOrientation(LinearLayout.HORIZONTAL)
                     btn.setClickable(True)
                     btn.setFocusable(True)
-                    btn.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12))
+                    btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12))
                     try:
                         btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
                             AndroidUtilities.dp(8),
@@ -219,6 +219,19 @@ class InstallUI:
                         except Exception:
                             pass
 
+                    icon_iv = ImageView(act)
+                    icon_name = repo.get('icon', 'msg_folders')
+                    try:
+                        R_tg = find_class("org.telegram.messenger.R")
+                        icon_id = getattr(R_tg.drawable, icon_name)
+                        icon_iv.setImageResource(icon_id)
+                    except Exception:
+                        pass
+                    icon_iv.setScaleType(ImageView.ScaleType.CENTER)
+                    icon_iv.setLayoutParams(LayoutHelper.createLinear(AndroidUtilities.dp(24), AndroidUtilities.dp(24), Gravity.CENTER_VERTICAL, 0, 0, 16, 0))
+                    text_container = LinearLayout(act)
+                    text_container.setOrientation(LinearLayout.VERTICAL)
+                    text_container.setLayoutParams(LayoutHelper.createLinear(-1, -2, Gravity.CENTER_VERTICAL))
                     name_tv = TextView(act)
                     try:
                         name_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
@@ -231,8 +244,10 @@ class InstallUI:
                     url_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
                     url_tv.setText(repo.get("url") or "")
                     url_tv.setTextColor(Theme.getColor(Theme.key_dialogTextGray2))
-                    btn.addView(name_tv)
-                    btn.addView(url_tv, LayoutHelper.createLinear(-1, -2, 0, 4, 0, 0))
+                    text_container.addView(name_tv)
+                    text_container.addView(url_tv, LayoutHelper.createLinear(-1, -2, 0, 4, 0, 0))
+                    btn.addView(icon_iv)
+                    btn.addView(text_container)
 
                     def on_click(v):
                         try:
@@ -245,10 +260,10 @@ class InstallUI:
                     return btn
 
                 all_repos_btn = LinearLayout(act)
-                all_repos_btn.setOrientation(LinearLayout.VERTICAL)
+                all_repos_btn.setOrientation(LinearLayout.HORIZONTAL)
                 all_repos_btn.setClickable(True)
                 all_repos_btn.setFocusable(True)
-                all_repos_btn.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12))
+                all_repos_btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12))
                 try:
                     all_repos_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
                         AndroidUtilities.dp(8),
@@ -260,21 +275,32 @@ class InstallUI:
                         all_repos_btn.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector)))
                     except Exception:
                         all_repos_btn.setBackgroundColor(Theme.getColor(Theme.key_dialogBackground))
-                
+                all_repos_icon = ImageView(act)
+                try:
+                    R_tg = find_class("org.telegram.messenger.R")
+                    icon_id = getattr(R_tg.drawable, "msg_folders")
+                    all_repos_icon.setImageResource(icon_id)
+                    all_repos_icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_addButton))
+                except Exception:
+                    pass
+                all_repos_icon.setScaleType(ImageView.ScaleType.CENTER)
+                all_repos_icon.setLayoutParams(LayoutHelper.createLinear(AndroidUtilities.dp(24), AndroidUtilities.dp(24), Gravity.CENTER_VERTICAL, 0, 0, 16, 0))
                 all_repos_name = TextView(act)
                 all_repos_name.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
                 all_repos_name.setText("All repositories")
-                all_repos_name.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
+                all_repos_name.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton))
                 all_repos_name.setTypeface(AndroidUtilities.bold())
                 all_repos_url = TextView(act)
                 all_repos_url.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
                 all_repos_url.setText("Search across all repositories")
-                try:
-                    all_repos_url.setTextColor(Theme.getColor(Theme.key_dialogTextGray2))
-                except Exception:
-                    all_repos_url.setTextColor(Theme.getColor(Theme.key_dialogTextGray))
-                all_repos_btn.addView(all_repos_name)
-                all_repos_btn.addView(all_repos_url, LayoutHelper.createLinear(-1, -2, 0, 4, 0, 0))
+                all_repos_url.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton))
+                all_repos_text_container = LinearLayout(act)
+                all_repos_text_container.setOrientation(LinearLayout.VERTICAL)
+                all_repos_text_container.setLayoutParams(LayoutHelper.createLinear(-1, -2, Gravity.CENTER_VERTICAL))
+                all_repos_text_container.addView(all_repos_name)
+                all_repos_text_container.addView(all_repos_url, LayoutHelper.createLinear(-1, -2, 0, 4, 0, 0))
+                all_repos_btn.addView(all_repos_icon)
+                all_repos_btn.addView(all_repos_text_container)
                 
                 def on_all_repos_click(v):
                     try:
