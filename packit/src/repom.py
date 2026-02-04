@@ -20,6 +20,12 @@ class RepositoryManager:
     
     def setRepositories(self, repos):
         settings.set("repositories", json.dumps(repos), reload_settings=True)
+        try:
+            fragment = get_last_fragment()
+            if fragment and hasattr(fragment, "rebuildAllItems"):
+                fragment.rebuildAllItems()
+        except Exception:
+            pass
     
     def addRepository(self, isFirst=False):
         repos = self.getRepositories()

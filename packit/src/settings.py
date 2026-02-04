@@ -1,12 +1,9 @@
 from ui.settings import Header, Text, Divider
 from elyx import strings, metainfo
-from .cfg_comps.interface import InterfaceSettings
-from .cfg_comps.command import CommandSettings
 from .cfg_comps.repos import RepositoriesSettings
 from .cfg_comps.other import OtherSettings
 from .cfg_comps.docs import DocumentationSettings
 from .cfg_comps.contributors import ContributorsSettings
-from .cfg_comps.debug import DebugSettings
 from base_plugin import BasePlugin, MethodHook
 from android_utils import log, run_on_ui_thread
 from hook_utils import find_class, get_private_field
@@ -17,22 +14,21 @@ from android.widget import FrameLayout, TextView, LinearLayout
 from android.view import Gravity
 from android.util import TypedValue
 from org.telegram.messenger import AndroidUtilities, ImageLocation, MediaDataController
+from .ui.install import InstallUI
+from client_utils import get_last_fragment
+from org.telegram.messenger.browser import Browser
+from android.net import Uri
 
 __icon__ = "plugin232/17"
-
 
 class SettingsBuilder:
     def __init__(self, repoManager, plugin):
         self.repoManager = repoManager
         self.plugin = plugin
-        self.interfaceSettings = InterfaceSettings()
-        self.interfaceSettings.setPlugin(plugin)
-        self.commandSettings = CommandSettings()
         self.repositoriesSettings = RepositoriesSettings(repoManager)
         self.otherSettings = OtherSettings(plugin.chatUI)
         self.documentationSettings = DocumentationSettings()
         self.contributorsSettings = ContributorsSettings()
-        self.debugSettings = DebugSettings(plugin.core)
 
     def _setup_settings_header_hook(self):
         try:
@@ -146,11 +142,22 @@ class SettingsBuilder:
         except Exception:
             return None
 
+    def _open_install_plugin(self, view):
+        try:
+            install_ui = InstallUI(self.plugin)
+            install_ui.open()
+        except Exception as e:
+            log(f"failed to open install plugin: {e}")
+    
+    def _check_updates(self, view):
+        try:
+            log("Check updates clicked")
+            # TODO: Короч сюда потом добавим переход на обработку прверки на обновы плагинов
+        except Exception as e:
+            log(f"failed to check updates: {e}")
+    
     def _openPackitForum(self, view):
         try:
-            from client_utils import get_last_fragment
-            from org.telegram.messenger.browser import Browser
-            from android.net import Uri
             frag = get_last_fragment()
             act = frag.getParentActivity() if frag else None
             if act:
@@ -161,18 +168,27 @@ class SettingsBuilder:
     
     def buildMainSettings(self):
         return [
-            Header(text="Settings"),
+            Header(text="Plugins"),
             
             Text(
-                text=strings.interface_settings,
-                icon="msg_palette",
-                create_sub_fragment=self.interfaceSettings.build
+                text="Install Plugin",
+                icon="msg_download",
+                on_click=self._open_install_plugin
             ),
             
             Text(
-                text=strings.command_settings,
-                icon="msg_edit",
-                create_sub_fragment=self.commandSettings.build
+                text="Check Updates",
+                icon="msg_retry",
+                on_click=self._check_updates
+            ),
+            
+            Divider(),
+            Header(text="Settings"),
+            
+            Text(
+                text="Deeplinks",
+                icon="msg_link",
+                on_click=lambda view: None
             ),
             
             Text(
@@ -209,12 +225,4 @@ class SettingsBuilder:
             ),
             
             Divider(),
-            Header(text="Unsorted items"),
-            
-            Text(
-                text="Debug",
-                icon="msg_log",
-                create_sub_fragment=self.debugSettings.build
-            ),
-            Divider()
         ]

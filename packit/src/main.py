@@ -1,13 +1,13 @@
 from typing import Any
 from base_plugin import BasePlugin, HookResult
 from elyx import settings
-from client_utils import run_on_queue
-from .cmds import CommandProcessor
 from .repom import RepositoryManager
 from .core import PackItCore
 from .settings import SettingsBuilder
 from .chat_ui import ChatButton
 from .deeplink import setup_deeplink_hook
+from android_utils import log
+
 
 class PackItPlugin(BasePlugin):
     def __init__(self):
@@ -16,55 +16,26 @@ class PackItPlugin(BasePlugin):
         self.core = PackItCore(self.repoManager)
         self.chatUI = ChatButton(self)
         self.settingsBuilder = SettingsBuilder(self.repoManager, self)
-        self.commandProcessor = CommandProcessor(self)
         self.on_send_message_hook_ref = None
         self.hook_settings_header_ref = None
         self.deeplink_hook_ref = None
     
     def on_plugin_load(self):
-        self.on_send_message_hook_ref = self.add_on_send_message_hook()
         self.hook_settings_header_ref = self.settingsBuilder._setup_settings_header_hook()
         self.deeplink_hook_ref = setup_deeplink_hook(self)
-        self._initDefaultCommands()
-        self.core.initializeRepositories()
         self.chatUI.initialize_chat_menu()
-        self._scheduleAutoUpdate()
+        self._init_official_repository()
     
-    def _initDefaultCommands(self):
-        if settings.get("cmd_info") is None:
-            settings.set("cmd_info", "packit info")
-        if settings.get("cmd_search") is None:
-            settings.set("cmd_search", "packit search")
-        if settings.get("cmd_install") is None:
-            settings.set("cmd_install", "packit install")
-        if settings.get("cmd_uninstall") is None:
-            settings.set("cmd_uninstall", "packit uninstall")
-        if settings.get("cmd_pluginlist") is None:
-            settings.set("cmd_pluginlist", "packit pluginlist")
-        if settings.get("cmd_repolist") is None:
-            settings.set("cmd_repolist", "packit repolist")
-        if settings.get("cmd_share") is None:
-            settings.set("cmd_share", "packit share")
-        if settings.get("cmd_update") is None:
-            settings.set("cmd_update", "packit update")
-        if settings.get("cmd_upgrade") is None:
-            settings.set("cmd_upgrade", "packit upgrade")
-    
-    def _scheduleAutoUpdate(self):
-        autoUpdateEnabled = settings.get("auto_update_on_start", False)
-        
-        if not autoUpdateEnabled:
-            return
-        
-        def delayedUpdate():
-            import time
-            time.sleep(10)
-            self.core.updateAllRepositories(silent=False)
-        
-        run_on_queue(delayedUpdate)
+    def _init_official_repository(self):
+        try:
+            repos = self.repoManager.getRepositories()
+            if not repos:
+                self.repoManager.addRepository(isFirst=True)
+        except Exception as e:
+            try:
+                log(f"Failed to initialize official repository: {e}")
+            except Exception:
+                pass
     
     def create_settings(self):
         return self.settingsBuilder.buildMainSettings()
-    
-    def on_send_message_hook(self, account: int, params: Any) -> HookResult:
-        return self.commandProcessor.processMessage(params)

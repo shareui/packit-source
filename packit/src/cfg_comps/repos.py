@@ -1,5 +1,10 @@
 from ui.settings import Header, Input, Divider, Switch, Text
 from elyx import strings
+from client_utils import get_last_fragment
+from ui.bulletin import BulletinHelper
+from android_utils import log
+from ui.alert import AlertDialogBuilder
+from .icons import IconSelector
 
 
 class RepositoriesSettings:
@@ -12,19 +17,20 @@ class RepositoriesSettings:
         if not repos:
             self.repoManager.addRepository(isFirst=True)
             repos = self.repoManager.getRepositories()
+            try:
+                fragment = get_last_fragment()
+                if fragment and hasattr(fragment, "rebuildAllItems"):
+                    fragment.rebuildAllItems()
+            except Exception:
+                pass
         
         def add_new_repository(view):
             repos = self.repoManager.getRepositories()
-            if len(repos) >= 30:
+            if len(repos) >= 10:
                 try:
-                    from ui.bulletin import BulletinHelper
-                    BulletinHelper.show_error("Maximum 30 repositories allowed")
+                    BulletinHelper.show_error("Maximum 10 repositories allowed")
                 except Exception:
-                    try:
-                        from android_utils import log
-                        log("Maximum 30 repositories allowed")
-                    except Exception:
-                        pass
+                    log("Maximum 10 repositories allowed")
                 return
             
             for repo in repos:
@@ -32,15 +38,8 @@ class RepositoriesSettings:
                     continue
                     
                 if not repo.get('name', '').strip() or not repo.get('url', '').strip():
-                    try:
-                        from ui.bulletin import BulletinHelper
-                        BulletinHelper.show_error("Fill in the previous repository first")
-                    except Exception:
-                        try:
-                            from android_utils import log
-                            log("Please fill in the previous repository first")
-                        except Exception:
-                            pass
+                    BulletinHelper.show_error("Fill in the previous repository first")
+                    log("Please fill in the previous repository first")
                     return
         
             self.repoManager.addRepository(isFirst=False)
@@ -50,6 +49,7 @@ class RepositoriesSettings:
             Text(
                 text=strings.add_repository,
                 icon="msg_add",
+                accent=True,
                 on_click=add_new_repository
             ),
             Divider()
@@ -61,8 +61,6 @@ class RepositoriesSettings:
         def makeOnRemove(i):
             def show_confirm_dialog(view):
                 try:
-                    from ui.alert import AlertDialogBuilder
-                    from client_utils import get_last_fragment
                     frag = get_last_fragment()
                     act = frag.getParentActivity() if frag else None
                     if not act:
@@ -87,6 +85,26 @@ class RepositoriesSettings:
             
             return show_confirm_dialog
         
+        def makeOnShare(i):
+            def share_repository(view):
+                repo = repos[i]
+                name = repo.get('name', '').strip()
+                url = repo.get('url', '').strip()
+                icon = repo.get('icon', '').strip()
+
+                share_url = f"tg://packit?repo=add&name={name}&link={url}&icon={icon}"
+
+                try:
+                    from org.telegram.messenger import AndroidUtilities
+                    if AndroidUtilities.addToClipboard(share_url):
+                        BulletinHelper.show_success("Repository link copied to clipboard!")
+                    else:
+                        BulletinHelper.show_error("Failed to copy to clipboard")
+                except Exception:
+                    BulletinHelper.show_error("Failed to copy to clipboard")
+            
+            return share_repository
+        
         def makeOnToggleCollapse(i):
             def toggle(view):
                 repos = self.repoManager.getRepositories()
@@ -95,13 +113,22 @@ class RepositoriesSettings:
                     self.repoManager.setRepositories(repos)
             return toggle
         
+        def makeOnSelectIcon(i):
+            def open_icon_selector():
+                def on_icon_selected(icon_name):
+                    self.repoManager.updateRepoField(i, 'icon', icon_name)
+                
+                icon_selector = IconSelector(self.repoManager, on_icon_selected)
+                settings_list = icon_selector.build()
+                return settings_list
+            
+            return open_icon_selector
+        
         for idx, repo in enumerate(repos):
             isCollapsed = repo.get("collapsed", False)
             isEnabled = repo.get("enabled", True)
-            
             collapseIcon = "msg_go_up" if not isCollapsed else "arrow_more_solar"
             headerText = strings("repository_form", idx + 1)
-            
             settingsList.append(Text(
                 text=headerText,
                 icon=collapseIcon,
@@ -110,14 +137,8 @@ class RepositoriesSettings:
             ))
             
             if not isCollapsed:
-                if len(repos) > 1:
-                    settingsList.append(Text(
-                        text=strings.remove_repository,
-                        icon="msg_filled_blocked_solar",
-                        red=True,
-                        on_click=makeOnRemove(idx)
-                    ))
-                
+                current_icon = repo.get('icon', '')
+                icon_text = f"Repository Icon: {current_icon}" if current_icon else "Repository Icon: not selected"
                 settingsList.extend([
                     Switch(
                         key=f"repo_enabled_{repo['id']}",
@@ -139,8 +160,29 @@ class RepositoriesSettings:
                         default=repo.get("url", ""),
                         icon="msg_link",
                         on_change=makeOnChange("url", idx)
+                    ),
+                    Text(
+                        text=icon_text,
+                        icon="msg_folders",
+                        create_sub_fragment=makeOnSelectIcon(idx)
                     )
                 ])
+                
+                if len(repos) > 1:
+                    settingsList.extend([
+                        Text(
+                            text="Share Repository",
+                            icon="msg_share",
+                            accent=True,
+                            on_click=makeOnShare(idx)
+                        ),
+                        Text(
+                            text=strings.remove_repository,
+                            icon="msg_filled_blocked_solar",
+                            red=True,
+                            on_click=makeOnRemove(idx)
+                        )
+                    ])
 
             settingsList.append(Divider())
         

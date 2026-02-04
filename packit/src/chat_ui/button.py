@@ -1,16 +1,13 @@
-import json
 from android_utils import run_on_ui_thread, log
 from client_utils import get_last_fragment
-from base_plugin import BasePlugin, MenuItemData, MenuItemType, HookResult, HookStrategy, MethodHook
+from base_plugin import MenuItemData, MenuItemType, MethodHook
 from ui.bulletin import BulletinHelper
-from org.telegram.messenger import AndroidUtilities
-from java import dynamic_proxy, jclass
-from android.content import Context
-from android.view import View
+from java import jclass
 from org.telegram.ui import ChatActivity
 from hook_utils import find_class
 from com.exteragram.messenger.plugins import PluginsController
 from com.exteragram.messenger.plugins.ui import PluginSettingsActivity
+from elyx import settings
 
 
 class ChatButton:
@@ -150,7 +147,6 @@ class ChatButton:
             if current_callback is None:
                 return
             callback_class = current_callback.getClass()
-            from java import jclass
             jint = jclass("java.lang.Integer").TYPE
             onItemClickMethod = callback_class.getDeclaredMethod("onItemClick", jint)
             onItemClickMethod.setAccessible(True)
@@ -229,7 +225,6 @@ class ChatButton:
     
     def _update_chat_menu(self):
         try:
-            from elyx import settings
             show_chat = settings.get("show_chat_menu", True)
             if show_chat:
                 self._add_buton_to_chat_header()
@@ -272,7 +267,6 @@ class ChatButton:
     
     def _update_drawer_menu(self):
         try:
-            from elyx import settings
             show_drawer = settings.get("show_drawer_menu", False)
             self.plugin.remove_menu_item('packit_drawer')
             if show_drawer:
@@ -288,7 +282,6 @@ class ChatButton:
     
     def _update_chat_plugins_menu(self):
         try:
-            from elyx import settings
             show_chat_plugins = settings.get("show_chat_plugins_menu", False)
             self.plugin.remove_menu_item('packit_chat_plugins')
             if show_chat_plugins:
@@ -309,7 +302,6 @@ class ChatButton:
     
     def on_drawer_switch(self, val):
         try:
-            from elyx import settings
             settings.set("show_drawer_menu", bool(val))
             run_on_ui_thread(self._update_drawer_menu)
         except Exception as e:
@@ -317,7 +309,6 @@ class ChatButton:
     
     def on_chat_plugins_switch(self, val):
         try:
-            from elyx import settings
             settings.set("show_chat_plugins_menu", bool(val))
             run_on_ui_thread(self._update_chat_plugins_menu)
         except Exception as e:
@@ -325,7 +316,6 @@ class ChatButton:
     
     def on_chat_switch(self, val):
         try:
-            from elyx import settings
             settings.set("show_chat_menu", bool(val))
             run_on_ui_thread(self._update_chat_menu)
         except Exception as e:
