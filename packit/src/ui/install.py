@@ -1,6 +1,8 @@
 import os
 import tempfile
 import requests
+import threading
+import re
 from android_utils import log, run_on_ui_thread
 from client_utils import get_last_fragment, run_on_queue
 from ui.bulletin import BulletinHelper
@@ -31,6 +33,29 @@ class InstallUI:
     def __init__(self, plugin):
         self.plugin = plugin
         self.repoManager = plugin.repoManager
+
+    def _parse_github_url(self, url):
+        try:
+            if not url:
+                return None, None
+            
+            patterns = [
+                r'github\.com/([^/]+)/([^/]+?)(?:\.git)?/?$',
+                r'raw\.githubusercontent\.com/([^/]+)/([^/]+)/',
+                r'api\.github\.com/repos/([^/]+)/([^/]+)',
+            ]
+            
+            for pattern in patterns:
+                match = re.search(pattern, url)
+                if match:
+                    owner = match.group(1)
+                    repo = match.group(2)
+                    repo = repo.replace('.git', '')
+                    return owner, repo
+            
+            return None, None
+        except Exception:
+            return None, None
 
     def _apply_press_scale(self, view):
         try:
@@ -157,6 +182,16 @@ class InstallUI:
 
         def show_repo_sheet():
             try:
+                is_dark_theme = False
+                try:
+                    is_dark_theme = Theme.isCurrentThemeDark()
+                except Exception:
+                    try:
+                        bg_color = Theme.getColor(Theme.key_dialogBackground)
+                        is_dark_theme = (bg_color & 0x00FFFFFF) < 0x00808080
+                    except Exception:
+                        pass
+                
                 sheet = BottomSheet(act, False, fragment.getResourceProvider())
                 self._setup_bottom_sheet(sheet)
                 root = LinearLayout(act)
@@ -225,6 +260,10 @@ class InstallUI:
                         R_tg = find_class("org.telegram.messenger.R")
                         icon_id = getattr(R_tg.drawable, icon_name)
                         icon_iv.setImageResource(icon_id)
+                        if not is_dark_theme:
+                            icon_iv.setColorFilter(Color.BLACK)
+                        else:
+                            icon_iv.setColorFilter(Color.WHITE)
                     except Exception:
                         pass
                     icon_iv.setScaleType(ImageView.ScaleType.CENTER)
@@ -242,7 +281,15 @@ class InstallUI:
                     name_tv.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
                     url_tv = TextView(act)
                     url_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
-                    url_tv.setText(repo.get("url") or "")
+                    url = repo.get("url", "")
+                    owner, repo_name = self._parse_github_url(url)
+                    
+                    if owner and repo_name:
+                        display_text = f"{owner} • {repo_name}"
+                    else:
+                        display_text = url
+                    
+                    url_tv.setText(display_text)
                     url_tv.setTextColor(Theme.getColor(Theme.key_dialogTextGray2))
                     text_container.addView(name_tv)
                     text_container.addView(url_tv, LayoutHelper.createLinear(-1, -2, 0, 4, 0, 0))
@@ -462,9 +509,36 @@ class InstallUI:
 
                 def show_plugins():
                     try:
-                        if loading_sheet[0]:
-                            loading_sheet[0].dismiss()
-                        self._show_plugins_sheet("All repositories", "", all_plugins)
+                        def preload_stickers():
+                            try:
+                                mdc = MediaDataController.getInstance(0)
+                                loaded_packs = set()
+                                
+                                for plugin in all_plugins:
+                                    icon_str = plugin.get("icon")
+                                    if icon_str and "/" in str(icon_str):
+                                        pack_name = str(icon_str).split("/", 1)[0]
+                                        if pack_name not in loaded_packs:
+                                            try:
+                                                mdc.loadStickersByEmojiOrName(pack_name, False, False)
+                                                loaded_packs.add(pack_name)
+                                            except Exception:
+                                                pass
+                            except Exception:
+                                pass
+
+                        preload_stickers()
+
+                        def show_after_delay():
+                            try:
+                                if loading_sheet[0]:
+                                    loading_sheet[0].dismiss()
+                                self._show_plugins_sheet("All repositories", "", all_plugins)
+                            except Exception as e:
+                                log(f"failed to show plugins: {e}")
+                        
+                        threading.Timer(0.5, lambda: run_on_ui_thread(show_after_delay)).start()
+                        
                     except Exception as e:
                         log(f"failed to show plugins: {e}")
 
@@ -528,11 +602,38 @@ class InstallUI:
 
                 def show_plugins():
                     try:
-                        if loading_sheet[0]:
-                            loading_sheet[0].dismiss()
+                        def preload_stickers():
+                            try:
+                                mdc = MediaDataController.getInstance(0)
+                                loaded_packs = set()
+                                
+                                for plugin in plugins:
+                                    icon_str = plugin.get("icon")
+                                    if icon_str and "/" in str(icon_str):
+                                        pack_name = str(icon_str).split("/", 1)[0]
+                                        if pack_name not in loaded_packs:
+                                            try:
+                                                mdc.loadStickersByEmojiOrName(pack_name, False, False)
+                                                loaded_packs.add(pack_name)
+                                            except Exception:
+                                                pass
+                            except Exception:
+                                pass
+                        
+                        preload_stickers()
+                        
+                        def show_after_delay():
+                            try:
+                                if loading_sheet[0]:
+                                    loading_sheet[0].dismiss()
+                                self._show_plugins_sheet(repo_name, repo_url, plugins)
+                            except Exception:
+                                pass
+                        
+                        threading.Timer(0.5, lambda: run_on_ui_thread(show_after_delay)).start()
+                        
                     except Exception:
                         pass
-                    self._show_plugins_sheet(repo_name, repo_url, plugins)
 
                 run_on_ui_thread(show_plugins)
 
