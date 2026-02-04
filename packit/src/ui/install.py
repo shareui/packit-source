@@ -2,6 +2,7 @@ import os
 import tempfile
 import requests
 import threading
+import re
 from android_utils import log, run_on_ui_thread
 from client_utils import get_last_fragment, run_on_queue
 from ui.bulletin import BulletinHelper
@@ -32,6 +33,29 @@ class InstallUI:
     def __init__(self, plugin):
         self.plugin = plugin
         self.repoManager = plugin.repoManager
+
+    def _parse_github_url(self, url):
+        try:
+            if not url:
+                return None, None
+            
+            patterns = [
+                r'github\.com/([^/]+)/([^/]+?)(?:\.git)?/?$',
+                r'raw\.githubusercontent\.com/([^/]+)/([^/]+)/',
+                r'api\.github\.com/repos/([^/]+)/([^/]+)',
+            ]
+            
+            for pattern in patterns:
+                match = re.search(pattern, url)
+                if match:
+                    owner = match.group(1)
+                    repo = match.group(2)
+                    repo = repo.replace('.git', '')
+                    return owner, repo
+            
+            return None, None
+        except Exception:
+            return None, None
 
     def _apply_press_scale(self, view):
         try:
@@ -257,7 +281,15 @@ class InstallUI:
                     name_tv.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
                     url_tv = TextView(act)
                     url_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
-                    url_tv.setText(repo.get("url") or "")
+                    url = repo.get("url", "")
+                    owner, repo_name = self._parse_github_url(url)
+                    
+                    if owner and repo_name:
+                        display_text = f"{owner} • {repo_name}"
+                    else:
+                        display_text = url
+                    
+                    url_tv.setText(display_text)
                     url_tv.setTextColor(Theme.getColor(Theme.key_dialogTextGray2))
                     text_container.addView(name_tv)
                     text_container.addView(url_tv, LayoutHelper.createLinear(-1, -2, 0, 4, 0, 0))

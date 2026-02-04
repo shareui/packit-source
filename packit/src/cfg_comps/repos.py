@@ -168,21 +168,22 @@ class RepositoriesSettings:
                     )
                 ])
                 
+                settingsList.extend([
+                    Text(
+                        text="Share Repository",
+                        icon="msg_share",
+                        accent=True,
+                        on_click=makeOnShare(idx)
+                    )
+                ])
+                
                 if len(repos) > 1:
-                    settingsList.extend([
-                        Text(
-                            text="Share Repository",
-                            icon="msg_share",
-                            accent=True,
-                            on_click=makeOnShare(idx)
-                        ),
-                        Text(
-                            text=strings.remove_repository,
-                            icon="msg_filled_blocked_solar",
-                            red=True,
-                            on_click=makeOnRemove(idx)
-                        )
-                    ])
+                    settingsList.append(Text(
+                        text=strings.remove_repository,
+                        icon="msg_filled_blocked_solar",
+                        red=True,
+                        on_click=makeOnRemove(idx)
+                    ))
 
             settingsList.append(Divider())
         

@@ -34,10 +34,11 @@ class RepositoryManager:
         if isFirst:
             newRepo = {
                 "id": repoId,
-                "name": "Official",
+                "name": "Official repository",
                 "url": "https://raw.githubusercontent.com/shareui/packit/main/configs/config.json",
                 "enabled": True,
-                "collapsed": False
+                "collapsed": False,
+                "icon": "chats_pin"
             }
         else:
             newRepo = {
