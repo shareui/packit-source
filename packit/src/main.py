@@ -21,6 +21,7 @@ class PackItPlugin(BasePlugin):
         self.deeplink_hook_ref = None
     
     def on_plugin_load(self):
+        log("PackIt installed")
         self.hook_settings_header_ref = self.settingsBuilder._setup_settings_header_hook()
         self.deeplink_hook_ref = setup_deeplink_hook(self)
         self.chatUI.initialize_chat_menu()
