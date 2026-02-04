@@ -42,18 +42,16 @@ class DocumentationSettings:
     def _openForum(self, view):
         self._openUrl("https://t.me/+MlXY77j5URE2MTU8")
     
+    def _openDeeplinks(self, view):
+        self._openUrl("https://github.com/shareui/packit/blob/main/docs/deeplinks.md")
+    
     def build(self):
         return [
-            Header(text="Documentation"),
+            Header(text="For users"),
             Text(
                 text="FAQ",
                 icon="msg_help",
                 on_click=self._openFaq
-            ),
-            Text(
-                text="Creating your own repo",
-                icon="msg_edit",
-                on_click=self._openRepoGuide
             ),
             Text(
                 text="Report a bug",
@@ -62,8 +60,19 @@ class DocumentationSettings:
             ),
             Text(
                 text="Official forum",
-                icon="msg_info",
+                icon="filled_folder_existing",
                 on_click=self._openForum
+            ),
+            Header(text="For devs"),
+            Text(
+                text="Creating your own repo",
+                icon="msg_edit",
+                on_click=self._openRepoGuide
+            ),
+            Text(
+                text="Deeplinks",
+                icon="msg_link",
+                on_click=self._openDeeplinks
             ),
             Divider()
         ]
