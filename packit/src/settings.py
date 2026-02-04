@@ -317,7 +317,7 @@ class SettingsBuilder:
             ),
             
             Divider(),
-            Header(text="Community & info"),
+            Header(text="Community"),
             
             Text(
                 text="Packit forum",
@@ -326,7 +326,7 @@ class SettingsBuilder:
             ),
             
             Text(
-                text="Documentation",
+                text="Links & docs",
                 icon="msg_help",
                 create_sub_fragment=self.documentationSettings.build
             ),
