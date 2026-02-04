@@ -30,7 +30,7 @@ import android_utils
 __icon__ = "plugin232/17"
 
 # the logging logic and implementation were borrowed from the logsoverride plugin, thanks to @pixwet
-EMPTY_LOGS = "Logs are empty"
+EMPTY_LOGS = "пофиксить: BasePlugin.log и android_utils.log, а в elyxcore используйется self.log и lib.log"
 PLUGIN_ID = "shareui_packit"
 
 class OnCancelListener(dyp(DialogInterface.OnCancelListener)):
