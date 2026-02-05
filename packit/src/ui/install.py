@@ -325,7 +325,7 @@ class InstallUI:
                 all_repos_icon = ImageView(act)
                 try:
                     R_tg = find_class("org.telegram.messenger.R")
-                    icon_id = getattr(R_tg.drawable, "msg_folders")
+                    icon_id = getattr(R_tg.drawable, "msg_media")
                     all_repos_icon.setImageResource(icon_id)
                     all_repos_icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_addButton))
                 except Exception:
@@ -854,18 +854,11 @@ class InstallUI:
                             is_current = (sort_type == current_sort_type)
                             
                             try:
-                                if is_current:
-                                    option.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                                        AndroidUtilities.dp(8),
-                                        Theme.getColor(Theme.key_featuredStickers_addButton),
-                                        Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
-                                    ))
-                                else:
-                                    option.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                                        AndroidUtilities.dp(8),
-                                        Theme.getColor(Theme.key_dialogBackground),
-                                        Theme.getColor(Theme.key_dialogBackgroundGray)
-                                    ))
+                                option.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                                    AndroidUtilities.dp(8),
+                                    Theme.getColor(Theme.key_dialogBackground),
+                                    Theme.getColor(Theme.key_dialogBackgroundGray)
+                                ))
                             except Exception:
                                 try:
                                     option.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector)))
@@ -876,12 +869,36 @@ class InstallUI:
                             option_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
                             option_text.setText(text)
                             if is_current:
-                                option_text.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
+                                option_text.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton))
                             else:
                                 option_text.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
                             option_layout = LinearLayout(act)
                             option_layout.setOrientation(LinearLayout.HORIZONTAL)
                             option_layout.setGravity(Gravity.CENTER_VERTICAL)
+                            if is_current:
+                                check_circle = FrameLayout(act)
+                                check_circle_size = AndroidUtilities.dp(20)
+                                check_circle_params = LinearLayout.LayoutParams(check_circle_size, check_circle_size)
+                                check_circle_params.rightMargin = AndroidUtilities.dp(12)
+                                circle_bg = GradientDrawable()
+                                circle_bg.setShape(GradientDrawable.OVAL)
+                                circle_bg.setColor(Theme.getColor(Theme.key_featuredStickers_addButton))
+                                circle_bg.setStroke(AndroidUtilities.dp(1), Color.WHITE)
+                                check_circle.setBackground(circle_bg)
+                                dot = View(act)
+                                dot_size = AndroidUtilities.dp(8)
+                                dot_bg = GradientDrawable()
+                                dot_bg.setShape(GradientDrawable.OVAL)
+                                dot_bg.setColor(Color.WHITE)
+                                dot.setBackground(dot_bg)
+                                check_circle.addView(dot, FrameLayout.LayoutParams(dot_size, dot_size, Gravity.CENTER))
+                                option_layout.addView(check_circle, check_circle_params)
+                            else:
+                                empty_space = View(act)
+                                empty_space_params = LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
+                                empty_space_params.rightMargin = AndroidUtilities.dp(12)
+                                option_layout.addView(empty_space, empty_space_params)
+                            
                             icon = ImageView(act)
                             icon_id = None
                             if "A-Z" in text:
@@ -896,7 +913,10 @@ class InstallUI:
                             if icon_id:
                                 icon.setImageResource(icon_id)
                                 try:
-                                    icon.setColorFilter(Theme.getColor(Theme.key_dialogTextGray2))
+                                    if is_current:
+                                        icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_addButton))
+                                    else:
+                                        icon.setColorFilter(Theme.getColor(Theme.key_dialogTextGray2))
                                 except Exception:
                                     pass
                                 icon_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
