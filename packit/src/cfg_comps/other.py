@@ -34,4 +34,13 @@ class OtherSettings:
                 on_change=self.chat_button.on_chat_plugins_switch if self.chat_button else None
             ),
             Divider(),
+            Header(text="Interface"),
+            Switch(
+                key="old_sort_menu_design",
+                text="Classic sort menu",
+                subtext="Use the classic design for the plugin sorting menu with better visual feedback.",
+                default=False,
+                icon="msg_list"
+            ),
+            Divider(),
         ]

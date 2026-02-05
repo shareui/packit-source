@@ -63,6 +63,7 @@ class DocumentationSettings:
                 icon="filled_folder_existing",
                 on_click=self._openForum
             ),
+            Divider(),
             Header(text="For devs"),
             Text(
                 text="Creating your own repo",
