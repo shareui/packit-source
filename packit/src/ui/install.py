@@ -6,6 +6,7 @@ import re
 from android_utils import log, run_on_ui_thread
 from client_utils import get_last_fragment, run_on_queue
 from ui.bulletin import BulletinHelper
+from elyx import settings
 from org.telegram.ui.ActionBar import BottomSheet, Theme
 from org.telegram.ui.Components import LayoutHelper, BackupImageView, EditTextBoldCursor
 from org.telegram.messenger import AndroidUtilities, MediaDataController, ImageLocation
@@ -852,13 +853,21 @@ class InstallUI:
                             option.setFocusable(True)
                             option.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12))
                             is_current = (sort_type == current_sort_type)
+                            use_classic_design = settings.get("old_sort_menu_design", False)
                             
                             try:
-                                option.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                                    AndroidUtilities.dp(8),
-                                    Theme.getColor(Theme.key_dialogBackground),
-                                    Theme.getColor(Theme.key_dialogBackgroundGray)
-                                ))
+                                if is_current and use_classic_design:
+                                    option.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                                        AndroidUtilities.dp(8),
+                                        Theme.getColor(Theme.key_featuredStickers_addButton),
+                                        Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
+                                    ))
+                                else:
+                                    option.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                                        AndroidUtilities.dp(8),
+                                        Theme.getColor(Theme.key_dialogBackground),
+                                        Theme.getColor(Theme.key_dialogBackgroundGray)
+                                    ))
                             except Exception:
                                 try:
                                     option.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector)))
@@ -868,14 +877,16 @@ class InstallUI:
                             option_text = TextView(act)
                             option_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
                             option_text.setText(text)
-                            if is_current:
+                            if is_current and use_classic_design:
+                                option_text.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
+                            elif is_current and not use_classic_design:
                                 option_text.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton))
                             else:
                                 option_text.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
                             option_layout = LinearLayout(act)
                             option_layout.setOrientation(LinearLayout.HORIZONTAL)
                             option_layout.setGravity(Gravity.CENTER_VERTICAL)
-                            if is_current:
+                            if is_current and not use_classic_design:
                                 check_circle = FrameLayout(act)
                                 check_circle_size = AndroidUtilities.dp(20)
                                 check_circle_params = LinearLayout.LayoutParams(check_circle_size, check_circle_size)
@@ -893,7 +904,7 @@ class InstallUI:
                                 dot.setBackground(dot_bg)
                                 check_circle.addView(dot, FrameLayout.LayoutParams(dot_size, dot_size, Gravity.CENTER))
                                 option_layout.addView(check_circle, check_circle_params)
-                            else:
+                            elif not use_classic_design:
                                 empty_space = View(act)
                                 empty_space_params = LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
                                 empty_space_params.rightMargin = AndroidUtilities.dp(12)
@@ -908,12 +919,12 @@ class InstallUI:
                             elif "Authors" in text:
                                 icon_id = resolve_icon("msg_online")
                             elif "Repository" in text:
-                                icon_id = resolve_icon("menu_intro_solar")
+                                icon_id = resolve_icon("menu_album_add")
                                 
                             if icon_id:
                                 icon.setImageResource(icon_id)
                                 try:
-                                    if is_current:
+                                    if is_current and not use_classic_design:
                                         icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_addButton))
                                     else:
                                         icon.setColorFilter(Theme.getColor(Theme.key_dialogTextGray2))
