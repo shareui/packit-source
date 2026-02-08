@@ -112,5 +112,14 @@
     "clear_button": "Clear",
     "easter_egg_title": "Wait a minute...",
     "easter_egg_clear_message": "Did you really think I work as your housekeeper? You have one repository, master.",
-    "easter_egg_reset_message": "Don't bother me with trifles, you have one repository."
+    "easter_egg_reset_message": "Don't bother me with trifles, you have one repository.",
+    "support_via_send": "Support via @send",
+    "support_via_ton": "Support via TON",
+    "support_send_message": "<З",
+    "copied_to_clipboard": "Copied to clipboard~",
+    "failed_to_copy": "Failed to copy :(",
+    "support_via_send": "Support via @send",
+    "support_via_ton": "Support via TON",
+    "donate_easter_egg": "Wait, did someone give some subs?",
+    "copied_to_clipboard": "Copied to clipboard"
 }
