@@ -97,5 +97,17 @@
     "enlighten_9": "You asked for it, last warning.",
     "enlighten_10": "I warned you...",
     "enlighten_11": "Didn’t you get it the first time?",
-    "pkill": "Иногда нужно перезагрузиться... :3"
+    "pkill": "Sometimes you just need to restart... :3",
+    "restore_default_repository": "Restore default repository",
+    "default_repo_restored": "Default repository restored!",
+    "reset_repositories": "Reset repositories",
+    "reset_repositories_title": "Reset repositories?",
+    "reset_repositories_message": "All repositories will be removed and the default repository will be restored. Are you sure, sweetie?",
+    "repositories_reset": "Repositories reset",
+    "reset_button": "Reset",
+    "clear_all_except_first": "Clear all",
+    "clear_all_title": "Clear all repositories?",
+    "clear_all_message": "All repositories except the first one will be deleted.",
+    "repositories_cleared": "Cleaning!~",
+    "clear_button": "Clear"
 }

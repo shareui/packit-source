@@ -42,6 +42,77 @@ class RepositoriesSettings:
         
             self.repoManager.addRepository(isFirst=False)
         
+        def restore_default_repository(view):
+            repos = self.repoManager.getRepositories()
+            if len(repos) >= 10:
+                try:
+                    BulletinHelper.show_error(strings.max_repositories_allowed)
+                except Exception:
+                    pass
+                return
+            
+            self.repoManager.restoreDefaultRepository()
+            try:
+                BulletinHelper.show_success(strings.default_repo_restored)
+            except Exception:
+                pass
+        
+        def reset_repositories(view):
+            try:
+                frag = get_last_fragment()
+                act = frag.getParentActivity() if frag else None
+                if not act:
+                    return
+                
+                builder = AlertDialogBuilder(act)
+                builder.set_title(strings.reset_repositories_title)
+                builder.set_message(strings.reset_repositories_message)
+                
+                def on_yes(b, w):
+                    self.repoManager.resetRepositories()
+                    try:
+                        BulletinHelper.show_success(strings.repositories_reset)
+                    except Exception:
+                        pass
+                
+                builder.set_positive_button(strings.reset_button, on_yes)
+                builder.set_negative_button(strings.close_button, lambda b, w: b.dismiss())
+                try:
+                    builder.make_button_red(AlertDialogBuilder.BUTTON_POSITIVE)
+                except Exception:
+                    pass
+                builder.show()
+            except Exception:
+                pass
+        
+        def clear_all_except_first(view):
+            try:
+                frag = get_last_fragment()
+                act = frag.getParentActivity() if frag else None
+                if not act:
+                    return
+                
+                builder = AlertDialogBuilder(act)
+                builder.set_title(strings.clear_all_title)
+                builder.set_message(strings.clear_all_message)
+                
+                def on_yes(b, w):
+                    self.repoManager.clearAllExceptFirst()
+                    try:
+                        BulletinHelper.show_success(strings.repositories_cleared)
+                    except Exception:
+                        pass
+                
+                builder.set_positive_button(strings.clear_button, on_yes)
+                builder.set_negative_button(strings.close_button, lambda b, w: b.dismiss())
+                try:
+                    builder.make_button_red(AlertDialogBuilder.BUTTON_POSITIVE)
+                except Exception:
+                    pass
+                builder.show()
+            except Exception:
+                pass
+        
         settingsList = [
             Header(text=strings.repositories),
             Text(
@@ -49,6 +120,25 @@ class RepositoriesSettings:
                 icon="msg_add",
                 accent=True,
                 on_click=add_new_repository
+            ),
+            Divider(),
+            Text(
+                text=strings.restore_default_repository,
+                icon="msg_reset",
+                accent=True,
+                on_click=restore_default_repository
+            ),
+            Text(
+                text=strings.clear_all_except_first,
+                icon="msg_clear",
+                red=True,
+                on_click=clear_all_except_first
+            ),
+            Text(
+                text=strings.reset_repositories,
+                icon="msg_delete",
+                red=True,
+                on_click=reset_repositories
             ),
             Divider()
         ]
