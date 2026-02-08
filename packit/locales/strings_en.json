@@ -109,5 +109,8 @@
     "clear_all_title": "Clear all repositories?",
     "clear_all_message": "All repositories except the first one will be deleted.",
     "repositories_cleared": "Cleaning!~",
-    "clear_button": "Clear"
+    "clear_button": "Clear",
+    "easter_egg_title": "Wait a minute...",
+    "easter_egg_clear_message": "Did you really think I work as your housekeeper? You have one repository, master.",
+    "easter_egg_reset_message": "Don't bother me with trifles, you have one repository."
 }

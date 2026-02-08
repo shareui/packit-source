@@ -58,6 +58,23 @@ class RepositoriesSettings:
                 pass
         
         def reset_repositories(view):
+            repos = self.repoManager.getRepositories()
+            if len(repos) <= 1:
+                try:
+                    frag = get_last_fragment()
+                    act = frag.getParentActivity() if frag else None
+                    if not act:
+                        return
+                    
+                    builder = AlertDialogBuilder(act)
+                    builder.set_title(strings.easter_egg_title)
+                    builder.set_message(strings.easter_egg_reset_message)
+                    builder.set_positive_button(strings.close_button, lambda b, w: b.dismiss())
+                    builder.show()
+                except Exception:
+                    pass
+                return
+            
             try:
                 frag = get_last_fragment()
                 act = frag.getParentActivity() if frag else None
@@ -86,6 +103,23 @@ class RepositoriesSettings:
                 pass
         
         def clear_all_except_first(view):
+            repos = self.repoManager.getRepositories()
+            if len(repos) <= 1:
+                try:
+                    frag = get_last_fragment()
+                    act = frag.getParentActivity() if frag else None
+                    if not act:
+                        return
+                    
+                    builder = AlertDialogBuilder(act)
+                    builder.set_title(strings.easter_egg_title)
+                    builder.set_message(strings.easter_egg_clear_message)
+                    builder.set_positive_button(strings.close_button, lambda b, w: b.dismiss())
+                    builder.show()
+                except Exception:
+                    pass
+                return
+            
             try:
                 frag = get_last_fragment()
                 act = frag.getParentActivity() if frag else None
