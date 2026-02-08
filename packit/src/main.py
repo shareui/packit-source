@@ -1,12 +1,11 @@
 from typing import Any
 from base_plugin import BasePlugin, HookResult
-from elyx import settings
+from elyx import settings, strings
 from .repom import RepositoryManager
 from .core import PackItCore
 from .settings import SettingsBuilder
 from .chat_ui import ChatButton
 from .deeplink import setup_deeplink_hook
-from android_utils import log
 
 
 class PackItPlugin(BasePlugin):
@@ -21,7 +20,6 @@ class PackItPlugin(BasePlugin):
         self.deeplink_hook_ref = None
     
     def on_plugin_load(self):
-        log("PackIt installed")
         self.hook_settings_header_ref = self.settingsBuilder._setup_settings_header_hook()
         self.deeplink_hook_ref = setup_deeplink_hook(self)
         self.chatUI.initialize_chat_menu()
@@ -32,11 +30,8 @@ class PackItPlugin(BasePlugin):
             repos = self.repoManager.getRepositories()
             if not repos:
                 self.repoManager.addRepository(isFirst=True)
-        except Exception as e:
-            try:
-                log(f"Failed to initialize official repository: {e}")
-            except Exception:
-                pass
+        except Exception:
+            pass
     
     def create_settings(self):
         return self.settingsBuilder.buildMainSettings()

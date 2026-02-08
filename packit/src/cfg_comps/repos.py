@@ -2,7 +2,6 @@ from ui.settings import Header, Input, Divider, Switch, Text
 from elyx import strings
 from client_utils import get_last_fragment
 from ui.bulletin import BulletinHelper
-from android_utils import log
 from ui.alert import AlertDialogBuilder
 from .icons import IconSelector
 
@@ -28,9 +27,9 @@ class RepositoriesSettings:
             repos = self.repoManager.getRepositories()
             if len(repos) >= 10:
                 try:
-                    BulletinHelper.show_error("Maximum 10 repositories allowed")
+                    BulletinHelper.show_error(strings.max_repositories_allowed)
                 except Exception:
-                    log("Maximum 10 repositories allowed")
+                    pass
                 return
             
             for repo in repos:
@@ -38,8 +37,7 @@ class RepositoriesSettings:
                     continue
                     
                 if not repo.get('name', '').strip() or not repo.get('url', '').strip():
-                    BulletinHelper.show_error("Fill in the previous repository first")
-                    log("Please fill in the previous repository first")
+                    BulletinHelper.show_error(strings.fill_previous_repository)
                     return
         
             self.repoManager.addRepository(isFirst=False)
@@ -67,14 +65,14 @@ class RepositoriesSettings:
                         return
                     
                     builder = AlertDialogBuilder(act)
-                    builder.set_title("Delete repository")
-                    builder.set_message("Are you sure you want to delete repository?")
+                    builder.set_title(strings.delete_repository_title)
+                    builder.set_message(strings.delete_repository_message)
                     
                     def on_yes(b, w):
                         self.repoManager.removeRepository(i)
                     
-                    builder.set_positive_button("Delete", on_yes)
-                    builder.set_negative_button("Close", lambda b, w: b.dismiss())
+                    builder.set_positive_button(strings.delete_button, on_yes)
+                    builder.set_negative_button(strings.close_button, lambda b, w: b.dismiss())
                     try:
                         builder.make_button_red(AlertDialogBuilder.BUTTON_POSITIVE)
                     except Exception:
@@ -97,11 +95,11 @@ class RepositoriesSettings:
                 try:
                     from org.telegram.messenger import AndroidUtilities
                     if AndroidUtilities.addToClipboard(share_url):
-                        BulletinHelper.show_success("Repository link copied to clipboard!")
+                        BulletinHelper.show_success(strings.repo_link_copied)
                     else:
-                        BulletinHelper.show_error("Failed to copy to clipboard")
+                        BulletinHelper.show_error(strings.failed_to_copy)
                 except Exception:
-                    BulletinHelper.show_error("Failed to copy to clipboard")
+                    BulletinHelper.show_error(strings.failed_to_copy)
             
             return share_repository
         
@@ -128,7 +126,7 @@ class RepositoriesSettings:
             isCollapsed = repo.get("collapsed", False)
             isEnabled = repo.get("enabled", True)
             collapseIcon = "msg_go_up" if not isCollapsed else "arrow_more_solar"
-            headerText = strings("repository_form", idx + 1)
+            headerText = strings.repository_form.format(idx + 1)
             settingsList.append(Text(
                 text=headerText,
                 icon=collapseIcon,
@@ -138,7 +136,7 @@ class RepositoriesSettings:
             
             if not isCollapsed:
                 current_icon = repo.get('icon', '')
-                icon_text = f"Repository Icon: {current_icon}" if current_icon else "Repository Icon: not selected"
+                icon_text = strings.repo_icon_text.format(current_icon) if current_icon else strings.repo_icon_not_selected
                 settingsList.extend([
                     Switch(
                         key=f"repo_enabled_{repo['id']}",
@@ -170,7 +168,7 @@ class RepositoriesSettings:
                 
                 settingsList.extend([
                     Text(
-                        text="Share Repository",
+                        text=strings.share_repository,
                         icon="msg_share",
                         accent=True,
                         on_click=makeOnShare(idx)

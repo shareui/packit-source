@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 from client_utils import get_last_fragment
-from elyx import settings
+from elyx import settings, strings
 
 
 class RepositoryManager:
@@ -34,7 +34,7 @@ class RepositoryManager:
         if isFirst:
             newRepo = {
                 "id": repoId,
-                "name": "Official repository",
+                "name": strings.official_repository,
                 "url": "https://raw.githubusercontent.com/shareui/packit/main/configs/config.json",
                 "enabled": True,
                 "collapsed": False,

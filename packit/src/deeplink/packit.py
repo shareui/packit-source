@@ -15,6 +15,7 @@ from . import forum
 from . import repo
 from . import install
 from . import update
+from . import problems
 
 
 class PackItDeeplinkHook(MethodHook):
@@ -28,11 +29,11 @@ class PackItDeeplinkHook(MethodHook):
         try:
             if len(param.args) < 7:
                 return
-            
+
             intent = param.args[0]
             if not intent or intent.getAction() != "android.intent.action.VIEW":
                 return
-            
+
             data = intent.getData()
             if not data:
                 return
@@ -59,6 +60,7 @@ class PackItDeeplinkHook(MethodHook):
             repo.handle(url)
             install.handle(url)
             update.handle(url)
+            problems.handle(url)
         except Exception as e:
             log(f"[PackIt] Error showing notification: {e}")
             try:
@@ -85,12 +87,13 @@ class PackItDeeplinkHook(MethodHook):
             log(f"[PackIt] Error proceeding deeplink: {e}")
             self.is_processing = False
 
+
 def setup_deeplink_hook(plugin):
     try:
         LaunchActivity = find_class("org.telegram.ui.LaunchActivity")
         if LaunchActivity:
             method = LaunchActivity.getClass().getDeclaredMethod(
-                "handleIntent", 
+                "handleIntent",
                 find_class("android.content.Intent").getClass(),
                 find_class("java.lang.Boolean").TYPE,
                 find_class("java.lang.Boolean").TYPE,

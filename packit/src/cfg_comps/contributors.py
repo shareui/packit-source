@@ -1,11 +1,11 @@
 from ui.settings import Header, Text, Divider
 from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment
-from android_utils import log
 from org.telegram.messenger.browser import Browser
 from android.net import Uri
 from android.content import Intent
 from org.telegram.messenger import ApplicationLoader
+from elyx import strings
 
 
 class ContributorsSettings:
@@ -26,46 +26,45 @@ class ContributorsSettings:
                 intent.setData(Uri.parse(url))
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(intent)
-        except Exception as e:
-            log(f"failed to open url: {e}")
-            BulletinHelper.show_error("Failed to open link")
+        except Exception:
+            BulletinHelper.show_error(strings.failed_to_open_link)
     
     def build(self):
         return [
-            Header(text="Founder: @shareui"),
+            Header(text=strings.founder_shareui),
             
             Text(
-                text="GitHub",
+                text=strings.github,
                 icon="msg_link",
                 on_click=lambda v: self._open_url("https://github.com/shareui")
             ),
             Text(
-                text="Direct message",
+                text=strings.direct_message,
                 icon="msg_message",
                 on_click=lambda v: self._open_url("https://t.me/shareui")
             ),
             Text(
-                text="Personal channel",
+                text=strings.personal_channel,
                 icon="msg_channel",
                 on_click=lambda v: self._open_url("https://t.me/shuiilog")
             ),
             
             Divider(),
             
-            Header(text="Lead Developer: @mr_Vestr"),
+            Header(text=strings.lead_developer_vestr),
 
             Text(
-                text="GitHub",
+                text=strings.github,
                 icon="msg_link",
                 on_click=lambda v: self._open_url("https://github.com/mr-vestr")
             ),
             Text(
-                text="Direct message",
+                text=strings.direct_message,
                 icon="msg_message",
                 on_click=lambda v: self._open_url("https://t.me/mr_Vestr")
             ),
             Text(
-                text="Personal channel",
+                text=strings.personal_channel,
                 icon="msg_channel",
                 on_click=lambda v: self._open_url("https://t.me/I_am_Vestr")
             ),

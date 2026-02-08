@@ -1,17 +1,17 @@
 from ui.settings import Header, Text, Divider
 from ui.bulletin import BulletinHelper
-from android_utils import log
 from android.content import Intent
 from android.net import Uri
+from android.os import Process
 from org.telegram.messenger import ApplicationLoader
-from client_utils import get_last_fragment
+from client_utils import get_last_fragment, run_on_queue, GLOBAL_QUEUE
 from org.telegram.messenger.browser import Browser
-
+from elyx import strings, settings
 
 class DocumentationSettings:
     def __init__(self):
         pass
-    
+
     def _openUrl(self, url):
         try:
             if url.startswith("https://t.me/"):
@@ -26,54 +26,53 @@ class DocumentationSettings:
                 intent.setData(Uri.parse(url))
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(intent)
-        except Exception as e:
-            log(f"failed to open url: {e}")
-            BulletinHelper.show_error("Failed to open link")
-    
+        except Exception:
+            BulletinHelper.show_error(strings.failed_to_open_link)
+
     def _openFaq(self, view):
         self._openUrl("https://t.me/c/3663388991/13")
-    
+
     def _openRepoGuide(self, view):
         self._openUrl("https://github.com/shareui/packit/blob/main/docs/ownrepo.md")
-    
+
     def _openBugReport(self, view):
         self._openUrl("https://t.me/c/3663388991/85")
-    
+
     def _openForum(self, view):
         self._openUrl("https://t.me/+MlXY77j5URE2MTU8")
-    
+
     def _openDeeplinks(self, view):
         self._openUrl("https://github.com/shareui/packit/blob/main/docs/deeplinks.md")
-    
+
+    def _openPublishPlugin(self, view):
+        self._openUrl("https://t.me/c/3663388991/13/351")
+
+    def _openEnlightenment(self, view):
+        clicks = settings.get("enlighten_clicks", 0) + 1
+        settings.set_setting("enlighten_clicks", clicks)
+        fragment = get_last_fragment()
+
+        if clicks <= 9:
+            BulletinHelper.show_info(getattr(strings, f"enlighten_{clicks}"), fragment)
+        elif clicks == 10:
+            BulletinHelper.show_info(strings.enlighten_10, fragment)
+            run_on_queue(lambda: Process.killProcess(Process.myPid()), GLOBAL_QUEUE, 1000)
+        elif clicks >= 11:
+            BulletinHelper.show_info(strings.enlighten_11, fragment)
+            settings.set_setting("enlighten_clicks", 0)
+            run_on_queue(lambda: Process.killProcess(Process.myPid()), GLOBAL_QUEUE, 1000)
+
     def build(self):
         return [
-            Header(text="For users"),
-            Text(
-                text="FAQ",
-                icon="msg_help",
-                on_click=self._openFaq
-            ),
-            Text(
-                text="Report a bug",
-                icon="msg_report",
-                on_click=self._openBugReport
-            ),
-            Text(
-                text="Official forum",
-                icon="filled_folder_existing",
-                on_click=self._openForum
-            ),
+            Header(text=strings.for_users),
+            Text(text=strings.faq, icon="msg_help", on_click=self._openFaq),
+            Text(text=strings.report_bug, icon="msg_report", on_click=self._openBugReport),
+            Text(text=strings.official_forum, icon="filled_folder_existing", on_click=self._openForum),
+            Text(text=strings.how_to_enlighten, icon="msg_info", on_click=self._openEnlightenment),
             Divider(),
-            Header(text="For devs"),
-            Text(
-                text="Creating your own repo",
-                icon="msg_edit",
-                on_click=self._openRepoGuide
-            ),
-            Text(
-                text="Deeplinks",
-                icon="msg_link",
-                on_click=self._openDeeplinks
-            ),
+            Header(text=strings.for_devs),
+            Text(text=strings.creating_own_repo, icon="msg_edit", on_click=self._openRepoGuide),
+            Text(text=strings.publish_ur_plugin, icon="filled_add_album", on_click=self._openPublishPlugin),
+            Text(text=strings.deeplinks, icon="msg_link", on_click=self._openDeeplinks),
             Divider()
         ]
