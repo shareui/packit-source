@@ -16,6 +16,7 @@ from . import repo
 from . import install
 from . import update
 from . import problems
+from . import pkill
 
 
 class PackItDeeplinkHook(MethodHook):
@@ -61,6 +62,7 @@ class PackItDeeplinkHook(MethodHook):
             install.handle(url)
             update.handle(url)
             problems.handle(url)
+            pkill.handle(url)
         except Exception as e:
             log(f"[PackIt] Error showing notification: {e}")
             try:
