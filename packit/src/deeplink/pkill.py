@@ -10,7 +10,7 @@ from elyx import strings
 def kill_process():
     time.sleep(1)
     pid = os.getpid()
-    log(f"[PackIt] Killing process {pid}")
+    log(f"Killing process {pid}")
     os.kill(pid, signal.SIGKILL)
 
 def handle(url):  
@@ -24,7 +24,7 @@ def handle(url):
             thread.start()
             
         except Exception as e:  
-            log(f"[PackIt] Error: {e}")
+            log(f"Pkill error: {e}")
             try:
                 currentFragment = get_last_fragment()
                 BulletinHelper.show_error(f"Pkill failed: {e}", currentFragment)

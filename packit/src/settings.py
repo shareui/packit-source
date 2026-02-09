@@ -1,6 +1,3 @@
-import threading
-import time
-import traceback
 from ui.settings import Header, Text, Divider
 from elyx import strings, metainfo
 from .cfg_comps.repos import RepositoriesSettings
@@ -26,7 +23,6 @@ from android_utils import OnClickListener, OnLongClickListener
 from android.content import DialogInterface
 from ui.bulletin import BulletinHelper
 import android_utils
-from .packlog import packlog, PLUGIN_ID
 
 __icon__ = "plugin232/17"
 
@@ -179,93 +175,6 @@ class SettingsBuilder:
         except Exception:
             pass
     
-    def _show_packit_logs(self, view):
-        try:
-            fragment = get_last_fragment()
-            activity = fragment.getParentActivity()
-            logs = packlog.get() or strings.empty_logs
-            checking = True
-
-            bottom_sheet = BottomSheet(activity, False, fragment.getResourceProvider())
-            bottom_sheet.fixNavigationBar()
-            bottom_sheet.setTitle(strings.logs_of_plugin.format(PLUGIN_ID), True)
-
-            frame_layout = FrameLayout(activity)
-            linear_layout = LinearLayout(activity)
-            linear_layout.setOrientation(LinearLayout.VERTICAL)
-            linear_layout.setClipChildren(False)
-            linear_layout.setClipToPadding(False)
-            frame_layout.addView(linear_layout)
-
-            code_view = EffectsTextView(activity)
-            code_view.setGravity(Gravity.LEFT)
-            code_view.setTypeface(AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_REGULAR))
-            code_view.setLinkTextColor(Theme.getColor(Theme.key_dialogTextLink))
-            code_view.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
-            code_view.setText(logs)
-            code_view.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
-            code_view.setOnClickListener(
-                OnClickListener(lambda _: (
-                    BulletinHelper.show_copied_to_clipboard()
-                    if AndroidUtilities.addToClipboard(logs)
-                    else None
-                ))
-            )
-
-            def clear_logs():
-                nonlocal logs, code_view
-                packlog.clear()
-                logs = strings.empty_logs
-
-                def _fn():
-                    try:
-                        code_view.setText(logs)
-                        BulletinFactory.of(bottom_sheet.getSheetContainer(),
-                                           fragment.getResourceProvider()).createSuccessBulletin(strings.logs_cleared).show()
-                    except:
-                        pass
-
-                run_on_ui_thread(_fn)
-
-            code_view.setOnLongClickListener(OnLongClickListener(lambda *_: clear_logs()))
-            code_view.setPadding(AndroidUtilities.dp(10), AndroidUtilities.dp(10), AndroidUtilities.dp(10),
-                                 AndroidUtilities.dp(10))
-            code_view.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                AndroidUtilities.dp(10),
-                Theme.getColor(Theme.key_chat_serviceBackground),
-                Theme.getColor(Theme.key_chat_serviceBackground)
-            ))
-            linear_layout.addView(code_view, LayoutHelper.createLinear(-1, -2, 0, 21, 28, 21, 0))
-
-            def is_check():
-                nonlocal checking
-                return checking
-
-            def _fn():
-                nonlocal checking, code_view, logs
-                while is_check():
-                    logs_new = packlog.get() or strings.empty_logs
-                    if logs_new != logs:
-                        logs = logs_new
-                        run_on_ui_thread(lambda: code_view.setText(logs))
-                    time.sleep(0.3)
-
-            def _stop():
-                nonlocal checking
-                checking = False
-
-            thread = threading.Thread(target=_fn)
-            thread.daemon = True
-
-            scroll_view = ScrollView(activity)
-            scroll_view.addView(frame_layout)
-            bottom_sheet.setCustomView(scroll_view)
-            bottom_sheet.setOnCancelListener(OnCancelListener(lambda: _stop()))
-            bottom_sheet.show()
-            thread.start()
-        except Exception:
-            pass
-    
     def buildMainSettings(self):
         return [
             Header(text=strings.plugins_header),
@@ -297,13 +206,6 @@ class SettingsBuilder:
                 text=strings.repositories,
                 icon="msg_folders",
                 create_sub_fragment=self.repositoriesSettings.build
-            ),
-            
-            Text(
-                text=strings.show_logs,
-                icon="msg_log",
-                on_click=self._show_packit_logs,
-                link_alias="show_logs"
             ),
             
             Text(
