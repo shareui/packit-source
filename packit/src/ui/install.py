@@ -302,7 +302,7 @@ class InstallUI:
                     btn.setOrientation(LinearLayout.HORIZONTAL)
                     btn.setClickable(True)
                     btn.setFocusable(True)
-                    btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12))
+                    btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(8))
                     try:
                         btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
                             AndroidUtilities.dp(8),
@@ -365,13 +365,14 @@ class InstallUI:
                         self._open_repo_plugins(repo)
 
                     btn.setOnClickListener(OnClickListener(lambda v: on_click(v)))
+                    self._apply_press_scale(btn)
                     return btn
 
                 all_repos_btn = LinearLayout(act)
                 all_repos_btn.setOrientation(LinearLayout.HORIZONTAL)
                 all_repos_btn.setClickable(True)
                 all_repos_btn.setFocusable(True)
-                all_repos_btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12))
+                all_repos_btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(8))
                 try:
                     all_repos_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
                         AndroidUtilities.dp(8),
@@ -419,14 +420,14 @@ class InstallUI:
                 
                 all_repos_btn.setOnClickListener(OnClickListener(lambda v: on_all_repos_click(v)))
                 self._apply_press_scale(all_repos_btn)
-                items.addView(all_repos_btn, LayoutHelper.createFrame(-1, -2, Gravity.TOP, 16, 4, 16, 4))
+                items.addView(all_repos_btn, LayoutHelper.createFrame(-1, -2, Gravity.TOP, 16, 2, 16, 2))
 
                 add_divider()
 
                 for idx, repo in enumerate(repos):
                     if idx != 0:
                         add_divider()
-                    items.addView(make_repo_button(repo), LayoutHelper.createFrame(-1, -2, Gravity.TOP, 16, 4, 16, 4))
+                    items.addView(make_repo_button(repo), LayoutHelper.createFrame(-1, -2, Gravity.TOP, 16, 2, 16, 2))
 
                 content_frame.addView(scroll, FrameLayout.LayoutParams(-1, -1))
                 close_btn = self._create_close_button(act)
@@ -1477,4 +1478,3 @@ class InstallUI:
             container.addView(buttons, LayoutHelper.createLinear(-1, -2))
             row.addView(container)
             return row
-            
