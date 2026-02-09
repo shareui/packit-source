@@ -8,7 +8,7 @@ from .cfg_comps.other import OtherSettings
 from .cfg_comps.docs import DocumentationSettings
 from .cfg_comps.contributors import ContributorsSettings
 from base_plugin import BasePlugin, MethodHook
-from android_utils import log, run_on_ui_thread
+from android_utils import run_on_ui_thread
 from hook_utils import find_class, get_private_field
 from org.telegram.ui.ActionBar import Theme, BottomSheet
 from org.telegram.ui.Components import LayoutHelper, UItem, BackupImageView, EffectsTextView, BulletinFactory
@@ -29,8 +29,7 @@ import android_utils
 
 __icon__ = "plugin232/17"
 
-# the logging logic and implementation were borrowed from the logsoverride plugin, thanks to @pixwet
-EMPTY_LOGS = "пофиксить: BasePlugin.log и android_utils.log, а в elyxcore используйется self.log и lib.log"
+EMPTY_LOGS = "It's empty here for now..." # перенести в стрингс
 PLUGIN_ID = "shareui_packit"
 
 class OnCancelListener(dyp(DialogInterface.OnCancelListener)):
@@ -98,7 +97,7 @@ class SettingsBuilder:
                 method = PSA.getClass().getDeclaredMethod("fillItems", find_class("java.util.ArrayList"), find_class("org.telegram.ui.Components.UniversalAdapter"))
                 method.setAccessible(True)
                 return self.plugin.hook_method(method, PackitSettingsHeaderHook(self))
-        except Exception as e:
+        except Exception:
             pass
         return None
 
@@ -145,14 +144,14 @@ class SettingsBuilder:
             title.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
             title.setTypeface(AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_MEDIUM))
             title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 22)
-            title.setText(f"Packit v{metainfo['version']}")
+            title.setText(strings.plugin_title_version.format(metainfo['version']))
             title.setSingleLine(True)
             title.setGravity(Gravity.CENTER)
             text_container.addView(title, LayoutHelper.createLinear(-1, -2, 0, 0, 4, 0))
             subtitle = TextView(context)
             subtitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
             subtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
-            subtitle.setText("Multifunctional plugin manager for exteraGram")
+            subtitle.setText(strings.plugin_subtitle)
             subtitle.setGravity(Gravity.CENTER)
             text_container.addView(subtitle, LayoutHelper.createLinear(-1, -2))
             main_layout.addView(text_container, LayoutHelper.createLinear(-1, -2, Gravity.CENTER))
@@ -166,14 +165,11 @@ class SettingsBuilder:
         try:
             install_ui = InstallUI(self.plugin)
             install_ui.open()
-        except Exception as e:
-            log(f"failed to open install plugin: {e}")
+        except Exception:
+            pass
     
     def _check_updates(self, view):
-        try:
-            log("Check updates clicked")
-        except Exception as e:
-            log(f"failed to check updates: {e}")
+        pass
     
     def _openPackitForum(self, view):
         try:
@@ -182,8 +178,8 @@ class SettingsBuilder:
             if act:
                 uri = Uri.parse("https://t.me/+MlXY77j5URE2MTU8")
                 Browser.openUrl(act, uri, True, True, True, None, None, False, False, False)
-        except Exception as e:
-            log(f"failed to open packit forum: {e}")
+        except Exception:
+            pass
     
     def _show_packit_logs(self, view):
         try:
@@ -194,7 +190,7 @@ class SettingsBuilder:
 
             bottom_sheet = BottomSheet(activity, False, fragment.getResourceProvider())
             bottom_sheet.fixNavigationBar()
-            bottom_sheet.setTitle("Logs of " + PLUGIN_ID, True)
+            bottom_sheet.setTitle(strings.logs_of_plugin.format(PLUGIN_ID), True)
 
             frame_layout = FrameLayout(activity)
             linear_layout = LinearLayout(activity)
@@ -228,9 +224,9 @@ class SettingsBuilder:
                     try:
                         code_view.setText(logs)
                         BulletinFactory.of(bottom_sheet.getSheetContainer(),
-                                           fragment.getResourceProvider()).createSuccessBulletin("Logs are cleared!").show()
+                                           fragment.getResourceProvider()).createSuccessBulletin(strings.logs_cleared).show()
                     except:
-                        android_utils.log(traceback.format_exc())
+                        pass
 
                 run_on_ui_thread(_fn)
 
@@ -270,30 +266,30 @@ class SettingsBuilder:
             bottom_sheet.setOnCancelListener(OnCancelListener(lambda: _stop()))
             bottom_sheet.show()
             thread.start()
-        except Exception as e:
-            log(f"failed to show packit logs: {e}")
+        except Exception:
+            pass
     
     def buildMainSettings(self):
         return [
-            Header(text="Plugins"),
+            Header(text=strings.plugins_header),
             
             Text(
-                text="Install Plugin",
+                text=strings.install_plugin,
                 icon="msg_download",
                 on_click=self._open_install_plugin
             ),
             
             Text(
-                text="Check Updates",
+                text=strings.check_updates,
                 icon="msg_retry",
                 on_click=self._check_updates
             ),
             
             Divider(),
-            Header(text="Settings"),
+            Header(text=strings.settings_header),
             
             Text(
-                text="Deeplinks",
+                text=strings.deeplinks,
                 icon="msg_link",
                 on_click=lambda view: None
             ),
@@ -305,7 +301,7 @@ class SettingsBuilder:
             ),
             
             Text(
-                text="Show logs",
+                text=strings.show_logs,
                 icon="msg_log",
                 on_click=self._show_packit_logs
             ),
@@ -317,22 +313,22 @@ class SettingsBuilder:
             ),
             
             Divider(),
-            Header(text="Community"),
+            Header(text=strings.community_header),
             
             Text(
-                text="Packit forum",
+                text=strings.packit_forum,
                 icon="msg_groups",
                 on_click=self._openPackitForum
             ),
             
             Text(
-                text="Links & docs",
+                text=strings.links_docs,
                 icon="msg_help",
                 create_sub_fragment=self.documentationSettings.build
             ),
             
             Text(
-                text="Contributors",
+                text=strings.contributors,
                 icon="msg_contacts",
                 create_sub_fragment=self.contributorsSettings.build
             ),

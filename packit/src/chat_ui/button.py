@@ -1,4 +1,4 @@
-from android_utils import run_on_ui_thread, log
+from android_utils import run_on_ui_thread
 from client_utils import get_last_fragment
 from base_plugin import MenuItemData, MenuItemType, MethodHook
 from ui.bulletin import BulletinHelper
@@ -7,7 +7,7 @@ from org.telegram.ui import ChatActivity
 from hook_utils import find_class
 from com.exteragram.messenger.plugins import PluginsController
 from com.exteragram.messenger.plugins.ui import PluginSettingsActivity
-from elyx import settings
+from elyx import settings, strings
 
 
 class ChatButton:
@@ -17,8 +17,8 @@ class ChatButton:
     
     def get_text(self, key):
         texts = {
-            'packit': 'PackIt',
-            'packit_settings': 'PackIt Settings'
+            'packit': strings.packit,
+            'packit_settings': strings.packit_settings
         }
         return texts.get(key, key)
     
@@ -27,8 +27,8 @@ class ChatButton:
             self._update_chat_menu()
             self._update_drawer_menu()
             self._update_chat_plugins_menu()
-        except Exception as e:
-            log(f"Failed to initialize chat menu: {e}")
+        except Exception:
+            pass
     
     def _get_private_field(self, obj, name):
         try:
@@ -135,8 +135,8 @@ class ChatButton:
                 self._hook_chat_action_bar(chat_activity)
             except Exception:
                 pass
-        except Exception as e:
-            log(f"Failed to add PackIt item to chat header: {e}")
+        except Exception:
+            pass
     
     def _hook_chat_action_bar(self, chat_activity):
         try:
@@ -165,8 +165,8 @@ class ChatButton:
                     except Exception:
                         pass
             self.plugin.hook_method(onItemClickMethod, PackItActionBarMenuItemClickHook(self, chat_activity))
-        except Exception as e:
-            log(f"Failed to hook chat: {e}")
+        except Exception:
+            pass
     
     def _hook_chat_activity_resume(self):
         try:
@@ -203,8 +203,8 @@ class ChatButton:
                     except Exception:
                         pass
             self.plugin.hook_method(target_method, ChatResumeHook(self))
-        except Exception as e:
-            log(f"Failed to hook chat activity resume: {e}")
+        except Exception:
+            pass
     
     def open_packit_settings(self):
         try:
@@ -215,13 +215,13 @@ class ChatButton:
                     if plugin:
                         fragment.presentFragment(PluginSettingsActivity(plugin))
                     else:
-                        BulletinHelper.show_error("PackIt plugin not found")
+                        BulletinHelper.show_error(strings.plugin_not_found)
                 except Exception as e:
-                    BulletinHelper.show_error(f"Error opening settings: {e}")
+                    BulletinHelper.show_error(strings.error_opening_settings.format(e))
             
             run_on_ui_thread(_open_settings)
         except Exception as e:
-            BulletinHelper.show_error(f"Error: {e}")
+            BulletinHelper.show_error(strings.error_generic.format(e))
     
     def _update_chat_menu(self):
         try:
@@ -231,8 +231,8 @@ class ChatButton:
                 self._hook_chat_activity_resume()
             else:
                 self._remove_chat_button()
-        except Exception as e:
-            log(f"Failed to update chat menu: {e}")
+        except Exception:
+            pass
     
     def _remove_chat_button(self):
         try:
@@ -262,8 +262,8 @@ class ChatButton:
                         continue
                 for i in reversed(items_to_remove):
                     lazy_list.remove(i)
-        except Exception as e:
-            log(f"Failed to remove chat button: {e}")
+        except Exception:
+            pass
     
     def _update_drawer_menu(self):
         try:
@@ -277,8 +277,8 @@ class ChatButton:
                     item_id='packit_drawer',
                     on_click=lambda ctx: self.open_packit_settings()
                 ))
-        except Exception as e:
-            log(f"Failed to update drawer menu: {e}")
+        except Exception:
+            pass
     
     def _update_chat_plugins_menu(self):
         try:
@@ -297,26 +297,26 @@ class ChatButton:
                         item_id='packit_chat_plugins',
                         on_click=lambda ctx: self.open_packit_settings()
                     ))
-        except Exception as e:
-            log(f"Failed to update chat plugins menu: {e}")
+        except Exception:
+            pass
     
     def on_drawer_switch(self, val):
         try:
             settings.set("show_drawer_menu", bool(val))
             run_on_ui_thread(self._update_drawer_menu)
-        except Exception as e:
-            log(f"Failed to handle drawer switch: {e}")
+        except Exception:
+            pass
     
     def on_chat_plugins_switch(self, val):
         try:
             settings.set("show_chat_plugins_menu", bool(val))
             run_on_ui_thread(self._update_chat_plugins_menu)
-        except Exception as e:
-            log(f"Failed to handle chat plugins switch: {e}")
+        except Exception:
+            pass
     
     def on_chat_switch(self, val):
         try:
             settings.set("show_chat_menu", bool(val))
             run_on_ui_thread(self._update_chat_menu)
-        except Exception as e:
-            log(f"Failed to handle chat switch: {e}")
+        except Exception:
+            pass

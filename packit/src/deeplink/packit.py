@@ -5,6 +5,19 @@ from ui.alert import AlertDialogBuilder
 from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment
 
+from . import main_menu
+from . import settings
+from . import deeplink_menu
+from . import other
+from . import contributors
+from . import docs
+from . import forum
+from . import repo
+from . import install
+from . import update
+from . import problems
+from . import pkill
+
 
 class PackItDeeplinkHook(MethodHook):
     def __init__(self, plugin):
@@ -17,32 +30,39 @@ class PackItDeeplinkHook(MethodHook):
         try:
             if len(param.args) < 7:
                 return
-            
+
             intent = param.args[0]
             if not intent or intent.getAction() != "android.intent.action.VIEW":
                 return
-            
+
             data = intent.getData()
             if not data:
                 return
 
             url = str(data)
             if url.startswith("tg://packit"):
-                text = url[11:]
-                if not text:
-                    text = "PackIt - Universal Plugin Manager"
                 self.pending_intent = intent
                 self.pending_param = param
                 param.setResult(None)
-                run_on_ui_thread(lambda: self.show_packit_notification(text))
+                run_on_ui_thread(lambda: self.show_packit_notification(url))
                 return
         except Exception as e:
             log(f"[PackIt] Error in deeplink hook: {e}")
 
-    def show_packit_notification(self, text):
+    def show_packit_notification(self, url):
         try:
-            current_fragment = get_last_fragment()
-            BulletinHelper.show_success(text, current_fragment)
+            main_menu.handle(url)
+            settings.handle(url)
+            deeplink_menu.handle(url)
+            other.handle(url)
+            contributors.handle(url)
+            docs.handle(url)
+            forum.handle(url)
+            repo.handle(url)
+            install.handle(url)
+            update.handle(url)
+            problems.handle(url)
+            pkill.handle(url)
         except Exception as e:
             log(f"[PackIt] Error showing notification: {e}")
             try:
@@ -51,7 +71,7 @@ class PackItDeeplinkHook(MethodHook):
                 if activity:
                     builder = AlertDialogBuilder(activity)
                     builder.set_title("PackIt")
-                    builder.set_message(text)
+                    builder.set_message(url)
                     builder.set_positive_button("OK", lambda b, w: self.proceed_deeplink())
                     builder.set_on_cancel_listener(lambda b: self.proceed_deeplink())
                     builder.show()
@@ -69,12 +89,13 @@ class PackItDeeplinkHook(MethodHook):
             log(f"[PackIt] Error proceeding deeplink: {e}")
             self.is_processing = False
 
+
 def setup_deeplink_hook(plugin):
     try:
         LaunchActivity = find_class("org.telegram.ui.LaunchActivity")
         if LaunchActivity:
             method = LaunchActivity.getClass().getDeclaredMethod(
-                "handleIntent", 
+                "handleIntent",
                 find_class("android.content.Intent").getClass(),
                 find_class("java.lang.Boolean").TYPE,
                 find_class("java.lang.Boolean").TYPE,

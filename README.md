@@ -12,6 +12,7 @@ packit/src/settings.py — конструктор главного экрана 
 packit/src/core.py — устаревшее, классы ошибок
 packit/src/ui/install.py — установка плагинов
 packit/src/deeplink/packit.py — главный обработчик перехвата deeplink
+packit/src/deeplink/* — диплинки
 packit/src/chat_ui/button.py — интеграция кнопок управления в интерфейс чата
 packit/src/cfg_comps/contributors.py — вкладка с информацией об авторах проекта  
 packit/src/cfg_comps/docs.py — навигация по внешней документации и FAQ  
