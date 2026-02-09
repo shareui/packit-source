@@ -153,26 +153,30 @@ class RepositoriesSettings:
                 text=strings.add_repository,
                 icon="msg_add",
                 accent=True,
-                on_click=add_new_repository
+                on_click=add_new_repository,
+                link_alias="new_repo"
             ),
             Divider(),
             Text(
                 text=strings.restore_default_repository,
                 icon="msg_reset",
                 accent=True,
-                on_click=restore_default_repository
+                on_click=restore_default_repository,
+                link_alias="restore_repo"
             ),
             Text(
                 text=strings.clear_all_except_first,
                 icon="msg_clear",
                 red=True,
-                on_click=clear_all_except_first
+                on_click=clear_all_except_first,
+                link_alias="clear_all"
             ),
             Text(
                 text=strings.reset_repositories,
                 icon="msg_delete",
                 red=True,
-                on_click=reset_repositories
+                on_click=reset_repositories,
+                link_alias="reset_repo"
             ),
             Divider()
         ]

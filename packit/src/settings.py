@@ -276,13 +276,15 @@ class SettingsBuilder:
             Text(
                 text=strings.install_plugin,
                 icon="msg_download",
-                on_click=self._open_install_plugin
+                on_click=self._open_install_plugin,
+                link_alias="install"
             ),
             
             Text(
                 text=strings.check_updates,
                 icon="msg_retry",
-                on_click=self._check_updates
+                on_click=self._check_updates,
+                link_alias="check_updates"
             ),
             
             Divider(),
@@ -303,7 +305,8 @@ class SettingsBuilder:
             Text(
                 text=strings.show_logs,
                 icon="msg_log",
-                on_click=self._show_packit_logs
+                on_click=self._show_packit_logs,
+                link_alias="show_logs"
             ),
             
             Text(

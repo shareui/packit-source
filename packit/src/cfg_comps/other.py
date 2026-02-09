@@ -15,6 +15,7 @@ class OtherSettings:
                 subtext=strings.button_in_chat_menu_desc,
                 default=False,
                 icon="msg_settings",
+                link_alias="show_chat_menu",
                 on_change=self.chat_button.on_chat_switch if self.chat_button else None
             ),
             Switch(
@@ -23,6 +24,7 @@ class OtherSettings:
                 subtext=strings.button_in_side_menu_desc,
                 default=False,
                 icon="msg_info",
+                link_alias="show_drawer_menu",
                 on_change=self.chat_button.on_drawer_switch if self.chat_button else None
             ),
             Switch(
@@ -31,6 +33,7 @@ class OtherSettings:
                 subtext=strings.button_in_chat_plugins_desc,
                 default=False,
                 icon="msg_plugins",
+                link_alias="show_chat_plugins_menu",
                 on_change=self.chat_button.on_chat_plugins_switch if self.chat_button else None
             ),
             Divider(),
@@ -40,7 +43,8 @@ class OtherSettings:
                 text=strings.classic_sort_menu,
                 subtext=strings.classic_sort_menu_desc,
                 default=False,
-                icon="msg_list"
+                icon="msg_list",
+                link_alias="old_sort_menu_design"
             ),
             Divider(),
         ]
