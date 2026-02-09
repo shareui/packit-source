@@ -24,7 +24,9 @@ class packlog:
             from elyx import settings
             maxLogs = settings.get("max_logs_count", 100)
             if isinstance(maxLogs, str):
-                maxLogs = int(maxLogs)
+                maxLogs = int(maxLogs) if maxLogs.strip() else 100
+            if maxLogs < 1:
+                maxLogs = 100
             return maxLogs
         except:
             return 100

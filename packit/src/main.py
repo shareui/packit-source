@@ -44,6 +44,16 @@ class PackItPlugin(BasePlugin):
             params.message = f"Log tested! Check logs"
             return HookResult(strategy=HookStrategy.MODIFY, params=params)
         
+        if params.message.startswith(".logspam"):
+            import threading
+            def spamLogs():
+                for i in range(20):
+                    packlog.info(f"spam test {i+1}")
+            threading.Thread(target=spamLogs).start()
+            maxLogs = packlog._getMaxLogs()
+            params.message = f"Spamming 20 logs in background! Max limit: {maxLogs}"
+            return HookResult(strategy=HookStrategy.MODIFY, params=params)
+        
         return HookResult()
     
     def create_settings(self):
