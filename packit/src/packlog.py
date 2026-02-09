@@ -15,7 +15,7 @@ class packlog:
     def _getLogsList():
         logsDict = packlog._getLogsDict()
         if PLUGIN_ID not in logsDict:
-            logsDict[PLUGIN_ID] = []
+            logsDict[PLUGIN_ID] = {"logs": [], "cache": None}
         return logsDict[PLUGIN_ID]
     
     @staticmethod
@@ -31,11 +31,12 @@ class packlog:
     
     @staticmethod
     def _appendLog(message: str):
-        logsList = packlog._getLogsList()
-        logsList.append(message)
+        logsData = packlog._getLogsList()
+        logsData["logs"].append(message)
         maxLogs = packlog._getMaxLogs()
-        if len(logsList) > maxLogs:
-            logsList.pop(0)
+        if len(logsData["logs"]) > maxLogs:
+            logsData["logs"].pop(0)
+        logsData["cache"] = "\n".join(logsData["logs"])
     
     @staticmethod
     def info(message: str):
@@ -65,11 +66,9 @@ class packlog:
     def clear():
         logsDict = packlog._getLogsDict()
         if PLUGIN_ID in logsDict:
-            logsDict[PLUGIN_ID] = []
+            logsDict[PLUGIN_ID] = {"logs": [], "cache": None}
     
     @staticmethod
     def get():
-        logsList = packlog._getLogsList()
-        if not logsList:
-            return None
-        return "\n".join(logsList)
+        logsData = packlog._getLogsList()
+        return logsData["cache"]
