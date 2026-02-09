@@ -302,7 +302,7 @@ class InstallUI:
                     btn.setOrientation(LinearLayout.HORIZONTAL)
                     btn.setClickable(True)
                     btn.setFocusable(True)
-                    btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12))
+                    btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(8))
                     try:
                         btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
                             AndroidUtilities.dp(8),
@@ -328,10 +328,10 @@ class InstallUI:
                     except Exception:
                         pass
                     icon_iv.setScaleType(ImageView.ScaleType.CENTER)
-                    icon_iv.setLayoutParams(LayoutHelper.createLinear(AndroidUtilities.dp(24), AndroidUtilities.dp(24)))
+                    icon_iv.setLayoutParams(LayoutHelper.createLinear(AndroidUtilities.dp(24), AndroidUtilities.dp(24), Gravity.CENTER_VERTICAL, 0, 0, 16, 0))
                     text_container = LinearLayout(act)
                     text_container.setOrientation(LinearLayout.VERTICAL)
-                    text_container.setLayoutParams(LayoutHelper.createLinear(-1, -2))
+                    text_container.setLayoutParams(LayoutHelper.createLinear(-1, -2, Gravity.CENTER_VERTICAL))
                     name_tv = TextView(act)
                     try:
                         name_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
@@ -353,7 +353,7 @@ class InstallUI:
                     url_tv.setText(display_text)
                     url_tv.setTextColor(Theme.getColor(Theme.key_dialogTextGray2))
                     text_container.addView(name_tv)
-                    text_container.addView(url_tv, LayoutHelper.createLinear(-1, -2))
+                    text_container.addView(url_tv, LayoutHelper.createLinear(-1, -2, 0, 4, 0, 0))
                     btn.addView(icon_iv)
                     btn.addView(text_container)
 
@@ -365,13 +365,14 @@ class InstallUI:
                         self._open_repo_plugins(repo)
 
                     btn.setOnClickListener(OnClickListener(lambda v: on_click(v)))
+                    self._apply_press_scale(btn)
                     return btn
 
                 all_repos_btn = LinearLayout(act)
                 all_repos_btn.setOrientation(LinearLayout.HORIZONTAL)
                 all_repos_btn.setClickable(True)
                 all_repos_btn.setFocusable(True)
-                all_repos_btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12))
+                all_repos_btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(8))
                 try:
                     all_repos_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
                         AndroidUtilities.dp(8),
@@ -392,7 +393,7 @@ class InstallUI:
                 except Exception:
                     pass
                 all_repos_icon.setScaleType(ImageView.ScaleType.CENTER)
-                all_repos_icon.setLayoutParams(LayoutHelper.createLinear(AndroidUtilities.dp(24), AndroidUtilities.dp(24)))
+                all_repos_icon.setLayoutParams(LayoutHelper.createLinear(AndroidUtilities.dp(24), AndroidUtilities.dp(24), Gravity.CENTER_VERTICAL, 0, 0, 16, 0))
                 all_repos_name = TextView(act)
                 all_repos_name.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
                 all_repos_name.setText("All repositories")
@@ -404,9 +405,9 @@ class InstallUI:
                 all_repos_url.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton))
                 all_repos_text_container = LinearLayout(act)
                 all_repos_text_container.setOrientation(LinearLayout.VERTICAL)
-                all_repos_text_container.setLayoutParams(LayoutHelper.createLinear(-1, -2))
+                all_repos_text_container.setLayoutParams(LayoutHelper.createLinear(-1, -2, Gravity.CENTER_VERTICAL))
                 all_repos_text_container.addView(all_repos_name)
-                all_repos_text_container.addView(all_repos_url, LayoutHelper.createLinear(-1, -2))
+                all_repos_text_container.addView(all_repos_url, LayoutHelper.createLinear(-1, -2, 0, 4, 0, 0))
                 all_repos_btn.addView(all_repos_icon)
                 all_repos_btn.addView(all_repos_text_container)
                 
@@ -419,14 +420,14 @@ class InstallUI:
                 
                 all_repos_btn.setOnClickListener(OnClickListener(lambda v: on_all_repos_click(v)))
                 self._apply_press_scale(all_repos_btn)
-                items.addView(all_repos_btn, LayoutHelper.createFrame(-1, -2, Gravity.TOP, 16, 4, 16, 4))
+                items.addView(all_repos_btn, LayoutHelper.createFrame(-1, -2, Gravity.TOP, 16, 2, 16, 2))
 
                 add_divider()
 
                 for idx, repo in enumerate(repos):
                     if idx != 0:
                         add_divider()
-                    items.addView(make_repo_button(repo), LayoutHelper.createFrame(-1, -2, Gravity.TOP, 16, 4, 16, 4))
+                    items.addView(make_repo_button(repo), LayoutHelper.createFrame(-1, -2, Gravity.TOP, 16, 2, 16, 2))
 
                 content_frame.addView(scroll, FrameLayout.LayoutParams(-1, -1))
                 close_btn = self._create_close_button(act)
@@ -439,7 +440,7 @@ class InstallUI:
 
                 close_btn.setOnClickListener(OnClickListener(lambda v: on_close(v)))
                 self._apply_press_scale(close_btn)
-                root.addView(close_btn, LayoutHelper.createLinear(-1, -2))
+                root.addView(close_btn, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 0))
                 sheet.setCustomView(root)
                 sheet.show()
             except Exception as e:
@@ -1477,4 +1478,3 @@ class InstallUI:
             container.addView(buttons, LayoutHelper.createLinear(-1, -2))
             row.addView(container)
             return row
-            
