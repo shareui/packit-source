@@ -328,10 +328,10 @@ class InstallUI:
                     except Exception:
                         pass
                     icon_iv.setScaleType(ImageView.ScaleType.CENTER)
-                    icon_iv.setLayoutParams(LayoutHelper.createLinear(AndroidUtilities.dp(24), AndroidUtilities.dp(24)))
+                    icon_iv.setLayoutParams(LayoutHelper.createLinear(AndroidUtilities.dp(24), AndroidUtilities.dp(24), Gravity.CENTER_VERTICAL, 0, 0, 16, 0))
                     text_container = LinearLayout(act)
                     text_container.setOrientation(LinearLayout.VERTICAL)
-                    text_container.setLayoutParams(LayoutHelper.createLinear(-1, -2))
+                    text_container.setLayoutParams(LayoutHelper.createLinear(-1, -2, Gravity.CENTER_VERTICAL))
                     name_tv = TextView(act)
                     try:
                         name_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
@@ -353,7 +353,7 @@ class InstallUI:
                     url_tv.setText(display_text)
                     url_tv.setTextColor(Theme.getColor(Theme.key_dialogTextGray2))
                     text_container.addView(name_tv)
-                    text_container.addView(url_tv, LayoutHelper.createLinear(-1, -2))
+                    text_container.addView(url_tv, LayoutHelper.createLinear(-1, -2, 0, 4, 0, 0))
                     btn.addView(icon_iv)
                     btn.addView(text_container)
 
@@ -392,7 +392,7 @@ class InstallUI:
                 except Exception:
                     pass
                 all_repos_icon.setScaleType(ImageView.ScaleType.CENTER)
-                all_repos_icon.setLayoutParams(LayoutHelper.createLinear(AndroidUtilities.dp(24), AndroidUtilities.dp(24)))
+                all_repos_icon.setLayoutParams(LayoutHelper.createLinear(AndroidUtilities.dp(24), AndroidUtilities.dp(24), Gravity.CENTER_VERTICAL, 0, 0, 16, 0))
                 all_repos_name = TextView(act)
                 all_repos_name.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
                 all_repos_name.setText("All repositories")
@@ -404,9 +404,9 @@ class InstallUI:
                 all_repos_url.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton))
                 all_repos_text_container = LinearLayout(act)
                 all_repos_text_container.setOrientation(LinearLayout.VERTICAL)
-                all_repos_text_container.setLayoutParams(LayoutHelper.createLinear(-1, -2))
+                all_repos_text_container.setLayoutParams(LayoutHelper.createLinear(-1, -2, Gravity.CENTER_VERTICAL))
                 all_repos_text_container.addView(all_repos_name)
-                all_repos_text_container.addView(all_repos_url, LayoutHelper.createLinear(-1, -2))
+                all_repos_text_container.addView(all_repos_url, LayoutHelper.createLinear(-1, -2, 0, 4, 0, 0))
                 all_repos_btn.addView(all_repos_icon)
                 all_repos_btn.addView(all_repos_text_container)
                 
@@ -439,7 +439,7 @@ class InstallUI:
 
                 close_btn.setOnClickListener(OnClickListener(lambda v: on_close(v)))
                 self._apply_press_scale(close_btn)
-                root.addView(close_btn, LayoutHelper.createLinear(-1, -2))
+                root.addView(close_btn, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 0))
                 sheet.setCustomView(root)
                 sheet.show()
             except Exception as e:
