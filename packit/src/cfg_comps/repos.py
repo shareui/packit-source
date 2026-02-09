@@ -28,7 +28,7 @@ class RepositoriesSettings:
             repos = self.repoManager.getRepositories()
             if len(repos) >= 10:
                 try:
-                    packlog.warn("Repository add failed: max limit reached (10)")
+                    packlog.text("Repository add failed: max limit reached (10)")
                     BulletinHelper.show_error(strings.max_repositories_allowed)
                 except Exception:
                     pass
@@ -39,25 +39,25 @@ class RepositoriesSettings:
                     continue
                     
                 if not repo.get('name', '').strip() or not repo.get('url', '').strip():
-                    packlog.warn("Repository add failed: previous repository not filled")
+                    packlog.text("Repository add failed: previous repository not filled")
                     BulletinHelper.show_error(strings.fill_previous_repository)
                     return
         
             self.repoManager.addRepository(isFirst=False)
-            packlog.info("Repository added")
+            packlog.text("Repository added")
         
         def restore_default_repository(view):
             repos = self.repoManager.getRepositories()
             if len(repos) >= 10:
                 try:
-                    packlog.warn("Default repository restore failed: max limit reached (10)")
+                    packlog.text("Default repository restore failed: max limit reached (10)")
                     BulletinHelper.show_error(strings.max_repositories_allowed)
                 except Exception:
                     pass
                 return
             
             self.repoManager.restoreDefaultRepository()
-            packlog.info("Default repository restored")
+            packlog.text("Default repository restored")
             try:
                 BulletinHelper.show_success(strings.default_repo_restored)
             except Exception:
@@ -93,7 +93,7 @@ class RepositoriesSettings:
                 
                 def on_yes(b, w):
                     self.repoManager.resetRepositories()
-                    packlog.info("All repositories reset")
+                    packlog.text("All repositories reset")
                     try:
                         BulletinHelper.show_success(strings.repositories_reset)
                     except Exception:
@@ -139,7 +139,7 @@ class RepositoriesSettings:
                 
                 def on_yes(b, w):
                     self.repoManager.clearAllExceptFirst()
-                    packlog.info("All repositories cleared except first")
+                    packlog.text("All repositories cleared except first")
                     try:
                         BulletinHelper.show_success(strings.repositories_cleared)
                     except Exception:
@@ -206,7 +206,7 @@ class RepositoriesSettings:
                     
                     def on_yes(b, w):
                         self.repoManager.removeRepository(i)
-                        packlog.info(f"Repository #{i+1} removed")
+                        packlog.text(f"Repository #{i+1} removed")
                     
                     builder.set_positive_button(strings.delete_button, on_yes)
                     builder.set_negative_button(strings.close_button, lambda b, w: b.dismiss())
@@ -232,13 +232,13 @@ class RepositoriesSettings:
                 try:
                     from org.telegram.messenger import AndroidUtilities
                     if AndroidUtilities.addToClipboard(share_url):
-                        packlog.info(f"Repository #{i+1} link copied to clipboard")
+                        packlog.text(f"Repository #{i+1} link copied to clipboard")
                         BulletinHelper.show_success(strings.repo_link_copied)
                     else:
-                        packlog.error(f"Failed to copy repository #{i+1} link")
+                        packlog.text(f"Failed to copy repository #{i+1} link")
                         BulletinHelper.show_error(strings.failed_to_copy)
                 except Exception:
-                    packlog.error(f"Failed to copy repository #{i+1} link")
+                    packlog.text(f"Failed to copy repository #{i+1} link")
                     BulletinHelper.show_error(strings.failed_to_copy)
             
             return share_repository
@@ -255,7 +255,7 @@ class RepositoriesSettings:
             def open_icon_selector():
                 def on_icon_selected(icon_name):
                     self.repoManager.updateRepoField(i, 'icon', icon_name)
-                    packlog.info(f"Repository #{i+1} icon changed to: {icon_name}")
+                    packlog.text(f"Repository #{i+1} icon changed to: {icon_name}")
                 
                 icon_selector = IconSelector(self.repoManager, on_icon_selected)
                 settings_list = icon_selector.build()

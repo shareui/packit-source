@@ -1,4 +1,4 @@
-from ui.settings import Header, Switch, Divider
+from ui.settings import Header, Switch, Divider, Input
 from elyx import strings, settings
 
 
@@ -46,5 +46,15 @@ class OtherSettings:
                 icon="msg_list",
                 link_alias="old_sort_menu_design"
             ),
+            Divider(),
+            Header(text=strings.logs_header),
+            Input(
+                key="max_logs_count",
+                text=strings.max_logs_count,
+                default="100",
+                icon="msg_log",
+                link_alias="max_logs_count"
+            ),
+            Divider(text=strings.max_logs_count_desc),
             Divider(),
         ]

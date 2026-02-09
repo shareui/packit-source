@@ -12,14 +12,30 @@ class packlog:
         return android_utils._logs
     
     @staticmethod
-    def _appendLog(message: str):
+    def _getLogsList():
         logsDict = packlog._getLogsDict()
-        currentLogs = logsDict.get(PLUGIN_ID, "")
-        
-        if currentLogs:
-            logsDict[PLUGIN_ID] = f"{currentLogs}\n{message}"
-        else:
-            logsDict[PLUGIN_ID] = message
+        if PLUGIN_ID not in logsDict:
+            logsDict[PLUGIN_ID] = []
+        return logsDict[PLUGIN_ID]
+    
+    @staticmethod
+    def _getMaxLogs():
+        try:
+            from elyx import settings
+            maxLogs = settings.get("max_logs_count", 100)
+            if isinstance(maxLogs, str):
+                maxLogs = int(maxLogs)
+            return maxLogs
+        except:
+            return 100
+    
+    @staticmethod
+    def _appendLog(message: str):
+        logsList = packlog._getLogsList()
+        logsList.append(message)
+        maxLogs = packlog._getMaxLogs()
+        if len(logsList) > maxLogs:
+            logsList.pop(0)
     
     @staticmethod
     def info(message: str):
@@ -48,9 +64,12 @@ class packlog:
     @staticmethod
     def clear():
         logsDict = packlog._getLogsDict()
-        logsDict.pop(PLUGIN_ID, None)
+        if PLUGIN_ID in logsDict:
+            logsDict[PLUGIN_ID] = []
     
     @staticmethod
     def get():
-        logsDict = packlog._getLogsDict()
-        return logsDict.get(PLUGIN_ID, None)
+        logsList = packlog._getLogsList()
+        if not logsList:
+            return None
+        return "\n".join(logsList)
