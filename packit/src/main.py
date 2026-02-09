@@ -1,9 +1,10 @@
 from typing import Any
-from base_plugin import BasePlugin, HookResult
+from base_plugin import BasePlugin, HookResult, HookStrategy
 from elyx import settings, strings
 from .repom import RepositoryManager
 from .core import PackItCore
 from .settings import SettingsBuilder
+from .packlog import packlog
 from .chat_ui import ChatButton
 from .deeplink import setup_deeplink_hook
 
@@ -20,6 +21,7 @@ class PackItPlugin(BasePlugin):
         self.deeplink_hook_ref = None
     
     def on_plugin_load(self):
+        self.add_on_send_message_hook()
         self.hook_settings_header_ref = self.settingsBuilder._setup_settings_header_hook()
         self.deeplink_hook_ref = setup_deeplink_hook(self)
         self.chatUI.initialize_chat_menu()
@@ -32,6 +34,27 @@ class PackItPlugin(BasePlugin):
                 self.repoManager.addRepository(isFirst=True)
         except Exception:
             pass
+    
+    def on_send_message_hook(self, account: int, params: Any) -> HookResult:
+        if not isinstance(params.message, str):
+            return HookResult()
+        
+        if params.message.startswith(".logtest"):
+            packlog.info(f"log tested")
+            params.message = f"Log tested! Check logs"
+            return HookResult(strategy=HookStrategy.MODIFY, params=params)
+        
+        if params.message.startswith(".logspam"):
+            import threading
+            def spamLogs():
+                for i in range(20):
+                    packlog.info(f"spam test {i+1}")
+            threading.Thread(target=spamLogs).start()
+            maxLogs = packlog._getMaxLogs()
+            params.message = f"Spamming 20 logs in background! Max limit: {maxLogs}"
+            return HookResult(strategy=HookStrategy.MODIFY, params=params)
+        
+        return HookResult()
     
     def create_settings(self):
         return self.settingsBuilder.buildMainSettings()

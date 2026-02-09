@@ -63,16 +63,56 @@ class DocumentationSettings:
             run_on_queue(lambda: Process.killProcess(Process.myPid()), GLOBAL_QUEUE, 1000)
 
     def build(self):
-        return [
-            Header(text=strings.for_users),
-            Text(text=strings.faq, icon="msg_help", on_click=self._openFaq),
-            Text(text=strings.report_bug, icon="msg_report", on_click=self._openBugReport),
-            Text(text=strings.official_forum, icon="filled_folder_existing", on_click=self._openForum),
-            Text(text=strings.how_to_enlighten, icon="msg_info", on_click=self._openEnlightenment),
-            Divider(),
-            Header(text=strings.for_devs),
-            Text(text=strings.creating_own_repo, icon="msg_edit", on_click=self._openRepoGuide),
-            Text(text=strings.publish_ur_plugin, icon="filled_add_album", on_click=self._openPublishPlugin),
-            Text(text=strings.deeplinks, icon="msg_link", on_click=self._openDeeplinks),
-            Divider()
-        ]
+      return [
+          Header(text=strings.for_users),
+  
+          Text(
+              text=strings.faq,
+              icon="msg_help",
+              on_click=self._openFaq,
+              link_alias="faq"
+          ),
+          Text(
+              text=strings.report_bug,
+              icon="msg_report",
+              on_click=self._openBugReport,
+              link_alias="report_bug"
+          ),
+          Text(
+              text=strings.official_forum,
+              icon="filled_folder_existing",
+              on_click=self._openForum,
+              link_alias="open_forum"
+          ),
+          Text(
+              text=strings.how_to_enlighten,
+              icon="msg_info",
+              on_click=self._openEnlightenment,
+              link_alias="how_to_enlighten"
+          ),
+  
+          Divider(),
+  
+          Header(text=strings.for_devs),
+  
+          Text(
+              text=strings.creating_own_repo,
+              icon="msg_edit",
+              on_click=self._openRepoGuide,
+              link_alias="creating_own_repo"
+          ),
+          Text(
+              text=strings.publish_ur_plugin,
+              icon="filled_add_album",
+              on_click=self._openPublishPlugin,
+              link_alias="publish_ur_plugin"
+          ),
+          Text(
+              text=strings.deeplinks,
+              icon="msg_link",
+              on_click=self._openDeeplinks,
+              link_alias="deeplinks"
+          ),
+  
+          Divider()
+      ]

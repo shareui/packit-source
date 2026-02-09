@@ -121,5 +121,9 @@
     "support_via_send": "Support via @send",
     "support_via_ton": "Support via TON",
     "donate_easter_egg": "Wait, did someone give some subs?",
-    "copied_to_clipboard": "Copied to clipboard"
+    "copied_to_clipboard": "Copied to clipboard",
+    "empty_logs": "Empty for now...",
+    "logs_header": "Logs",
+    "max_logs_count": "Max logs",
+    "max_logs_count_desc": "When the limit is reached, old logs are deleted automatically."
 }

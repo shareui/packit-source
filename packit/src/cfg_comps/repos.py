@@ -4,6 +4,7 @@ from client_utils import get_last_fragment
 from ui.bulletin import BulletinHelper
 from ui.alert import AlertDialogBuilder
 from .icons import IconSelector
+from ..packlog import packlog
 
 
 class RepositoriesSettings:
@@ -20,16 +21,17 @@ class RepositoriesSettings:
                 fragment = get_last_fragment()
                 if fragment and hasattr(fragment, "rebuildAllItems"):
                     fragment.rebuildAllItems()
-            except Exception:
-                pass
+            except Exception as e:
+                packlog.text(f"{e}")
         
         def add_new_repository(view):
             repos = self.repoManager.getRepositories()
             if len(repos) >= 10:
                 try:
+                    packlog.text("Repository add failed: max limit reached (10)")
                     BulletinHelper.show_error(strings.max_repositories_allowed)
-                except Exception:
-                    pass
+                except Exception as e:
+                    packlog.text(f"{e}")
                 return
             
             for repo in repos:
@@ -37,6 +39,7 @@ class RepositoriesSettings:
                     continue
                     
                 if not repo.get('name', '').strip() or not repo.get('url', '').strip():
+                    packlog.text("Repository add failed: previous repository not filled")
                     BulletinHelper.show_error(strings.fill_previous_repository)
                     return
         
@@ -46,16 +49,17 @@ class RepositoriesSettings:
             repos = self.repoManager.getRepositories()
             if len(repos) >= 10:
                 try:
+                    packlog.text("Default repository restore failed: max limit reached (10)")
                     BulletinHelper.show_error(strings.max_repositories_allowed)
-                except Exception:
-                    pass
+                except Exception as e:
+                    packlog.text(f"{e}")
                 return
             
             self.repoManager.restoreDefaultRepository()
             try:
                 BulletinHelper.show_success(strings.default_repo_restored)
-            except Exception:
-                pass
+            except Exception as e:
+                packlog.text(f"{e}")
         
         def reset_repositories(view):
             repos = self.repoManager.getRepositories()
@@ -71,8 +75,8 @@ class RepositoriesSettings:
                     builder.set_message(strings.easter_egg_reset_message)
                     builder.set_positive_button(strings.close_button, lambda b, w: b.dismiss())
                     builder.show()
-                except Exception:
-                    pass
+                except Exception as e:
+                    packlog.text(f"{e}")
                 return
             
             try:
@@ -89,18 +93,18 @@ class RepositoriesSettings:
                     self.repoManager.resetRepositories()
                     try:
                         BulletinHelper.show_success(strings.repositories_reset)
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        packlog.text(f"{e}")
                 
                 builder.set_positive_button(strings.reset_button, on_yes)
                 builder.set_negative_button(strings.close_button, lambda b, w: b.dismiss())
                 try:
                     builder.make_button_red(AlertDialogBuilder.BUTTON_POSITIVE)
-                except Exception:
-                    pass
+                except Exception as e:
+                    packlog.text(f"{e}")
                 builder.show()
-            except Exception:
-                pass
+            except Exception as e:
+                packlog.text(f"{e}")
         
         def clear_all_except_first(view):
             repos = self.repoManager.getRepositories()
@@ -116,8 +120,8 @@ class RepositoriesSettings:
                     builder.set_message(strings.easter_egg_clear_message)
                     builder.set_positive_button(strings.close_button, lambda b, w: b.dismiss())
                     builder.show()
-                except Exception:
-                    pass
+                except Exception as e:
+                    packlog.text(f"{e}")
                 return
             
             try:
@@ -134,18 +138,18 @@ class RepositoriesSettings:
                     self.repoManager.clearAllExceptFirst()
                     try:
                         BulletinHelper.show_success(strings.repositories_cleared)
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        packlog.text(f"{e}")
                 
                 builder.set_positive_button(strings.clear_button, on_yes)
                 builder.set_negative_button(strings.close_button, lambda b, w: b.dismiss())
                 try:
                     builder.make_button_red(AlertDialogBuilder.BUTTON_POSITIVE)
-                except Exception:
-                    pass
+                except Exception as e:
+                    packlog.text(f"{e}")
                 builder.show()
-            except Exception:
-                pass
+            except Exception as e:
+                packlog.text(f"{e}")
         
         settingsList = [
             Header(text=strings.repositories),
@@ -153,26 +157,30 @@ class RepositoriesSettings:
                 text=strings.add_repository,
                 icon="msg_add",
                 accent=True,
-                on_click=add_new_repository
+                on_click=add_new_repository,
+                link_alias="new_repo"
             ),
             Divider(),
             Text(
                 text=strings.restore_default_repository,
                 icon="msg_reset",
                 accent=True,
-                on_click=restore_default_repository
+                on_click=restore_default_repository,
+                link_alias="restore_repo"
             ),
             Text(
                 text=strings.clear_all_except_first,
                 icon="msg_clear",
                 red=True,
-                on_click=clear_all_except_first
+                on_click=clear_all_except_first,
+                link_alias="clear_all"
             ),
             Text(
                 text=strings.reset_repositories,
                 icon="msg_delete",
                 red=True,
-                on_click=reset_repositories
+                on_click=reset_repositories,
+                link_alias="reset_repo"
             ),
             Divider()
         ]
@@ -199,10 +207,11 @@ class RepositoriesSettings:
                     builder.set_negative_button(strings.close_button, lambda b, w: b.dismiss())
                     try:
                         builder.make_button_red(AlertDialogBuilder.BUTTON_POSITIVE)
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        packlog.text(f"{e}")
                     builder.show()
-                except Exception:
+                except Exception as e:
+                    packlog.text(f"{e}")
                     self.repoManager.removeRepository(i)
             
             return show_confirm_dialog
@@ -221,8 +230,10 @@ class RepositoriesSettings:
                     if AndroidUtilities.addToClipboard(share_url):
                         BulletinHelper.show_success(strings.repo_link_copied)
                     else:
+                        packlog.text(f"Failed to copy repository #{i+1} link")
                         BulletinHelper.show_error(strings.failed_to_copy)
-                except Exception:
+                except Exception as e:
+                    packlog.text(f"Copy failed: {e}")
                     BulletinHelper.show_error(strings.failed_to_copy)
             
             return share_repository

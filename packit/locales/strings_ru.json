@@ -116,5 +116,9 @@
     "support_via_send": "Поддержать через @send",
     "support_via_ton": "Поддержать через TON",
     "donate_easter_egg": "Погоди-ка, кто-то мне задонатил?",
-    "copied_to_clipboard": "Скопировано в буфер обмена"
+    "copied_to_clipboard": "Скопировано в буфер обмена",
+    "empty_logs": "Здесь ничегошеньки нету...",
+    "logs_header": "Логи",
+    "max_logs_count": "Максимум логов",
+    "max_logs_count_desc": "При достижении лимита старые логи удаляются автоматически."
 }
