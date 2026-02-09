@@ -26,11 +26,9 @@ from android_utils import OnClickListener, OnLongClickListener
 from android.content import DialogInterface
 from ui.bulletin import BulletinHelper
 import android_utils
+from .packlog import packlog, PLUGIN_ID
 
 __icon__ = "plugin232/17"
-
-EMPTY_LOGS = "It's empty here for now..." # перенести в стрингс
-PLUGIN_ID = "shareui_packit"
 
 class OnCancelListener(dyp(DialogInterface.OnCancelListener)):
     def __init__(self, func):
@@ -185,7 +183,7 @@ class SettingsBuilder:
         try:
             fragment = get_last_fragment()
             activity = fragment.getParentActivity()
-            logs = getattr(android_utils, "_logs", {}).get(PLUGIN_ID, None) or EMPTY_LOGS
+            logs = packlog.get() or strings.empty_logs
             checking = True
 
             bottom_sheet = BottomSheet(activity, False, fragment.getResourceProvider())
@@ -216,9 +214,8 @@ class SettingsBuilder:
 
             def clear_logs():
                 nonlocal logs, code_view
-                android_utils._logs = getattr(android_utils, "_logs", {})
-                android_utils._logs.pop(PLUGIN_ID, None)
-                logs = EMPTY_LOGS
+                packlog.clear()
+                logs = strings.empty_logs
 
                 def _fn():
                     try:
@@ -247,7 +244,7 @@ class SettingsBuilder:
             def _fn():
                 nonlocal checking, code_view, logs
                 while is_check():
-                    logs_new = getattr(android_utils, "_logs", {}).get(PLUGIN_ID, None) or EMPTY_LOGS
+                    logs_new = packlog.get() or strings.empty_logs
                     if logs_new != logs:
                         logs = logs_new
                         run_on_ui_thread(lambda: code_view.setText(logs))
