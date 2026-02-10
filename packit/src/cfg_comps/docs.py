@@ -30,22 +30,22 @@ class DocumentationSettings:
             BulletinHelper.show_error(strings.failed_to_open_link)
 
     def _openFaq(self, view):
-        self._openUrl("https://t.me/c/3663388991/13")
+        self._openUrl("https://t.me/packitGround/13")
 
     def _openRepoGuide(self, view):
         self._openUrl("https://github.com/shareui/packit/blob/main/docs/ownrepo.md")
 
     def _openBugReport(self, view):
-        self._openUrl("https://t.me/c/3663388991/85")
+        self._openUrl("https://t.me/packitGround/85")
 
     def _openForum(self, view):
-        self._openUrl("https://t.me/+MlXY77j5URE2MTU8")
+        self._openUrl("https://t.me/packitGround")
 
     def _openDeeplinks(self, view):
         self._openUrl("https://github.com/shareui/packit/blob/main/docs/deeplinks.md")
 
     def _openPublishPlugin(self, view):
-        self._openUrl("https://t.me/c/3663388991/13/351")
+        self._openUrl("https://t.me/packitGround/13/351")
 
     def _openEnlightenment(self, view):
         clicks = settings.get("enlighten_clicks", 0) + 1

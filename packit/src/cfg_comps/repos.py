@@ -4,7 +4,7 @@ from client_utils import get_last_fragment
 from ui.bulletin import BulletinHelper
 from ui.alert import AlertDialogBuilder
 from .icons import IconSelector
-from ..packlog import packlog
+from android_utils import log
 
 
 class RepositoriesSettings:
@@ -22,16 +22,16 @@ class RepositoriesSettings:
                 if fragment and hasattr(fragment, "rebuildAllItems"):
                     fragment.rebuildAllItems()
             except Exception as e:
-                packlog.text(f"{e}")
+                log(f"{e}")
         
         def add_new_repository(view):
             repos = self.repoManager.getRepositories()
             if len(repos) >= 10:
                 try:
-                    packlog.text("Repository add failed: max limit reached (10)")
+                    log("Repository add failed: max limit reached (10)")
                     BulletinHelper.show_error(strings.max_repositories_allowed)
                 except Exception as e:
-                    packlog.text(f"{e}")
+                    log(f"{e}")
                 return
             
             for repo in repos:
@@ -39,7 +39,7 @@ class RepositoriesSettings:
                     continue
                     
                 if not repo.get('name', '').strip() or not repo.get('url', '').strip():
-                    packlog.text("Repository add failed: previous repository not filled")
+                    log("Repository add failed: previous repository not filled")
                     BulletinHelper.show_error(strings.fill_previous_repository)
                     return
         
@@ -49,17 +49,17 @@ class RepositoriesSettings:
             repos = self.repoManager.getRepositories()
             if len(repos) >= 10:
                 try:
-                    packlog.text("Default repository restore failed: max limit reached (10)")
+                    log("Default repository restore failed: max limit reached (10)")
                     BulletinHelper.show_error(strings.max_repositories_allowed)
                 except Exception as e:
-                    packlog.text(f"{e}")
+                    log(f"{e}")
                 return
             
             self.repoManager.restoreDefaultRepository()
             try:
                 BulletinHelper.show_success(strings.default_repo_restored)
             except Exception as e:
-                packlog.text(f"{e}")
+                log(f"{e}")
         
         def reset_repositories(view):
             repos = self.repoManager.getRepositories()
@@ -76,7 +76,7 @@ class RepositoriesSettings:
                     builder.set_positive_button(strings.close_button, lambda b, w: b.dismiss())
                     builder.show()
                 except Exception as e:
-                    packlog.text(f"{e}")
+                    log(f"{e}")
                 return
             
             try:
@@ -94,17 +94,17 @@ class RepositoriesSettings:
                     try:
                         BulletinHelper.show_success(strings.repositories_reset)
                     except Exception as e:
-                        packlog.text(f"{e}")
+                        log(f"{e}")
                 
                 builder.set_positive_button(strings.reset_button, on_yes)
                 builder.set_negative_button(strings.close_button, lambda b, w: b.dismiss())
                 try:
                     builder.make_button_red(AlertDialogBuilder.BUTTON_POSITIVE)
                 except Exception as e:
-                    packlog.text(f"{e}")
+                    log(f"{e}")
                 builder.show()
             except Exception as e:
-                packlog.text(f"{e}")
+                log(f"{e}")
         
         def clear_all_except_first(view):
             repos = self.repoManager.getRepositories()
@@ -121,7 +121,7 @@ class RepositoriesSettings:
                     builder.set_positive_button(strings.close_button, lambda b, w: b.dismiss())
                     builder.show()
                 except Exception as e:
-                    packlog.text(f"{e}")
+                    log(f"{e}")
                 return
             
             try:
@@ -139,17 +139,17 @@ class RepositoriesSettings:
                     try:
                         BulletinHelper.show_success(strings.repositories_cleared)
                     except Exception as e:
-                        packlog.text(f"{e}")
+                        log(f"{e}")
                 
                 builder.set_positive_button(strings.clear_button, on_yes)
                 builder.set_negative_button(strings.close_button, lambda b, w: b.dismiss())
                 try:
                     builder.make_button_red(AlertDialogBuilder.BUTTON_POSITIVE)
                 except Exception as e:
-                    packlog.text(f"{e}")
+                    log(f"{e}")
                 builder.show()
             except Exception as e:
-                packlog.text(f"{e}")
+                log(f"{e}")
         
         settingsList = [
             Header(text=strings.repositories),
@@ -208,10 +208,10 @@ class RepositoriesSettings:
                     try:
                         builder.make_button_red(AlertDialogBuilder.BUTTON_POSITIVE)
                     except Exception as e:
-                        packlog.text(f"{e}")
+                        log(f"{e}")
                     builder.show()
                 except Exception as e:
-                    packlog.text(f"{e}")
+                    log(f"{e}")
                     self.repoManager.removeRepository(i)
             
             return show_confirm_dialog
@@ -230,10 +230,10 @@ class RepositoriesSettings:
                     if AndroidUtilities.addToClipboard(share_url):
                         BulletinHelper.show_success(strings.repo_link_copied)
                     else:
-                        packlog.text(f"Failed to copy repository #{i+1} link")
+                        log(f"Failed to copy repository #{i+1} link")
                         BulletinHelper.show_error(strings.failed_to_copy)
                 except Exception as e:
-                    packlog.text(f"Copy failed: {e}")
+                    log(f"Copy failed: {e}")
                     BulletinHelper.show_error(strings.failed_to_copy)
             
             return share_repository

@@ -7,6 +7,7 @@ from .settings import SettingsBuilder
 from .packlog import packlog
 from .chat_ui import ChatButton
 from .deeplink import setup_deeplink_hook
+from android_utils import log
 
 
 class PackItPlugin(BasePlugin):
@@ -19,6 +20,7 @@ class PackItPlugin(BasePlugin):
         self.on_send_message_hook_ref = None
         self.hook_settings_header_ref = None
         self.deeplink_hook_ref = None
+        log("PackIt initialized!")
     
     def on_plugin_load(self):
         self.add_on_send_message_hook()
@@ -26,6 +28,7 @@ class PackItPlugin(BasePlugin):
         self.deeplink_hook_ref = setup_deeplink_hook(self)
         self.chatUI.initialize_chat_menu()
         self._init_official_repository()
+        log("PackIt loaded!")
     
     def _init_official_repository(self):
         try:
