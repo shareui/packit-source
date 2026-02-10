@@ -827,6 +827,7 @@ class InstallUI:
             self.title = title
             self.plugins = plugins
             self.search_query = None
+            self.last_search_query = None
             self.adapter = None
             self.fill_id = 0
         
@@ -874,7 +875,19 @@ class InstallUI:
             except Exception:
                 pass
             search_container.setBackground(pill)
-            search_container.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(2), AndroidUtilities.dp(16), AndroidUtilities.dp(2))
+            search_container.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(8))
+            clear_icon = ImageView(act)
+            clear_icon_id = self.install_ui._resolve_icon("input_clear")
+            clear_icon.setImageResource(clear_icon_id)
+            try:
+                clear_icon.setColorFilter(self.secondary_text_color)
+            except Exception:
+                pass
+            clear_icon.setScaleType(ImageView.ScaleType.CENTER)
+            clear_icon.setLayoutParams(LayoutHelper.createFrame(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER_VERTICAL | Gravity.RIGHT, 0, 0, 60, 0))
+            clear_icon.setVisibility(View.GONE)
+            clear_icon.setAlpha(0.0)
+            
             self.search = EditTextBoldCursor(act)
             self.search.setHint("Search plugins...")
             self.search.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
@@ -891,12 +904,98 @@ class InstallUI:
             except Exception:
                 pass
             try:
-                pad = AndroidUtilities.dp(12)
-                self.search.setPadding(pad, pad, pad, pad)
+                pad_left = AndroidUtilities.dp(8)
+                pad_right = AndroidUtilities.dp(80)
+                pad_top_bottom = AndroidUtilities.dp(8)
+                self.search.setPadding(pad_left, pad_top_bottom, pad_right, pad_top_bottom)
             except Exception:
                 pass
-            search_container.addView(self.search, LayoutHelper.createFrame(-1, -2, Gravity.CENTER_VERTICAL))
-            main_layout.addView(search_container, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 4))
+
+            def on_clear_click(v):
+                try:
+                    self.search.setText("")
+                    self.last_search_query = ""
+                    self.build_list("")
+                    imm = act.getSystemService("input_method")
+                    imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
+                except Exception:
+                    pass
+            
+            clear_icon.setOnClickListener(OnClickListener(on_clear_click))
+
+            class SearchTextWatcherWithClear(dynamic_proxy(TextWatcher)):
+                def __init__(self, outer, clear_icon_ref):
+                    super().__init__()
+                    self.outer = outer
+                    self.clear_icon = clear_icon_ref
+                
+                def afterTextChanged(self, s):
+                    text = s.toString()
+                    if text and len(text) > 0:
+                        self.clear_icon.setVisibility(View.VISIBLE)
+                        try:
+                            self.clear_icon.animate().alpha(1.0).setDuration(200).start()
+                        except Exception:
+                            pass
+                    else:
+                        try:
+                            self.clear_icon.animate().alpha(0.0).setDuration(200).withEndAction(lambda: self.clear_icon.setVisibility(View.GONE)).start()
+                        except Exception:
+                            self.clear_icon.setVisibility(View.GONE)
+                
+                def beforeTextChanged(self, s, start, count, after):
+                    pass
+                
+                def onTextChanged(self, s, start, before, count):
+                    pass
+
+            search_row = LinearLayout(act)
+            search_row.setOrientation(LinearLayout.HORIZONTAL)
+            search_row.setGravity(Gravity.CENTER_VERTICAL)
+            search_row.addView(self.search, LinearLayout.LayoutParams(-1, AndroidUtilities.dp(42), 1.0))
+            search_btn = FrameLayout(act)
+            search_btn.setClickable(True)
+            search_btn.setFocusable(True)
+            try:
+                base_color = Theme.getColor(Theme.key_featuredStickers_addButton)
+                pressed_color = Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
+            except Exception:
+                base_color = Theme.getColor(Theme.key_dialogTextBlue)
+                pressed_color = base_color
+            search_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                AndroidUtilities.dp(25),
+                base_color,
+                pressed_color
+            ))
+            search_btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
+            
+            search_btn_icon = ImageView(act)
+            search_btn_icon_id = self.install_ui._resolve_icon("ic_ab_search")
+            search_btn_icon.setImageResource(search_btn_icon_id)
+            try:
+                search_btn_icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_buttonText))
+            except Exception:
+                pass
+            search_btn_icon.setScaleType(ImageView.ScaleType.CENTER)
+            search_btn.addView(search_btn_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
+            
+            def on_search_click(v):
+                try:
+                    query = self.search.getText().toString()
+                    if query != self.last_search_query:
+                        self.last_search_query = query
+                        self.build_list(query)
+                    imm = act.getSystemService("input_method")
+                    imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
+                except Exception:
+                    pass
+            
+            search_btn.setOnClickListener(OnClickListener(on_search_click))
+            self.install_ui._apply_press_scale(search_btn)
+            search_row.addView(search_btn, LinearLayout.LayoutParams(AndroidUtilities.dp(52), AndroidUtilities.dp(42), 0))
+            search_container.addView(search_row, FrameLayout.LayoutParams(-1, -2))
+            search_container.addView(clear_icon)
+            main_layout.addView(search_container, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8))
 
             header_row = LinearLayout(act)
             header_row.setOrientation(LinearLayout.HORIZONTAL)
@@ -1153,22 +1252,7 @@ class InstallUI:
             scroll.addView(self.results_container, ScrollView.LayoutParams(-1, -2))
             main_layout.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1.0))
 
-            class SearchTextWatcher(dynamic_proxy(TextWatcher)):
-                def __init__(self, outer):
-                    super().__init__()
-                    self.outer = outer
-                
-                def afterTextChanged(self, s):
-                    query = s.toString()
-                    self.outer.build_list(query)
-                
-                def beforeTextChanged(self, s, start, count, after):
-                    pass
-                
-                def onTextChanged(self, s, start, before, count):
-                    pass
-
-            self.search.addTextChangedListener(SearchTextWatcher(self))
+            self.search.addTextChangedListener(SearchTextWatcherWithClear(self, clear_icon))
             self.build_list_with_sort("repo_order")
             return self.content_view
         
@@ -1200,6 +1284,8 @@ class InstallUI:
         def build_list_with_sort(self, sort_type: str, q: str | None = None):
             self.current_sort_type = sort_type
             q = (q or "").strip()
+            if q != self.last_search_query:
+                self.last_search_query = q
             self.results_container.removeAllViews()
             fragment = get_last_fragment()
             act = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
