@@ -170,7 +170,7 @@ class SettingsBuilder:
             frag = get_last_fragment()
             act = frag.getParentActivity() if frag else None
             if act:
-                uri = Uri.parse("https://t.me/+MlXY77j5URE2MTU8")
+                uri = Uri.parse("https://t.me/packitGround")
                 Browser.openUrl(act, uri, True, True, True, None, None, False, False, False)
         except Exception:
             pass
