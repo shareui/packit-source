@@ -726,14 +726,15 @@ class InstallUI:
                 if actionBar:
                     R_tg = find_class("org.telegram.messenger.R")
                     actionBar.setBackButtonImage(R_tg.drawable.ic_ab_back)
-                    
-                    def on_back_click():
-                        try:
-                            new_fragment.finishFragment()
-                        except Exception:
-                            pass
-                    
-                    actionBar.setBackButtonDrawable(OnClickListener(lambda v: on_back_click()))
+                    back_button = actionBar.backButtonImageView
+                    if back_button:
+                        def on_back_click(v):
+                            try:
+                                new_fragment.finishFragment()
+                            except Exception:
+                                pass
+                        
+                        back_button.setOnClickListener(OnClickListener(on_back_click))
             except Exception as e:
                 log(f"Failed to add back button: {e}")
             
@@ -1175,8 +1176,11 @@ class InstallUI:
             return self.title
         
         def onBackPressed(self):
-            get_last_fragment().finishFragment()
-            return None
+            try:
+                get_last_fragment().finishFragment()
+            except Exception:
+                pass
+            return True
         
         def score(self, p, q):
             if not q:
@@ -1197,6 +1201,11 @@ class InstallUI:
             self.current_sort_type = sort_type
             q = (q or "").strip()
             self.results_container.removeAllViews()
+            fragment = get_last_fragment()
+            act = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
+            if not act:
+                act = fragment.getContext() if fragment else None
+            
             filtered = []
             for p in self.plugins:
                 if self.score(p, q)[0] < 3:
@@ -1217,11 +1226,27 @@ class InstallUI:
                 pass
 
             if not filtered:
-                empty = TextView(get_last_fragment().getContext())
+                empty_container = LinearLayout(act)
+                empty_container.setOrientation(LinearLayout.VERTICAL)
+                empty_container.setGravity(Gravity.CENTER)
+                empty_container.setPadding(0, AndroidUtilities.dp(60), 0, AndroidUtilities.dp(60))
+                ghost_icon = ImageView(act)
+                try:
+                    R_tg = find_class("org.telegram.messenger.R")
+                    icon_id = getattr(R_tg.drawable, "ayu_ghost")
+                    ghost_icon.setImageResource(icon_id)
+                    ghost_icon.setColorFilter(self.secondary_text_color)
+                except Exception:
+                    pass
+                ghost_icon.setLayoutParams(LayoutHelper.createLinear(AndroidUtilities.dp(64), AndroidUtilities.dp(64)))
+                empty_container.addView(ghost_icon, LayoutHelper.createLinear(-2, -2, 0, 0, 0, 16))
+                empty = TextView(act)
                 empty.setText("No plugins")
                 empty.setGravity(Gravity.CENTER)
-                empty.setTextColor(Theme.getColor(Theme.key_dialogTextGray2))
-                self.results_container.addView(empty, LayoutHelper.createLinear(-1, -2, 0, 24, 0, 24))
+                empty.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
+                empty.setTextColor(self.secondary_text_color)
+                empty_container.addView(empty, LayoutHelper.createLinear(-2, -2))
+                self.results_container.addView(empty_container, LayoutHelper.createLinear(-1, -2))
             else:
                 for i, p in enumerate(filtered):
                     self.results_container.addView(self.make_item(p), LayoutHelper.createLinear(-1, -2, 0, 4, 0, 4))
