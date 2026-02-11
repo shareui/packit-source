@@ -55,6 +55,8 @@
     "interface_header": "Interface",
     "classic_sort_menu": "Classic Sort Menu",
     "classic_sort_menu_desc": "Use the classic design for the plugin sort menu.",
+    "colored_search_border": "Colored Search Border",
+    "colored_search_border_desc": "Use gray border for search input instead of colored.",
     "everything_working": "All systems operational. Relax.",
     "packit": "PackIt",
     "packit_settings": "PackIt Settings",

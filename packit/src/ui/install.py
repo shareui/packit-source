@@ -875,10 +875,24 @@ class InstallUI:
             pill = GradientDrawable()
             pill.setShape(GradientDrawable.RECTANGLE)
             pill.setCornerRadius(AndroidUtilities.dp(50))
-            try:
-                pill.setStroke(self.search_stroke_width, self.search_border_color)
-            except Exception:
-                pass
+            
+            colored_border = settings.get("colored_search_border", False)
+            if not colored_border:
+                try:
+                    base_color = Theme.getColor(Theme.key_featuredStickers_addButton)
+                    pill.setStroke(AndroidUtilities.dp(2), base_color)
+                except Exception:
+                    try:
+                        base_color = Theme.getColor(Theme.key_dialogTextBlue)
+                        pill.setStroke(AndroidUtilities.dp(2), base_color)
+                    except Exception:
+                        pass
+            else:
+                try:
+                    pill.setStroke(self.search_stroke_width, self.search_border_color)
+                except Exception:
+                    pass
+            
             try:
                 pill.setColor(self.card_bg_color)
             except Exception:
@@ -893,7 +907,7 @@ class InstallUI:
             except Exception:
                 pass
             clear_icon.setScaleType(ImageView.ScaleType.CENTER)
-            clear_icon.setLayoutParams(LayoutHelper.createFrame(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER_VERTICAL | Gravity.RIGHT, 0, 0, 60, 0))
+            clear_icon.setLayoutParams(LayoutHelper.createFrame(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.TOP | Gravity.RIGHT, 0, 0, 60, 0))
             clear_icon.setVisibility(View.GONE)
             clear_icon.setAlpha(0.0)
             
@@ -914,7 +928,7 @@ class InstallUI:
                 pass
             try:
                 pad_left = AndroidUtilities.dp(8)
-                pad_right = AndroidUtilities.dp(80)
+                pad_right = AndroidUtilities.dp(50)
                 pad_top_bottom = AndroidUtilities.dp(8)
                 self.search.setPadding(pad_left, pad_top_bottom, pad_right, pad_top_bottom)
             except Exception:
@@ -1309,10 +1323,13 @@ class InstallUI:
             pid = str(p.get("id") or "").lower()
             name = str(p.get("name") or "").lower()
             desc = str(p.get("description") or "").lower()
+            author = str(p.get("author") or "").lower()
             if ql in pid:
                 return (0, 0 if pid.startswith(ql) else 1)
             if ql in name:
                 return (1, 0 if name.startswith(ql) else 1)
+            if ql in author:
+                return (1.5, 0 if author.startswith(ql) else 1)
             if ql in desc:
                 return (2, 0)
             return (3, 0)
@@ -1471,6 +1488,8 @@ class InstallUI:
                     pass
 
             icon_str = p.get("icon")
+            if not icon_str or icon_str == "Unknown":
+                icon_str = "Plugins_Stickers/0"
             icon_size_dp = 52
             top_row = LinearLayout(act)
             top_row.setOrientation(LinearLayout.HORIZONTAL)

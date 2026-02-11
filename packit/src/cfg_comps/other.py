@@ -46,6 +46,14 @@ class OtherSettings:
                 icon="msg_list",
                 link_alias="old_sort_menu_design"
             ),
+            Switch(
+                key="colored_search_border",
+                text=strings.colored_search_border,
+                subtext=strings.colored_search_border_desc,
+                default=False,
+                icon="msg_search",
+                link_alias="colored_search_border"
+            ),
             Divider(),
             Header(text=strings.logs_header),
             Input(

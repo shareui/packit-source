@@ -55,6 +55,8 @@
     "interface_header": "Интерфейс",
     "classic_sort_menu": "Классическое меню сортировки",
     "classic_sort_menu_desc": "Использовать классический дизайн для меню сортировки плагинов.",
+    "colored_search_border": "Цветная рамка поиска",
+    "colored_search_border_desc": "Использовать серую рамку для поиска вместо цветной.",
     "everything_working": "Всё работает в штатном режиме! <3",
     "packit": "PackIt",
     "packit_settings": "Настройки PackIt",
