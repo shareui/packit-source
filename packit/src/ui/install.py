@@ -31,6 +31,8 @@ from org.telegram.messenger import ApplicationLoader
 from com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment
 from com.exteragram.messenger.plugins.ui.components import PluginCellDelegate
 from org.telegram.messenger import Utilities
+from collections import deque
+from time import time
 
 
 class InstallUI:
@@ -830,6 +832,13 @@ class InstallUI:
             self.last_search_query = None
             self.adapter = None
             self.fill_id = 0
+            self.filtered_plugins = []
+            self.visible_plugins = []
+            self.lazy_load_queue = deque()
+            self.is_loading = False
+            self.scroll_listener = None
+            self.current_sort_type = "repo_order"
+            self.batch_size = 10
         
         def onFragmentCreate(self):
             pass
@@ -1246,6 +1255,33 @@ class InstallUI:
                 scroll.setNestedScrollingEnabled(True)
             except Exception:
                 pass
+            
+            class ScrollListener(dynamic_proxy(View.OnScrollChangeListener)):
+                def __init__(self, outer):
+                    super().__init__()
+                    self.outer = outer
+                    self.last_scroll_y = 0
+                    self.scroll_threshold = AndroidUtilities.dp(50)
+                
+                def onScrollChange(self, v, scrollX, scrollY, oldScrollX, oldScrollY):
+                    try:
+                        if not self.outer.is_loading and len(self.outer.visible_plugins) < len(self.outer.filtered_plugins):
+                            height = v.getHeight()
+                            content_height = v.getChildAt(0).getHeight()
+                            
+                            scroll_delta = abs(scrollY - self.last_scroll_y)
+                            if scroll_delta > self.scroll_threshold:
+                                if scrollY + height >= content_height - AndroidUtilities.dp(300):
+                                    self.outer._load_more_items()
+                                self.last_scroll_y = scrollY
+                    except Exception:
+                        pass
+            
+            try:
+                scroll.setOnScrollChangeListener(ScrollListener(self))
+            except Exception:
+                pass
+            
             self.results_container = LinearLayout(act)
             self.results_container.setOrientation(LinearLayout.VERTICAL)
             self.results_container.setPadding(0, 0, 0, AndroidUtilities.dp(10))
@@ -1286,20 +1322,21 @@ class InstallUI:
             q = (q or "").strip()
             if q != self.last_search_query:
                 self.last_search_query = q
+            
+            start_time = time()
+            
+            self.is_loading = True
             self.results_container.removeAllViews()
-            fragment = get_last_fragment()
-            act = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
-            if not act:
-                act = fragment.getContext() if fragment else None
+            self.visible_plugins = []
+            self.lazy_load_queue.clear()
             
             filtered = []
-            for p in self.plugins:
-                if self.score(p, q)[0] < 3:
-                    filtered.append(p)
-
             if not q:
                 filtered = list(self.plugins)
             else:
+                for p in self.plugins:
+                    if self.score(p, q)[0] < 3:
+                        filtered.append(p)
                 filtered.sort(key=lambda p: self.score(p, q))
 
             if sort_type == "alpha_az":
@@ -1308,10 +1345,15 @@ class InstallUI:
                 filtered.sort(key=lambda p: str(p.get("name") or p.get("id") or "").lower(), reverse=True)
             elif sort_type == "authors":
                 filtered.sort(key=lambda p: str(p.get("author") or "").lower())
-            elif sort_type == "repo_order":
-                pass
-
+            
+            self.filtered_plugins = filtered
+            
             if not filtered:
+                fragment = get_last_fragment()
+                act = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
+                if not act:
+                    act = fragment.getContext() if fragment else None
+                
                 empty_container = LinearLayout(act)
                 empty_container.setOrientation(LinearLayout.VERTICAL)
                 empty_container.setGravity(Gravity.CENTER)
@@ -1333,12 +1375,81 @@ class InstallUI:
                 empty.setTextColor(self.secondary_text_color)
                 empty_container.addView(empty, LayoutHelper.createLinear(-2, -2))
                 self.results_container.addView(empty_container, LayoutHelper.createLinear(-1, -2))
+                self.is_loading = False
             else:
-                for i, p in enumerate(filtered):
-                    self.results_container.addView(self.make_item(p), LayoutHelper.createLinear(-1, -2, 0, 4, 0, 4))
+                self._load_initial_batch()
+            
+            log(f"Build list took {time() - start_time:.3f}s")
 
         def build_list(self, q: str | None):
             self.build_list_with_sort(self.current_sort_type, q)
+        
+        def _load_initial_batch(self):
+            self.is_loading = True
+            batch_size = min(self.batch_size, len(self.filtered_plugins))
+            
+            def load_batch():
+                try:
+                    items_to_add = []
+                    for i in range(batch_size):
+                        if i < len(self.filtered_plugins):
+                            plugin = self.filtered_plugins[i]
+                            self.visible_plugins.append(plugin)
+                            item = self.make_item(plugin)
+                            items_to_add.append(item)
+                    
+                    def add_items():
+                        try:
+                            for item in items_to_add:
+                                self.results_container.addView(item, LayoutHelper.createLinear(-1, -2, 0, 4, 0, 4))
+                            self.is_loading = False
+                        except Exception as e:
+                            log(f"Error adding items: {e}")
+                            self.is_loading = False
+                    
+                    run_on_ui_thread(add_items)
+                    
+                except Exception as e:
+                    log(f"Error in initial batch loading: {e}")
+                    self.is_loading = False
+            
+            threading.Thread(target=load_batch, daemon=True).start()
+        
+        def _load_more_items(self):
+            if self.is_loading or len(self.visible_plugins) >= len(self.filtered_plugins):
+                return
+            
+            self.is_loading = True
+            start_index = len(self.visible_plugins)
+            batch_size = min(self.batch_size, len(self.filtered_plugins) - start_index)
+            
+            def load_batch():
+                try:
+                    items_to_add = []
+                    for i in range(batch_size):
+                        plugin_index = start_index + i
+                        if plugin_index < len(self.filtered_plugins):
+                            plugin = self.filtered_plugins[plugin_index]
+                            self.visible_plugins.append(plugin)
+                            item = self.make_item(plugin)
+                            items_to_add.append(item)
+                    
+                    def add_items():
+                        try:
+                            for item in items_to_add:
+                                self.results_container.addView(item, LayoutHelper.createLinear(-1, -2, 0, 4, 0, 4))
+                            self.is_loading = False
+                        except Exception as e:
+                            log(f"Error adding more items: {e}")
+                            self.is_loading = False
+                    
+                    run_on_ui_thread(add_items)
+                    
+                except Exception as e:
+                    log(f"Error in batch loading: {e}")
+                    self.is_loading = False
+            
+            threading.Thread(target=load_batch, daemon=True).start()
 
         def make_item(self, p):
             act = get_last_fragment().getContext()
