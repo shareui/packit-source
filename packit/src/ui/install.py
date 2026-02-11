@@ -907,7 +907,7 @@ class InstallUI:
             except Exception:
                 pass
             clear_icon.setScaleType(ImageView.ScaleType.CENTER)
-            clear_icon.setLayoutParams(LayoutHelper.createFrame(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.TOP | Gravity.RIGHT, 0, 0, 60, 0))
+            clear_icon.setLayoutParams(LayoutHelper.createFrame(AndroidUtilities.dp(18), AndroidUtilities.dp(18), Gravity.TOP | Gravity.RIGHT, 0, 0, 60, 0))
             clear_icon.setVisibility(View.GONE)
             clear_icon.setAlpha(0.0)
             
