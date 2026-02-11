@@ -54,6 +54,14 @@ class OtherSettings:
                 icon="msg_search",
                 link_alias="colored_search_border"
             ),
+            Switch(
+                key="hide_search_clear_button",
+                text=strings.hide_search_clear_button,
+                subtext=strings.hide_search_clear_button_desc,
+                default=False,
+                icon="msg_clear",
+                link_alias="hide_search_clear_button"
+            ),
             Divider(),
             Header(text=strings.logs_header),
             Input(

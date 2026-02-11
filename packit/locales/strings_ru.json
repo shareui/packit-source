@@ -57,6 +57,8 @@
     "classic_sort_menu_desc": "Использовать классический дизайн для меню сортировки плагинов.",
     "colored_search_border": "Серая рамка поиска",
     "colored_search_border_desc": "Использовать серую рамку для поиска вместо цветной.",
+    "hide_search_clear_button": "Скрыть кнопку очистки поиска",
+    "hide_search_clear_button_desc": "Скрывает кнопку для очистки поля поиска.",
     "everything_working": "Всё работает в штатном режиме! <3",
     "packit": "PackIt",
     "packit_settings": "Настройки PackIt",

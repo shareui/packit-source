@@ -910,7 +910,11 @@ class InstallUI:
             clear_icon.setLayoutParams(LayoutHelper.createFrame(AndroidUtilities.dp(18), AndroidUtilities.dp(18), Gravity.TOP | Gravity.RIGHT, 0, 0, 60, 0))
             clear_icon.setVisibility(View.GONE)
             clear_icon.setAlpha(0.0)
-            
+            hide_clear_button = settings.get("hide_search_clear_button", False)
+            if hide_clear_button:
+                clear_icon.setVisibility(View.GONE)
+                clear_icon.setClickable(False)
+                clear_icon.setEnabled(False)
             self.search = EditTextBoldCursor(act)
             self.search.setHint("Search plugins...")
             self.search.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
@@ -951,8 +955,12 @@ class InstallUI:
                     super().__init__()
                     self.outer = outer
                     self.clear_icon = clear_icon_ref
+                    self.hide_clear_button = settings.get("hide_search_clear_button", False)
                 
                 def afterTextChanged(self, s):
+                    if self.hide_clear_button:
+                        return
+                    
                     text = s.toString()
                     if text and len(text) > 0:
                         self.clear_icon.setVisibility(View.VISIBLE)
@@ -1017,7 +1025,8 @@ class InstallUI:
             self.install_ui._apply_press_scale(search_btn)
             search_row.addView(search_btn, LinearLayout.LayoutParams(AndroidUtilities.dp(52), AndroidUtilities.dp(42), 0))
             search_container.addView(search_row, FrameLayout.LayoutParams(-1, -2))
-            search_container.addView(clear_icon)
+            if not hide_clear_button:
+                search_container.addView(clear_icon)
             main_layout.addView(search_container, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8))
 
             header_row = LinearLayout(act)
