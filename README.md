@@ -9,7 +9,7 @@
 packit/src/main.py — точка входа, инициализация всех модулей и линкинг  
 packit/src/repom.py — движок конфигурации репозиториев  
 packit/src/settings.py — конструктор главного экрана настроек  
-packit/src/packlog.py — внутренний API логов  
+packit/src/packlog.py — внутренний API логов  # !!! НЕАКТУАЛЬНО
 packit/src/core.py — устаревшее, классы ошибок  
 packit/src/ui/install.py — установка плагинов  
 packit/src/deeplink/packit.py — главный обработчик перехвата deeplink  
@@ -25,57 +25,8 @@ packit/src/cfg_comps/icons.py — меню выбора иконок для ре
 
 разделы настроек должны быть в cfg_comps, интерфейс в чатах в chat_ui
 
-## packlog(логирование)(не актуально)
+## логирование
 
-> для логов использовать только его
+используйте `from android_utils import log`
 
-уже не актуально, логи через
-
-```
-from android_utils import log
-
-log()
-````
-внутренний API для логирования в плагине
-
-api находиться по пути `packit/src/packlog.py`
-
-```python
-# ПРИМЕР импорта с packit/src
-from .packlog import packlog
-
-# ПРИМЕР импорта с packit/src/{любая папка}
-from ..packlog import packlog
-
-# добавить info лог
-packlog.info("message")
-
-# добавить warning лог
-packlog.warn("message")
-
-# добавить error лог
-packlog.error("message")
-
-# добавить debug лог
-packlog.debug("message")
-
-# добавить текст без времени и уровня
-packlog.text("message")
-
-# получить все логи как строку
-packlog.get()
-
-# очистить все логи
-packlog.clear()
-```
-
-ЖЕЛАТЕЛЬНО использовать packlog.text, а так же ЖЕЛАТЕЛЬНО использовать threading при большом количестве логов что бы минимизировать лаги(при одном-двух почти незаметно)
-
-
-планы(не ща): добавить traceback и кастом вывод
-
-логи выводятся в UI через настройки плагина с автообновлением каждые 0.3с
-формат лога: `[HH:MM:SS] [LEVEL] message`
-
-strings:
-- `empty_logs` - текст при пустых логах
+без всяких приписок по типу [Packit] и тп. а так же без локализации, сугубо на английском
