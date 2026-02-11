@@ -875,10 +875,24 @@ class InstallUI:
             pill = GradientDrawable()
             pill.setShape(GradientDrawable.RECTANGLE)
             pill.setCornerRadius(AndroidUtilities.dp(50))
-            try:
-                pill.setStroke(self.search_stroke_width, self.search_border_color)
-            except Exception:
-                pass
+            
+            colored_border = settings.get("colored_search_border", False)
+            if not colored_border:
+                try:
+                    base_color = Theme.getColor(Theme.key_featuredStickers_addButton)
+                    pill.setStroke(AndroidUtilities.dp(2), base_color)
+                except Exception:
+                    try:
+                        base_color = Theme.getColor(Theme.key_dialogTextBlue)
+                        pill.setStroke(AndroidUtilities.dp(2), base_color)
+                    except Exception:
+                        pass
+            else:
+                try:
+                    pill.setStroke(self.search_stroke_width, self.search_border_color)
+                except Exception:
+                    pass
+            
             try:
                 pill.setColor(self.card_bg_color)
             except Exception:
@@ -893,10 +907,14 @@ class InstallUI:
             except Exception:
                 pass
             clear_icon.setScaleType(ImageView.ScaleType.CENTER)
-            clear_icon.setLayoutParams(LayoutHelper.createFrame(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER_VERTICAL | Gravity.RIGHT, 0, 0, 60, 0))
+            clear_icon.setLayoutParams(LayoutHelper.createFrame(AndroidUtilities.dp(18), AndroidUtilities.dp(18), Gravity.TOP | Gravity.RIGHT, 0, 0, 60, 0))
             clear_icon.setVisibility(View.GONE)
             clear_icon.setAlpha(0.0)
-            
+            hide_clear_button = settings.get("hide_search_clear_button", False)
+            if hide_clear_button:
+                clear_icon.setVisibility(View.GONE)
+                clear_icon.setClickable(False)
+                clear_icon.setEnabled(False)
             self.search = EditTextBoldCursor(act)
             self.search.setHint("Search plugins...")
             self.search.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
@@ -914,7 +932,7 @@ class InstallUI:
                 pass
             try:
                 pad_left = AndroidUtilities.dp(8)
-                pad_right = AndroidUtilities.dp(80)
+                pad_right = AndroidUtilities.dp(50)
                 pad_top_bottom = AndroidUtilities.dp(8)
                 self.search.setPadding(pad_left, pad_top_bottom, pad_right, pad_top_bottom)
             except Exception:
@@ -937,8 +955,12 @@ class InstallUI:
                     super().__init__()
                     self.outer = outer
                     self.clear_icon = clear_icon_ref
+                    self.hide_clear_button = settings.get("hide_search_clear_button", False)
                 
                 def afterTextChanged(self, s):
+                    if self.hide_clear_button:
+                        return
+                    
                     text = s.toString()
                     if text and len(text) > 0:
                         self.clear_icon.setVisibility(View.VISIBLE)
@@ -1003,7 +1025,8 @@ class InstallUI:
             self.install_ui._apply_press_scale(search_btn)
             search_row.addView(search_btn, LinearLayout.LayoutParams(AndroidUtilities.dp(52), AndroidUtilities.dp(42), 0))
             search_container.addView(search_row, FrameLayout.LayoutParams(-1, -2))
-            search_container.addView(clear_icon)
+            if not hide_clear_button:
+                search_container.addView(clear_icon)
             main_layout.addView(search_container, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8))
 
             header_row = LinearLayout(act)
@@ -1309,10 +1332,13 @@ class InstallUI:
             pid = str(p.get("id") or "").lower()
             name = str(p.get("name") or "").lower()
             desc = str(p.get("description") or "").lower()
+            author = str(p.get("author") or "").lower()
             if ql in pid:
                 return (0, 0 if pid.startswith(ql) else 1)
             if ql in name:
                 return (1, 0 if name.startswith(ql) else 1)
+            if ql in author:
+                return (1.5, 0 if author.startswith(ql) else 1)
             if ql in desc:
                 return (2, 0)
             return (3, 0)
@@ -1471,6 +1497,8 @@ class InstallUI:
                     pass
 
             icon_str = p.get("icon")
+            if not icon_str or icon_str == "Unknown":
+                icon_str = "Plugins_Stickers/0"
             icon_size_dp = 52
             top_row = LinearLayout(act)
             top_row.setOrientation(LinearLayout.HORIZONTAL)
