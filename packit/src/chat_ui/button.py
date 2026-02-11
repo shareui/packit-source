@@ -47,7 +47,7 @@ class ChatButton:
                     break
         return None
     
-    def _add_buton_to_chat_header(self):
+    def _add_button_to_chat_header(self):
         try:
             frag = get_last_fragment()
             if not frag or not isinstance(frag, ChatActivity):
@@ -199,7 +199,7 @@ class ChatButton:
                     self.chat_button_ref = chat_button_ref
                 def after_hooked_method(self, param):
                     try:
-                        run_on_ui_thread(self.chat_button_ref._add_buton_to_chat_header)
+                        run_on_ui_thread(self.chat_button_ref._add_button_to_chat_header)
                     except Exception:
                         pass
             self.plugin.hook_method(target_method, ChatResumeHook(self))
@@ -227,7 +227,7 @@ class ChatButton:
         try:
             show_chat = settings.get("show_chat_menu", True)
             if show_chat:
-                self._add_buton_to_chat_header()
+                self._add_button_to_chat_header()
                 self._hook_chat_activity_resume()
             else:
                 self._remove_chat_button()
