@@ -118,5 +118,11 @@
     "support_via_ton": "Support via TON",
     "support_send_message": "<З",
     "copied_to_clipboard": "Copied to clipboard",
-    "donate_easter_egg": "Wait, did someone give some subs?"
+    "donate_easter_egg": "Wait, did someone give some subs?",
+    "additional_actions": "Additional",
+    "export_repositories": "Export repositories",
+    "repositories_exported": "All repository links copied! Don’t lose them!",
+    "no_repositories_to_export": "No repositories to export",
+    "disable_all_repositories": "Disable all", 
+    "enable_all_repositories": "Enable all"
 }
