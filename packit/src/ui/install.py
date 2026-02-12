@@ -1,38 +1,33 @@
-import os
-import tempfile
-import requests
-import threading
 import re
+import threading
+from collections import deque
+from time import time
 from android.animation import ObjectAnimator
+from android.view import View, MotionEvent, Gravity
+from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView
+from android.util import TypedValue
+from android.text import TextWatcher, InputType
+from android.view.inputmethod import EditorInfo
+from android.graphics.drawable import GradientDrawable
+from java import dynamic_proxy
+from hook_utils import find_class
+import requests
 from android_utils import log, run_on_ui_thread
 from client_utils import get_last_fragment, run_on_queue
 from ui.bulletin import BulletinHelper
 from elyx import settings
-from org.telegram.ui.ActionBar import BottomSheet, Theme
+from org.telegram.ui.ActionBar import Theme
 from org.telegram.ui.Components import LayoutHelper, BackupImageView, EditTextBoldCursor
 from org.telegram.messenger import AndroidUtilities, MediaDataController, ImageLocation
-from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView, ProgressBar
-from android.view import Gravity, View, MotionEvent
-from android.util import TypedValue
-from android.graphics.drawable import GradientDrawable
-from android.graphics import Color, PorterDuff
-from android.text import TextWatcher, InputType
-from java import dynamic_proxy
 from android_utils import OnClickListener
-from android.content import Intent
-from android.net import Uri
-from java.io import File
-from android.os import Build
-from androidx.core.content import FileProvider
-from hook_utils import find_class
-from android import R as AndroidR
-from com.exteragram.messenger.plugins import PluginsController
-from org.telegram.messenger import ApplicationLoader
 from com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment
-from com.exteragram.messenger.plugins.ui.components import PluginCellDelegate
-from org.telegram.messenger import Utilities
-from collections import deque
-from time import time
+
+from .loading import show_loading_sheet
+from .repo import show_repo_sheet
+from .sort import show_sort_menu
+from ..other.copy import copy_share_link
+from ..other.share import share_plugin_file
+from ..core import install_plugin
 
 
 class InstallUI:
@@ -44,21 +39,17 @@ class InstallUI:
         try:
             if not url:
                 return None, None
-            
             patterns = [
                 r'github\.com/([^/]+)/([^/]+?)(?:\.git)?/?$',
                 r'raw\.githubusercontent\.com/([^/]+)/([^/]+)/',
                 r'api\.github\.com/repos/([^/]+)/([^/]+)',
             ]
-            
             for pattern in patterns:
                 match = re.search(pattern, url)
                 if match:
                     owner = match.group(1)
-                    repo = match.group(2)
-                    repo = repo.replace('.git', '')
+                    repo = match.group(2).replace('.git', '')
                     return owner, repo
-            
             return None, None
         except Exception:
             return None, None
@@ -96,9 +87,7 @@ class InstallUI:
         except Exception:
             pressed_color = base_color
         close_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-            AndroidUtilities.dp(28),
-            base_color,
-            pressed_color
+            AndroidUtilities.dp(28), base_color, pressed_color
         ))
         close_btn.setPadding(0, AndroidUtilities.dp(14), 0, AndroidUtilities.dp(14))
         close_btn.setClickable(True)
@@ -113,29 +102,17 @@ class InstallUI:
         return close_btn
 
     def _setup_bottom_sheet(self, sheet):
-        try:
-            sheet.setAllowNestedScroll(True)
-        except Exception:
-            pass
-        try:
-            sheet.setResizeKeyboardArea(True)
-        except Exception:
-            pass
-        try:
-            if hasattr(sheet, 'setUseSmoothKeyboard'):
-                sheet.setUseSmoothKeyboard(True)
-        except Exception:
-            pass
-        try:
-            if hasattr(sheet, 'setUseSmoothKeyboardTransition'):
-                sheet.setUseSmoothKeyboardTransition(True)
-        except Exception:
-            pass
-        try:
-            if hasattr(sheet, 'setAnimateKeyboard'):
-                sheet.setAnimateKeyboard(True)
-        except Exception:
-            pass
+        for attr in ('setAllowNestedScroll', 'setResizeKeyboardArea', 'setUseSmoothKeyboard',
+                     'setUseSmoothKeyboardTransition', 'setAnimateKeyboard'):
+            try:
+                m = getattr(sheet, attr, None)
+                if m and attr in ('setUseSmoothKeyboard', 'setUseSmoothKeyboardTransition', 'setAnimateKeyboard'):
+                    if hasattr(sheet, attr):
+                        m(True)
+                elif m:
+                    m(True)
+            except Exception:
+                pass
         sheet.setApplyBottomPadding(False)
         sheet.setApplyTopPadding(False)
 
@@ -154,13 +131,12 @@ class InstallUI:
         pill_btn = LinearLayout(act)
         pill_btn.setOrientation(LinearLayout.HORIZONTAL)
         pill_btn.setGravity(Gravity.CENTER_VERTICAL)
-        pill_btn.setPadding(AndroidUtilities.dp(padding_h), AndroidUtilities.dp(padding_v), AndroidUtilities.dp(padding_h), AndroidUtilities.dp(padding_v))
+        pill_btn.setPadding(AndroidUtilities.dp(padding_h), AndroidUtilities.dp(padding_v),
+                           AndroidUtilities.dp(padding_h), AndroidUtilities.dp(padding_v))
         pill_btn.setClickable(True)
         pill_btn.setFocusable(True)
         pill_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-            AndroidUtilities.dp(18),
-            background,
-            pressed
+            AndroidUtilities.dp(18), background, pressed
         ))
         return pill_btn
 
@@ -181,11 +157,11 @@ class InstallUI:
                 is_dark_theme = (bg_color & 0x00FFFFFF) < 0x00808080
             except Exception:
                 pass
-
+        from android.graphics import Color
         if is_dark_theme:
             return {
                 "main_bg_color": Color.parseColor("#000000"),
-                "card_bg_color": Color.parseColor("#181818"), 
+                "card_bg_color": Color.parseColor("#181818"),
                 "card_pressed_color": Color.parseColor("#3C3C3C"),
                 "text_color": Color.WHITE,
                 "secondary_text_color": Color.parseColor("#CCCCCC"),
@@ -194,384 +170,79 @@ class InstallUI:
                 "search_border_color": Color.parseColor("#3C3C3C"),
                 "search_stroke_width": AndroidUtilities.dp(2)
             }
-        else:
-            return {
-                "main_bg_color": Color.parseColor("#f0f0f0"),
-                "card_bg_color": Color.parseColor("#ffffff"),
-                "card_pressed_color": Color.parseColor("#f5f5f5"), 
-                "text_color": Color.BLACK,
-                "secondary_text_color": Color.parseColor("#666666"),
-                "hint_text_color": Color.parseColor("#999999"),
-                "cursor_color": Color.parseColor("#2196F3"),
-                "search_border_color": Color.parseColor("#e0e0e0"),
-                "search_stroke_width": 0
-            }
-
-    def _set_background_safe(self, view, color_str):
-        try:
-            view.setBackgroundColor(Color.parseColor(color_str))
-        except Exception:
-            pass
+        return {
+            "main_bg_color": Color.parseColor("#f0f0f0"),
+            "card_bg_color": Color.parseColor("#ffffff"),
+            "card_pressed_color": Color.parseColor("#f5f5f5"),
+            "text_color": Color.BLACK,
+            "secondary_text_color": Color.parseColor("#666666"),
+            "hint_text_color": Color.parseColor("#999999"),
+            "cursor_color": Color.parseColor("#2196F3"),
+            "search_border_color": Color.parseColor("#e0e0e0"),
+            "search_stroke_width": 0
+        }
 
     def open(self):
         fragment = get_last_fragment()
         if not fragment:
             return
-        act = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
-        if not act:
-            return
-
         repos = []
         try:
-            raw = self.plugin.repoManager.getRepositories() or []
-            repos = []
-            for r in raw:
+            for r in (self.plugin.repoManager.getRepositories() or []):
                 try:
                     if not r or not r.get("enabled"):
                         continue
                     name = str(r.get("name") or "").strip()
                     url = str(r.get("url") or "").strip()
-                    if not name or not url:
-                        continue
-                    repos.append(r)
+                    if name and url:
+                        repos.append(r)
                 except Exception:
                     continue
         except Exception:
-            repos = []
-
+            pass
         if not repos:
             BulletinHelper.show_error("No repositories configured")
             return
-
-        def show_repo_sheet():
-            try:
-                is_dark_theme = False
-                try:
-                    is_dark_theme = Theme.isCurrentThemeDark()
-                except Exception:
-                    try:
-                        bg_color = Theme.getColor(Theme.key_dialogBackground)
-                        is_dark_theme = (bg_color & 0x00FFFFFF) < 0x00808080
-                    except Exception:
-                        pass
-                
-                sheet = BottomSheet(act, False, fragment.getResourceProvider())
-                self._setup_bottom_sheet(sheet)
-                root = LinearLayout(act)
-                root.setOrientation(LinearLayout.VERTICAL)
-                root.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(16), AndroidUtilities.dp(20), AndroidUtilities.dp(8))
-                try:
-                    root.setBackground(self._create_rounded_bg(Theme.getColor(Theme.key_dialogBackground)))
-                except Exception:
-                    try:
-                        root.setBackgroundColor(Theme.getColor(Theme.key_dialogBackground))
-                    except Exception:
-                        pass
-                title = TextView(act)
-                title.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
-                title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 24)
-                try:
-                    title.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
-                except Exception:
-                    title.setTypeface(AndroidUtilities.bold())
-                title.setText("Select a repository")
-                title.setGravity(Gravity.CENTER)
-                root.addView(title, LayoutHelper.createFrame(-1, -2, Gravity.TOP, 0, 16, 0, 8))
-                content_frame = FrameLayout(act)
-                root.addView(content_frame, LayoutHelper.createLinear(-1, 0, 1.0))
-                content_layout = LinearLayout(act)
-                content_layout.setOrientation(LinearLayout.VERTICAL)
-                content_frame.addView(content_layout, FrameLayout.LayoutParams(-1, -1))
-                scroll = ScrollView(act)
-                scroll.setFillViewport(True)
-                scroll.setVerticalScrollBarEnabled(False)
-                try:
-                    scroll.setNestedScrollingEnabled(True)
-                except Exception:
-                    pass
-                items = LinearLayout(act)
-                items.setOrientation(LinearLayout.VERTICAL)
-                scroll.addView(items)
-                divider_color = Theme.getColor(Theme.key_divider)
-
-                def add_divider():
-                    d = View(act)
-                    d.setBackgroundColor(divider_color)
-                    items.addView(d, LayoutHelper.createFrame(-1, 1, Gravity.TOP, 16, 0, 16, 0))
-
-                def make_repo_button(repo):
-                    btn = LinearLayout(act)
-                    btn.setOrientation(LinearLayout.HORIZONTAL)
-                    btn.setClickable(True)
-                    btn.setFocusable(True)
-                    btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(8))
-                    try:
-                        btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                            AndroidUtilities.dp(8),
-                            Theme.getColor(Theme.key_dialogBackground),
-                            Theme.getColor(Theme.key_dialogBackgroundGray)
-                        ))
-                    except Exception:
-                        try:
-                            btn.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector)))
-                        except Exception:
-                            pass
-
-                    icon_iv = ImageView(act)
-                    icon_name = repo.get('icon', 'msg_folders')
-                    try:
-                        R_tg = find_class("org.telegram.messenger.R")
-                        icon_id = getattr(R_tg.drawable, icon_name)
-                        icon_iv.setImageResource(icon_id)
-                        if not is_dark_theme:
-                            icon_iv.setColorFilter(Color.BLACK)
-                        else:
-                            icon_iv.setColorFilter(Color.WHITE)
-                    except Exception:
-                        pass
-                    icon_iv.setScaleType(ImageView.ScaleType.CENTER)
-                    icon_iv.setLayoutParams(LayoutHelper.createLinear(AndroidUtilities.dp(24), AndroidUtilities.dp(24), Gravity.CENTER_VERTICAL, 0, 0, 16, 0))
-                    text_container = LinearLayout(act)
-                    text_container.setOrientation(LinearLayout.VERTICAL)
-                    text_container.setLayoutParams(LayoutHelper.createLinear(-1, -2, Gravity.CENTER_VERTICAL))
-                    name_tv = TextView(act)
-                    try:
-                        name_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
-                    except Exception:
-                        name_tv.setTypeface(AndroidUtilities.bold())
-                    name_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
-                    name_tv.setText(repo.get("name") or "Unnamed")
-                    name_tv.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
-                    url_tv = TextView(act)
-                    url_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
-                    url = repo.get("url", "")
-                    owner, repo_name = self._parse_github_url(url)
-                    
-                    if owner and repo_name:
-                        display_text = f"{owner} • {repo_name}"
-                    else:
-                        display_text = url
-                    
-                    url_tv.setText(display_text)
-                    url_tv.setTextColor(Theme.getColor(Theme.key_dialogTextGray2))
-                    text_container.addView(name_tv)
-                    text_container.addView(url_tv, LayoutHelper.createLinear(-1, -2, 0, 4, 0, 0))
-                    btn.addView(icon_iv)
-                    btn.addView(text_container)
-
-                    def on_click(v):
-                        try:
-                            sheet.dismiss()
-                        except Exception:
-                            pass
-                        self._open_repo_plugins(repo)
-
-                    btn.setOnClickListener(OnClickListener(lambda v: on_click(v)))
-                    self._apply_press_scale(btn)
-                    return btn
-
-                all_repos_btn = LinearLayout(act)
-                all_repos_btn.setOrientation(LinearLayout.HORIZONTAL)
-                all_repos_btn.setClickable(True)
-                all_repos_btn.setFocusable(True)
-                all_repos_btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(8))
-                try:
-                    all_repos_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                        AndroidUtilities.dp(8),
-                        Theme.getColor(Theme.key_dialogBackground),
-                        Theme.getColor(Theme.key_dialogBackgroundGray)
-                    ))
-                except Exception:
-                    try:
-                        all_repos_btn.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector)))
-                    except Exception:
-                        all_repos_btn.setBackgroundColor(Theme.getColor(Theme.key_dialogBackground))
-                all_repos_icon = ImageView(act)
-                try:
-                    R_tg = find_class("org.telegram.messenger.R")
-                    icon_id = getattr(R_tg.drawable, "msg_media")
-                    all_repos_icon.setImageResource(icon_id)
-                    all_repos_icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_addButton))
-                except Exception:
-                    pass
-                all_repos_icon.setScaleType(ImageView.ScaleType.CENTER)
-                all_repos_icon.setLayoutParams(LayoutHelper.createLinear(AndroidUtilities.dp(24), AndroidUtilities.dp(24), Gravity.CENTER_VERTICAL, 0, 0, 16, 0))
-                all_repos_name = TextView(act)
-                all_repos_name.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
-                all_repos_name.setText("All repositories")
-                all_repos_name.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton))
-                all_repos_name.setTypeface(AndroidUtilities.bold())
-                all_repos_url = TextView(act)
-                all_repos_url.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
-                all_repos_url.setText("Search across all repositories")
-                all_repos_url.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton))
-                all_repos_text_container = LinearLayout(act)
-                all_repos_text_container.setOrientation(LinearLayout.VERTICAL)
-                all_repos_text_container.setLayoutParams(LayoutHelper.createLinear(-1, -2, Gravity.CENTER_VERTICAL))
-                all_repos_text_container.addView(all_repos_name)
-                all_repos_text_container.addView(all_repos_url, LayoutHelper.createLinear(-1, -2, 0, 4, 0, 0))
-                all_repos_btn.addView(all_repos_icon)
-                all_repos_btn.addView(all_repos_text_container)
-                
-                def on_all_repos_click(v):
-                    try:
-                        sheet.dismiss()
-                    except Exception:
-                        pass
-                    self._open_all_repos_plugins()
-                
-                all_repos_btn.setOnClickListener(OnClickListener(lambda v: on_all_repos_click(v)))
-                self._apply_press_scale(all_repos_btn)
-                items.addView(all_repos_btn, LayoutHelper.createFrame(-1, -2, Gravity.TOP, 16, 2, 16, 2))
-
-                add_divider()
-
-                for idx, repo in enumerate(repos):
-                    if idx != 0:
-                        add_divider()
-                    items.addView(make_repo_button(repo), LayoutHelper.createFrame(-1, -2, Gravity.TOP, 16, 2, 16, 2))
-
-                content_frame.addView(scroll, FrameLayout.LayoutParams(-1, -1))
-                close_btn = self._create_close_button(act)
-
-                def on_close(v):
-                    try:
-                        sheet.dismiss()
-                    except Exception:
-                        pass
-
-                close_btn.setOnClickListener(OnClickListener(lambda v: on_close(v)))
-                self._apply_press_scale(close_btn)
-                root.addView(close_btn, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 0))
-                sheet.setCustomView(root)
-                sheet.show()
-            except Exception as e:
-                log(f"InstallUI repo sheet error: {e}")
-
-        run_on_ui_thread(show_repo_sheet)
+        show_repo_sheet(self, repos)
 
     def _show_loading_sheet(self, title: str, message: str = "Loading..."):
-        fragment = get_last_fragment()
-        if not fragment:
-            return None
-        act = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
-        if not act:
-            return None
-        try:
-            sheet = BottomSheet(act, False, fragment.getResourceProvider())
-            sheet.setApplyBottomPadding(False)
-            sheet.setApplyTopPadding(False)
-            root = LinearLayout(act)
-            root.setOrientation(LinearLayout.VERTICAL)
-            root.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(20), AndroidUtilities.dp(20), AndroidUtilities.dp(20))
-            try:
-                root.setBackground(self._create_rounded_bg(Theme.getColor(Theme.key_dialogBackground)))
-            except Exception:
-                try:
-                    root.setBackgroundColor(Theme.getColor(Theme.key_dialogBackground))
-                except Exception:
-                    pass
-            title_tv = TextView(act)
-            title_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 24)
-            try:
-                title_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
-            except Exception:
-                title_tv.setTypeface(AndroidUtilities.bold())
-            title_tv.setText(title)
-            title_tv.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
-            title_tv.setGravity(Gravity.CENTER)
-            pb = ProgressBar(act, None, AndroidR.attr.progressBarStyleLarge)
-            pb.setScaleX(1.5)
-            pb.setScaleY(1.5)
-            try:
-                pb.setIndeterminateTintList(Theme.getColor(Theme.key_featuredStickers_addButton))
-            except Exception:
-                try:
-                    pb.getIndeterminateDrawable().setColorFilter(Theme.getColor(Theme.key_dialogTextBlue), PorterDuff.Mode.MULTIPLY)
-                except Exception:
-                    pass
-            pb_lp = LinearLayout.LayoutParams(-2, -2)
-            pb_lp.gravity = Gravity.CENTER
-            pb_lp.topMargin = AndroidUtilities.dp(16)
-            pb_lp.bottomMargin = AndroidUtilities.dp(16)
-            msg = TextView(act)
-            msg.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18)
-            msg.setText(message)
-            msg.setGravity(Gravity.CENTER)
-            msg.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
-            root.addView(title_tv, LayoutHelper.createLinear(-1, -2))
-            root.addView(pb, pb_lp)
-            root.addView(msg, LayoutHelper.createLinear(-1, -2))
-            sheet.setCustomView(root)
-            sheet.setCanDismissWithSwipe(False)
-            try:
-                sheet.setAllowNestedScroll(True)
-            except Exception:
-                pass
-            try:
-                sheet.setCanDismissWithSwipe(False)
-            except Exception:
-                pass
-            sheet.show()
-            return sheet
-        except Exception as e:
-            log(f"failed to show loading sheet: {e}")
-            return None
+        return show_loading_sheet(self, title, message)
 
     def _open_all_repos_plugins(self):
         fragment = get_last_fragment()
         if not fragment:
             return
-        act = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
-        if not act:
-            return
-
         loading_sheet = [None]
 
         def load_task():
             try:
                 def open_loading():
                     loading_sheet[0] = self._show_loading_sheet("All repositories", "Loading...")
-
                 run_on_ui_thread(open_loading)
-
                 repos = self.repoManager.getRepositories()
                 all_plugins = []
-                
                 for repo in repos:
                     if not repo.get("enabled"):
                         continue
-                    
                     repo_url = (repo.get("url") or "").strip()
                     if not repo_url:
                         continue
-                    
                     try:
                         response = requests.get(repo_url, timeout=10)
                         if response.status_code != 200:
                             continue
                         config = response.json()
                         plugins = config.get("plugins", {})
-                        
                         if isinstance(plugins, dict):
                             for pluginId, info in plugins.items():
                                 if isinstance(info, dict):
-                                    all_plugins.append({
-                                        "id": pluginId,
-                                        "repo_name": repo.get("name", "Unknown"),
-                                        **info
-                                    })
+                                    all_plugins.append({"id": pluginId, "repo_name": repo.get("name", "Unknown"), **info})
                         elif isinstance(plugins, list):
                             for item in plugins:
                                 if isinstance(item, dict) and item.get("id"):
-                                    all_plugins.append({
-                                        "id": item.get("id"),
-                                        "repo_name": repo.get("name", "Unknown"),
-                                        **item
-                                    })
+                                    all_plugins.append({"id": item.get("id"), "repo_name": repo.get("name", "Unknown"), **item})
                     except Exception as e:
                         log(f"failed to load repo {repo.get('name')}: {e}")
-                        continue
 
                 def show_plugins():
                     try:
@@ -579,7 +250,6 @@ class InstallUI:
                             try:
                                 mdc = MediaDataController.getInstance(0)
                                 loaded_packs = set()
-                                
                                 for plugin in all_plugins:
                                     icon_str = plugin.get("icon")
                                     if icon_str and "/" in str(icon_str):
@@ -592,9 +262,7 @@ class InstallUI:
                                                 pass
                             except Exception:
                                 pass
-
                         preload_stickers()
-
                         def show_after_delay():
                             try:
                                 if loading_sheet[0]:
@@ -602,14 +270,10 @@ class InstallUI:
                                 self._show_plugins_universal("All repositories", all_plugins)
                             except Exception as e:
                                 log(f"failed to show plugins: {e}")
-                        
                         threading.Timer(0.5, lambda: run_on_ui_thread(show_after_delay)).start()
-                        
                     except Exception as e:
                         log(f"failed to show plugins: {e}")
-
                 run_on_ui_thread(show_plugins)
-
             except Exception as e:
                 def show_err():
                     try:
@@ -620,41 +284,30 @@ class InstallUI:
                         pass
                 run_on_ui_thread(show_err)
                 log(f"failed to load all repos: {e}")
-
         run_on_queue(load_task)
 
     def _open_repo_plugins(self, repo):
         repo_name = repo.get("name") or "Unnamed"
         repo_url = (repo.get("url") or "").strip()
-
         if not repo_url:
             BulletinHelper.show_error("Repository URL is empty")
             return
         fragment = get_last_fragment()
         if not fragment:
             return
-        act = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
-        if not act:
-            return
-
         loading_sheet = [None]
 
         def load_task():
             try:
                 def open_loading():
                     loading_sheet[0] = self._show_loading_sheet(repo_name, "Loading...")
-
                 run_on_ui_thread(open_loading)
-
                 r = requests.get(repo_url, timeout=20)
                 if r.status_code != 200:
-                    log(f"InstallUI: failed to download repo config '{repo_url}': HTTP {r.status_code}")
                     raise Exception(f"HTTP {r.status_code}")
-
                 config = r.json()
                 plugins_raw = config.get("plugins", [])
                 plugins = []
-
                 if isinstance(plugins_raw, dict):
                     for pid, info in plugins_raw.items():
                         if isinstance(info, dict):
@@ -682,9 +335,7 @@ class InstallUI:
                                                 pass
                             except Exception:
                                 pass
-                        
                         preload_stickers()
-                        
                         def show_after_delay():
                             try:
                                 if loading_sheet[0]:
@@ -692,14 +343,10 @@ class InstallUI:
                                 self._show_plugins_universal(repo_name, plugins)
                             except Exception:
                                 pass
-                        
                         threading.Timer(0.5, lambda: run_on_ui_thread(show_after_delay)).start()
-                        
                     except Exception:
                         pass
-
                 run_on_ui_thread(show_plugins)
-
             except Exception as e:
                 def show_err():
                     try:
@@ -707,14 +354,12 @@ class InstallUI:
                             loading_sheet[0].dismiss()
                     except Exception:
                         pass
-                    log(f"InstallUI: error while downloading repository '{repo_url}': {e}")
                     BulletinHelper.show_error("An error occurred while downloading")
-
                 run_on_ui_thread(show_err)
-
+                log(f"InstallUI: error downloading repository '{repo_url}': {e}")
         run_on_queue(load_task)
 
-    def _show_plugins_universal(self, repo_name: str, plugins: list[dict]):
+    def _show_plugins_universal(self, repo_name: str, plugins: list):
         fragment = get_last_fragment()
         if not fragment:
             return
@@ -735,103 +380,19 @@ class InstallUI:
                                 new_fragment.finishFragment()
                             except Exception:
                                 pass
-                        
                         back_button.setOnClickListener(OnClickListener(on_back_click))
             except Exception as e:
                 log(f"Failed to add back button: {e}")
-            
         except Exception as e:
             log(f"Failed to show plugins universal: {e}")
 
-    def _install_via_system_dialog(self, plugin_info: dict):
-        plugin_id = plugin_info.get("id")
-        url = plugin_info.get("link") or plugin_info.get("raw")
-
-        if not plugin_id or not url:
-            BulletinHelper.show_error("Plugin has no link")
-            return
-
-        fragment = get_last_fragment()
-        if not fragment:
-            return
-
-        def task():
-            try:
-                BulletinHelper.show_info("Downloading plugin...")
-
-                r = requests.get(url, timeout=30)
-                if r.status_code != 200:
-                    log(f"InstallUI: failed to download plugin '{plugin_id}' from '{url}': HTTP {r.status_code}")
-                    raise Exception(f"HTTP {r.status_code}")
-
-                pkg = ApplicationLoader.applicationContext.getPackageName()
-                plugins_dir = f"/data/data/{pkg}/files/plugins"
-                try:
-                    os.makedirs(plugins_dir, exist_ok=True)
-                except Exception:
-                    pass
-
-                temp_path = os.path.join(plugins_dir, f".temp_{plugin_id}.plugin")
-                with open(temp_path, "wb") as f:
-                    f.write(r.content)
-
-                def open_dialog():
-                    try:
-                        PluginsController.getInstance().showInstallDialog(fragment, temp_path, True)
-                    except Exception as e:
-                        BulletinHelper.show_error(f"Failed to open install dialog: {e}")
-
-                run_on_ui_thread(open_dialog)
-            except Exception as e:
-                log(f"InstallUI: error while downloading plugin '{plugin_id}' from '{url}': {e}")
-                run_on_ui_thread(lambda: BulletinHelper.show_error("An error occurred while downloading"))
-
-        run_on_queue(task)
-
     class PluginListFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
-        
-        class Callback2(dynamic_proxy(Utilities.Callback2)):
-            def __init__(self, fn):
-                super().__init__()
-                self.fn = fn
-            
-            def run(self, *args):
-                self.fn(*args)
-    
-        class Callback5(dynamic_proxy(Utilities.Callback5)):
-            def __init__(self, fn):
-                super().__init__()
-                self.fn = fn
-            
-            def run(self, *args):
-                self.fn(*args)
-        
-        class Callback5Return(dynamic_proxy(Utilities.Callback5Return)):
-            def __init__(self, fn):
-                super().__init__()
-                self.fn = fn
-            
-            def run(self, *args):
-                return self.fn(*args)
-        
-        class PluginCellDelegate(dynamic_proxy(PluginCellDelegate)):
-            def __init__(self, plugin_info, outer: "InstallUI.PluginListFragment"):
-                super().__init__()
-                self.plugin_info = plugin_info
-                self.outer = outer
-                
-            def canOpenInExternalApp(self):
-                return False
-        
         def __init__(self, install_ui, title, plugins):
             super().__init__()
             self.install_ui = install_ui
             self.title = title
             self.plugins = plugins
-            self.search_query = None
             self.last_search_query = None
-            self.adapter = None
-            self.fill_id = 0
             self.filtered_plugins = []
             self.visible_plugins = []
             self.lazy_load_queue = deque()
@@ -839,10 +400,10 @@ class InstallUI:
             self.scroll_listener = None
             self.current_sort_type = "repo_order"
             self.batch_size = 10
-        
+
         def onFragmentCreate(self):
             pass
-        
+
         def onFragmentDestroy(self):
             try:
                 if hasattr(self, 'search_hooks'):
@@ -850,8 +411,8 @@ class InstallUI:
                         self.install_ui.plugin.unhook_method(hook)
             except Exception:
                 pass
-        
-        def beforeCreateView(self):        
+
+        def beforeCreateView(self):
             act = get_last_fragment().getContext()
             colors = self.install_ui._get_theme_colors()
             self.main_bg_color = colors["main_bg_color"]
@@ -875,7 +436,6 @@ class InstallUI:
             pill = GradientDrawable()
             pill.setShape(GradientDrawable.RECTANGLE)
             pill.setCornerRadius(AndroidUtilities.dp(50))
-            
             colored_border = settings.get("colored_search_border", False)
             if not colored_border:
                 try:
@@ -883,8 +443,7 @@ class InstallUI:
                     pill.setStroke(AndroidUtilities.dp(2), base_color)
                 except Exception:
                     try:
-                        base_color = Theme.getColor(Theme.key_dialogTextBlue)
-                        pill.setStroke(AndroidUtilities.dp(2), base_color)
+                        pill.setStroke(AndroidUtilities.dp(2), Theme.getColor(Theme.key_dialogTextBlue))
                     except Exception:
                         pass
             else:
@@ -892,7 +451,6 @@ class InstallUI:
                     pill.setStroke(self.search_stroke_width, self.search_border_color)
                 except Exception:
                     pass
-            
             try:
                 pill.setColor(self.card_bg_color)
             except Exception:
@@ -920,6 +478,10 @@ class InstallUI:
             self.search.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
             self.search.setSingleLine(True)
             self.search.setInputType(InputType.TYPE_CLASS_TEXT)
+            try:
+                self.search.setImeOptions(EditorInfo.IME_ACTION_SEARCH)
+            except Exception:
+                pass
             self.search.setBackgroundColor(0)
             self.search.setTextColor(self.text_color)
             try:
@@ -931,10 +493,7 @@ class InstallUI:
             except Exception:
                 pass
             try:
-                pad_left = AndroidUtilities.dp(8)
-                pad_right = AndroidUtilities.dp(50)
-                pad_top_bottom = AndroidUtilities.dp(8)
-                self.search.setPadding(pad_left, pad_top_bottom, pad_right, pad_top_bottom)
+                self.search.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(50), AndroidUtilities.dp(8))
             except Exception:
                 pass
 
@@ -947,8 +506,33 @@ class InstallUI:
                     imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
                 except Exception:
                     pass
-            
             clear_icon.setOnClickListener(OnClickListener(on_clear_click))
+
+            def perform_search():
+                try:
+                    query = self.search.getText().toString()
+                    if query != self.last_search_query:
+                        self.last_search_query = query
+                        self.build_list(query)
+                    imm = act.getSystemService("input_method")
+                    imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
+                except Exception:
+                    pass
+
+            try:
+                EditActionListener = find_class("android.widget.TextView$OnEditorActionListener")
+                class SearchEditorActionListener(dynamic_proxy(EditActionListener)):
+                    def __init__(self, outer):
+                        super().__init__()
+                        self.outer = outer
+                    def onEditorAction(self, v, actionId, event):
+                        if actionId == EditorInfo.IME_ACTION_SEARCH or actionId == EditorInfo.IME_ACTION_DONE or actionId == 6 or actionId == 3:
+                            perform_search()
+                            return True
+                        return False
+                self.search.setOnEditorActionListener(SearchEditorActionListener(self))
+            except Exception as ex:
+                log(f"InstallUI: setOnEditorActionListener failed: {ex}")
 
             class SearchTextWatcherWithClear(dynamic_proxy(TextWatcher)):
                 def __init__(self, outer, clear_icon_ref):
@@ -956,11 +540,9 @@ class InstallUI:
                     self.outer = outer
                     self.clear_icon = clear_icon_ref
                     self.hide_clear_button = settings.get("hide_search_clear_button", False)
-                
                 def afterTextChanged(self, s):
                     if self.hide_clear_button:
                         return
-                    
                     text = s.toString()
                     if text and len(text) > 0:
                         self.clear_icon.setVisibility(View.VISIBLE)
@@ -970,13 +552,12 @@ class InstallUI:
                             pass
                     else:
                         try:
-                            self.clear_icon.animate().alpha(0.0).setDuration(200).withEndAction(lambda: self.clear_icon.setVisibility(View.GONE)).start()
+                            self.clear_icon.animate().alpha(0.0).setDuration(200).withEndAction(
+                                lambda: self.clear_icon.setVisibility(View.GONE)).start()
                         except Exception:
                             self.clear_icon.setVisibility(View.GONE)
-                
                 def beforeTextChanged(self, s, start, count, after):
                     pass
-                
                 def onTextChanged(self, s, start, before, count):
                     pass
 
@@ -994,12 +575,9 @@ class InstallUI:
                 base_color = Theme.getColor(Theme.key_dialogTextBlue)
                 pressed_color = base_color
             search_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                AndroidUtilities.dp(25),
-                base_color,
-                pressed_color
+                AndroidUtilities.dp(25), base_color, pressed_color
             ))
             search_btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
-            
             search_btn_icon = ImageView(act)
             search_btn_icon_id = self.install_ui._resolve_icon("ic_ab_search")
             search_btn_icon.setImageResource(search_btn_icon_id)
@@ -1009,19 +587,7 @@ class InstallUI:
                 pass
             search_btn_icon.setScaleType(ImageView.ScaleType.CENTER)
             search_btn.addView(search_btn_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
-            
-            def on_search_click(v):
-                try:
-                    query = self.search.getText().toString()
-                    if query != self.last_search_query:
-                        self.last_search_query = query
-                        self.build_list(query)
-                    imm = act.getSystemService("input_method")
-                    imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
-                except Exception:
-                    pass
-            
-            search_btn.setOnClickListener(OnClickListener(on_search_click))
+            search_btn.setOnClickListener(OnClickListener(lambda v: perform_search()))
             self.install_ui._apply_press_scale(search_btn)
             search_row.addView(search_btn, LinearLayout.LayoutParams(AndroidUtilities.dp(52), AndroidUtilities.dp(42), 0))
             search_container.addView(search_row, FrameLayout.LayoutParams(-1, -2))
@@ -1036,7 +602,6 @@ class InstallUI:
             header_lp.topMargin = AndroidUtilities.dp(4)
             header_lp.bottomMargin = AndroidUtilities.dp(12)
             main_layout.addView(header_row, header_lp)
-            
             subtitle = TextView(act)
             subtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
             subtitle.setText(f"Total plugins: {len(self.plugins)}")
@@ -1046,9 +611,7 @@ class InstallUI:
             subtitle.setFocusable(False)
             try:
                 subtitle.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                    AndroidUtilities.dp(50),
-                    self.card_bg_color,
-                    self.card_pressed_color
+                    AndroidUtilities.dp(50), self.card_bg_color, self.card_pressed_color
                 ))
             except Exception:
                 try:
@@ -1062,14 +625,12 @@ class InstallUI:
             header_row.addView(subtitle, LayoutHelper.createLinear(-2, -2))
             spacer = View(act)
             header_row.addView(spacer, LayoutHelper.createLinear(0, 0, 1.0))
-            
+
             sort_btn = FrameLayout(act)
             sort_btn.setClickable(True)
             sort_btn.setFocusable(True)
             sort_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                AndroidUtilities.dp(16),
-                self.card_bg_color,
-                self.card_pressed_color
+                AndroidUtilities.dp(16), self.card_bg_color, self.card_pressed_color
             ))
             sort_btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
             sort_icon = ImageView(act)
@@ -1080,194 +641,15 @@ class InstallUI:
             except Exception:
                 pass
             sort_btn.addView(sort_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
-
-            def show_sort_menu():
-                try:
-                    sort_sheet = BottomSheet(act, False, get_last_fragment().getResourceProvider())
-                    sort_sheet.setApplyBottomPadding(False)
-                    sort_sheet.setApplyTopPadding(False)
-                    sort_root = LinearLayout(act)
-                    sort_root.setOrientation(LinearLayout.VERTICAL)
-                    sort_root.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(16), AndroidUtilities.dp(20), AndroidUtilities.dp(8))
+            def show_sort_menu_handler():
+                def on_sort_selected(sort_type):
                     try:
-                        sort_root.setBackground(self.install_ui._create_rounded_bg(Theme.getColor(Theme.key_dialogBackground)))
+                        current_q = self.search.getText().toString() if self.search else (self.last_search_query or "")
                     except Exception:
-                        try:
-                            sort_root.setBackgroundColor(Theme.getColor(Theme.key_dialogBackground))
-                        except Exception:
-                            pass
-                    
-                    sort_title = TextView(act)
-                    sort_title.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
-                    sort_title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20)
-                    try:
-                        sort_title.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
-                    except Exception:
-                        sort_title.setTypeface(AndroidUtilities.bold())
-                    sort_title.setText("Sort Plugins")
-                    sort_title.setGravity(Gravity.CENTER)
-                    sort_root.addView(sort_title, LayoutHelper.createFrame(-1, -2, Gravity.TOP, 0, 16, 0, 16))
-                    
-                    def resolve_icon(name):
-                        return self.install_ui._resolve_icon(name)
-                    
-                    def create_sort_option(text, sort_type):
-                        option = LinearLayout(act)
-                        option.setOrientation(LinearLayout.HORIZONTAL)
-                        option.setGravity(Gravity.CENTER_VERTICAL)
-                        option.setClickable(True)
-                        option.setFocusable(True)
-                        option.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12))
-                        is_current = (sort_type == self.current_sort_type)
-                        use_classic_design = settings.get("old_sort_menu_design", False)
-                        
-                        try:
-                            if is_current and use_classic_design:
-                                option.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                                    AndroidUtilities.dp(8),
-                                    Theme.getColor(Theme.key_featuredStickers_addButton),
-                                    Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
-                                ))
-                            else:
-                                option.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                                    AndroidUtilities.dp(8),
-                                    Theme.getColor(Theme.key_dialogBackground),
-                                    Theme.getColor(Theme.key_dialogBackgroundGray)
-                                ))
-                        except Exception:
-                            try:
-                                option.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector)))
-                            except Exception:
-                                pass
-                        
-                        option_text = TextView(act)
-                        option_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
-                        option_text.setText(text)
-                        if is_current and use_classic_design:
-                            option_text.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
-                        elif is_current and not use_classic_design:
-                            option_text.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton))
-                        else:
-                            option_text.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
-                        option_layout = LinearLayout(act)
-                        option_layout.setOrientation(LinearLayout.HORIZONTAL)
-                        option_layout.setGravity(Gravity.CENTER_VERTICAL)
-                        if is_current and not use_classic_design:
-                            check_circle = FrameLayout(act)
-                            check_circle_size = AndroidUtilities.dp(20)
-                            check_circle_params = LinearLayout.LayoutParams(check_circle_size, check_circle_size)
-                            check_circle_params.rightMargin = AndroidUtilities.dp(12)
-                            circle_bg = GradientDrawable()
-                            circle_bg.setShape(GradientDrawable.OVAL)
-                            circle_bg.setColor(Theme.getColor(Theme.key_featuredStickers_addButton))
-                            circle_bg.setStroke(AndroidUtilities.dp(1), Color.WHITE)
-                            check_circle.setBackground(circle_bg)
-                            dot = View(act)
-                            dot_size = AndroidUtilities.dp(8)
-                            dot_bg = GradientDrawable()
-                            dot_bg.setShape(GradientDrawable.OVAL)
-                            dot_bg.setColor(Color.WHITE)
-                            dot.setBackground(dot_bg)
-                            check_circle.addView(dot, FrameLayout.LayoutParams(dot_size, dot_size, Gravity.CENTER))
-                            option_layout.addView(check_circle, check_circle_params)
-                        elif not use_classic_design:
-                            empty_space = View(act)
-                            empty_space_params = LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
-                            empty_space_params.rightMargin = AndroidUtilities.dp(12)
-                            option_layout.addView(empty_space, empty_space_params)
-                        
-                        icon = ImageView(act)
-                        icon_id = None
-                        if "A-Z" in text:
-                            icon_id = resolve_icon("msg_archive")
-                        elif "Z-A" in text:
-                            icon_id = resolve_icon("msg_unarchive")
-                        elif "Authors" in text:
-                            icon_id = resolve_icon("msg_online")
-                        elif "Repository" in text:
-                            icon_id = resolve_icon("menu_album_add")
-                            
-                        if icon_id:
-                            icon.setImageResource(icon_id)
-                            try:
-                                if is_current and not use_classic_design:
-                                    icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_addButton))
-                                else:
-                                    icon.setColorFilter(Theme.getColor(Theme.key_dialogTextGray2))
-                            except Exception:
-                                pass
-                            icon_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
-                            icon_lp.rightMargin = AndroidUtilities.dp(16)
-                            option_layout.addView(icon, icon_lp)
-                        
-                        option_layout.addView(option_text, LayoutHelper.createLinear(-1, -2))
-                        option.addView(option_layout, LayoutHelper.createLinear(-1, -2))
-                        
-                        def on_option_click(v):
-                            try:
-                                sort_sheet.dismiss()
-                                self.build_list_with_sort(sort_type)
-                            except Exception:
-                                pass
-                        
-                        option.setOnClickListener(OnClickListener(lambda v: on_option_click(v)))
-                        self.install_ui._apply_press_scale(option)
-                        return option
-                    
-                    sort_root.addView(create_sort_option("As in Repository", "repo_order"), LayoutHelper.createLinear(-1, -2, 0, 1, 0, 1))
-                    divider = View(act)
-                    divider.setBackgroundColor(Theme.getColor(Theme.key_divider))
-                    sort_root.addView(divider, LayoutHelper.createFrame(-1, 1, Gravity.TOP, 16, 4, 16, 4))
-                    sort_root.addView(create_sort_option("Alphabetically A-Z", "alpha_az"), LayoutHelper.createLinear(-1, -2, 0, 1, 0, 1))
-                    divider3 = View(act)
-                    divider3.setBackgroundColor(Theme.getColor(Theme.key_divider))
-                    sort_root.addView(divider3, LayoutHelper.createFrame(-1, 1, Gravity.TOP, 16, 4, 16, 4))
-                    sort_root.addView(create_sort_option("Alphabetically Z-A", "alpha_za"), LayoutHelper.createLinear(-1, -2, 0, 1, 0, 1))
-                    divider2 = View(act)
-                    divider2.setBackgroundColor(Theme.getColor(Theme.key_divider))
-                    sort_root.addView(divider2, LayoutHelper.createFrame(-1, 1, Gravity.TOP, 16, 4, 16, 4))
-                    sort_root.addView(create_sort_option("By Authors", "authors"), LayoutHelper.createLinear(-1, -2, 0, 1, 0, 1))
-                    close_btn = FrameLayout(act)
-                    try:
-                        base_color = Theme.getColor(Theme.key_featuredStickers_addButton)
-                    except Exception:
-                        base_color = Theme.getColor(Theme.key_dialogTextBlue)
-                    try:
-                        pressed_color = Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
-                    except Exception:
-                        pressed_color = base_color
-                    close_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                        AndroidUtilities.dp(28),
-                        base_color,
-                        pressed_color
-                    ))
-                    close_btn.setPadding(0, AndroidUtilities.dp(14), 0, AndroidUtilities.dp(14))
-                    close_btn.setClickable(True)
-                    close_btn.setFocusable(True)
-                    close_text = TextView(act)
-                    close_text.setText("Close")
-                    close_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
-                    close_text.setTypeface(AndroidUtilities.bold())
-                    close_text.setGravity(Gravity.CENTER)
-                    close_text.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
-                    close_btn.addView(close_text, FrameLayout.LayoutParams(-1, -2))
-
-                    def on_close_sort(v):
-                        try:
-                            sort_sheet.dismiss()
-                        except Exception:
-                            pass
-
-                    close_btn.setOnClickListener(OnClickListener(lambda v: on_close_sort(v)))
-                    self.install_ui._apply_press_scale(close_btn)
-                    sort_root.addView(close_btn, LayoutHelper.createLinear(-1, -2, 0, 16, 0, 8))
-                    
-                    sort_sheet.setCustomView(sort_root)
-                    sort_sheet.show()
-                except Exception as e:
-                    log(f"InstallUI: sort menu error: {e}")
-            
-            sort_btn.setOnClickListener(OnClickListener(lambda v: show_sort_menu()))
+                        current_q = self.last_search_query or ""
+                    self.build_list_with_sort(sort_type, current_q)
+                show_sort_menu(self.install_ui, act, self.current_sort_type, on_sort_selected)
+            sort_btn.setOnClickListener(OnClickListener(lambda v: show_sort_menu_handler()))
             self.install_ui._apply_press_scale(sort_btn)
             header_row.addView(sort_btn, LayoutHelper.createLinear(-2, -2))
 
@@ -1278,20 +660,18 @@ class InstallUI:
                 scroll.setNestedScrollingEnabled(True)
             except Exception:
                 pass
-            
+
             class ScrollListener(dynamic_proxy(View.OnScrollChangeListener)):
                 def __init__(self, outer):
                     super().__init__()
                     self.outer = outer
                     self.last_scroll_y = 0
                     self.scroll_threshold = AndroidUtilities.dp(50)
-                
                 def onScrollChange(self, v, scrollX, scrollY, oldScrollX, oldScrollY):
                     try:
                         if not self.outer.is_loading and len(self.outer.visible_plugins) < len(self.outer.filtered_plugins):
                             height = v.getHeight()
                             content_height = v.getChildAt(0).getHeight()
-                            
                             scroll_delta = abs(scrollY - self.last_scroll_y)
                             if scroll_delta > self.scroll_threshold:
                                 if scrollY + height >= content_height - AndroidUtilities.dp(300):
@@ -1299,12 +679,10 @@ class InstallUI:
                                 self.last_scroll_y = scrollY
                     except Exception:
                         pass
-            
             try:
                 scroll.setOnScrollChangeListener(ScrollListener(self))
             except Exception:
                 pass
-            
             self.results_container = LinearLayout(act)
             self.results_container.setOrientation(LinearLayout.VERTICAL)
             self.results_container.setPadding(0, 0, 0, AndroidUtilities.dp(10))
@@ -1314,72 +692,105 @@ class InstallUI:
             self.search.addTextChangedListener(SearchTextWatcherWithClear(self, clear_icon))
             self.build_list_with_sort("repo_order")
             return self.content_view
-        
+
         def getTitle(self):
             return self.title
-        
+
         def onBackPressed(self):
             try:
                 get_last_fragment().finishFragment()
             except Exception:
                 pass
             return True
-        
+
+        def _get_localized_description(self, plugin):
+            about = plugin.get("about", [])
+            if isinstance(about, list) and len(about) >= 2:
+                try:
+                    from java.util import Locale
+                    current_lang = Locale.getDefault().getLanguage()
+                    if current_lang == "ru":
+                        return about[1] if len(about) > 1 else about[0]
+                    else:
+                        return about[0]
+                except Exception:
+                    return about[0]
+            return str(plugin.get("description") or "")
+
         def score(self, p, q):
             if not q:
                 return (0, 0)
             ql = q.lower()
             pid = str(p.get("id") or "").lower()
             name = str(p.get("name") or "").lower()
-            desc = str(p.get("description") or "").lower()
             author = str(p.get("author") or "").lower()
-            if ql in pid:
-                return (0, 0 if pid.startswith(ql) else 1)
+            about = p.get("about", [])
+            desc_en = ""
+            desc_ru = ""
+            if isinstance(about, list) and len(about) > 0:
+                desc_en = str(about[0]).lower()
+                if len(about) > 1:
+                    desc_ru = str(about[1]).lower()
+            else:
+                desc_en = str(p.get("description") or "").lower()
+                desc_ru = desc_en
+            try:
+                from java.util import Locale
+                is_russian = Locale.getDefault().getLanguage() == "ru"
+            except Exception:
+                is_russian = False
+
             if ql in name:
                 return (1, 0 if name.startswith(ql) else 1)
+
+            if is_russian and ql in desc_ru:
+                return (2, 0 if desc_ru.startswith(ql) else 1)
+            elif not is_russian and ql in desc_en:
+                return (2, 0 if desc_en.startswith(ql) else 1)
+
+            if is_russian and ql in desc_en:
+                return (3, 0 if desc_en.startswith(ql) else 1)
+            elif not is_russian and ql in desc_ru:
+                return (3, 0 if desc_ru.startswith(ql) else 1)
+
+            if ql in pid:
+                return (4, 0 if pid.startswith(ql) else 1)
+
             if ql in author:
-                return (1.5, 0 if author.startswith(ql) else 1)
-            if ql in desc:
-                return (2, 0)
-            return (3, 0)
-        
-        def build_list_with_sort(self, sort_type: str, q: str | None = None):
+                return (5, 0 if author.startswith(ql) else 1)
+            
+            return (6, 0)
+
+        def build_list_with_sort(self, sort_type: str, q=None):
+            start_time = time()
             self.current_sort_type = sort_type
             q = (q or "").strip()
             if q != self.last_search_query:
                 self.last_search_query = q
-            
-            start_time = time()
-            
             self.is_loading = True
             self.results_container.removeAllViews()
             self.visible_plugins = []
             self.lazy_load_queue.clear()
-            
             filtered = []
             if not q:
                 filtered = list(self.plugins)
             else:
                 for p in self.plugins:
-                    if self.score(p, q)[0] < 3:
+                    if self.score(p, q)[0] < 6:
                         filtered.append(p)
                 filtered.sort(key=lambda p: self.score(p, q))
-
             if sort_type == "alpha_az":
                 filtered.sort(key=lambda p: str(p.get("name") or p.get("id") or "").lower())
             elif sort_type == "alpha_za":
                 filtered.sort(key=lambda p: str(p.get("name") or p.get("id") or "").lower(), reverse=True)
             elif sort_type == "authors":
                 filtered.sort(key=lambda p: str(p.get("author") or "").lower())
-            
             self.filtered_plugins = filtered
-            
+            fragment = get_last_fragment()
+            act = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
+            if not act:
+                act = fragment.getContext() if fragment else None
             if not filtered:
-                fragment = get_last_fragment()
-                act = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
-                if not act:
-                    act = fragment.getContext() if fragment else None
-                
                 empty_container = LinearLayout(act)
                 empty_container.setOrientation(LinearLayout.VERTICAL)
                 empty_container.setGravity(Gravity.CENTER)
@@ -1404,16 +815,32 @@ class InstallUI:
                 self.is_loading = False
             else:
                 self._load_initial_batch()
-            
             log(f"Build list took {time() - start_time:.3f}s")
 
-        def build_list(self, q: str | None):
+        def build_list(self, q):
             self.build_list_with_sort(self.current_sort_type, q)
-        
+
+        def _add_items_with_animation(self, items_to_add):
+            try:
+                for idx, item in enumerate(items_to_add):
+                    self.results_container.addView(item, LayoutHelper.createLinear(-1, -2, 0, 4, 0, 4))
+                    try:
+                        item.setAlpha(0.0)
+                        item.setScaleX(0.92)
+                        item.setScaleY(0.92)
+                        delay = idx * 35
+                        item.animate().alpha(1.0).scaleX(1.0).scaleY(1.0).setDuration(220).setStartDelay(delay).start()
+                    except Exception:
+                        pass
+                self.is_loading = False
+            except Exception as e:
+                log(f"Error adding items: {e}")
+                self.is_loading = False
+
         def _load_initial_batch(self):
             self.is_loading = True
             batch_size = min(self.batch_size, len(self.filtered_plugins))
-            
+
             def load_batch():
                 try:
                     items_to_add = []
@@ -1423,32 +850,20 @@ class InstallUI:
                             self.visible_plugins.append(plugin)
                             item = self.make_item(plugin)
                             items_to_add.append(item)
-                    
-                    def add_items():
-                        try:
-                            for item in items_to_add:
-                                self.results_container.addView(item, LayoutHelper.createLinear(-1, -2, 0, 4, 0, 4))
-                            self.is_loading = False
-                        except Exception as e:
-                            log(f"Error adding items: {e}")
-                            self.is_loading = False
-                    
-                    run_on_ui_thread(add_items)
-                    
+
+                    run_on_ui_thread(lambda: self._add_items_with_animation(items_to_add))
                 except Exception as e:
                     log(f"Error in initial batch loading: {e}")
                     self.is_loading = False
-            
             threading.Thread(target=load_batch, daemon=True).start()
-        
+
         def _load_more_items(self):
             if self.is_loading or len(self.visible_plugins) >= len(self.filtered_plugins):
                 return
-            
             self.is_loading = True
             start_index = len(self.visible_plugins)
             batch_size = min(self.batch_size, len(self.filtered_plugins) - start_index)
-            
+
             def load_batch():
                 try:
                     items_to_add = []
@@ -1459,26 +874,16 @@ class InstallUI:
                             self.visible_plugins.append(plugin)
                             item = self.make_item(plugin)
                             items_to_add.append(item)
-                    
-                    def add_items():
-                        try:
-                            for item in items_to_add:
-                                self.results_container.addView(item, LayoutHelper.createLinear(-1, -2, 0, 4, 0, 4))
-                            self.is_loading = False
-                        except Exception as e:
-                            log(f"Error adding more items: {e}")
-                            self.is_loading = False
-                    
-                    run_on_ui_thread(add_items)
-                    
+
+                    run_on_ui_thread(lambda: self._add_items_with_animation(items_to_add))
                 except Exception as e:
                     log(f"Error in batch loading: {e}")
                     self.is_loading = False
-            
             threading.Thread(target=load_batch, daemon=True).start()
 
         def make_item(self, p):
             act = get_last_fragment().getContext()
+            fragment = get_last_fragment()
             row = FrameLayout(act)
             container = LinearLayout(act)
             container.setOrientation(LinearLayout.VERTICAL)
@@ -1486,16 +891,13 @@ class InstallUI:
             container.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12))
             try:
                 container.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                    AndroidUtilities.dp(18),
-                    self.card_bg_color,
-                    self.card_pressed_color
+                    AndroidUtilities.dp(18), self.card_bg_color, self.card_pressed_color
                 ))
             except Exception:
                 try:
                     container.setBackgroundColor(self.card_bg_color)
                 except Exception:
                     pass
-
             icon_str = p.get("icon")
             if not icon_str or icon_str == "Unknown":
                 icon_str = "Plugins_Stickers/0"
@@ -1535,18 +937,13 @@ class InstallUI:
                                     ss = mdc.getStickerSetByEmojiOrName(pack_name)
                                 except Exception:
                                     ss = None
-
                             if ss and getattr(ss, 'documents', None) and ss.documents.size() > sticker_index:
                                 doc = ss.documents.get(sticker_index)
                                 icon_view.setImage(
                                     ImageLocation.getForDocument(doc),
                                     f"{icon_size_dp}_{icon_size_dp}",
-                                    None,
-                                    None,
-                                    0,
-                                    1
+                                    None, None, 0, 1
                                 )
-
                                 try:
                                     fade_in = ObjectAnimator.ofFloat(icon_view, "alpha", 0.0, 1.0)
                                     fade_in.setDuration(300)
@@ -1558,7 +955,6 @@ class InstallUI:
                         except Exception as e:
                             log(f"InstallUI: failed to load icon for '{p.get('id')}' ({icon_str}): {e}")
                             return False
-
                     if not try_load_icon():
                         try:
                             pack_name = str(icon_str).split("/", 1)[0]
@@ -1595,7 +991,7 @@ class InstallUI:
                 pass
             desc_tv = TextView(act)
             desc_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
-            desc_tv.setText(str(p.get("description") or ""))
+            desc_tv.setText(self._get_localized_description(p))
             try:
                 desc_tv.setTextColor(self.secondary_text_color)
             except Exception:
@@ -1628,11 +1024,7 @@ class InstallUI:
             install_text.setTypeface(AndroidUtilities.bold())
             install_text.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
             install_btn.addView(install_text)
-
-            def on_install(_=None):
-                self.install_ui._install_via_system_dialog(p)
-                
-            install_btn.setOnClickListener(OnClickListener(lambda v: on_install(v)))
+            install_btn.setOnClickListener(OnClickListener(lambda v: install_plugin(p)))
             self.install_ui._apply_press_scale(install_btn)
             buttons.addView(install_btn, LayoutHelper.createLinear(-2, -2, 0, 0, 8, 0))
             spacer = View(act)
@@ -1652,77 +1044,9 @@ class InstallUI:
                 self.install_ui._apply_press_scale(pill)
                 return pill
 
-            def open_system_share():
-                try:
-                    plugin_id = p.get("id")
-                    if not plugin_id:
-                        BulletinHelper.show_error("Plugin has no id")
-                        return
-                    link = p.get("link") or p.get("raw")
-                    if not link:
-                        BulletinHelper.show_error("Plugin has no download link")
-                        return
-                    temp_dir = tempfile.gettempdir()
-                    temp_path = os.path.join(temp_dir, f"{plugin_id}.plugin")
-                    try:
-                        r = requests.get(link, timeout=30)
-                        if r.status_code != 200:
-                            BulletinHelper.show_error("Failed to download plugin for sharing")
-                            return
-                        with open(temp_path, "wb") as f:
-                            f.write(r.content)
-                        file_obj = File(temp_path)
-                        fragment = get_last_fragment()
-                        act = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
-                        if act:
-                            if Build.VERSION.SDK_INT >= 24:
-                                try:
-                                    uri = FileProvider.getUriForFile(act, act.getPackageName() + ".fileprovider", file_obj)
-                                    act.grantUriPermission("", uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                except Exception:
-                                    try:
-                                        if Build.VERSION.SDK_INT >= 24:
-                                            uri = Uri.parse("content://" + act.getPackageName() + ".fileprovider/" + file_obj.getName())
-                                        else:
-                                            uri = Uri.fromFile(file_obj)
-                                    except Exception:
-                                        uri = Uri.fromFile(file_obj)
-                            else:
-                                uri = Uri.fromFile(file_obj)
-                            intent = Intent(Intent.ACTION_SEND)
-                            intent.setType("application/octet-stream")
-                            intent.putExtra(Intent.EXTRA_STREAM, uri)
-                            intent.putExtra(Intent.EXTRA_SUBJECT, f"{display_name} Plugin")
-                            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            chooser = Intent.createChooser(intent, "Share Plugin")
-                            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            act.startActivity(chooser)
-                            BulletinHelper.show_info("Plugin shared successfully")
-                    except Exception as e:
-                        log(f"InstallUI: failed to prepare file for sharing: {e}")
-                        BulletinHelper.show_error("Failed to prepare file for sharing")
-                except Exception as e:
-                    log(f"InstallUI: failed to open share: {e}")
-                    BulletinHelper.show_error("Failed to share")
-
-            def copy_share_link():
-                try:
-                    plugin_id = p.get("id")
-                    if not plugin_id:
-                        BulletinHelper.show_error("Plugin has no id")
-                        return
-                    share_link = f"tg://packit?install={self.title}&{plugin_id}"
-                    AndroidUtilities.addToClipboard(share_link)
-                    try:
-                        BulletinHelper.show_copied_to_clipboard()
-                    except Exception:
-                        BulletinHelper.show_info("Copied")
-                except Exception as e:
-                    log(f"InstallUI: failed to copy link: {e}")
-
-            copy_btn = create_icon_pill("msg_link2", copy_share_link)
-            share_btn = create_icon_pill("msg_forward", open_system_share)
+            act_for_share = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
+            copy_btn = create_icon_pill("msg_link2", lambda: copy_share_link(p, self.title))
+            share_btn = create_icon_pill("msg_forward", lambda: share_plugin_file(p, str(display_name), act_for_share))
             buttons.addView(copy_btn, LayoutHelper.createLinear(-2, -2, 0, 0, 4, 0))
             buttons.addView(share_btn, LayoutHelper.createLinear(-2, -2))
             container.addView(buttons, LayoutHelper.createLinear(-1, -2))
