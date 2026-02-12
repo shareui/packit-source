@@ -1,5 +1,5 @@
 from ui.settings import Header, Input, Divider, Switch, Text
-from elyx import strings
+from elyx import strings, settings
 from client_utils import get_last_fragment
 from ui.bulletin import BulletinHelper
 from ui.alert import AlertDialogBuilder
@@ -151,20 +151,17 @@ class RepositoriesSettings:
             except Exception as e:
                 log(f"{e}")
         
-        settingsList = [
-            Header(text=strings.repositories),
-            Text(
-                text=strings.add_repository,
-                icon="msg_add",
-                accent=True,
-                on_click=add_new_repository,
-                link_alias="new_repo"
-            ),
-            Divider(),
+        isActionsCollapsed = settings.get("actions_collapsed", True)
+        actionsCollapseIcon = "msg_go_up" if not isActionsCollapsed else "arrow_more_solar"
+
+        def toggle_actions_collapsed(view):
+            current = settings.get("actions_collapsed", True)
+            settings.set("actions_collapsed", not current, reload_settings=True)
+
+        actionItems = [
             Text(
                 text=strings.restore_default_repository,
                 icon="msg_reset",
-                accent=True,
                 on_click=restore_default_repository,
                 link_alias="restore_repo"
             ),
@@ -182,6 +179,24 @@ class RepositoriesSettings:
                 on_click=reset_repositories,
                 link_alias="reset_repo"
             ),
+        ]
+
+        settingsList = [
+            Header(text=strings.repositories),
+            Text(
+                text=strings.add_repository,
+                icon="msg_add",
+                accent=True,
+                on_click=add_new_repository,
+                link_alias="new_repo"
+            ),
+            Text(
+                text=strings.additional_actions,
+                icon=actionsCollapseIcon,
+                accent=True,
+                on_click=toggle_actions_collapsed,
+            ),
+            *(actionItems if not isActionsCollapsed else []),
             Divider()
         ]
         
