@@ -7,6 +7,7 @@ from android.view import View, MotionEvent, Gravity
 from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView
 from android.util import TypedValue
 from android.text import TextWatcher, InputType
+from android.view.inputmethod import EditorInfo
 from android.graphics.drawable import GradientDrawable
 from java import dynamic_proxy
 from hook_utils import find_class
@@ -20,8 +21,6 @@ from org.telegram.ui.Components import LayoutHelper, BackupImageView, EditTextBo
 from org.telegram.messenger import AndroidUtilities, MediaDataController, ImageLocation
 from android_utils import OnClickListener
 from com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment
-from com.exteragram.messenger.plugins.ui.components import PluginCellDelegate
-from org.telegram.messenger import Utilities
 
 from .loading import show_loading_sheet
 from .repo import show_repo_sheet
@@ -388,44 +387,12 @@ class InstallUI:
             log(f"Failed to show plugins universal: {e}")
 
     class PluginListFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
-        class Callback2(dynamic_proxy(Utilities.Callback2)):
-            def __init__(self, fn):
-                super().__init__()
-                self.fn = fn
-            def run(self, *args):
-                self.fn(*args)
-
-        class Callback5(dynamic_proxy(Utilities.Callback5)):
-            def __init__(self, fn):
-                super().__init__()
-                self.fn = fn
-            def run(self, *args):
-                self.fn(*args)
-
-        class Callback5Return(dynamic_proxy(Utilities.Callback5Return)):
-            def __init__(self, fn):
-                super().__init__()
-                self.fn = fn
-            def run(self, *args):
-                return self.fn(*args)
-
-        class PluginCellDelegate(dynamic_proxy(PluginCellDelegate)):
-            def __init__(self, plugin_info, outer):
-                super().__init__()
-                self.plugin_info = plugin_info
-                self.outer = outer
-            def canOpenInExternalApp(self):
-                return False
-
         def __init__(self, install_ui, title, plugins):
             super().__init__()
             self.install_ui = install_ui
             self.title = title
             self.plugins = plugins
-            self.search_query = None
             self.last_search_query = None
-            self.adapter = None
-            self.fill_id = 0
             self.filtered_plugins = []
             self.visible_plugins = []
             self.lazy_load_queue = deque()
@@ -511,6 +478,10 @@ class InstallUI:
             self.search.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
             self.search.setSingleLine(True)
             self.search.setInputType(InputType.TYPE_CLASS_TEXT)
+            try:
+                self.search.setImeOptions(EditorInfo.IME_ACTION_SEARCH)
+            except Exception:
+                pass
             self.search.setBackgroundColor(0)
             self.search.setTextColor(self.text_color)
             try:
@@ -536,6 +507,32 @@ class InstallUI:
                 except Exception:
                     pass
             clear_icon.setOnClickListener(OnClickListener(on_clear_click))
+
+            def perform_search():
+                try:
+                    query = self.search.getText().toString()
+                    if query != self.last_search_query:
+                        self.last_search_query = query
+                        self.build_list(query)
+                    imm = act.getSystemService("input_method")
+                    imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
+                except Exception:
+                    pass
+
+            try:
+                EditActionListener = find_class("android.widget.TextView$OnEditorActionListener")
+                class SearchEditorActionListener(dynamic_proxy(EditActionListener)):
+                    def __init__(self, outer):
+                        super().__init__()
+                        self.outer = outer
+                    def onEditorAction(self, v, actionId, event):
+                        if actionId == EditorInfo.IME_ACTION_SEARCH or actionId == EditorInfo.IME_ACTION_DONE or actionId == 6 or actionId == 3:
+                            perform_search()
+                            return True
+                        return False
+                self.search.setOnEditorActionListener(SearchEditorActionListener(self))
+            except Exception as ex:
+                log(f"InstallUI: setOnEditorActionListener failed: {ex}")
 
             class SearchTextWatcherWithClear(dynamic_proxy(TextWatcher)):
                 def __init__(self, outer, clear_icon_ref):
@@ -590,17 +587,7 @@ class InstallUI:
                 pass
             search_btn_icon.setScaleType(ImageView.ScaleType.CENTER)
             search_btn.addView(search_btn_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
-            def on_search_click(v):
-                try:
-                    query = self.search.getText().toString()
-                    if query != self.last_search_query:
-                        self.last_search_query = query
-                        self.build_list(query)
-                    imm = act.getSystemService("input_method")
-                    imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
-                except Exception:
-                    pass
-            search_btn.setOnClickListener(OnClickListener(on_search_click))
+            search_btn.setOnClickListener(OnClickListener(lambda v: perform_search()))
             self.install_ui._apply_press_scale(search_btn)
             search_row.addView(search_btn, LinearLayout.LayoutParams(AndroidUtilities.dp(52), AndroidUtilities.dp(42), 0))
             search_container.addView(search_row, FrameLayout.LayoutParams(-1, -2))
@@ -716,23 +703,63 @@ class InstallUI:
                 pass
             return True
 
+        def _get_localized_description(self, plugin):
+            about = plugin.get("about", [])
+            if isinstance(about, list) and len(about) >= 2:
+                try:
+                    from java.util import Locale
+                    current_lang = Locale.getDefault().getLanguage()
+                    if current_lang == "ru":
+                        return about[1] if len(about) > 1 else about[0]
+                    else:
+                        return about[0]
+                except Exception:
+                    return about[0]
+            return str(plugin.get("description") or "")
+
         def score(self, p, q):
             if not q:
                 return (0, 0)
             ql = q.lower()
             pid = str(p.get("id") or "").lower()
             name = str(p.get("name") or "").lower()
-            desc = str(p.get("description") or "").lower()
             author = str(p.get("author") or "").lower()
-            if ql in pid:
-                return (0, 0 if pid.startswith(ql) else 1)
+            about = p.get("about", [])
+            desc_en = ""
+            desc_ru = ""
+            if isinstance(about, list) and len(about) > 0:
+                desc_en = str(about[0]).lower()
+                if len(about) > 1:
+                    desc_ru = str(about[1]).lower()
+            else:
+                desc_en = str(p.get("description") or "").lower()
+                desc_ru = desc_en
+            try:
+                from java.util import Locale
+                is_russian = Locale.getDefault().getLanguage() == "ru"
+            except Exception:
+                is_russian = False
+
             if ql in name:
                 return (1, 0 if name.startswith(ql) else 1)
+
+            if is_russian and ql in desc_ru:
+                return (2, 0 if desc_ru.startswith(ql) else 1)
+            elif not is_russian and ql in desc_en:
+                return (2, 0 if desc_en.startswith(ql) else 1)
+
+            if is_russian and ql in desc_en:
+                return (3, 0 if desc_en.startswith(ql) else 1)
+            elif not is_russian and ql in desc_ru:
+                return (3, 0 if desc_ru.startswith(ql) else 1)
+
+            if ql in pid:
+                return (4, 0 if pid.startswith(ql) else 1)
+
             if ql in author:
-                return (1.5, 0 if author.startswith(ql) else 1)
-            if ql in desc:
-                return (2, 0)
-            return (3, 0)
+                return (5, 0 if author.startswith(ql) else 1)
+            
+            return (6, 0)
 
         def build_list_with_sort(self, sort_type: str, q=None):
             start_time = time()
@@ -749,7 +776,7 @@ class InstallUI:
                 filtered = list(self.plugins)
             else:
                 for p in self.plugins:
-                    if self.score(p, q)[0] < 3:
+                    if self.score(p, q)[0] < 6:
                         filtered.append(p)
                 filtered.sort(key=lambda p: self.score(p, q))
             if sort_type == "alpha_az":
@@ -793,6 +820,23 @@ class InstallUI:
         def build_list(self, q):
             self.build_list_with_sort(self.current_sort_type, q)
 
+        def _add_items_with_animation(self, items_to_add):
+            try:
+                for idx, item in enumerate(items_to_add):
+                    self.results_container.addView(item, LayoutHelper.createLinear(-1, -2, 0, 4, 0, 4))
+                    try:
+                        item.setAlpha(0.0)
+                        item.setScaleX(0.92)
+                        item.setScaleY(0.92)
+                        delay = idx * 35
+                        item.animate().alpha(1.0).scaleX(1.0).scaleY(1.0).setDuration(220).setStartDelay(delay).start()
+                    except Exception:
+                        pass
+                self.is_loading = False
+            except Exception as e:
+                log(f"Error adding items: {e}")
+                self.is_loading = False
+
         def _load_initial_batch(self):
             self.is_loading = True
             batch_size = min(self.batch_size, len(self.filtered_plugins))
@@ -807,15 +851,7 @@ class InstallUI:
                             item = self.make_item(plugin)
                             items_to_add.append(item)
 
-                    def add_items():
-                        try:
-                            for item in items_to_add:
-                                self.results_container.addView(item, LayoutHelper.createLinear(-1, -2, 0, 4, 0, 4))
-                            self.is_loading = False
-                        except Exception as e:
-                            log(f"Error adding items: {e}")
-                            self.is_loading = False
-                    run_on_ui_thread(add_items)
+                    run_on_ui_thread(lambda: self._add_items_with_animation(items_to_add))
                 except Exception as e:
                     log(f"Error in initial batch loading: {e}")
                     self.is_loading = False
@@ -839,15 +875,7 @@ class InstallUI:
                             item = self.make_item(plugin)
                             items_to_add.append(item)
 
-                    def add_items():
-                        try:
-                            for item in items_to_add:
-                                self.results_container.addView(item, LayoutHelper.createLinear(-1, -2, 0, 4, 0, 4))
-                            self.is_loading = False
-                        except Exception as e:
-                            log(f"Error adding more items: {e}")
-                            self.is_loading = False
-                    run_on_ui_thread(add_items)
+                    run_on_ui_thread(lambda: self._add_items_with_animation(items_to_add))
                 except Exception as e:
                     log(f"Error in batch loading: {e}")
                     self.is_loading = False
@@ -963,7 +991,7 @@ class InstallUI:
                 pass
             desc_tv = TextView(act)
             desc_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
-            desc_tv.setText(str(p.get("description") or ""))
+            desc_tv.setText(self._get_localized_description(p))
             try:
                 desc_tv.setTextColor(self.secondary_text_color)
             except Exception:
