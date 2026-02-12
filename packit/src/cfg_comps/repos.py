@@ -158,7 +158,55 @@ class RepositoriesSettings:
             current = settings.get("actions_collapsed", True)
             settings.set("actions_collapsed", not current, reload_settings=True)
 
+        def export_repositories(view):
+            repos = self.repoManager.getRepositories()
+            links = []
+            for repo in repos:
+                name = repo.get('name', '').strip()
+                url = repo.get('url', '').strip()
+                icon = repo.get('icon', '').strip()
+                if not url:
+                    continue
+                links.append(f"tg://packit?repo=add&name={name}&link={url}&icon={icon}")
+
+            if not links:
+                BulletinHelper.show_error(strings.no_repositories_to_export)
+                return
+
+            try:
+                from org.telegram.messenger import AndroidUtilities
+                if AndroidUtilities.addToClipboard("\n\n".join(links)):
+                    BulletinHelper.show_success(strings.repositories_exported)
+                else:
+                    log("Failed to copy repository export links")
+                    BulletinHelper.show_error(strings.failed_to_copy)
+            except Exception as e:
+                log(f"Export failed: {e}")
+                BulletinHelper.show_error(strings.failed_to_copy)
+
+        def toggle_all_repositories(view):
+            repos = self.repoManager.getRepositories()
+            anyEnabled = any(r.get('enabled', True) for r in repos)
+            for repo in repos:
+                repo['enabled'] = not anyEnabled
+            self.repoManager.setRepositories(repos)
+
+        anyEnabled = any(r.get('enabled', True) for r in repos)
+        toggleAllText = strings.disable_all_repositories if anyEnabled else strings.enable_all_repositories
+
         actionItems = [
+            Text(
+                text=strings.export_repositories,
+                icon="msg_share",
+                on_click=export_repositories,
+                link_alias="export_repos"
+            ),
+            Text(
+                text=toggleAllText,
+                icon="msg_customize",
+                on_click=toggle_all_repositories,
+                link_alias="toggle_all_repos"
+            ),
             Text(
                 text=strings.restore_default_repository,
                 icon="msg_reset",
@@ -194,7 +242,7 @@ class RepositoriesSettings:
                 text=strings.additional_actions,
                 icon=actionsCollapseIcon,
                 accent=True,
-                on_click=toggle_actions_collapsed,
+                on_click=toggle_actions_collapsed
             ),
             *(actionItems if not isActionsCollapsed else []),
             Divider()
