@@ -15,7 +15,7 @@ import requests
 from android_utils import log, run_on_ui_thread
 from client_utils import get_last_fragment, run_on_queue
 from ui.bulletin import BulletinHelper
-from elyx import settings
+from elyx import settings, strings
 from org.telegram.ui.ActionBar import Theme
 from org.telegram.ui.Components import LayoutHelper, BackupImageView, EditTextBoldCursor
 from org.telegram.messenger import AndroidUtilities, MediaDataController, ImageLocation
@@ -997,7 +997,13 @@ class InstallUI:
             buttons.addView(spacer, LayoutHelper.createLinear(0, 0, 1.0))
 
             def create_icon_pill(icon_name, handler):
-                pill = self.install_ui._create_pill(act, 0, 0, padding_h=8, padding_v=8)
+                pill = self.install_ui._create_pill(
+                    act,
+                    self.card_bg_color,
+                    self.card_pressed_color,
+                    padding_h=8,
+                    padding_v=8
+                )
                 icon = ImageView(act)
                 icon_id = self.install_ui._resolve_icon(icon_name)
                 icon.setImageResource(icon_id)
@@ -1011,7 +1017,11 @@ class InstallUI:
                 return pill
 
             act_for_share = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
-            copy_btn = create_icon_pill("msg_link2", lambda: copy_share_link(p, self.title))
+
+            def on_copy():
+                copy_share_link(p, self.title)
+
+            copy_btn = create_icon_pill("msg_link2", on_copy)
             share_btn = create_icon_pill("msg_forward", lambda: share_plugin_file(p, str(display_name), act_for_share))
             buttons.addView(copy_btn, LayoutHelper.createLinear(-2, -2, 0, 0, 4, 0))
             buttons.addView(share_btn, LayoutHelper.createLinear(-2, -2))
