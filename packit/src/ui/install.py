@@ -163,7 +163,7 @@ class InstallUI:
         from android.graphics import Color
         if is_dark_theme:
             return {
-                "main_bg_color": Color.parseColor("#000000"),
+                "main_bg_color": Theme.getColor(Theme.key_windowBackgroundGray),
                 "card_bg_color": Color.parseColor("#181818"),
                 "card_pressed_color": Color.parseColor("#3C3C3C"),
                 "text_color": Color.WHITE,
@@ -174,7 +174,7 @@ class InstallUI:
                 "search_stroke_width": AndroidUtilities.dp(2)
             }
         return {
-            "main_bg_color": Color.parseColor("#f0f0f0"),
+            "main_bg_color": Theme.getColor(Theme.key_windowBackgroundGray),
             "card_bg_color": Color.parseColor("#ffffff"),
             "card_pressed_color": Color.parseColor("#f5f5f5"),
             "text_color": Color.BLACK,
