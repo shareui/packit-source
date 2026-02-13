@@ -169,7 +169,7 @@ class InstallUI:
                 "text_color": Color.WHITE,
                 "secondary_text_color": Color.parseColor("#CCCCCC"),
                 "hint_text_color": Color.parseColor("#999999"),
-                "cursor_color": Color.parseColor("#4FC3F7"),
+                "cursor_color": Theme.getColor(Theme.key_chat_messagePanelCursor),
                 "search_border_color": Color.parseColor("#3C3C3C"),
                 "search_stroke_width": AndroidUtilities.dp(2)
             }
@@ -180,7 +180,7 @@ class InstallUI:
             "text_color": Color.BLACK,
             "secondary_text_color": Color.parseColor("#666666"),
             "hint_text_color": Color.parseColor("#999999"),
-            "cursor_color": Color.parseColor("#2196F3"),
+            "cursor_color": Theme.getColor(Theme.key_chat_messagePanelCursor),
             "search_border_color": Color.parseColor("#e0e0e0"),
             "search_stroke_width": 0
         }
