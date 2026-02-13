@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 TIME=$(date +"%Y%m%d_%H%M%S")
 OUTPUT_FILE="packit-${TIME}.eaf"
 
@@ -15,11 +17,6 @@ if [ ! -f "refmap.yml" ]; then
     exit 1
 fi
 
+rm -f packit-*.eaf packit-*.zip
 zip -r "builds/${OUTPUT_FILE}" packit refmap.yml
-
-if [ $? -eq 0 ]; then
-    echo "created: builds/${OUTPUT_FILE}"
-else
-    echo "error: zip failed"
-    exit 1
-fi
+echo "created: builds/${OUTPUT_FILE}"
