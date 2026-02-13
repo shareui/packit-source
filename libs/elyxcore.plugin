@@ -1,0 +1,14 @@
+from base_plugin import BasePlugin
+
+__id__ = "elyxcore"
+__name__ = "test elyxcore"
+__description__ = "test"
+__author__ = "@shareui"
+__version__ = "1.4.8.8"
+__icon__ = "unknown"
+__min_version__ = "12.0.1"
+
+class WeatherPlugin(BasePlugin):
+    def on_plugin_load(self):
+        self.log(f"{__name__} loaded")
+        
