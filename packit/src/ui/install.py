@@ -22,6 +22,7 @@ from org.telegram.messenger import AndroidUtilities, MediaDataController, ImageL
 from android_utils import OnClickListener
 from com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment
 from com.exteragram.messenger.utils.text import LocaleUtils
+from com.exteragram.messenger.utils.ui import CanvasUtils
 
 from .loading import show_loading_sheet
 from .repo import show_repo_sheet
@@ -857,8 +858,9 @@ class InstallUI:
             container.setGravity(Gravity.TOP)
             container.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12))
             try:
+                surface_color = CanvasUtils.INSTANCE.getAdaptedSurfaceColor()
                 container.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                    AndroidUtilities.dp(18), self.card_bg_color, self.card_pressed_color
+                    AndroidUtilities.dp(18), surface_color, surface_color
                 ))
             except Exception:
                 try:
@@ -1009,10 +1011,14 @@ class InstallUI:
             buttons.addView(spacer, LayoutHelper.createLinear(0, 0, 1.0))
 
             def create_icon_pill(icon_name, handler):
+                try:
+                    surface_color = CanvasUtils.INSTANCE.getAdaptedSurfaceColor()
+                except Exception:
+                    surface_color = self.card_bg_color
                 pill = self.install_ui._create_pill(
                     act,
-                    self.card_bg_color,
-                    self.card_pressed_color,
+                    surface_color,
+                    surface_color,
                     padding_h=8,
                     padding_v=8
                 )
