@@ -615,8 +615,9 @@ class InstallUI:
             subtitle.setClickable(False)
             subtitle.setFocusable(False)
             try:
+                surface_color = CanvasUtils.INSTANCE.getAdaptedSurfaceColor()
                 subtitle.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                    AndroidUtilities.dp(50), self.card_bg_color, self.card_pressed_color
+                    AndroidUtilities.dp(50), surface_color, surface_color
                 ))
             except Exception:
                 try:
@@ -624,7 +625,7 @@ class InstallUI:
                 except Exception:
                     pass
             try:
-                subtitle.setTextColor(self.secondary_text_color)
+                subtitle.setTextColor(self.text_color)
             except Exception:
                 pass
             header_row.addView(subtitle, LayoutHelper.createLinear(-2, -2))
@@ -634,15 +635,21 @@ class InstallUI:
             sort_btn = FrameLayout(act)
             sort_btn.setClickable(True)
             sort_btn.setFocusable(True)
-            sort_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                AndroidUtilities.dp(16), self.card_bg_color, self.card_pressed_color
-            ))
+            try:
+                surface_color = CanvasUtils.INSTANCE.getAdaptedSurfaceColor()
+                sort_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                    AndroidUtilities.dp(16), surface_color, surface_color
+                ))
+            except Exception:
+                sort_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                    AndroidUtilities.dp(16), self.card_bg_color, self.card_pressed_color
+                ))
             sort_btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
             sort_icon = ImageView(act)
             icon_id = self.install_ui._resolve_icon("msg_list")
             sort_icon.setImageResource(icon_id)
             try:
-                sort_icon.setColorFilter(self.secondary_text_color)
+                sort_icon.setColorFilter(self.text_color)
             except Exception:
                 pass
             sort_btn.addView(sort_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
@@ -1013,12 +1020,14 @@ class InstallUI:
             def create_icon_pill(icon_name, handler):
                 try:
                     surface_color = CanvasUtils.INSTANCE.getAdaptedSurfaceColor()
+                    pressed_color = surface_color
                 except Exception:
                     surface_color = self.card_bg_color
+                    pressed_color = self.card_pressed_color
                 pill = self.install_ui._create_pill(
                     act,
                     surface_color,
-                    surface_color,
+                    pressed_color,
                     padding_h=8,
                     padding_v=8
                 )
