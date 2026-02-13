@@ -25,6 +25,7 @@ from com.exteragram.messenger.plugins.ui.components.templates import UniversalFr
 from .loading import show_loading_sheet
 from .repo import show_repo_sheet
 from .sort import show_sort_menu
+from . import search as search_mod
 from ..other.copy import copy_share_link
 from ..other.share import share_plugin_file
 from ..core import install_plugin
@@ -230,6 +231,7 @@ class InstallUI:
                     try:
                         response = requests.get(repo_url, timeout=10)
                         if response.status_code != 200:
+                            log(f"repo '{repo.get('name')}': HTTP {response.status_code}, skipping")
                             continue
                         config = response.json()
                         plugins = config.get("plugins", {})
@@ -392,6 +394,7 @@ class InstallUI:
             self.install_ui = install_ui
             self.title = title
             self.plugins = plugins
+            self.search_index = search_mod.build_index(plugins)
             self.last_search_query = None
             self.filtered_plugins = []
             self.visible_plugins = []
@@ -717,50 +720,6 @@ class InstallUI:
                     return about[0]
             return str(plugin.get("description") or "")
 
-        def score(self, p, q):
-            if not q:
-                return (0, 0)
-            ql = q.lower()
-            pid = str(p.get("id") or "").lower()
-            name = str(p.get("name") or "").lower()
-            author = str(p.get("author") or "").lower()
-            about = p.get("about", [])
-            desc_en = ""
-            desc_ru = ""
-            if isinstance(about, list) and len(about) > 0:
-                desc_en = str(about[0]).lower()
-                if len(about) > 1:
-                    desc_ru = str(about[1]).lower()
-            else:
-                desc_en = str(p.get("description") or "").lower()
-                desc_ru = desc_en
-            try:
-                from java.util import Locale
-                is_russian = Locale.getDefault().getLanguage() == "ru"
-            except Exception:
-                is_russian = False
-
-            if ql in name:
-                return (1, 0 if name.startswith(ql) else 1)
-
-            if is_russian and ql in desc_ru:
-                return (2, 0 if desc_ru.startswith(ql) else 1)
-            elif not is_russian and ql in desc_en:
-                return (2, 0 if desc_en.startswith(ql) else 1)
-
-            if is_russian and ql in desc_en:
-                return (3, 0 if desc_en.startswith(ql) else 1)
-            elif not is_russian and ql in desc_ru:
-                return (3, 0 if desc_ru.startswith(ql) else 1)
-
-            if ql in pid:
-                return (4, 0 if pid.startswith(ql) else 1)
-
-            if ql in author:
-                return (5, 0 if author.startswith(ql) else 1)
-            
-            return (6, 0)
-
         def build_list_with_sort(self, sort_type: str, q=None):
             start_time = time()
             self.current_sort_type = sort_type
@@ -775,10 +734,17 @@ class InstallUI:
             if not q:
                 filtered = list(self.plugins)
             else:
+                isRussian = False
+                try:
+                    from java.util import Locale
+                    isRussian = Locale.getDefault().getLanguage() == "ru"
+                except Exception:
+                    pass
                 for p in self.plugins:
-                    if self.score(p, q)[0] < 6:
+                    s = search_mod.score(p, q, self.search_index, isRussian)
+                    if s[0] < 6:
                         filtered.append(p)
-                filtered.sort(key=lambda p: self.score(p, q))
+                filtered.sort(key=lambda p: search_mod.score(p, q, self.search_index, isRussian))
             if sort_type == "alpha_az":
                 filtered.sort(key=lambda p: str(p.get("name") or p.get("id") or "").lower())
             elif sort_type == "alpha_za":

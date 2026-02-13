@@ -11,7 +11,10 @@ packit/src/repom.py — движок конфигурации репозитор
 packit/src/settings.py — конструктор главного экрана настроек  
 packit/src/packlog.py — внутренний API логов  # !!! НЕАКТУАЛЬНО
 packit/src/core.py — устаревшее, классы ошибок  
-packit/src/ui/install.py — установка плагинов  
+packit/src/ui/install.py — UI установки плагинов, точка входа  
+packit/src/ui/loading.py — bottom sheet загрузки  
+packit/src/ui/repo.py — bottom sheet выбора репозитория 
+packit/src/ui/sort.py — bottom sheet сортировки плагинов  
 packit/src/deeplink/packit.py — главный обработчик перехвата deeplink  
 packit/src/deeplink/* — не реализованные диплинки(заглушки)  
 packit/src/deeplink/pkill.py — pkill диплинк  
