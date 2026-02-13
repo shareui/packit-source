@@ -21,6 +21,7 @@ from org.telegram.ui.Components import LayoutHelper, BackupImageView, EditTextBo
 from org.telegram.messenger import AndroidUtilities, MediaDataController, ImageLocation
 from android_utils import OnClickListener
 from com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment
+from com.exteragram.messenger.utils.text import LocaleUtils
 
 from .loading import show_loading_sheet
 from .repo import show_repo_sheet
@@ -946,20 +947,30 @@ class InstallUI:
             version_text = str(p.get("version") or "").strip()
             author_text = str(p.get("author") or "").strip()
             if version_text and author_text:
-                id_tv.setText(f"v{version_text} • {author_text}")
+                formatted_text = LocaleUtils.fullyFormatText(f"v{version_text} • {author_text}")
+                id_tv.setText(formatted_text)
             elif version_text:
                 id_tv.setText(f"v{version_text}")
             else:
-                id_tv.setText(author_text)
+                formatted_author = LocaleUtils.fullyFormatText(author_text)
+                id_tv.setText(formatted_author)
             try:
-                id_tv.setTextColor(self.secondary_text_color)
+                id_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+                id_tv.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
+                from android.text.method import LinkMovementMethod
+                id_tv.setMovementMethod(LinkMovementMethod.getInstance())
             except Exception:
                 pass
             desc_tv = TextView(act)
             desc_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
-            desc_tv.setText(self._get_localized_description(p))
+            description_text = self._get_localized_description(p)
+            formatted_description = LocaleUtils.fullyFormatText(description_text)
+            desc_tv.setText(formatted_description)
             try:
-                desc_tv.setTextColor(self.secondary_text_color)
+                desc_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+                desc_tv.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
+                from android.text.method import LinkMovementMethod
+                desc_tv.setMovementMethod(LinkMovementMethod.getInstance())
             except Exception:
                 pass
             col.addView(name_tv, LayoutHelper.createLinear(-1, -2))
