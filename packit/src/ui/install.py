@@ -875,14 +875,13 @@ class InstallUI:
                 except Exception:
                     pass
             icon_str = p.get("icon")
-            if not icon_str or icon_str == "Unknown":
-                icon_str = "Plugins_Stickers/0"
+            show_icon = icon_str and icon_str != "Unknown" and icon_str != "Plugins_Stickers/0"
             icon_size_dp = 52
             top_row = LinearLayout(act)
             top_row.setOrientation(LinearLayout.HORIZONTAL)
             top_row.setGravity(Gravity.TOP)
             container.addView(top_row, LayoutHelper.createLinear(-1, -2))
-            if icon_str:
+            if show_icon:
                 try:
                     icon_view = BackupImageView(act)
                     icon_view.setRoundRadius(AndroidUtilities.dp(8))
