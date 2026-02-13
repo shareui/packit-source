@@ -231,6 +231,7 @@ class InstallUI:
                     try:
                         response = requests.get(repo_url, timeout=10)
                         if response.status_code != 200:
+                            log(f"repo '{repo.get('name')}': HTTP {response.status_code}, skipping")
                             continue
                         config = response.json()
                         plugins = config.get("plugins", {})

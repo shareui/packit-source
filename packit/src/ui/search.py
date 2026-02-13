@@ -9,8 +9,13 @@ def _trigrams(text: str) -> set:
 
 def build_index(plugins: list) -> dict:
     index = {}
+    skipped = 0
     for p in plugins:
         pid = str(p.get("id") or "")
+        if not pid:
+            # plugin without id is unreachable via score() — skip explicitly
+            skipped += 1
+            continue
         name = str(p.get("name") or "").lower()
         author = str(p.get("author") or "").lower()
         about = p.get("about", [])
@@ -32,19 +37,19 @@ def build_index(plugins: list) -> dict:
             "desc_ru_raw": descRu,
             "id_raw": pid.lower(),
         }
+    if skipped:
+        log(f"search: build_index skipped {skipped} plugins with no id")
+    log(f"search: index built for {len(index)} plugins")
     return index
 
 
 def _trigram_similarity(queryTrigrams: set, fieldTrigrams: set) -> float:
-    """jaccard similarity between two trigram sets"""
     if not queryTrigrams or not fieldTrigrams:
         return 0.0
     intersection = len(queryTrigrams & fieldTrigrams)
     union = len(queryTrigrams | fieldTrigrams)
     return intersection / union if union > 0 else 0.0
 
-
-# minimum jaccard similarity to consider a match
 _MIN_SIMILARITY = 0.15
 
 
@@ -56,6 +61,7 @@ def score(plugin: dict, query: str, index: dict, isRussian: bool) -> tuple:
     pid = str(plugin.get("id") or "")
     entry = index.get(pid)
     if not entry:
+        log(f"search: score() called for '{pid}' not in index — index may be stale")
         return (6, 0, 0.0)
 
     nameRaw = entry["name_raw"]
