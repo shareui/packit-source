@@ -961,6 +961,10 @@ class InstallUI:
                 id_tv.setMovementMethod(LinkMovementMethod.getInstance())
             except Exception:
                 pass
+            col.addView(name_tv, LayoutHelper.createLinear(-1, -2))
+            col.addView(id_tv, LayoutHelper.createLinear(-1, -2, 0, 2, 0, 0))
+            top_row.addView(col, LayoutHelper.createLinear(0, -2, 1.0))
+
             desc_tv = TextView(act)
             desc_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
             description_text = self._get_localized_description(p)
@@ -973,10 +977,7 @@ class InstallUI:
                 desc_tv.setMovementMethod(LinkMovementMethod.getInstance())
             except Exception:
                 pass
-            col.addView(name_tv, LayoutHelper.createLinear(-1, -2))
-            col.addView(id_tv, LayoutHelper.createLinear(-1, -2, 0, 2, 0, 0))
-            col.addView(desc_tv, LayoutHelper.createLinear(-1, -2, 0, 4, 0, 0))
-            top_row.addView(col, LayoutHelper.createLinear(0, -2, 1.0))
+            container.addView(desc_tv, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 0))
 
             buttons = LinearLayout(act)
             buttons.setOrientation(LinearLayout.HORIZONTAL)
