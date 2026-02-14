@@ -4,18 +4,20 @@ from collections import deque
 from time import time
 from android.animation import ObjectAnimator
 from android.view import View, MotionEvent, Gravity
-from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView
+from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView, VideoView
 from android.util import TypedValue
 from android.text import TextWatcher, InputType
 from android.view.inputmethod import EditorInfo
 from android.graphics.drawable import GradientDrawable
+from android.media import MediaPlayer
 from java import dynamic_proxy
+import os
 from hook_utils import find_class
 import requests
 from android_utils import log, run_on_ui_thread
 from client_utils import get_last_fragment, run_on_queue
 from ui.bulletin import BulletinHelper
-from elyx import settings, strings
+from elyx import settings
 from org.telegram.ui.ActionBar import Theme
 from org.telegram.ui.Components import LayoutHelper, BackupImageView, EditTextBoldCursor
 from org.telegram.messenger import AndroidUtilities, MediaDataController, ImageLocation
@@ -24,7 +26,6 @@ from com.exteragram.messenger.plugins.ui.components.templates import UniversalFr
 from com.exteragram.messenger.utils.text import LocaleUtils
 from com.exteragram.messenger.utils.ui import CanvasUtils
 
-from .loading import show_loading_sheet
 from .repo import show_repo_sheet
 from .sort import show_sort_menu
 from . import search as search_mod
@@ -208,20 +209,68 @@ class InstallUI:
             return
         show_repo_sheet(self, repos)
 
-    def _show_loading_sheet(self, title: str, message: str = "Loading..."):
-        return show_loading_sheet(self, title, message)
+    def _create_center_loading_animation(self, parent_layout):
+        try:
+            act = get_last_fragment().getContext()
+            loading_container = FrameLayout(act)
+            loading_container.setLayoutParams(FrameLayout.LayoutParams(-1, -1, Gravity.CENTER))
+            video_view = VideoView(act)
+            video_path = os.path.join(
+                os.path.dirname(__file__),
+                "../../res/anim.mp4"
+            )
+            video_view.setVideoPath(video_path)
+            try:
+                audio_manager = act.getSystemService(act.AUDIO_SERVICE)
+                if audio_manager:
+                    video_view.setAudioFocusRequest(0)
+            except Exception:
+                pass
+
+            size = AndroidUtilities.dp(120)
+            video_params = FrameLayout.LayoutParams(size, size, Gravity.CENTER)
+            video_view.setLayoutParams(video_params)
+
+            circle = GradientDrawable()
+            circle.setShape(GradientDrawable.OVAL)
+            circle.setColor(0x00000000)
+            video_view.setBackground(circle)
+            video_view.setClipToOutline(True)
+
+            loading_container.addView(video_view)
+
+            class CompletionListener(dynamic_proxy(MediaPlayer.OnCompletionListener)):
+                def __init__(self, vv):
+                    super().__init__()
+                    self.vv = vv
+
+                def onCompletion(self, mp):
+                    self.vv.start()
+
+            video_view.setOnCompletionListener(CompletionListener(video_view))
+
+            try:
+                media_player = video_view.getMediaPlayer()
+                if media_player:
+                    media_player.setVolume(0, 0)
+            except Exception:
+                pass
+            
+            video_view.start()
+            
+            return loading_container, video_view
+        except Exception as e:
+            log(f"Failed to create center loading animation: {e}")
+            return None, None
 
     def _open_all_repos_plugins(self):
         fragment = get_last_fragment()
         if not fragment:
             return
-        loading_sheet = [None]
+        self._show_plugins_universal("All repositories", [])
 
         def load_task():
             try:
-                def open_loading():
-                    loading_sheet[0] = self._show_loading_sheet("All repositories", "Loading...")
-                run_on_ui_thread(open_loading)
                 repos = self.repoManager.getRepositories()
                 all_plugins = []
                 for repo in repos:
@@ -248,47 +297,20 @@ class InstallUI:
                     except Exception as e:
                         log(f"failed to load repo {repo.get('name')}: {e}")
 
-                def show_plugins():
-                    try:
-                        def preload_stickers():
-                            try:
-                                mdc = MediaDataController.getInstance(0)
-                                loaded_packs = set()
-                                for plugin in all_plugins:
-                                    icon_str = plugin.get("icon")
-                                    if icon_str and "/" in str(icon_str):
-                                        pack_name = str(icon_str).split("/", 1)[0]
-                                        if pack_name not in loaded_packs:
-                                            try:
-                                                mdc.loadStickersByEmojiOrName(pack_name, False, False)
-                                                loaded_packs.add(pack_name)
-                                            except Exception:
-                                                pass
-                            except Exception:
-                                pass
-                        preload_stickers()
-                        def show_after_delay():
-                            try:
-                                if loading_sheet[0]:
-                                    loading_sheet[0].dismiss()
-                                self._show_plugins_universal("All repositories", all_plugins)
-                            except Exception as e:
-                                log(f"failed to show plugins: {e}")
-                        threading.Timer(0.5, lambda: run_on_ui_thread(show_after_delay)).start()
-                    except Exception as e:
-                        log(f"failed to show plugins: {e}")
-                run_on_ui_thread(show_plugins)
+                run_on_ui_thread(lambda: self._update_current_fragment_plugins(all_plugins))
             except Exception as e:
-                def show_err():
-                    try:
-                        if loading_sheet[0]:
-                            loading_sheet[0].dismiss()
-                        BulletinHelper.show_error("Failed to load plugins")
-                    except Exception:
-                        pass
-                run_on_ui_thread(show_err)
+                BulletinHelper.show_error("Failed to load plugins")
                 log(f"failed to load all repos: {e}")
         run_on_queue(load_task)
+
+    def _update_plugins_in_fragment(self, plugins):
+        try:
+            fragment = get_last_fragment()
+            if not fragment:
+                return
+            self._show_plugins_universal(self.title if hasattr(self, 'title') else "Plugins", plugins)
+        except Exception as e:
+            log(f"Failed to update plugins in fragment: {e}")
 
     def _open_repo_plugins(self, repo):
         repo_name = repo.get("name") or "Unnamed"
@@ -299,13 +321,10 @@ class InstallUI:
         fragment = get_last_fragment()
         if not fragment:
             return
-        loading_sheet = [None]
+        self._show_plugins_universal(repo_name, [])
 
         def load_task():
             try:
-                def open_loading():
-                    loading_sheet[0] = self._show_loading_sheet(repo_name, "Loading...")
-                run_on_ui_thread(open_loading)
                 r = requests.get(repo_url, timeout=20)
                 if r.status_code != 200:
                     raise Exception(f"HTTP {r.status_code}")
@@ -321,54 +340,42 @@ class InstallUI:
                         if isinstance(item, dict) and item.get("id"):
                             plugins.append(item)
 
-                def show_plugins():
-                    try:
-                        def preload_stickers():
-                            try:
-                                mdc = MediaDataController.getInstance(0)
-                                loaded_packs = set()
-                                for plugin in plugins:
-                                    icon_str = plugin.get("icon")
-                                    if icon_str and "/" in str(icon_str):
-                                        pack_name = str(icon_str).split("/", 1)[0]
-                                        if pack_name not in loaded_packs:
-                                            try:
-                                                mdc.loadStickersByEmojiOrName(pack_name, False, False)
-                                                loaded_packs.add(pack_name)
-                                            except Exception:
-                                                pass
-                            except Exception:
-                                pass
-                        preload_stickers()
-                        def show_after_delay():
-                            try:
-                                if loading_sheet[0]:
-                                    loading_sheet[0].dismiss()
-                                self._show_plugins_universal(repo_name, plugins)
-                            except Exception:
-                                pass
-                        threading.Timer(0.5, lambda: run_on_ui_thread(show_after_delay)).start()
-                    except Exception:
-                        pass
-                run_on_ui_thread(show_plugins)
+                run_on_ui_thread(lambda: self._update_current_fragment_plugins(plugins))
             except Exception as e:
-                def show_err():
-                    try:
-                        if loading_sheet[0]:
-                            loading_sheet[0].dismiss()
-                    except Exception:
-                        pass
-                    BulletinHelper.show_error("An error occurred while downloading")
-                run_on_ui_thread(show_err)
+                BulletinHelper.show_error("An error occurred while downloading")
                 log(f"InstallUI: error downloading repository '{repo_url}': {e}")
         run_on_queue(load_task)
+
+    def _update_current_fragment_plugins(self, plugins):
+        try:
+            fragment = get_last_fragment()
+            if not fragment:
+                return
+
+            if hasattr(fragment, 'getDelegate') and fragment.getDelegate():
+                delegate = fragment.getDelegate()
+                if hasattr(delegate, 'plugins'):
+                    delegate.plugins = plugins
+                    delegate.filtered_plugins = []
+                    delegate.visible_plugins = []
+                    delegate.search_index = search_mod.build_index(plugins)
+
+                    if hasattr(delegate, 'subtitle'):
+                        delegate.subtitle.setText(f"Total plugins: {len(plugins)}")
+
+                    if hasattr(delegate, 'results_container') and delegate.results_container:
+                        delegate.build_list_with_sort("repo_order")
+                    else:
+                        pass
+        except Exception as e:
+            log(f"Failed to update current fragment plugins: {e}")
 
     def _show_plugins_universal(self, repo_name: str, plugins: list):
         fragment = get_last_fragment()
         if not fragment:
             return
         try:
-            delegate = self.PluginListFragment(self, repo_name, plugins)
+            delegate = self.PluginListFragment(self, repo_name, plugins, show_loading_initial=True)
             new_fragment = UniversalFragment(delegate)
             fragment.presentFragment(new_fragment)
             new_fragment.setTitle(repo_name, False, 0)
@@ -391,11 +398,12 @@ class InstallUI:
             log(f"Failed to show plugins universal: {e}")
 
     class PluginListFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
-        def __init__(self, install_ui, title, plugins):
+        def __init__(self, install_ui, title, plugins, show_loading_initial=False):
             super().__init__()
             self.install_ui = install_ui
             self.title = title
             self.plugins = plugins
+            self.show_loading_initial = show_loading_initial
             self.search_index = search_mod.build_index(plugins)
             self.last_search_query = None
             self.filtered_plugins = []
@@ -405,6 +413,8 @@ class InstallUI:
             self.scroll_listener = None
             self.current_sort_type = "repo_order"
             self.batch_size = 10
+            self.loading_container = None
+            self.loading_video = None
 
         def onFragmentCreate(self):
             pass
@@ -612,7 +622,7 @@ class InstallUI:
             main_layout.addView(header_row, header_lp)
             subtitle = TextView(act)
             subtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
-            subtitle.setText(f"Total plugins: {len(self.plugins)}")
+            subtitle.setText(f"Total plugins: {len(self.plugins)}" if self.plugins else "Total plugins: ---")
             subtitle.setGravity(Gravity.CENTER)
             subtitle.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(6), AndroidUtilities.dp(12), AndroidUtilities.dp(6))
             subtitle.setClickable(False)
@@ -632,6 +642,7 @@ class InstallUI:
             except Exception:
                 pass
             header_row.addView(subtitle, LayoutHelper.createLinear(-2, -2))
+            self.subtitle = subtitle
             spacer = View(act)
             header_row.addView(spacer, LayoutHelper.createLinear(0, 0, 1.0))
 
@@ -676,6 +687,25 @@ class InstallUI:
             except Exception:
                 pass
 
+            if self.show_loading_initial:
+                content_wrapper = FrameLayout(act)
+                content_wrapper.setLayoutParams(ScrollView.LayoutParams(-1, -2))
+                self.loading_container, self.loading_video = self.install_ui._create_center_loading_animation(content_wrapper)
+                if self.loading_container:
+                    content_wrapper.addView(self.loading_container, FrameLayout.LayoutParams(-1, -1))
+                    def load_plugins_after_animation():
+                        try:
+                            self._finish_loading_and_show_plugins(content_wrapper)
+                        except Exception:
+                            self._finish_loading_and_show_plugins(content_wrapper)
+                    threading.Timer(1.0, lambda: run_on_ui_thread(load_plugins_after_animation)).start()
+                else:
+                    self._finish_loading_and_show_plugins(content_wrapper)
+
+                scroll.addView(content_wrapper, ScrollView.LayoutParams(-1, -2))
+            else:
+                scroll.addView(self.results_container, ScrollView.LayoutParams(-1, -2))
+
             class ScrollListener(dynamic_proxy(View.OnScrollChangeListener)):
                 def __init__(self, outer):
                     super().__init__()
@@ -701,11 +731,9 @@ class InstallUI:
             self.results_container = LinearLayout(act)
             self.results_container.setOrientation(LinearLayout.VERTICAL)
             self.results_container.setPadding(0, 0, 0, AndroidUtilities.dp(10))
-            scroll.addView(self.results_container, ScrollView.LayoutParams(-1, -2))
             main_layout.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1.0))
 
             self.search.addTextChangedListener(SearchTextWatcherWithClear(self, clear_icon))
-            self.build_list_with_sort("repo_order")
             return self.content_view
 
         def getTitle(self):
@@ -798,6 +826,68 @@ class InstallUI:
         def build_list(self, q):
             self.build_list_with_sort(self.current_sort_type, q)
 
+        def _finish_loading_and_show_plugins(self, content_wrapper):
+            try:
+                if hasattr(self, 'subtitle'):
+                    self.subtitle.setText(f"Total plugins: {len(self.plugins)}")
+
+                if self.loading_container:
+                    content_wrapper.removeView(self.loading_container)
+                    self.loading_container = None
+                    self.loading_video = None
+
+                content_wrapper.addView(self.results_container, FrameLayout.LayoutParams(-1, -2))
+
+                if self.plugins and len(self.plugins) > 0:
+                    self.build_list_with_sort("repo_order")
+                else:
+                    self._show_empty_state()
+            except Exception as e:
+                log(f"Error finishing loading: {e}")
+                try:
+                    content_wrapper.addView(self.results_container, FrameLayout.LayoutParams(-1, -2))
+                    if self.plugins and len(self.plugins) > 0:
+                        self.build_list_with_sort("repo_order")
+                    else:
+                        self._show_empty_state()
+                except Exception:
+                    pass
+
+        def _show_empty_state(self):
+            try:
+                fragment = get_last_fragment()
+                act = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
+                if not act:
+                    act = fragment.getContext() if fragment else None
+                
+                empty_container = LinearLayout(act)
+                empty_container.setOrientation(LinearLayout.VERTICAL)
+                empty_container.setGravity(Gravity.CENTER)
+                empty_container.setPadding(0, AndroidUtilities.dp(60), 0, AndroidUtilities.dp(60))
+                
+                ghost_icon = ImageView(act)
+                try:
+                    R_tg = find_class("org.telegram.messenger.R")
+                    icon_id = getattr(R_tg.drawable, "ayu_ghost")
+                    ghost_icon.setImageResource(icon_id)
+                    ghost_icon.setColorFilter(self.secondary_text_color)
+                except Exception:
+                    pass
+                ghost_icon.setLayoutParams(LayoutHelper.createLinear(AndroidUtilities.dp(64), AndroidUtilities.dp(64)))
+                empty_container.addView(ghost_icon, LayoutHelper.createLinear(-2, -2, 0, 0, 0, 16))
+                
+                empty = TextView(act)
+                empty.setText("No plugins")
+                empty.setGravity(Gravity.CENTER)
+                empty.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
+                empty.setTextColor(self.secondary_text_color)
+                empty_container.addView(empty, LayoutHelper.createLinear(-2, -2))
+                
+                self.results_container.addView(empty_container, LayoutHelper.createLinear(-1, -2))
+                self.is_loading = False
+            except Exception as e:
+                log(f"Error showing empty state: {e}")
+
         def _add_items_with_animation(self, items_to_add):
             try:
                 for idx, item in enumerate(items_to_add):
@@ -873,12 +963,14 @@ class InstallUI:
                     AndroidUtilities.dp(18), surface_color, surface_color
                 ))
             except Exception:
-                try:
-                    container.setBackgroundColor(self.card_bg_color)
-                except Exception:
-                    pass
+                pass
+            
             icon_str = p.get("icon")
-            show_icon = icon_str and icon_str != "Unknown" and icon_str != "Plugins_Stickers/0"
+            show_default_sticker = settings.get("show_default_sticker", True)
+            show_icon = icon_str and icon_str != "Unknown"
+            if not show_icon and show_default_sticker:
+                icon_str = "Plugins_Stickers/0"
+                show_icon = True
             icon_size_dp = 52
             top_row = LinearLayout(act)
             top_row.setOrientation(LinearLayout.HORIZONTAL)

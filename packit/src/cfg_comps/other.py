@@ -62,5 +62,13 @@ class OtherSettings:
                 icon="msg_clear",
                 link_alias="hide_search_clear_button"
             ),
+            Switch(
+                key="show_default_sticker",
+                text=strings.show_default_sticker,
+                subtext=strings.show_default_sticker_desc,
+                default=False,
+                icon="msg_sticker",
+                link_alias="show_default_sticker"
+            ),
             Divider(),
         ]
