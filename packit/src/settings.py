@@ -4,6 +4,7 @@ from .cfg_comps.repos import RepositoriesSettings
 from .cfg_comps.other import OtherSettings
 from .cfg_comps.docs import DocumentationSettings
 from .cfg_comps.contributors import ContributorsSettings
+from .cfg_comps.deeplinks import DeepLinksSettings
 from base_plugin import BasePlugin, MethodHook
 from android_utils import run_on_ui_thread
 from hook_utils import find_class, get_private_field
@@ -42,6 +43,7 @@ class SettingsBuilder:
         self.otherSettings = OtherSettings(plugin.chatUI)
         self.documentationSettings = DocumentationSettings()
         self.contributorsSettings = ContributorsSettings()
+        self.deepLinksSettings = DeepLinksSettings()
 
     def _setup_settings_header_hook(self):
         try:
@@ -199,7 +201,7 @@ class SettingsBuilder:
             Text(
                 text=strings.deeplinks,
                 icon="msg_link",
-                on_click=lambda view: None
+                create_sub_fragment=self.deepLinksSettings.build
             ),
             
             Text(

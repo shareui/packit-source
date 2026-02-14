@@ -52,7 +52,7 @@ class PackItDeeplinkHook(MethodHook):
     def show_packit_notification(self, url):
         try:
             main_menu.handle(url)
-            settings.handle(url)
+            settings.handle(url, self.plugin)
             deeplink_menu.handle(url)
             other.handle(url)
             contributors.handle(url)

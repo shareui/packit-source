@@ -21,6 +21,8 @@ from org.telegram.ui.Components import LayoutHelper, BackupImageView, EditTextBo
 from org.telegram.messenger import AndroidUtilities, MediaDataController, ImageLocation
 from android_utils import OnClickListener
 from com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment
+from com.exteragram.messenger.utils.text import LocaleUtils
+from com.exteragram.messenger.utils.ui import CanvasUtils
 
 from .loading import show_loading_sheet
 from .repo import show_repo_sheet
@@ -161,24 +163,24 @@ class InstallUI:
         from android.graphics import Color
         if is_dark_theme:
             return {
-                "main_bg_color": Color.parseColor("#000000"),
+                "main_bg_color": Theme.getColor(Theme.key_windowBackgroundGray),
                 "card_bg_color": Color.parseColor("#181818"),
                 "card_pressed_color": Color.parseColor("#3C3C3C"),
                 "text_color": Color.WHITE,
                 "secondary_text_color": Color.parseColor("#CCCCCC"),
                 "hint_text_color": Color.parseColor("#999999"),
-                "cursor_color": Color.parseColor("#4FC3F7"),
+                "cursor_color": Theme.getColor(Theme.key_chat_messagePanelCursor),
                 "search_border_color": Color.parseColor("#3C3C3C"),
                 "search_stroke_width": AndroidUtilities.dp(2)
             }
         return {
-            "main_bg_color": Color.parseColor("#f0f0f0"),
+            "main_bg_color": Theme.getColor(Theme.key_windowBackgroundGray),
             "card_bg_color": Color.parseColor("#ffffff"),
             "card_pressed_color": Color.parseColor("#f5f5f5"),
             "text_color": Color.BLACK,
             "secondary_text_color": Color.parseColor("#666666"),
             "hint_text_color": Color.parseColor("#999999"),
-            "cursor_color": Color.parseColor("#2196F3"),
+            "cursor_color": Theme.getColor(Theme.key_chat_messagePanelCursor),
             "search_border_color": Color.parseColor("#e0e0e0"),
             "search_stroke_width": 0
         }
@@ -455,9 +457,12 @@ class InstallUI:
                 except Exception:
                     pass
             try:
-                pill.setColor(self.card_bg_color)
+                pill.setColor(CanvasUtils.INSTANCE.getAdaptedSurfaceColor())
             except Exception:
-                pass
+                try:
+                    pill.setColor(self.card_bg_color)
+                except Exception:
+                    pass
             search_container.setBackground(pill)
             search_container.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(8))
             clear_icon = ImageView(act)
@@ -613,8 +618,9 @@ class InstallUI:
             subtitle.setClickable(False)
             subtitle.setFocusable(False)
             try:
+                surface_color = CanvasUtils.INSTANCE.getAdaptedSurfaceColor()
                 subtitle.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                    AndroidUtilities.dp(50), self.card_bg_color, self.card_pressed_color
+                    AndroidUtilities.dp(50), surface_color, surface_color
                 ))
             except Exception:
                 try:
@@ -622,7 +628,7 @@ class InstallUI:
                 except Exception:
                     pass
             try:
-                subtitle.setTextColor(self.secondary_text_color)
+                subtitle.setTextColor(self.text_color)
             except Exception:
                 pass
             header_row.addView(subtitle, LayoutHelper.createLinear(-2, -2))
@@ -632,15 +638,21 @@ class InstallUI:
             sort_btn = FrameLayout(act)
             sort_btn.setClickable(True)
             sort_btn.setFocusable(True)
-            sort_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                AndroidUtilities.dp(16), self.card_bg_color, self.card_pressed_color
-            ))
+            try:
+                surface_color = CanvasUtils.INSTANCE.getAdaptedSurfaceColor()
+                sort_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                    AndroidUtilities.dp(16), surface_color, surface_color
+                ))
+            except Exception:
+                sort_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                    AndroidUtilities.dp(16), self.card_bg_color, self.card_pressed_color
+                ))
             sort_btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
             sort_icon = ImageView(act)
             icon_id = self.install_ui._resolve_icon("msg_list")
             sort_icon.setImageResource(icon_id)
             try:
-                sort_icon.setColorFilter(self.secondary_text_color)
+                sort_icon.setColorFilter(self.text_color)
             except Exception:
                 pass
             sort_btn.addView(sort_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
@@ -856,8 +868,9 @@ class InstallUI:
             container.setGravity(Gravity.TOP)
             container.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12))
             try:
+                surface_color = CanvasUtils.INSTANCE.getAdaptedSurfaceColor()
                 container.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                    AndroidUtilities.dp(18), self.card_bg_color, self.card_pressed_color
+                    AndroidUtilities.dp(18), surface_color, surface_color
                 ))
             except Exception:
                 try:
@@ -865,14 +878,13 @@ class InstallUI:
                 except Exception:
                     pass
             icon_str = p.get("icon")
-            if not icon_str or icon_str == "Unknown":
-                icon_str = "Plugins_Stickers/0"
+            show_icon = icon_str and icon_str != "Unknown" and icon_str != "Plugins_Stickers/0"
             icon_size_dp = 52
             top_row = LinearLayout(act)
             top_row.setOrientation(LinearLayout.HORIZONTAL)
             top_row.setGravity(Gravity.TOP)
             container.addView(top_row, LayoutHelper.createLinear(-1, -2))
-            if icon_str:
+            if show_icon:
                 try:
                     icon_view = BackupImageView(act)
                     icon_view.setRoundRadius(AndroidUtilities.dp(8))
@@ -946,26 +958,37 @@ class InstallUI:
             version_text = str(p.get("version") or "").strip()
             author_text = str(p.get("author") or "").strip()
             if version_text and author_text:
-                id_tv.setText(f"v{version_text} • {author_text}")
+                formatted_text = LocaleUtils.fullyFormatText(f"v{version_text} • {author_text}")
+                id_tv.setText(formatted_text)
             elif version_text:
                 id_tv.setText(f"v{version_text}")
             else:
-                id_tv.setText(author_text)
+                formatted_author = LocaleUtils.fullyFormatText(author_text)
+                id_tv.setText(formatted_author)
             try:
-                id_tv.setTextColor(self.secondary_text_color)
-            except Exception:
-                pass
-            desc_tv = TextView(act)
-            desc_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
-            desc_tv.setText(self._get_localized_description(p))
-            try:
-                desc_tv.setTextColor(self.secondary_text_color)
+                id_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+                id_tv.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
+                from android.text.method import LinkMovementMethod
+                id_tv.setMovementMethod(LinkMovementMethod.getInstance())
             except Exception:
                 pass
             col.addView(name_tv, LayoutHelper.createLinear(-1, -2))
             col.addView(id_tv, LayoutHelper.createLinear(-1, -2, 0, 2, 0, 0))
-            col.addView(desc_tv, LayoutHelper.createLinear(-1, -2, 0, 4, 0, 0))
             top_row.addView(col, LayoutHelper.createLinear(0, -2, 1.0))
+
+            desc_tv = TextView(act)
+            desc_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+            description_text = self._get_localized_description(p)
+            formatted_description = LocaleUtils.fullyFormatText(description_text)
+            desc_tv.setText(formatted_description)
+            try:
+                desc_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+                desc_tv.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
+                from android.text.method import LinkMovementMethod
+                desc_tv.setMovementMethod(LinkMovementMethod.getInstance())
+            except Exception:
+                pass
+            container.addView(desc_tv, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 0))
 
             buttons = LinearLayout(act)
             buttons.setOrientation(LinearLayout.HORIZONTAL)
@@ -975,7 +998,7 @@ class InstallUI:
             pressed_color = Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
             install_btn = self.install_ui._create_pill(act, base_color, pressed_color)
             install_icon = ImageView(act)
-            icon_id = self.install_ui._resolve_icon("msg_download")
+            icon_id = self.install_ui._resolve_icon("msg_view_file")
             install_icon.setImageResource(icon_id)
             try:
                 install_icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_buttonText))
@@ -985,7 +1008,7 @@ class InstallUI:
             icon_lp.rightMargin = AndroidUtilities.dp(6)
             install_btn.addView(install_icon, icon_lp)
             install_text = TextView(act)
-            install_text.setText("Install")
+            install_text.setText("View")
             install_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
             install_text.setTypeface(AndroidUtilities.bold())
             install_text.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
@@ -997,10 +1020,16 @@ class InstallUI:
             buttons.addView(spacer, LayoutHelper.createLinear(0, 0, 1.0))
 
             def create_icon_pill(icon_name, handler):
+                try:
+                    surface_color = CanvasUtils.INSTANCE.getAdaptedSurfaceColor()
+                    pressed_color = surface_color
+                except Exception:
+                    surface_color = self.card_bg_color
+                    pressed_color = self.card_pressed_color
                 pill = self.install_ui._create_pill(
                     act,
-                    self.card_bg_color,
-                    self.card_pressed_color,
+                    surface_color,
+                    pressed_color,
                     padding_h=8,
                     padding_v=8
                 )
