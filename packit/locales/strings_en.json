@@ -56,6 +56,8 @@
     "colored_search_border_desc": "Use gray border for search input instead of colored.",
     "hide_search_clear_button": "Hide search clear button",
     "hide_search_clear_button_desc": "Hides the clear button for the search input field.",
+    "show_default_sticker": "Show default sticker",
+    "show_default_sticker_desc": "Shows default sticker for plugins without icon.",
     "everything_working": "All systems operational. Relax.",
     "packit": "PackIt",
     "packit_settings": "PackIt Settings",

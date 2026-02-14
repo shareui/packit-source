@@ -873,12 +873,14 @@ class InstallUI:
                     AndroidUtilities.dp(18), surface_color, surface_color
                 ))
             except Exception:
-                try:
-                    container.setBackgroundColor(self.card_bg_color)
-                except Exception:
-                    pass
+                pass
+            
             icon_str = p.get("icon")
-            show_icon = icon_str and icon_str != "Unknown" and icon_str != "Plugins_Stickers/0"
+            show_default_sticker = settings.get("show_default_sticker", True)
+            show_icon = icon_str and icon_str != "Unknown"
+            if not show_icon and show_default_sticker:
+                icon_str = "Plugins_Stickers/0"
+                show_icon = True
             icon_size_dp = 52
             top_row = LinearLayout(act)
             top_row.setOrientation(LinearLayout.HORIZONTAL)
