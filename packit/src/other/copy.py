@@ -1,19 +1,26 @@
 from android_utils import log
 from ui.bulletin import BulletinHelper
-from org.telegram.messenger import AndroidUtilities
+from org.telegram.messenger import AndroidUtilities, R as R_tg
+from client_utils import get_last_fragment
+from hook_utils import find_class
+
+BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
 
 
 def copy_share_link(plugin_info: dict, repo_title: str):
     try:
         plugin_id = plugin_info.get("id")
+        fragment = get_last_fragment()
+        if not fragment:
+            return
+        container = fragment.getParentActivity().getWindow().getDecorView()
+        resource_provider = fragment.getResourceProvider()
         if not plugin_id:
-            BulletinHelper.show_error("Plugin has no id")
+            BulletinFactory.of(container, resource_provider).createErrorBulletin("Plugin has no id").show()
             return
         share_link = f"tg://packit?install={repo_title}&{plugin_id}"
         AndroidUtilities.addToClipboard(share_link)
-        try:
-            BulletinHelper.show_copied_to_clipboard()
-        except Exception:
-            BulletinHelper.show_info("Copied")
+        plugin_name = plugin_info.get("name") or plugin_info.get("id") or "Unknown"
+        BulletinFactory.of(container, resource_provider).createSimpleBulletin(R_tg.raw.copy, f"Link to {plugin_name} copied!").show()
     except Exception as e:
         log(f"copy: failed to copy link: {e}")
