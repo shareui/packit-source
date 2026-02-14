@@ -158,7 +158,7 @@ def show_sort_menu(install_ui, act, current_sort_type, build_list_with_sort):
         divider2 = View(act)
         divider2.setBackgroundColor(Theme.getColor(Theme.key_divider))
         sort_root.addView(divider2, LayoutHelper.createFrame(-1, 1, Gravity.TOP, 16, 4, 16, 4))
-        sort_root.addView(create_sort_option("By Authors", "authors"), LayoutHelper.createLinear(-1, -2, 0, 1, 0, 1))
+        sort_root.addView(create_sort_option("By Authors (A-Z)", "authors"), LayoutHelper.createLinear(-1, -2, 0, 1, 0, 1))
         close_btn = FrameLayout(act)
         try:
             base_color = Theme.getColor(Theme.key_featuredStickers_addButton)
