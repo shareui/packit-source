@@ -124,5 +124,6 @@
     "repositories_exported": "All repository links copied! Don’t lose them!",
     "no_repositories_to_export": "No repositories to export",
     "disable_all_repositories": "Disable all", 
-    "enable_all_repositories": "Enable all"
+    "enable_all_repositories": "Enable all",
+    "secret_video": "Secret Video"
 }
