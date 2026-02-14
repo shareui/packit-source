@@ -1,5 +1,4 @@
 from android_utils import log
-from ui.bulletin import BulletinHelper
 from org.telegram.messenger import AndroidUtilities, R as R_tg
 from client_utils import get_last_fragment
 from hook_utils import find_class
