@@ -457,9 +457,12 @@ class InstallUI:
                 except Exception:
                     pass
             try:
-                pill.setColor(self.card_bg_color)
+                pill.setColor(CanvasUtils.INSTANCE.getAdaptedSurfaceColor())
             except Exception:
-                pass
+                try:
+                    pill.setColor(self.card_bg_color)
+                except Exception:
+                    pass
             search_container.setBackground(pill)
             search_container.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(8))
             clear_icon = ImageView(act)
@@ -995,7 +998,7 @@ class InstallUI:
             pressed_color = Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
             install_btn = self.install_ui._create_pill(act, base_color, pressed_color)
             install_icon = ImageView(act)
-            icon_id = self.install_ui._resolve_icon("msg_download")
+            icon_id = self.install_ui._resolve_icon("msg_view_file")
             install_icon.setImageResource(icon_id)
             try:
                 install_icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_buttonText))
@@ -1005,7 +1008,7 @@ class InstallUI:
             icon_lp.rightMargin = AndroidUtilities.dp(6)
             install_btn.addView(install_icon, icon_lp)
             install_text = TextView(act)
-            install_text.setText("Install")
+            install_text.setText("View")
             install_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
             install_text.setTypeface(AndroidUtilities.bold())
             install_text.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
