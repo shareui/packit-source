@@ -62,6 +62,9 @@ class DocumentationSettings:
             settings.set_setting("enlighten_clicks", 0)
             run_on_queue(lambda: Process.killProcess(Process.myPid()), GLOBAL_QUEUE, 1000)
 
+    def _openSecretVideo(self, view):
+        self._openUrl("https://youtu.be/dQw4w9WgXcQ")
+
     def build(self):
       return [
           Header(text=strings.for_users),
@@ -89,6 +92,12 @@ class DocumentationSettings:
               icon="msg_info",
               on_click=self._openEnlightenment,
               link_alias="how_to_enlighten"
+          ),
+          Text(
+              text=strings.secret_video,
+              icon="msg_info",
+              on_click=self._openSecretVideo,
+              link_alias="secret_video"
           ),
   
           Divider(),
