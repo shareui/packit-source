@@ -71,6 +71,13 @@ def show_loading_sheet(install_ui, title: str, message: str = "Loading..."):
 
         pb.setVideoPath(video_path)
 
+        try:
+            audio_manager = act.getSystemService(act.AUDIO_SERVICE)
+            if audio_manager:
+                pb.setAudioFocusRequest(0)
+        except Exception:
+            pass
+
         size = AndroidUtilities.dp(120)
         pb_lp = LinearLayout.LayoutParams(size, size)
         pb_lp.gravity = Gravity.CENTER
@@ -113,6 +120,13 @@ def show_loading_sheet(install_ui, title: str, message: str = "Loading..."):
 
         pb.setOnCompletionListener(CompletionListener(pb))
         pb.start()
+
+        try:
+            media_player = pb.getMediaPlayer()
+            if media_player:
+                media_player.setVolume(0, 0)
+        except Exception:
+            pass
 
         msg_tv = TextView(act)
         msg_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18)
