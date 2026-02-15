@@ -58,7 +58,7 @@ class PackItDeeplinkHook(MethodHook):
             contributors.handle(url)
             docs.handle(url)
             forum.handle(url)
-            repo.handle(url)
+            repo.handle(url, self.plugin.repoManager)
             install.handle(url)
             update.handle(url)
             problems.handle(url)

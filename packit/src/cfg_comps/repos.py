@@ -5,6 +5,10 @@ from ui.bulletin import BulletinHelper
 from ui.alert import AlertDialogBuilder
 from .icons import IconSelector
 from android_utils import log
+from hook_utils import find_class
+from org.telegram.messenger import R as R_tg
+
+BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
 
 
 class RepositoriesSettings:
@@ -92,7 +96,10 @@ class RepositoriesSettings:
                 def on_yes(b, w):
                     self.repoManager.resetRepositories()
                     try:
-                        BulletinHelper.show_success(strings.repositories_reset)
+                        frag = get_last_fragment()
+                        container = frag.getParentActivity().getWindow().getDecorView()
+                        resourceProvider = frag.getResourceProvider()
+                        BulletinFactory.of(container, resourceProvider).createSimpleBulletin(R_tg.raw.group_pip_delete_icon, strings.repositories_reset).show()
                     except Exception as e:
                         log(f"{e}")
                 
@@ -137,7 +144,10 @@ class RepositoriesSettings:
                 def on_yes(b, w):
                     self.repoManager.clearAllExceptFirst()
                     try:
-                        BulletinHelper.show_success(strings.repositories_cleared)
+                        frag = get_last_fragment()
+                        container = frag.getParentActivity().getWindow().getDecorView()
+                        resourceProvider = frag.getResourceProvider()
+                        BulletinFactory.of(container, resourceProvider).createSimpleBulletin(R_tg.raw.utyan_cache, strings.repositories_cleared).show()
                     except Exception as e:
                         log(f"{e}")
                 
@@ -176,7 +186,10 @@ class RepositoriesSettings:
             try:
                 from org.telegram.messenger import AndroidUtilities
                 if AndroidUtilities.addToClipboard("\n\n".join(links)):
-                    BulletinHelper.show_success(strings.repositories_exported)
+                    frag = get_last_fragment()
+                    container = frag.getParentActivity().getWindow().getDecorView()
+                    resourceProvider = frag.getResourceProvider()
+                    BulletinFactory.of(container, resourceProvider).createSimpleBulletin(R_tg.raw.copy, strings.repositories_exported).show()
                 else:
                     log("Failed to copy repository export links")
                     BulletinHelper.show_error(strings.failed_to_copy)

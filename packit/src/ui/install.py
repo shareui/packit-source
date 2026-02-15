@@ -207,6 +207,9 @@ class InstallUI:
         if not repos:
             BulletinHelper.show_error("No repositories configured")
             return
+        if len(repos) == 1:
+            self._open_repo_plugins(repos[0])
+            return
         show_repo_sheet(self, repos)
 
     def _create_center_loading_animation(self, parent_layout):
