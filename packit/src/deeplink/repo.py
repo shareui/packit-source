@@ -39,7 +39,7 @@ def handle(url, repoManager):
             container = frag.getParentActivity().getWindow().getDecorView()
             resourceProvider = frag.getResourceProvider()
             BulletinFactory.of(container, resourceProvider).createSimpleBulletin(
-                R_tg.raw.utyan_empty,
+                R_tg.raw.camera_flip,
                 strings.repo_add_fetching
             ).show()
         except Exception as e:
