@@ -134,5 +134,9 @@
     "repo_add_button": "Add",
     "repo_add_success": "Repository added!",
     "repo_add_limit": "Maximum of 10 repositories allowed. Chill.",
-    "repo_add_invalid": "Invalid repository link."
+    "repo_add_invalid": "Invalid repository link.",
+    "repo_add_fetching": "Fetching repository data...",
+    "repo_add_fetch_failed": "Failed to fetch repository data.",
+    "repo_add_disclaimer": "PackIt is not responsible for the content of {0}. All rights and responsibility belong to the owner, {1}.\n\nPlugin count: {2}",
+    "repo_add_no_repometa": "Repository has no metadata (repometa). Add anyway?\n\nPlugin count: {0}"
 }
