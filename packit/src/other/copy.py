@@ -2,6 +2,7 @@ from android_utils import log
 from org.telegram.messenger import AndroidUtilities, R as R_tg
 from client_utils import get_last_fragment
 from hook_utils import find_class
+from elyx import strings
 
 BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
 
@@ -20,6 +21,6 @@ def copy_share_link(plugin_info: dict, repo_title: str):
         share_link = f"tg://packit?install={repo_title}&{plugin_id}"
         AndroidUtilities.addToClipboard(share_link)
         plugin_name = plugin_info.get("name") or plugin_info.get("id") or "Unknown"
-        BulletinFactory.of(container, resource_provider).createSimpleBulletin(R_tg.raw.copy, f"Link to {plugin_name} copied!").show()
+        BulletinFactory.of(container, resource_provider).createSimpleBulletin(R_tg.raw.voip_invite, strings("plugin_link_copied", plugin_name)).show()
     except Exception as e:
         log(f"copy: failed to copy link: {e}")
