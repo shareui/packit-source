@@ -127,5 +127,11 @@
     "donate_easter_egg": "Погоди-ка, кто-то мне задонатил?",
     "copied_to_clipboard": "Скопировано в буфер обмена",
     "secret_video": "Секретное видео",
-    "plugin_link_copied": "Ссылка на {0} скопирована!"
+    "plugin_link_copied": "Ссылка на {0} скопирована!",
+    "repo_add_title": "Добавить репозиторий?",
+    "repo_add_message": "Название: {0}\nСсылка: {1}",
+    "repo_add_button": "Добавить",
+    "repo_add_success": "Репозиторий добавлен!",
+    "repo_add_limit": "Максимум 10 репозиториев разрешено :(",
+    "repo_add_invalid": "Неверная ссылка на репозиторий."
 }

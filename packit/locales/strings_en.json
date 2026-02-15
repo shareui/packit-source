@@ -128,5 +128,11 @@
     "disable_all_repositories": "Disable all", 
     "enable_all_repositories": "Enable all",
     "secret_video": "Secret Video",
-    "plugin_link_copied": "Link to {0} copied!"
+    "plugin_link_copied": "Link to {0} copied!",
+    "repo_add_title": "Add repository?",
+    "repo_add_message": "Name: {0}\nURL: {1}",
+    "repo_add_button": "Add",
+    "repo_add_success": "Repository added!",
+    "repo_add_limit": "Maximum of 10 repositories allowed. Chill.",
+    "repo_add_invalid": "Invalid repository link."
 }
