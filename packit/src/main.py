@@ -7,6 +7,7 @@ from .settings import SettingsBuilder
 from .packlog import packlog
 from .chat_ui import ChatButton
 from .deeplink import setup_deeplink_hook
+from .badges import BadgeManager
 from android_utils import log
 
 
@@ -17,6 +18,7 @@ class PackItPlugin(BasePlugin):
         self.core = PackItCore(self.repoManager)
         self.chatUI = ChatButton(self)
         self.settingsBuilder = SettingsBuilder(self.repoManager, self)
+        self.badgeManager = BadgeManager(self)
         self.on_send_message_hook_ref = None
         self.hook_settings_header_ref = None
         self.deeplink_hook_ref = None
@@ -27,6 +29,7 @@ class PackItPlugin(BasePlugin):
         self.hook_settings_header_ref = self.settingsBuilder._setup_settings_header_hook()
         self.deeplink_hook_ref = setup_deeplink_hook(self)
         self.chatUI.initialize_chat_menu()
+        self.badgeManager.setup_hooks()
         self._init_official_repository()
         log("PackIt loaded!")
     
@@ -58,6 +61,13 @@ class PackItPlugin(BasePlugin):
             return HookResult(strategy=HookStrategy.MODIFY, params=params)
         
         return HookResult()
+    
+    def on_plugin_unload(self):
+        try:
+            if hasattr(self, 'badgeManager'):
+                self.badgeManager.cleanup()
+        except Exception as e:
+            log(f"Error cleaning up badge manager: {e}")
     
     def create_settings(self):
         return self.settingsBuilder.buildMainSettings()
