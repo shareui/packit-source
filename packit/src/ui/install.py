@@ -478,31 +478,11 @@ class InstallUI:
                     pass
             search_container.setBackground(pill)
             search_container.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(8))
-            clear_icon = ImageView(act)
-            clear_icon_id = self.install_ui._resolve_icon("input_clear")
-            clear_icon.setImageResource(clear_icon_id)
-            try:
-                clear_icon.setColorFilter(self.secondary_text_color)
-            except Exception:
-                pass
-            clear_icon.setScaleType(ImageView.ScaleType.CENTER)
-            clear_icon.setLayoutParams(LayoutHelper.createFrame(AndroidUtilities.dp(18), AndroidUtilities.dp(18), Gravity.TOP | Gravity.RIGHT, 0, 0, 60, 0))
-            clear_icon.setVisibility(View.GONE)
-            clear_icon.setAlpha(0.0)
-            hide_clear_button = settings.get("hide_search_clear_button", False)
-            if hide_clear_button:
-                clear_icon.setVisibility(View.GONE)
-                clear_icon.setClickable(False)
-                clear_icon.setEnabled(False)
             self.search = EditTextBoldCursor(act)
             self.search.setHint("Search plugins...")
             self.search.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
             self.search.setSingleLine(True)
             self.search.setInputType(InputType.TYPE_CLASS_TEXT)
-            try:
-                self.search.setImeOptions(EditorInfo.IME_ACTION_SEARCH)
-            except Exception:
-                pass
             self.search.setBackgroundColor(0)
             self.search.setTextColor(self.text_color)
             try:
@@ -514,20 +494,9 @@ class InstallUI:
             except Exception:
                 pass
             try:
-                self.search.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(50), AndroidUtilities.dp(8))
+                self.search.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(10), AndroidUtilities.dp(8))
             except Exception:
                 pass
-
-            def on_clear_click(v):
-                try:
-                    self.search.setText("")
-                    self.last_search_query = ""
-                    self.build_list("")
-                    imm = act.getSystemService("input_method")
-                    imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
-                except Exception:
-                    pass
-            clear_icon.setOnClickListener(OnClickListener(on_clear_click))
 
             def perform_search():
                 try:
@@ -556,27 +525,24 @@ class InstallUI:
                 log(f"InstallUI: setOnEditorActionListener failed: {ex}")
 
             class SearchTextWatcherWithClear(dynamic_proxy(TextWatcher)):
-                def __init__(self, outer, clear_icon_ref):
+                def __init__(self, outer, clear_btn_ref):
                     super().__init__()
                     self.outer = outer
-                    self.clear_icon = clear_icon_ref
-                    self.hide_clear_button = settings.get("hide_search_clear_button", False)
+                    self.clear_btn = clear_btn_ref
                 def afterTextChanged(self, s):
-                    if self.hide_clear_button:
-                        return
                     text = s.toString()
                     if text and len(text) > 0:
-                        self.clear_icon.setVisibility(View.VISIBLE)
+                        self.clear_btn.setVisibility(View.VISIBLE)
                         try:
-                            self.clear_icon.animate().alpha(1.0).setDuration(200).start()
+                            self.clear_btn.animate().alpha(1.0).setDuration(200).start()
                         except Exception:
                             pass
                     else:
                         try:
-                            self.clear_icon.animate().alpha(0.0).setDuration(200).withEndAction(
-                                lambda: self.clear_icon.setVisibility(View.GONE)).start()
+                            self.clear_btn.animate().alpha(0.0).setDuration(200).withEndAction(
+                                lambda: self.clear_btn.setVisibility(View.GONE)).start()
                         except Exception:
-                            self.clear_icon.setVisibility(View.GONE)
+                            self.clear_btn.setVisibility(View.GONE)
                 def beforeTextChanged(self, s, start, count, after):
                     pass
                 def onTextChanged(self, s, start, before, count):
@@ -586,6 +552,40 @@ class InstallUI:
             search_row.setOrientation(LinearLayout.HORIZONTAL)
             search_row.setGravity(Gravity.CENTER_VERTICAL)
             search_row.addView(self.search, LinearLayout.LayoutParams(-1, AndroidUtilities.dp(42), 1.0))
+            
+            clear_btn = FrameLayout(act)
+            clear_btn.setClickable(True)
+            clear_btn.setFocusable(True)
+            clear_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                AndroidUtilities.dp(25), 0x00000000, 0x00000000
+            ))
+            clear_btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
+            clear_btn_icon = ImageView(act)
+            clear_btn_icon_id = self.install_ui._resolve_icon("input_clear")
+            clear_btn_icon.setImageResource(clear_btn_icon_id)
+            try:
+                clear_btn_icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_buttonText))
+            except Exception:
+                pass
+            clear_btn_icon.setScaleType(ImageView.ScaleType.CENTER)
+            clear_btn.addView(clear_btn_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
+            
+            def on_clear_click():
+                try:
+                    self.search.setText("")
+                    self.last_search_query = ""
+                    self.build_list("")
+                    imm = act.getSystemService("input_method")
+                    imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
+                except Exception:
+                    pass
+            
+            clear_btn.setOnClickListener(OnClickListener(lambda v: on_clear_click()))
+            self.install_ui._apply_press_scale(clear_btn)
+            clear_btn.setVisibility(View.GONE)
+            clear_btn.setAlpha(0.0)
+            search_row.addView(clear_btn, LinearLayout.LayoutParams(AndroidUtilities.dp(52), AndroidUtilities.dp(42), 0))
+            
             search_btn = FrameLayout(act)
             search_btn.setClickable(True)
             search_btn.setFocusable(True)
@@ -612,8 +612,6 @@ class InstallUI:
             self.install_ui._apply_press_scale(search_btn)
             search_row.addView(search_btn, LinearLayout.LayoutParams(AndroidUtilities.dp(52), AndroidUtilities.dp(42), 0))
             search_container.addView(search_row, FrameLayout.LayoutParams(-1, -2))
-            if not hide_clear_button:
-                search_container.addView(clear_icon)
             main_layout.addView(search_container, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8))
 
             header_row = LinearLayout(act)
@@ -736,7 +734,7 @@ class InstallUI:
             self.results_container.setPadding(0, 0, 0, AndroidUtilities.dp(10))
             main_layout.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1.0))
 
-            self.search.addTextChangedListener(SearchTextWatcherWithClear(self, clear_icon))
+            self.search.addTextChangedListener(SearchTextWatcherWithClear(self, clear_btn))
             return self.content_view
 
         def getTitle(self):
