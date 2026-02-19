@@ -7,7 +7,8 @@ import json
 from java.util import Locale
 from java.lang import Long
 
-
+# Любая попытка неправомерного использования системы бейджей автоматически лишает ваш плагин права на публикацию через официальные источники, а также приведёт к перманентной блокировке во всех ресурсах exteraGram и AyuGram без возможности апелляции. Подробнее: https://teletype.in/@exterasquad/forum-rules-ru
+# Any attempt to misuse the badge system will automatically revoke your plugin's right to be published through official sources and will result in permanent blocking from all exteraGram and AyuGram resources without the possibility of appeal. Learn more: https://teletype.in/@exterasquad/forum-rules-en
 class MethodHook:
     def before_hooked_method(self, param):
         pass
