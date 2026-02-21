@@ -112,5 +112,7 @@ class ContributorsSettings:
                 on_click=lambda v: self._open_url("https://t.me/I_am_Vestr")
             ),
 
-            Divider()
+            Divider(),
+
+            Divider(text=strings.special_thanks)
         ]
