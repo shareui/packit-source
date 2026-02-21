@@ -1,5 +1,5 @@
 {
-    "official_repository": "Official",
+    "official_repository": "Официальный",
     "plugin_title_version": "Packit v{0}",
     "plugin_subtitle": "Каталог ресурсов для exteraGram",
     "plugins_header": "Плагины",
@@ -120,7 +120,7 @@
     "repositories_cleared": "Ну и пыльно тут у тебя...",
     "clear_button": "Очистить",
     "easter_egg_title": "Подожди-ка...",
-    "easter_egg_clear_message": "Неужели ты думал, что я работаю твоей домохозяйкой? У вас один репозиторий, хозяин.",
+    "easter_egg_clear_message": "Неужели ты думал, что я работаю твоей горничной? У вас один репозиторий, хозяин.",
     "easter_egg_reset_message": "Себя сбрось с окна. У тебя один репозиторий, дурачок~",
     "support_via_send": "Поддержать через @send",
     "support_via_ton": "Поддержать через TON",
