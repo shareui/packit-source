@@ -417,7 +417,7 @@ class InstallUI:
             self.lazy_load_queue = deque()
             self.is_loading = False
             self.scroll_listener = None
-            self.current_sort_type = "repo_order"
+            self.current_sort_type = "alpha_az"
             self.batch_size = 10
             self.loading_container = None
             self.loading_video = None
@@ -891,7 +891,7 @@ class InstallUI:
                 content_wrapper.addView(self.results_container, FrameLayout.LayoutParams(-1, -2))
 
                 if self.plugins and len(self.plugins) > 0:
-                    self.build_list_with_sort("repo_order")
+                    self.build_list_with_sort("alpha_az")
                 else:
                     self._show_empty_state()
             except Exception as e:
@@ -899,7 +899,7 @@ class InstallUI:
                 try:
                     content_wrapper.addView(self.results_container, FrameLayout.LayoutParams(-1, -2))
                     if self.plugins and len(self.plugins) > 0:
-                        self.build_list_with_sort("repo_order")
+                        self.build_list_with_sort("alpha_az")
                     else:
                         self._show_empty_state()
                 except Exception:
