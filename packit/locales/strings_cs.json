@@ -39,7 +39,7 @@
     "direct_message": "Přímá zpráva",
     "personal_channel": "Osobní kanál",
     "lead_developer_vestr": "Hlavní vývojář: @mr_Vestr",
-    "special_thanks": "Zvláštní poděkování: @NKS22S",
+    "special_thanks": "Zvláštní poděkování: @NKS22S, @justkoder",
     "for_users": "Pro uživatele",
     "faq": "Časté dotazy",
     "report_bug": "Nahlásit chybu",
@@ -68,7 +68,7 @@
     "plugin_not_found": "Plugin PackIt nenalezen. Trapas.",
     "error_opening_settings": "Chyba při otevírání nastavení: {0}",
     "error_generic": "Chyba: {0}",
-    "icon_selected": "Ikona '{0}' vybrána!",
+    "icon_selected": "Ikona \"{0}\" vybrána!",
     "arrows_navigation": "Šipky a navigace",
     "attachments_media": "Přílohy a média",
     "avatar_profile": "Avatar a profil",
@@ -156,5 +156,10 @@
     "all_repositories": "Všechny repozitáře",
     "search_all_repositories": "Hledat ve všech repozitářích",
     "plugin_view_button": "Zobrazit",
-    "unnamed": "Bez názvu"
+    "unnamed": "Bez názvu",
+    "repository_selection_header": "Výběr repozitářů",
+    "skip_repository_selection": "Přeskočit výběr repozitáře",
+    "skip_repository_selection_desc": "Automaticky otevře nabídku pluginů v režimu \"Všechny repozitáře\".",
+    "hide_repository_selection_button": "Skrýt tlačítko výběru repozitáře",
+    "hide_repository_selection_button_desc": "Skryje tlačítko výběru repozitáře v nabídce pluginů."
 }

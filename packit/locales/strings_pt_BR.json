@@ -39,7 +39,7 @@
     "direct_message": "Mensagem direta",
     "personal_channel": "Canal pessoal",
     "lead_developer_vestr": "Desenvolvedor principal: @mr_Vestr",
-    "special_thanks": "Agradecimentos especiais a: @NKS22S",
+    "special_thanks": "Agradecimentos especiais a: @NKS22S, @justkoder",
     "for_users": "Para usuários",
     "faq": "Perguntas frequentes",
     "report_bug": "Reportar bug",
@@ -68,7 +68,7 @@
     "plugin_not_found": "Plugin PackIt não encontrado. Que saia.",
     "error_opening_settings": "Erro ao abrir as configurações: {0}",
     "error_generic": "Erro: {0}",
-    "icon_selected": "Ícone '{0}' selecionado!",
+    "icon_selected": "Ícone \"{0}\" selecionado!",
     "arrows_navigation": "Setas e navegação",
     "attachments_media": "Anexos e mídia",
     "avatar_profile": "Avatar e perfil",
@@ -156,5 +156,10 @@
     "all_repositories": "Todos os repositórios",
     "search_all_repositories": "Buscar em todos os repositórios",
     "plugin_view_button": "Ver",
-    "unnamed": "Sem nome"
+    "unnamed": "Sem nome",
+    "repository_selection_header": "Seleção de repositório",
+    "skip_repository_selection": "Ignorar seleção de repositório",
+    "skip_repository_selection_desc": "Abre automaticamente o menu de plugins no modo \"Todos os repositórios\".",
+    "hide_repository_selection_button": "Ocultar botão de seleção de repositório",
+    "hide_repository_selection_button_desc": "Oculta o botão de seleção de repositório no menu de plugins."
 }
