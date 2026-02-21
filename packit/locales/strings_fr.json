@@ -39,7 +39,7 @@
     "direct_message": "Message direct",
     "personal_channel": "Chaîne personnelle",
     "lead_developer_vestr": "Développeur principal : @mr_Vestr",
-    "special_thanks": "Remerciements particuliers à : @NKS22S",
+    "special_thanks": "Remerciements particuliers à : @NKS22S, @justkoder",
     "for_users": "Pour les utilisateurs",
     "faq": "FAQ",
     "report_bug": "Signaler un bug",
@@ -156,5 +156,10 @@
     "all_repositories": "Tous les dépôts",
     "search_all_repositories": "Rechercher dans tous les dépôts",
     "plugin_view_button": "Voir",
-    "unnamed": "Sans nom"
+    "unnamed": "Sans nom",
+    "repository_selection_header": "Sélection du dépôt",
+    "skip_repository_selection": "Ignorer la sélection du dépôt",
+    "skip_repository_selection_desc": "Ouvre automatiquement le menu des plugins en mode \"Tous les dépôts\".",
+    "hide_repository_selection_button": "Masquer le bouton de sélection du dépôt",
+    "hide_repository_selection_button_desc": "Masque le bouton de sélection du dépôt dans le menu des plugins."
 }

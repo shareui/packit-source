@@ -39,7 +39,7 @@
     "direct_message": "ダイレクトメッセージ",
     "personal_channel": "個人チャンネル",
     "lead_developer_vestr": "リード開発者: @mr_Vestr",
-    "special_thanks": "特別な感謝: @NKS22S",
+    "special_thanks": "特別な感謝: @NKS22S, @justkoder",
     "for_users": "ユーザー向け",
     "faq": "よくある質問",
     "report_bug": "バグを報告",
@@ -156,5 +156,10 @@
     "all_repositories": "すべてのリポジトリ",
     "search_all_repositories": "すべてのリポジトリを検索",
     "plugin_view_button": "詳細",
-    "unnamed": "名前なし"
+    "unnamed": "名前なし",
+    "repository_selection_header": "リポジトリ選択",
+    "skip_repository_selection": "リポジトリ選択をスキップ",
+    "skip_repository_selection_desc": "プラグインメニューを「すべてのリポジトリ」モードで自動的に開きます。",
+    "hide_repository_selection_button": "リポジトリ選択ボタンを非表示",
+    "hide_repository_selection_button_desc": "プラグインメニューのリポジトリ選択ボタンを非表示にします。"
 }

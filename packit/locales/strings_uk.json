@@ -39,7 +39,7 @@
     "direct_message": "Особисте повідомлення",
     "personal_channel": "Особистий канал",
     "lead_developer_vestr": "Провідний розробник: @mr_Vestr",
-    "special_thanks": "Особлива подяка: @NKS22S",
+    "special_thanks": "Особлива подяка: @NKS22S, @justkoder",
     "for_users": "Для користувачів",
     "faq": "FAQ",
     "report_bug": "Повідомити про помилку",
@@ -68,7 +68,7 @@
     "plugin_not_found": "Плагін PackIt не знайдено... Незручно.",
     "error_opening_settings": "Помилка відкриття налаштувань: {0}",
     "error_generic": "Помилка: {0}",
-    "icon_selected": "Іконка '{0}' вибрана!",
+    "icon_selected": "Іконка \"{0}\" вибрана!",
     "arrows_navigation": "Стрілки та навігація",
     "attachments_media": "Вкладення та медіа",
     "avatar_profile": "Аватар та профіль",
@@ -156,5 +156,10 @@
     "all_repositories": "Всі джерела",
     "search_all_repositories": "Пошук по всіх джерелах",
     "plugin_view_button": "Детальніше",
-    "unnamed": "Без назви"
+    "unnamed": "Без назви",
+    "repository_selection_header": "Вибір репозиторіїв",
+    "skip_repository_selection": "Пропускати вибір репозиторію",
+    "skip_repository_selection_desc": "Автоматично відкриває меню плагінів у режимі \"Усі репозиторії\".",
+    "hide_repository_selection_button": "Приховати кнопку вибору репозиторію",
+    "hide_repository_selection_button_desc": "Приховує кнопку вибору репозиторію в меню плагінів."
 }

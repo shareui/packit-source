@@ -39,7 +39,7 @@
     "direct_message": "Direkt mesaj",
     "personal_channel": "Kişisel kanal",
     "lead_developer_vestr": "Baş geliştirici: @mr_Vestr",
-    "special_thanks": "Özel teşekkürler: @NKS22S",
+    "special_thanks": "Özel teşekkürler: @NKS22S, @justkoder",
     "for_users": "Kullanıcılar için",
     "faq": "SSS",
     "report_bug": "Hata bildir",
@@ -68,7 +68,7 @@
     "plugin_not_found": "PackIt eklentisi bulunamadı...",
     "error_opening_settings": "Ayarlar açılırken hata: {0}",
     "error_generic": "Hata: {0}",
-    "icon_selected": "'{0}' simgesi seçildi!",
+    "icon_selected": "\"{0}\" simgesi seçildi!",
     "arrows_navigation": "Oklar ve gezinme",
     "attachments_media": "Ekler ve medya",
     "avatar_profile": "Avatar ve profil",
@@ -156,5 +156,10 @@
     "search_all_repositories": "Tüm kaynaklarda ara",
     "plugin_view_button": "Detaylar",
     "unnamed": "İsimsiz",
-    "support_send_message": "<3"
+    "support_send_message": "<3",
+    "repository_selection_header": "Depo Seçimi",
+    "skip_repository_selection": "Depo seçimini atla",
+    "skip_repository_selection_desc": "Eklenti menüsünü otomatik olarak \"Tüm depolar\" modunda açar.",
+    "hide_repository_selection_button": "Depo seçim düğmesini gizle",
+    "hide_repository_selection_button_desc": "Eklenti menüsündeki depo seçim düğmesini gizler."
 }

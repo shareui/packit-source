@@ -39,7 +39,7 @@
     "direct_message": "Direktnachricht",
     "personal_channel": "Persönlicher Kanal",
     "lead_developer_vestr": "Leitender Entwickler: @mr_Vestr",
-    "special_thanks": "Besonderer Dank an: @NKS22S",
+    "special_thanks": "Besonderer Dank an: @NKS22S, @justkoder",
     "for_users": "Für Nutzer",
     "faq": "FAQ",
     "report_bug": "Fehler melden",
@@ -68,7 +68,7 @@
     "plugin_not_found": "PackIt-Plugin nicht gefunden. Unangenehm.",
     "error_opening_settings": "Fehler beim Öffnen der Einstellungen: {0}",
     "error_generic": "Fehler: {0}",
-    "icon_selected": "Symbol '{0}' ausgewählt!",
+    "icon_selected": "Symbol \"{0}\" ausgewählt!",
     "arrows_navigation": "Pfeile & Navigation",
     "attachments_media": "Anhänge & Medien",
     "avatar_profile": "Avatar & Profil",
@@ -156,5 +156,10 @@
     "all_repositories": "Alle Quellen",
     "search_all_repositories": "In allen Quellen suchen",
     "plugin_view_button": "Ansehen",
-    "unnamed": "Ohne Namen"
+    "unnamed": "Ohne Namen",
+    "repository_selection_header": "Repository-Auswahl",
+    "skip_repository_selection": "Repository-Auswahl überspringen",
+    "skip_repository_selection_desc": "Öffnet das Plugin-Menü automatisch im Modus \"Alle Repositories\".",
+    "hide_repository_selection_button": "Repository-Auswahlschaltfläche ausblenden",
+    "hide_repository_selection_button_desc": "Blendet die Repository-Auswahlschaltfläche im Plugin-Menü aus."
 }

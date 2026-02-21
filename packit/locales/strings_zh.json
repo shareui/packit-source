@@ -39,7 +39,7 @@
     "direct_message": "私信",
     "personal_channel": "个人频道",
     "lead_developer_vestr": "首席开发者：@mr_Vestr",
-    "special_thanks": "特别感谢：@NKS22S",
+    "special_thanks": "特别感谢：@NKS22S, @justkoder",
     "for_users": "用户专区",
     "faq": "常见问题",
     "report_bug": "反馈问题",
@@ -156,5 +156,10 @@
     "all_repositories": "所有仓库",
     "search_all_repositories": "在所有仓库中搜索",
     "plugin_view_button": "查看",
-    "unnamed": "未命名"
+    "unnamed": "未命名",
+    "repository_selection_header": "仓库选择",
+    "skip_repository_selection": "跳过仓库选择",
+    "skip_repository_selection_desc": "自动以「所有仓库」模式打开插件菜单。",
+    "hide_repository_selection_button": "隐藏仓库选择按钮",
+    "hide_repository_selection_button_desc": "在插件菜单中隐藏仓库选择按钮。"
 }

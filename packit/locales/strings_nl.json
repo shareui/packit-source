@@ -39,7 +39,7 @@
     "direct_message": "Direct bericht",
     "personal_channel": "Persoonlijk kanaal",
     "lead_developer_vestr": "Hoofdontwikkelaar: @mr_Vestr",
-    "special_thanks": "Speciale dank aan: @NKS22S",
+    "special_thanks": "Speciale dank aan: @NKS22S, @justkoder",
     "for_users": "Voor gebruikers",
     "faq": "Veelgestelde vragen",
     "report_bug": "Bug melden",
@@ -68,7 +68,7 @@
     "plugin_not_found": "PackIt-plugin niet gevonden. Awkward.",
     "error_opening_settings": "Fout bij openen instellingen: {0}",
     "error_generic": "Fout: {0}",
-    "icon_selected": "Icoon '{0}' geselecteerd!",
+    "icon_selected": "Icoon \"{0}\" geselecteerd!",
     "arrows_navigation": "Pijlen & Navigatie",
     "attachments_media": "Bijlagen & Media",
     "avatar_profile": "Avatar & Profiel",
@@ -156,5 +156,10 @@
     "all_repositories": "Alle repositories",
     "search_all_repositories": "In alle repositories zoeken",
     "plugin_view_button": "Bekijken",
-    "unnamed": "Naamloos"
+    "unnamed": "Naamloos",
+    "repository_selection_header": "Repositoryselectie",
+    "skip_repository_selection": "Repositoryselectie overslaan",
+    "skip_repository_selection_desc": "Opent het pluginmenu automatisch in de modus \"Alle repositories\".",
+    "hide_repository_selection_button": "Knop voor repositoryselectie verbergen",
+    "hide_repository_selection_button_desc": "Verbergt de knop voor repositoryselectie in het pluginmenu."
 }
