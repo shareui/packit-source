@@ -10,6 +10,7 @@ from hook_utils import find_class
 from org.telegram.ui.ActionBar import BottomSheet, Theme
 from org.telegram.ui.Components import LayoutHelper
 from org.telegram.messenger import AndroidUtilities
+from elyx import strings
 
 
 def show_repo_sheet(install_ui, repos, on_select=None):
@@ -51,7 +52,7 @@ def show_repo_sheet(install_ui, repos, on_select=None):
                 title.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
             except Exception:
                 title.setTypeface(AndroidUtilities.bold())
-            title.setText("Select a repository")
+            title.setText(strings["select_repository"])
             title.setGravity(Gravity.CENTER)
             root.addView(title, LayoutHelper.createFrame(-1, -2, Gravity.TOP, 0, 16, 0, 8))
             content_frame = FrameLayout(act)
@@ -117,7 +118,7 @@ def show_repo_sheet(install_ui, repos, on_select=None):
                 except Exception:
                     name_tv.setTypeface(AndroidUtilities.bold())
                 name_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
-                name_tv.setText(repo.get("name") or "Unnamed")
+                name_tv.setText(repo.get("name") or strings["unnamed"])
                 name_tv.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
                 url_tv = TextView(act)
                 url_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
@@ -176,12 +177,12 @@ def show_repo_sheet(install_ui, repos, on_select=None):
             all_repos_icon.setLayoutParams(LayoutHelper.createLinear(AndroidUtilities.dp(24), AndroidUtilities.dp(24), Gravity.CENTER_VERTICAL, 0, 0, 16, 0))
             all_repos_name = TextView(act)
             all_repos_name.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
-            all_repos_name.setText("All repositories")
+            all_repos_name.setText(strings["all_repositories"])
             all_repos_name.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton))
             all_repos_name.setTypeface(AndroidUtilities.bold())
             all_repos_url = TextView(act)
             all_repos_url.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
-            all_repos_url.setText("Search across all repositories")
+            all_repos_url.setText(strings["search_all_repositories"])
             all_repos_url.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton))
             all_repos_text_container = LinearLayout(act)
             all_repos_text_container.setOrientation(LinearLayout.VERTICAL)

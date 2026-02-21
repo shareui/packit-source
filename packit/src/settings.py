@@ -165,7 +165,25 @@ class SettingsBuilder:
             pass
     
     def _check_updates(self, view):
-        pass
+        try:
+            from ui.bulletin import BulletinHelper
+            BulletinHelper.show_info(strings.not_ready_yet)
+        except Exception:
+            pass
+    
+    def _install_icons(self, view):
+        try:
+            from ui.bulletin import BulletinHelper
+            BulletinHelper.show_info(strings.not_ready_yet)
+        except Exception:
+            pass
+    
+    def _install_config(self, view):
+        try:
+            from ui.bulletin import BulletinHelper
+            BulletinHelper.show_info(strings.not_ready_yet)
+        except Exception:
+            pass
     
     def _openPackitForum(self, view):
         try:
@@ -186,6 +204,20 @@ class SettingsBuilder:
                 icon="msg_download",
                 on_click=self._open_install_plugin,
                 link_alias="install"
+            ),
+            
+            Text(
+                text=strings.install_icons,
+                icon="msg_smile_status",
+                on_click=self._install_icons,
+                link_alias="install_icons"
+            ),
+            
+            Text(
+                text=strings.install_config,
+                icon="msg_settings_old",
+                on_click=self._install_config,
+                link_alias="install_config"
             ),
             
             Text(
