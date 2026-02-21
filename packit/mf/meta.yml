@@ -1,6 +1,6 @@
 name: PackIt
 description: |
-  **A universal plugin manager for exteraGram/AyuGram. With the ability to add multiple repositories, as well as create your own.**
+  **A resource catalog for exteraGram/AyuGram. Plugins, icons, configs — all in one place, with support for multiple repositories.**
   
   Source code: [shareui/packit-source](https://github.com/shareui/packit-source)
   Developers: [shareui](https://t.me/shareui), [Vestr](https://t.me/mr_Vestr)
