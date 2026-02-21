@@ -2,7 +2,6 @@ from android_utils import log
 
 
 def _trigrams(text: str) -> set:
-    # pad with spaces so short strings still produce trigrams
     padded = f" {text} "
     return {padded[i:i + 3] for i in range(len(padded) - 2)}
 
@@ -13,7 +12,6 @@ def build_index(plugins: list) -> dict:
     for p in plugins:
         pid = str(p.get("id") or "")
         if not pid:
-            # plugin without id is unreachable via score() — skip explicitly
             skipped += 1
             continue
         name = str(p.get("name") or "").lower()
@@ -30,7 +28,6 @@ def build_index(plugins: list) -> dict:
             "author": _trigrams(author),
             "desc_en": _trigrams(descEn),
             "desc_ru": _trigrams(descRu),
-            # raw strings for exact-substring fast path
             "name_raw": name,
             "author_raw": author,
             "desc_en_raw": descEn,
@@ -70,7 +67,6 @@ def score(plugin: dict, query: str, index: dict, isRussian: bool) -> tuple:
     descPrimary = entry["desc_ru_raw"] if isRussian else entry["desc_en_raw"]
     descSecondary = entry["desc_en_raw"] if isRussian else entry["desc_ru_raw"]
 
-    # exact substring fast path — same priority as before
     if ql in nameRaw:
         return (1, 0 if nameRaw.startswith(ql) else 1, 0.0)
     if ql in descPrimary:
@@ -82,7 +78,6 @@ def score(plugin: dict, query: str, index: dict, isRussian: bool) -> tuple:
     if ql in authorRaw:
         return (5, 0 if authorRaw.startswith(ql) else 1, 0.0)
 
-    # trigram fuzzy path
     queryTri = _trigrams(ql)
     nameSim = _trigram_similarity(queryTri, entry["name"])
     if nameSim >= _MIN_SIMILARITY:
