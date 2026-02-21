@@ -7,7 +7,7 @@ from .settings import SettingsBuilder
 from .packlog import packlog
 from .chat_ui import ChatButton
 from .deeplink import setup_deeplink_hook
-from .badges import BadgeManager
+from .other.badges import BadgeManager
 from android_utils import log
 
 
