@@ -13,7 +13,7 @@ from org.telegram.messenger import AndroidUtilities
 from elyx import strings
 
 
-def show_repo_sheet(install_ui, repos):
+def show_repo_sheet(install_ui, repos, on_select=None):
     fragment = get_last_fragment()
     if not fragment:
         return
@@ -140,7 +140,10 @@ def show_repo_sheet(install_ui, repos):
                         sheet.dismiss()
                     except Exception:
                         pass
-                    install_ui._open_repo_plugins(repo)
+                    if on_select:
+                        on_select(repo)
+                    else:
+                        install_ui._open_repo_plugins(repo)
 
                 btn.setOnClickListener(OnClickListener(lambda v: on_click(v)))
                 install_ui._apply_press_scale(btn)
@@ -194,7 +197,10 @@ def show_repo_sheet(install_ui, repos):
                     sheet.dismiss()
                 except Exception:
                     pass
-                install_ui._open_all_repos_plugins()
+                if on_select:
+                    on_select("all")
+                else:
+                    install_ui._open_all_repos_plugins()
 
             all_repos_btn.setOnClickListener(OnClickListener(lambda v: on_all_repos_click(v)))
             install_ui._apply_press_scale(all_repos_btn)

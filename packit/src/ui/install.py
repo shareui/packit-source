@@ -208,6 +208,9 @@ class InstallUI:
         if not repos:
             BulletinHelper.show_error("No repositories configured")
             return
+        if settings.get("skip_repository_selection", False):
+            self._open_all_repos_plugins()
+            return
         if len(repos) == 1:
             self._open_repo_plugins(repos[0])
             return
@@ -431,6 +434,20 @@ class InstallUI:
             except Exception:
                 pass
 
+        def _handle_repo_select(self, selected):
+            if selected == "all":
+                if self.title == "All repositories":
+                    return
+                else:
+                    self.install_ui._open_all_repos_plugins()
+            elif isinstance(selected, dict) and selected.get("name") == self.title:
+                return
+            else:
+                if isinstance(selected, dict):
+                    self.install_ui._open_repo_plugins(selected)
+                elif selected == "all":
+                    self.install_ui._open_all_repos_plugins()
+
         def beforeCreateView(self):
             act = get_last_fragment().getContext()
             colors = self.install_ui._get_theme_colors()
@@ -455,19 +472,12 @@ class InstallUI:
             pill = GradientDrawable()
             pill.setShape(GradientDrawable.RECTANGLE)
             pill.setCornerRadius(AndroidUtilities.dp(50))
-            colored_border = settings.get("colored_search_border", False)
-            if not colored_border:
+            try:
+                base_color = Theme.getColor(Theme.key_featuredStickers_addButton)
+                pill.setStroke(AndroidUtilities.dp(2), base_color)
+            except Exception:
                 try:
-                    base_color = Theme.getColor(Theme.key_featuredStickers_addButton)
-                    pill.setStroke(AndroidUtilities.dp(2), base_color)
-                except Exception:
-                    try:
-                        pill.setStroke(AndroidUtilities.dp(2), Theme.getColor(Theme.key_dialogTextBlue))
-                    except Exception:
-                        pass
-            else:
-                try:
-                    pill.setStroke(self.search_stroke_width, self.search_border_color)
+                    pill.setStroke(AndroidUtilities.dp(2), Theme.getColor(Theme.key_dialogTextBlue))
                 except Exception:
                     pass
             try:
@@ -622,17 +632,59 @@ class InstallUI:
             header_lp.topMargin = AndroidUtilities.dp(4)
             header_lp.bottomMargin = AndroidUtilities.dp(12)
             main_layout.addView(header_row, header_lp)
+            repo_btn = FrameLayout(act)
+            repo_btn.setClickable(True)
+            repo_btn.setFocusable(True)
+            try:
+                surface_color = CanvasUtils.INSTANCE.getAdaptedSurfaceColor()
+                repo_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                    AndroidUtilities.dp(16), surface_color, surface_color
+                ))
+            except Exception:
+                repo_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                    AndroidUtilities.dp(16), self.card_bg_color, self.card_pressed_color
+                ))
+            repo_btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
+            repo_icon = ImageView(act)
+            icon_id = self.install_ui._resolve_icon("msg_media")
+            repo_icon.setImageResource(icon_id)
+            try:
+                repo_icon.setColorFilter(self.text_color)
+            except Exception:
+                pass
+            repo_btn.addView(repo_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
+            def show_repo_menu_handler():
+                fragment = get_last_fragment()
+                if fragment:
+                    fragment.finishFragment()
+                repos = []
+                try:
+                    for r in (self.install_ui.plugin.repoManager.getRepositories() or []):
+                        if not r or not r.get("enabled"):
+                            continue
+                        name = str(r.get("name") or "").strip()
+                        url = str(r.get("url") or "").strip()
+                        if name and url:
+                            repos.append(r)
+                except Exception:
+                    pass
+                show_repo_sheet(self.install_ui, repos, on_select=self._handle_repo_select)
+            repo_btn.setOnClickListener(OnClickListener(lambda v: show_repo_menu_handler()))
+            self.install_ui._apply_press_scale(repo_btn)
+            if settings.get("hide_repository_selection_button", False):
+                repo_btn.setVisibility(View.GONE)
+            header_row.addView(repo_btn, LayoutHelper.createLinear(-2, -2, 1, 0, 8, 0))
             subtitle = TextView(act)
             subtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
             subtitle.setText(strings("total_plugins", len(self.plugins)) if self.plugins else strings["total_plugins_unknown"])
             subtitle.setGravity(Gravity.CENTER)
-            subtitle.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(6), AndroidUtilities.dp(12), AndroidUtilities.dp(6))
+            subtitle.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(7), AndroidUtilities.dp(12), AndroidUtilities.dp(7))
             subtitle.setClickable(False)
             subtitle.setFocusable(False)
             try:
                 surface_color = CanvasUtils.INSTANCE.getAdaptedSurfaceColor()
                 subtitle.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                    AndroidUtilities.dp(50), surface_color, surface_color
+                    AndroidUtilities.dp(16), surface_color, surface_color
                 ))
             except Exception:
                 try:
@@ -647,7 +699,6 @@ class InstallUI:
             self.subtitle = subtitle
             spacer = View(act)
             header_row.addView(spacer, LayoutHelper.createLinear(0, 0, 1.0))
-
             sort_btn = FrameLayout(act)
             sort_btn.setClickable(True)
             sort_btn.setFocusable(True)

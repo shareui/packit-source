@@ -47,28 +47,30 @@ class OtherSettings:
                 link_alias="old_sort_menu_design"
             ),
             Switch(
-                key="colored_search_border",
-                text=strings.colored_search_border,
-                subtext=strings.colored_search_border_desc,
-                default=False,
-                icon="msg_search",
-                link_alias="colored_search_border"
-            ),
-            Switch(
-                key="hide_search_clear_button",
-                text=strings.hide_search_clear_button,
-                subtext=strings.hide_search_clear_button_desc,
-                default=False,
-                icon="msg_clear",
-                link_alias="hide_search_clear_button"
-            ),
-            Switch(
                 key="show_default_sticker",
                 text=strings.show_default_sticker,
                 subtext=strings.show_default_sticker_desc,
                 default=False,
                 icon="msg_sticker",
                 link_alias="show_default_sticker"
+            ),
+            Divider(),
+            Header(text=strings.repository_selection_header),
+            Switch(
+                key="skip_repository_selection",
+                text=strings.skip_repository_selection,
+                subtext=strings.skip_repository_selection_desc,
+                default=False,
+                icon="msg_leave",
+                link_alias="skip_repository_selection"
+            ),
+            Switch(
+                key="hide_repository_selection_button",
+                text=strings.hide_repository_selection_button,
+                subtext=strings.hide_repository_selection_button_desc,
+                default=False,
+                icon="msg_unpin",
+                link_alias="hide_repository_selection_button"
             ),
             Divider(),
         ]
