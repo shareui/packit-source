@@ -367,7 +367,7 @@ class InstallUI:
                         delegate.subtitle.setText(f"Total plugins: {len(plugins)}")
 
                     if hasattr(delegate, 'results_container') and delegate.results_container:
-                        delegate.build_list_with_sort("repo_order")
+                        delegate.build_list_with_sort("alpha_az")
                     else:
                         pass
         except Exception as e:
@@ -414,7 +414,7 @@ class InstallUI:
             self.lazy_load_queue = deque()
             self.is_loading = False
             self.scroll_listener = None
-            self.current_sort_type = "repo_order"
+            self.current_sort_type = "alpha_az"
             self.batch_size = 10
             self.loading_container = None
             self.loading_video = None
@@ -787,9 +787,9 @@ class InstallUI:
                         filtered.append(p)
                 filtered.sort(key=lambda p: search_mod.score(p, q, self.search_index, isRussian))
             if sort_type == "alpha_az":
-                filtered.sort(key=lambda p: str(p.get("name") or p.get("id") or "").lower())
+                filtered.sort(key=lambda p: (1 if str(p.get("name") or p.get("id") or "")[:1].isdigit() else 0, str(p.get("name") or p.get("id") or "").lower()))
             elif sort_type == "alpha_za":
-                filtered.sort(key=lambda p: str(p.get("name") or p.get("id") or "").lower(), reverse=True)
+                filtered.sort(key=lambda p: (0 if str(p.get("name") or p.get("id") or "")[:1].isdigit() else 1, str(p.get("name") or p.get("id") or "").lower()), reverse=True)
             elif sort_type == "authors":
                 filtered.sort(key=lambda p: str(p.get("author") or "").lower())
             self.filtered_plugins = filtered
@@ -840,7 +840,7 @@ class InstallUI:
                 content_wrapper.addView(self.results_container, FrameLayout.LayoutParams(-1, -2))
 
                 if self.plugins and len(self.plugins) > 0:
-                    self.build_list_with_sort("repo_order")
+                    self.build_list_with_sort("alpha_az")
                 else:
                     self._show_empty_state()
             except Exception as e:
@@ -848,7 +848,7 @@ class InstallUI:
                 try:
                     content_wrapper.addView(self.results_container, FrameLayout.LayoutParams(-1, -2))
                     if self.plugins and len(self.plugins) > 0:
-                        self.build_list_with_sort("repo_order")
+                        self.build_list_with_sort("alpha_az")
                     else:
                         self._show_empty_state()
                 except Exception:

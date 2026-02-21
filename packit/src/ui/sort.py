@@ -122,7 +122,9 @@ def show_sort_menu(install_ui, act, current_sort_type, build_list_with_sort):
             if icon_id:
                 icon.setImageResource(icon_id)
                 try:
-                    if is_current and not use_classic_design:
+                    if is_current and use_classic_design:
+                        icon.setColorFilter(Color.WHITE)
+                    elif is_current and not use_classic_design:
                         icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_addButton))
                     else:
                         icon.setColorFilter(Theme.getColor(Theme.key_dialogTextGray2))
@@ -146,19 +148,19 @@ def show_sort_menu(install_ui, act, current_sort_type, build_list_with_sort):
             install_ui._apply_press_scale(option)
             return option
 
-        sort_root.addView(create_sort_option("As in Repository", "repo_order"), LayoutHelper.createLinear(-1, -2, 0, 1, 0, 1))
+        sort_root.addView(create_sort_option("Alphabetically A-Z", "alpha_az"), LayoutHelper.createLinear(-1, -2, 0, 1, 0, 1))
         divider = View(act)
         divider.setBackgroundColor(Theme.getColor(Theme.key_divider))
         sort_root.addView(divider, LayoutHelper.createFrame(-1, 1, Gravity.TOP, 16, 4, 16, 4))
-        sort_root.addView(create_sort_option("Alphabetically A-Z", "alpha_az"), LayoutHelper.createLinear(-1, -2, 0, 1, 0, 1))
+        sort_root.addView(create_sort_option("Alphabetically Z-A", "alpha_za"), LayoutHelper.createLinear(-1, -2, 0, 1, 0, 1))
         divider3 = View(act)
         divider3.setBackgroundColor(Theme.getColor(Theme.key_divider))
         sort_root.addView(divider3, LayoutHelper.createFrame(-1, 1, Gravity.TOP, 16, 4, 16, 4))
-        sort_root.addView(create_sort_option("Alphabetically Z-A", "alpha_za"), LayoutHelper.createLinear(-1, -2, 0, 1, 0, 1))
+        sort_root.addView(create_sort_option("By Authors (A-Z)", "authors"), LayoutHelper.createLinear(-1, -2, 0, 1, 0, 1))
         divider2 = View(act)
         divider2.setBackgroundColor(Theme.getColor(Theme.key_divider))
         sort_root.addView(divider2, LayoutHelper.createFrame(-1, 1, Gravity.TOP, 16, 4, 16, 4))
-        sort_root.addView(create_sort_option("By Authors (A-Z)", "authors"), LayoutHelper.createLinear(-1, -2, 0, 1, 0, 1))
+        sort_root.addView(create_sort_option("As in Repository", "repo_order"), LayoutHelper.createLinear(-1, -2, 0, 1, 0, 1))
         close_btn = FrameLayout(act)
         try:
             base_color = Theme.getColor(Theme.key_featuredStickers_addButton)
