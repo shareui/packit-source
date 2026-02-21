@@ -17,7 +17,7 @@ import requests
 from android_utils import log, run_on_ui_thread
 from client_utils import get_last_fragment, run_on_queue
 from ui.bulletin import BulletinHelper
-from elyx import settings
+from elyx import settings, strings
 from org.telegram.ui.ActionBar import Theme
 from org.telegram.ui.Components import LayoutHelper, BackupImageView, EditTextBoldCursor
 from org.telegram.messenger import AndroidUtilities, MediaDataController, ImageLocation
@@ -80,8 +80,9 @@ class InstallUI:
         except Exception:
             pass
 
-    def _create_close_button(self, act, text="Close"):
+    def _create_close_button(self, act, text=None):
         close_btn = FrameLayout(act)
+        resolvedText = text if text is not None else strings["close_button"]
         try:
             base_color = Theme.getColor(Theme.key_featuredStickers_addButton)
         except Exception:
@@ -97,7 +98,7 @@ class InstallUI:
         close_btn.setClickable(True)
         close_btn.setFocusable(True)
         close_text = TextView(act)
-        close_text.setText(text)
+        close_text.setText(resolvedText)
         close_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
         close_text.setTypeface(AndroidUtilities.bold())
         close_text.setGravity(Gravity.CENTER)
@@ -270,7 +271,7 @@ class InstallUI:
         fragment = get_last_fragment()
         if not fragment:
             return
-        self._show_plugins_universal("All repositories", [])
+        self._show_plugins_universal(strings["all_repositories"], [])
 
         def load_task():
             try:
@@ -316,7 +317,7 @@ class InstallUI:
             log(f"Failed to update plugins in fragment: {e}")
 
     def _open_repo_plugins(self, repo):
-        repo_name = repo.get("name") or "Unnamed"
+        repo_name = repo.get("name") or strings["unnamed"]
         repo_url = (repo.get("url") or "").strip()
         if not repo_url:
             BulletinHelper.show_error("Repository URL is empty")
@@ -364,10 +365,10 @@ class InstallUI:
                     delegate.search_index = search_mod.build_index(plugins)
 
                     if hasattr(delegate, 'subtitle'):
-                        delegate.subtitle.setText(f"Total plugins: {len(plugins)}")
+                        delegate.subtitle.setText(strings("total_plugins", len(plugins)))
 
                     if hasattr(delegate, 'results_container') and delegate.results_container:
-                        delegate.build_list_with_sort("repo_order")
+                        delegate.build_list_with_sort("alpha_az")
                     else:
                         pass
         except Exception as e:
@@ -414,7 +415,7 @@ class InstallUI:
             self.lazy_load_queue = deque()
             self.is_loading = False
             self.scroll_listener = None
-            self.current_sort_type = "repo_order"
+            self.current_sort_type = "alpha_az"
             self.batch_size = 10
             self.loading_container = None
             self.loading_video = None
@@ -479,7 +480,7 @@ class InstallUI:
             search_container.setBackground(pill)
             search_container.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(8))
             self.search = EditTextBoldCursor(act)
-            self.search.setHint("Search plugins...")
+            self.search.setHint(strings["search_hint"])
             self.search.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
             self.search.setSingleLine(True)
             self.search.setInputType(InputType.TYPE_CLASS_TEXT)
@@ -623,7 +624,7 @@ class InstallUI:
             main_layout.addView(header_row, header_lp)
             subtitle = TextView(act)
             subtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
-            subtitle.setText(f"Total plugins: {len(self.plugins)}" if self.plugins else "Total plugins: ---")
+            subtitle.setText(strings("total_plugins", len(self.plugins)) if self.plugins else strings["total_plugins_unknown"])
             subtitle.setGravity(Gravity.CENTER)
             subtitle.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(6), AndroidUtilities.dp(12), AndroidUtilities.dp(6))
             subtitle.setClickable(False)
@@ -787,9 +788,9 @@ class InstallUI:
                         filtered.append(p)
                 filtered.sort(key=lambda p: search_mod.score(p, q, self.search_index, isRussian))
             if sort_type == "alpha_az":
-                filtered.sort(key=lambda p: str(p.get("name") or p.get("id") or "").lower())
+                filtered.sort(key=lambda p: (1 if str(p.get("name") or p.get("id") or "")[:1].isdigit() else 0, str(p.get("name") or p.get("id") or "").lower()))
             elif sort_type == "alpha_za":
-                filtered.sort(key=lambda p: str(p.get("name") or p.get("id") or "").lower(), reverse=True)
+                filtered.sort(key=lambda p: (0 if str(p.get("name") or p.get("id") or "")[:1].isdigit() else 1, str(p.get("name") or p.get("id") or "").lower()), reverse=True)
             elif sort_type == "authors":
                 filtered.sort(key=lambda p: str(p.get("author") or "").lower())
             self.filtered_plugins = filtered
@@ -813,7 +814,7 @@ class InstallUI:
                 ghost_icon.setLayoutParams(LayoutHelper.createLinear(AndroidUtilities.dp(64), AndroidUtilities.dp(64)))
                 empty_container.addView(ghost_icon, LayoutHelper.createLinear(-2, -2, 0, 0, 0, 16))
                 empty = TextView(act)
-                empty.setText("No plugins")
+                empty.setText(strings["no_plugins"])
                 empty.setGravity(Gravity.CENTER)
                 empty.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
                 empty.setTextColor(self.secondary_text_color)
@@ -830,7 +831,7 @@ class InstallUI:
         def _finish_loading_and_show_plugins(self, content_wrapper):
             try:
                 if hasattr(self, 'subtitle'):
-                    self.subtitle.setText(f"Total plugins: {len(self.plugins)}")
+                    self.subtitle.setText(strings("total_plugins", len(self.plugins)))
 
                 if self.loading_container:
                     content_wrapper.removeView(self.loading_container)
@@ -840,7 +841,7 @@ class InstallUI:
                 content_wrapper.addView(self.results_container, FrameLayout.LayoutParams(-1, -2))
 
                 if self.plugins and len(self.plugins) > 0:
-                    self.build_list_with_sort("repo_order")
+                    self.build_list_with_sort("alpha_az")
                 else:
                     self._show_empty_state()
             except Exception as e:
@@ -848,7 +849,7 @@ class InstallUI:
                 try:
                     content_wrapper.addView(self.results_container, FrameLayout.LayoutParams(-1, -2))
                     if self.plugins and len(self.plugins) > 0:
-                        self.build_list_with_sort("repo_order")
+                        self.build_list_with_sort("alpha_az")
                     else:
                         self._show_empty_state()
                 except Exception:
@@ -878,7 +879,7 @@ class InstallUI:
                 empty_container.addView(ghost_icon, LayoutHelper.createLinear(-2, -2, 0, 0, 0, 16))
                 
                 empty = TextView(act)
-                empty.setText("No plugins")
+                empty.setText(strings["no_plugins"])
                 empty.setGravity(Gravity.CENTER)
                 empty.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
                 empty.setTextColor(self.secondary_text_color)
@@ -1101,7 +1102,7 @@ class InstallUI:
             icon_lp.rightMargin = AndroidUtilities.dp(6)
             install_btn.addView(install_icon, icon_lp)
             install_text = TextView(act)
-            install_text.setText("View")
+            install_text.setText(strings["plugin_view_button"])
             install_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
             install_text.setTypeface(AndroidUtilities.bold())
             install_text.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
