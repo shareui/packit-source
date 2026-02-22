@@ -1,0 +1,83 @@
+from ui.bulletin import BulletinHelper
+from client_utils import get_last_fragment, run_on_queue
+from android_utils import log, run_on_ui_thread
+from org.telegram.messenger import ApplicationLoader
+from elyx import strings
+import requests
+import json
+import os
+
+
+def _get_cache_dir() -> str:
+    pkg = ApplicationLoader.applicationContext.getPackageName()
+    return f"/data/data/{pkg}/files/packitCache"
+
+
+def _run_update(repoManager):
+    def task():
+        try:
+            repos = repoManager.getRepositories()
+            cacheDir = _get_cache_dir()
+            os.makedirs(cacheDir, exist_ok=True)
+            changed = False
+            toRemove = []
+            seenRids = set()
+
+            for i, repo in enumerate(repos):
+                url = (repo.get("url") or "").strip()
+                if not url:
+                    continue
+                try:
+                    r = requests.get(url, timeout=10)
+                    if r.status_code != 200:
+                        log(f"update deeplink: HTTP {r.status_code} for {url}")
+                        continue
+                    data = r.json()
+                    repometa = data.get("repometa")
+                    rmRid = repometa.get("rm_rid") if repometa else None
+
+                    if not repometa or not rmRid:
+                        log(f"update deeplink: no repometa for '{url}', removing repo")
+                        toRemove.append(i)
+                        changed = True
+                        continue
+
+                    if rmRid in seenRids:
+                        log(f"update deeplink: duplicate rm_rid='{rmRid}', removing repo")
+                        toRemove.append(i)
+                        changed = True
+                        continue
+                    seenRids.add(rmRid)
+
+                    if repo.get("id") != rmRid:
+                        repos[i]["id"] = rmRid
+                        changed = True
+                        log(f"update deeplink: set id='{rmRid}' for repo '{repo.get('name')}'")
+
+                    cachePath = os.path.join(cacheDir, f"{rmRid}.json")
+                    with open(cachePath, "w", encoding="utf-8") as f:
+                        json.dump(data, f, indent=2, ensure_ascii=False)
+                    log(f"update deeplink: updated cache for '{rmRid}'")
+                except Exception as e:
+                    log(f"update deeplink: error for {url}: {e}")
+
+            for i in sorted(toRemove, reverse=True):
+                repos.pop(i)
+
+            if changed:
+                repoManager.setRepositories(repos)
+
+            run_on_ui_thread(lambda: BulletinHelper.show_success(strings.update_repos_success))
+        except Exception as e:
+            log(f"update deeplink: task error: {e}")
+
+    run_on_queue(task)
+
+
+def handle(url, repoManager):
+    if url != "tg://packit?update":
+        return
+    try:
+        _run_update(repoManager)
+    except Exception as e:
+        log(f"update deeplink: handle error: {e}")

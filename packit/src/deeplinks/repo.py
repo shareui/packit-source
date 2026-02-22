@@ -4,13 +4,19 @@ from client_utils import get_last_fragment, run_on_queue
 from android_utils import log, run_on_ui_thread
 from elyx import strings
 from hook_utils import find_class
-from org.telegram.messenger import R as R_tg
+from org.telegram.messenger import R as R_tg, ApplicationLoader
 from com.exteragram.messenger.utils.text import LocaleUtils  # noqa
 from urllib.parse import urlparse, parse_qs
-from datetime import datetime
 import requests
+import json
+import os
 
 BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
+
+
+def _get_cache_dir() -> str:
+    pkg = ApplicationLoader.applicationContext.getPackageName()
+    return f"/data/data/{pkg}/files/packitCache"
 
 
 def handle(url, repoManager):
@@ -53,11 +59,34 @@ def handle(url, repoManager):
                 if response.status_code == 200:
                     data = response.json()
                     repometa = data.get("repometa")
-                    plugins = data.get("plugins", [])
-                    if isinstance(plugins, dict):
-                        pluginCount = len(plugins)
-                    elif isinstance(plugins, list):
-                        pluginCount = len(plugins)
+
+                    # Save to cache if repometa has rm_rid
+                    if repometa and repometa.get("rm_rid"):
+                        try:
+                            cache_dir = _get_cache_dir()
+                            os.makedirs(cache_dir, exist_ok=True)
+                            cache_path = os.path.join(cache_dir, f"{repometa['rm_rid']}.json")
+                            with open(cache_path, "w", encoding="utf-8") as f:
+                                json.dump(data, f, indent=2, ensure_ascii=False)
+                        except Exception as e:
+                            log(f"[PackIt] repo=add cache error: {e}")
+
+                    # Get plugin count via repomap.plugins URL if available
+                    repomap = data.get("repomap", {})
+                    plugins_url = repomap.get("plugins") if repomap else None
+                    if plugins_url:
+                        try:
+                            pr = requests.get(plugins_url, timeout=10)
+                            if pr.status_code == 200:
+                                pdata = pr.json()
+                                plugins = pdata.get("plugins", [])
+                                pluginCount = len(plugins) if isinstance(plugins, (list, dict)) else 0
+                        except Exception as e:
+                            log(f"[PackIt] repo=add plugins count error: {e}")
+                    else:
+                        plugins = data.get("plugins", [])
+                        if isinstance(plugins, (list, dict)):
+                            pluginCount = len(plugins)
             except Exception as e:
                 log(f"[PackIt] repo=add fetch error: {e}")
 
@@ -70,31 +99,44 @@ def handle(url, repoManager):
                 if not act:
                     return
 
+                if not repometa or not repometa.get("rm_rid"):
+                    BulletinHelper.show_error("Repository has no metadata")
+                    return
+
                 builder = AlertDialogBuilder(act)
                 builder.set_title(strings.repo_add_title)
 
-                if repometa:
-                    rm_url = str(repometa.get("rm_url") or link)
-                    rm_url = rm_url.removeprefix("https://").removeprefix("http://")
-                    rm_maintainer = str(repometa.get("rm_maintainer") or name)
-                    text = strings("repo_add_disclaimer", rm_url, rm_maintainer, pluginCount)
-                else:
-                    text = strings("repo_add_no_repometa", pluginCount)
+                rm_url = str(repometa.get("rm_url") or link)
+                rm_url = rm_url.removeprefix("https://").removeprefix("http://")
+                rm_maintainer = str(repometa.get("rm_maintainer") or name)
+                text = strings("repo_add_disclaimer", rm_url, rm_maintainer, pluginCount)
 
                 builder.set_message(LocaleUtils.fullyFormatText(text))
 
                 def on_confirm(b, w):
                     try:
-                        repoId = datetime.now().strftime("%Y.%m.%d %H:%M:%S.%f")
+                        if not repometa or not repometa.get("rm_rid"):
+                            BulletinHelper.show_error("Repository has no metadata")
+                            return
+
+                        rm_rid = repometa.get("rm_rid")
+                        repo_name = repometa.get("rm_name") or name
+
+                        currentRepos = repoManager.getRepositories()
+                        for existing in currentRepos:
+                            if existing.get("id") == rm_rid or existing.get("url") == link:
+                                BulletinHelper.show_error("Repository already added")
+                                b.dismiss()
+                                return
+
                         newRepo = {
-                            "id": repoId,
-                            "name": name,
+                            "id": rm_rid,
+                            "name": repo_name,
                             "url": link,
                             "enabled": True,
                             "collapsed": False,
                             "icon": icon if icon else "msg_folders"
                         }
-                        currentRepos = repoManager.getRepositories()
                         currentRepos.append(newRepo)
                         repoManager.setRepositories(currentRepos)
                         BulletinHelper.show_success(strings.repo_add_success)

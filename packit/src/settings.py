@@ -1,10 +1,10 @@
 from ui.settings import Header, Text, Divider
 from elyx import strings, metainfo
-from .cfg_comps.repos import RepositoriesSettings
-from .cfg_comps.other import OtherSettings
-from .cfg_comps.docs import DocumentationSettings
-from .cfg_comps.contributors import ContributorsSettings
-from .cfg_comps.deeplinks import DeepLinksSettings
+from .cfgComps.repos import RepositoriesSettings
+from .cfgComps.other import OtherSettings
+from .cfgComps.docs import DocumentationSettings
+from .cfgComps.contributors import ContributorsSettings
+from ui.bulletin import BulletinHelper
 from base_plugin import BasePlugin, MethodHook
 from android_utils import run_on_ui_thread
 from hook_utils import find_class, get_private_field
@@ -22,7 +22,6 @@ from android.net import Uri
 from java import dynamic_proxy as dyp
 from android_utils import OnClickListener, OnLongClickListener
 from android.content import DialogInterface
-from ui.bulletin import BulletinHelper
 import android_utils
 
 __icon__ = "plugin232/17"
@@ -43,7 +42,6 @@ class SettingsBuilder:
         self.otherSettings = OtherSettings(plugin.chatUI)
         self.documentationSettings = DocumentationSettings()
         self.contributorsSettings = ContributorsSettings()
-        self.deepLinksSettings = DeepLinksSettings()
 
     def _setup_settings_header_hook(self):
         try:
@@ -184,6 +182,13 @@ class SettingsBuilder:
             BulletinHelper.show_info(strings.not_ready_yet)
         except Exception:
             pass
+
+    def _security_scan(self, view):
+        try:
+            from ui.bulletin import BulletinHelper
+            BulletinHelper.show_info(strings.not_ready_yet)
+        except Exception:
+            pass
     
     def _openPackitForum(self, view):
         try:
@@ -233,13 +238,20 @@ class SettingsBuilder:
             Text(
                 text=strings.deeplinks,
                 icon="msg_link",
-                create_sub_fragment=self.deepLinksSettings.build
+                on_click=lambda v: BulletinHelper.show_info(strings.not_ready_yet)
             ),
             
             Text(
                 text=strings.repositories,
                 icon="msg_folders",
                 create_sub_fragment=self.repositoriesSettings.build
+            ),
+            
+            Text(
+                text=strings.security_scan,
+                icon="msg_secret",
+                on_click=self._security_scan,
+                link_alias="security_scan"
             ),
             
             Text(
