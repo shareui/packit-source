@@ -4,7 +4,7 @@ from .cfgComps.repos import RepositoriesSettings
 from .cfgComps.other import OtherSettings
 from .cfgComps.docs import DocumentationSettings
 from .cfgComps.contributors import ContributorsSettings
-from .cfgComps.deeplinks import DeepLinksSettings
+from ui.bulletin import BulletinHelper
 from base_plugin import BasePlugin, MethodHook
 from android_utils import run_on_ui_thread
 from hook_utils import find_class, get_private_field
@@ -22,7 +22,6 @@ from android.net import Uri
 from java import dynamic_proxy as dyp
 from android_utils import OnClickListener, OnLongClickListener
 from android.content import DialogInterface
-from ui.bulletin import BulletinHelper
 import android_utils
 
 __icon__ = "plugin232/17"
@@ -43,7 +42,6 @@ class SettingsBuilder:
         self.otherSettings = OtherSettings(plugin.chatUI)
         self.documentationSettings = DocumentationSettings()
         self.contributorsSettings = ContributorsSettings()
-        self.deepLinksSettings = DeepLinksSettings()
 
     def _setup_settings_header_hook(self):
         try:
@@ -240,7 +238,7 @@ class SettingsBuilder:
             Text(
                 text=strings.deeplinks,
                 icon="msg_link",
-                create_sub_fragment=self.deepLinksSettings.build
+                on_click=lambda v: BulletinHelper.show_info(strings.not_ready_yet)
             ),
             
             Text(
