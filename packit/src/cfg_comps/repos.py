@@ -223,7 +223,7 @@ class RepositoriesSettings:
                     if changed:
                         self.repoManager.setRepositories(repos)
 
-                    run_on_ui_thread(lambda: BulletinHelper.show_success("Updated successfully!"))
+                    run_on_ui_thread(lambda: BulletinHelper.show_success(strings.update_repos_success))
                 except Exception as e:
                     log(f"update_repositories: task error: {e}")
 
@@ -277,7 +277,7 @@ class RepositoriesSettings:
 
         actionItems = [
             Text(
-                text="Update repositories",
+                text=strings.update_repositories,
                 icon="msg_retry",
                 on_click=update_repositories,
                 link_alias="update_repos"

@@ -162,5 +162,21 @@
     "skip_repository_selection_desc": "Automaticky otevře nabídku pluginů v režimu \"Všechny repozitáře\".",
     "hide_repository_selection_button": "Skrýt tlačítko výběru repozitáře",
     "hide_repository_selection_button_desc": "Skryje tlačítko výběru repozitáře v nabídce pluginů.",
-    "security_scan": "Zabezpečení"
+    "security_scan": "Zabezpečení",
+    "cache_header": "Cache",
+    "clear_cache": "Vymazat cache",
+    "clear_cache_confirm_title": "Vymazat cache",
+    "clear_cache_confirm_message": "Jsi si jistý/á? Tato akce je nevratná.",
+    "clear_cache_done_title": "Cache vymazána",
+    "clear_cache_done_message": "Je SILNĚ doporučeno restartovat aplikaci.",
+    "clear_cache_button": "Vymazat",
+    "cancel_button": "Zrušit",
+    "restart_now": "Restartovat nyní",
+    "restart_later": "Později",
+    "update_repos_success": "Úspěšně aktualizováno!",
+    "beta_dialog_title": "Beta verze",
+    "beta_dialog_message": "Toto je BETA verze, ne všechny funkce jsou ještě hotové. Plugin má také zatím málo pluginů v repozitáři.",
+    "beta_dialog_ok": "OK",
+    "beta_dialog_cancel": "Přestaň dělat takovéhle vtipy :(",
+    "update_repositories": "Aktualizovat repozitáře"
 }

@@ -162,5 +162,21 @@
     "skip_repository_selection_desc": "Аўтаматычна адкрывае меню плагінаў у рэжыме \"Усе рэпазіторыі\".",
     "hide_repository_selection_button": "Схаваць кнопку выбару рэпазіторыяў",
     "hide_repository_selection_button_desc": "Хавае кнопку выбару рэпазіторыяў у меню плагінаў.",
-    "security_scan": "Бяспека"
+    "security_scan": "Бяспека",
+    "cache_header": "Кэш",
+    "clear_cache": "Ачысціць кэш",
+    "clear_cache_confirm_title": "Ачысціць кэш",
+    "clear_cache_confirm_message": "Вы ўпэўнены? Гэта дзеянне незваротнае.",
+    "clear_cache_done_title": "Кэш ачышчаны",
+    "clear_cache_done_message": "Настойліва рэкамендуецца перазапусціць дадатак.",
+    "clear_cache_button": "Ачысціць",
+    "cancel_button": "Адмена",
+    "restart_now": "Перазапусціць",
+    "restart_later": "Пазней",
+    "update_repos_success": "Паспяхова абноўлена!",
+    "beta_dialog_title": "Бэта-версія",
+    "beta_dialog_message": "Гэта БЭТА-версія, не ўвесь функцыянал гатовы. Таксама ў рэпазіторыі пакуль мала плагінаў.",
+    "beta_dialog_ok": "OK",
+    "beta_dialog_cancel": "Не жартуй так больш :(",
+    "update_repositories": "Абнавіць рэпазіторыі"
 }

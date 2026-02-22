@@ -162,5 +162,21 @@
     "skip_repository_selection_desc": "Öffnet das Plugin-Menü automatisch im Modus \"Alle Repositories\".",
     "hide_repository_selection_button": "Repository-Auswahlschaltfläche ausblenden",
     "hide_repository_selection_button_desc": "Blendet die Repository-Auswahlschaltfläche im Plugin-Menü aus.",
-    "security_scan": "Sicherheit"
+    "security_scan": "Sicherheit",
+    "cache_header": "Cache",
+    "clear_cache": "Cache leeren",
+    "clear_cache_confirm_title": "Cache leeren",
+    "clear_cache_confirm_message": "Bist du sicher? Diese Aktion ist nicht rückgängig zu machen.",
+    "clear_cache_done_title": "Cache geleert",
+    "clear_cache_done_message": "Es wird DRINGEND empfohlen, die App neu zu starten.",
+    "clear_cache_button": "Löschen",
+    "cancel_button": "Abbrechen",
+    "restart_now": "Jetzt neu starten",
+    "restart_later": "Später",
+    "update_repos_success": "Erfolgreich aktualisiert!",
+    "beta_dialog_title": "Beta-Version",
+    "beta_dialog_message": "Dies ist eine BETA-Version, nicht alle Funktionen sind fertig. Außerdem hat das Plugin im Repository derzeit noch wenig Plugins.",
+    "beta_dialog_ok": "OK",
+    "beta_dialog_cancel": "Mach keine solchen Witze mehr :(",
+    "update_repositories": "Quellen aktualisieren"
 }

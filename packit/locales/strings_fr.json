@@ -162,5 +162,21 @@
     "skip_repository_selection_desc": "Ouvre automatiquement le menu des plugins en mode \"Tous les dépôts\".",
     "hide_repository_selection_button": "Masquer le bouton de sélection du dépôt",
     "hide_repository_selection_button_desc": "Masque le bouton de sélection du dépôt dans le menu des plugins.",
-    "security_scan": "Sécurité"
+    "security_scan": "Sécurité",
+    "cache_header": "Cache",
+    "clear_cache": "Vider le cache",
+    "clear_cache_confirm_title": "Vider le cache",
+    "clear_cache_confirm_message": "Es-tu sûr(e) ? Cette action est irréversible.",
+    "clear_cache_done_title": "Cache vidé",
+    "clear_cache_done_message": "Il est FORTEMENT recommandé de redémarrer l'application.",
+    "clear_cache_button": "Vider",
+    "cancel_button": "Annuler",
+    "restart_now": "Redémarrer maintenant",
+    "restart_later": "Plus tard",
+    "update_repos_success": "Mis à jour avec succès !",
+    "beta_dialog_title": "Version bêta",
+    "beta_dialog_message": "Ceci est une version BÊTA, toutes les fonctionnalités ne sont pas encore prêtes. De plus, le plugin n'a pas encore beaucoup de plugins dans le dépôt.",
+    "beta_dialog_ok": "OK",
+    "beta_dialog_cancel": "Ne plaisante plus comme ça :(",
+    "update_repositories": "Mettre à jour les dépôts"
 }

@@ -158,5 +158,21 @@
     "plugin_view_button": "Подробнее",
     "unnamed": "Без названия",
     "support_send_message": "<З",
-    "security_scan": "Безопасность"
+    "security_scan": "Безопасность",
+    "cache_header": "Кэш",
+    "clear_cache": "Очистить кэш",
+    "clear_cache_confirm_title": "Очистить кэш",
+    "clear_cache_confirm_message": "Вы уверены? Это действие необратимо.",
+    "clear_cache_done_title": "Кэш очищен",
+    "clear_cache_done_message": "Настоятельно рекомендуется перезапустить приложение.",
+    "clear_cache_button": "Очистить",
+    "cancel_button": "Отмена",
+    "restart_now": "Перезапустить",
+    "restart_later": "Позже",
+    "update_repos_success": "Успешно обновлено!",
+    "beta_dialog_title": "Бета-версия",
+    "beta_dialog_message": "Это БЕТА-версия, не весь функционал готов. Также в репозитории пока мало плагинов.",
+    "beta_dialog_ok": "OK",
+    "beta_dialog_cancel": "Не шути так больше :(",
+    "update_repositories": "Обновить репозитории"
 }

@@ -1,11 +1,80 @@
-from ui.settings import Header, Switch, Divider
+from ui.settings import Header, Switch, Divider, Text
+from ui.alert import AlertDialogBuilder
+from client_utils import get_last_fragment
+from android_utils import log
+from org.telegram.messenger import ApplicationLoader
 from elyx import strings, settings
+import shutil
+import threading
+import time
+import os
+import signal
 
 
 class OtherSettings:
     def __init__(self, chat_button=None):
         self.chat_button = chat_button
-    
+
+    def _getCacheDir(self) -> str:
+        pkg = ApplicationLoader.applicationContext.getPackageName()
+        return f"/data/data/{pkg}/files/packitCache"
+
+    def _killProcess(self):
+        time.sleep(1)
+        os.kill(os.getpid(), signal.SIGKILL)
+
+    def _onClearCacheClick(self, view):
+        try:
+            frag = get_last_fragment()
+            act = frag.getParentActivity() if frag else None
+            if not act:
+                return
+
+            builder = AlertDialogBuilder(act)
+            builder.set_title(strings.clear_cache_confirm_title)
+            builder.set_message(strings.clear_cache_confirm_message)
+
+            def onConfirm(b, w):
+                b.dismiss()
+                try:
+                    cacheDir = self._getCacheDir()
+                    if os.path.exists(cacheDir):
+                        shutil.rmtree(cacheDir)
+                except Exception as e:
+                    log(f"clear cache error: {e}")
+
+                try:
+                    frag2 = get_last_fragment()
+                    act2 = frag2.getParentActivity() if frag2 else None
+                    if not act2:
+                        return
+
+                    restartBuilder = AlertDialogBuilder(act2)
+                    restartBuilder.set_title(strings.clear_cache_done_title)
+                    restartBuilder.set_message(strings.clear_cache_done_message)
+
+                    def onRestart(rb, rw):
+                        rb.dismiss()
+                        thread = threading.Thread(target=self._killProcess)
+                        thread.daemon = True
+                        thread.start()
+
+                    restartBuilder.set_positive_button(strings.restart_now, onRestart)
+                    restartBuilder.set_negative_button(strings.restart_later, lambda rb, rw: rb.dismiss())
+                    restartBuilder.show()
+                except Exception as e:
+                    log(f"clear cache restart dialog error: {e}")
+
+            builder.set_positive_button(strings.clear_cache_button, onConfirm)
+            builder.set_negative_button(strings.cancel_button, lambda b, w: b.dismiss())
+            try:
+                builder.make_button_red(AlertDialogBuilder.BUTTON_POSITIVE)
+            except Exception as e:
+                log(f"make_button_red error: {e}")
+            builder.show()
+        except Exception as e:
+            log(f"clear cache dialog error: {e}")
+
     def build(self):
         return [
             Header(text=strings.buttons_header),
@@ -71,6 +140,14 @@ class OtherSettings:
                 default=False,
                 icon="msg_unpin",
                 link_alias="hide_repository_selection_button"
+            ),
+            Divider(),
+            Header(text=strings.cache_header),
+            Text(
+                text=strings.clear_cache,
+                icon="msg_delete",
+                on_click=self._onClearCacheClick,
+                red=True
             ),
             Divider(),
         ]

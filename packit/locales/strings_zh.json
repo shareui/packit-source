@@ -162,5 +162,21 @@
     "skip_repository_selection_desc": "自动以「所有仓库」模式打开插件菜单。",
     "hide_repository_selection_button": "隐藏仓库选择按钮",
     "hide_repository_selection_button_desc": "在插件菜单中隐藏仓库选择按钮。",
-    "security_scan": "安全"
+    "security_scan": "安全",
+    "cache_header": "缓存",
+    "clear_cache": "清除缓存",
+    "clear_cache_confirm_title": "清除缓存",
+    "clear_cache_confirm_message": "确定吗？此操作不可撤销。",
+    "clear_cache_done_title": "缓存已清除",
+    "clear_cache_done_message": "强烈建议重启应用程序。",
+    "clear_cache_button": "清除",
+    "cancel_button": "取消",
+    "restart_now": "立即重启",
+    "restart_later": "稍后",
+    "update_repos_success": "更新成功！",
+    "beta_dialog_title": "测试版",
+    "beta_dialog_message": "这是一个BETA版本，并非所有功能都已就绪。此外，该插件目前在存储库中的插件数量不多。",
+    "beta_dialog_ok": "确定",
+    "beta_dialog_cancel": "别再这样开玩笑了 :(",
+    "update_repositories": "更新仓库"
 }

@@ -2,6 +2,7 @@ from android_utils import run_on_ui_thread, log
 from client_utils import get_last_fragment
 from ui.alert import AlertDialogBuilder
 from ui.bulletin import BulletinHelper
+from elyx import strings
 from .localConfig import LocalConfig
 
 BETA = True
@@ -21,13 +22,13 @@ def _show_beta_dialog():
         def on_cancel(b, w):
             LocalConfig.set("isBetaShow", True)
             b.dismiss()
-            BulletinHelper.show_info("Don't joke like that anymore :(")
+            BulletinHelper.show_info(strings.beta_dialog_cancel)
 
         builder = AlertDialogBuilder(act)
-        builder.set_title("Beta version")
-        builder.set_message("This is a BETA version, not all functionality is ready yet. Also, the plugin doesn't have many plugins in the repository at the moment.")
-        builder.set_positive_button("OK", on_ok)
-        builder.set_negative_button("Cancel", on_cancel)
+        builder.set_title(strings.beta_dialog_title)
+        builder.set_message(strings.beta_dialog_message)
+        builder.set_positive_button(strings.beta_dialog_ok, on_ok)
+        builder.set_negative_button(strings.beta_dialog_cancel, on_cancel)
         builder.show()
     except Exception as e:
         log(f"isBeta._show_beta_dialog: error: {e}")
