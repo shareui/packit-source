@@ -5,9 +5,9 @@ from ui.alert import AlertDialogBuilder
 from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment
 
-from . import main_menu
+from . import mainMenu
 from . import settings
-from . import deeplink_menu
+from . import deeplinkMenu
 from . import other
 from . import contributors
 from . import docs
@@ -51,16 +51,16 @@ class PackItDeeplinkHook(MethodHook):
 
     def show_packit_notification(self, url):
         try:
-            main_menu.handle(url)
+            mainMenu.handle(url)
             settings.handle(url, self.plugin)
-            deeplink_menu.handle(url)
+            deeplinkMenu.handle(url)
             other.handle(url)
             contributors.handle(url)
             docs.handle(url)
             forum.handle(url)
             repo.handle(url, self.plugin.repoManager)
             install.handle(url)
-            update.handle(url)
+            update.handle(url, self.plugin.repoManager)
             problems.handle(url)
             pkill.handle(url)
         except Exception as e:

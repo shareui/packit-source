@@ -1,10 +1,10 @@
 from ui.settings import Header, Text, Divider
 from elyx import strings, metainfo
-from .cfg_comps.repos import RepositoriesSettings
-from .cfg_comps.other import OtherSettings
-from .cfg_comps.docs import DocumentationSettings
-from .cfg_comps.contributors import ContributorsSettings
-from .cfg_comps.deeplinks import DeepLinksSettings
+from .cfgComps.repos import RepositoriesSettings
+from .cfgComps.other import OtherSettings
+from .cfgComps.docs import DocumentationSettings
+from .cfgComps.contributors import ContributorsSettings
+from .cfgComps.deeplinks import DeepLinksSettings
 from base_plugin import BasePlugin, MethodHook
 from android_utils import run_on_ui_thread
 from hook_utils import find_class, get_private_field

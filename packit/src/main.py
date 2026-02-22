@@ -5,8 +5,8 @@ from .repom import RepositoryManager
 from .core import PackItCore
 from .settings import SettingsBuilder
 from .packlog import packlog
-from .chat_ui import ChatButton
-from .deeplink import setup_deeplink_hook
+from .chatUi import ChatButton
+from .deeplinks import setup_deeplink_hook
 from .other.badges import BadgeManager
 from .other.localConfig import LocalConfig
 from .other import isBeta
