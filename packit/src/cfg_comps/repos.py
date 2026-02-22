@@ -161,6 +161,74 @@ class RepositoriesSettings:
             except Exception as e:
                 log(f"{e}")
         
+        def update_repositories(view):
+            from client_utils import run_on_queue
+            from android_utils import run_on_ui_thread
+            import requests
+            import json
+            import os
+            from org.telegram.messenger import ApplicationLoader
+
+            def task():
+                try:
+                    repos = self.repoManager.getRepositories()
+                    pkg = ApplicationLoader.applicationContext.getPackageName()
+                    cache_dir = f"/data/data/{pkg}/files/packitCache"
+                    os.makedirs(cache_dir, exist_ok=True)
+                    changed = False
+                    to_remove = []
+                    seen_rids = set()
+
+                    for i, repo in enumerate(repos):
+                        url = (repo.get("url") or "").strip()
+                        if not url:
+                            continue
+                        try:
+                            r = requests.get(url, timeout=10)
+                            if r.status_code != 200:
+                                log(f"update_repositories: HTTP {r.status_code} for {url}")
+                                continue
+                            data = r.json()
+                            repometa = data.get("repometa")
+                            rm_rid = repometa.get("rm_rid") if repometa else None
+
+                            if not repometa or not rm_rid:
+                                log(f"update_repositories: no repometa for '{url}', removing repo")
+                                to_remove.append(i)
+                                changed = True
+                                continue
+
+                            if rm_rid in seen_rids:
+                                log(f"update_repositories: duplicate rm_rid='{rm_rid}', removing repo")
+                                to_remove.append(i)
+                                changed = True
+                                continue
+                            seen_rids.add(rm_rid)
+
+                            if repo.get("id") != rm_rid:
+                                repos[i]["id"] = rm_rid
+                                changed = True
+                                log(f"update_repositories: set id='{rm_rid}' for repo '{repo.get('name')}'")
+
+                            cache_path = os.path.join(cache_dir, f"{rm_rid}.json")
+                            with open(cache_path, "w", encoding="utf-8") as f:
+                                json.dump(data, f, indent=2, ensure_ascii=False)
+                            log(f"update_repositories: updated cache for '{rm_rid}'")
+                        except Exception as e:
+                            log(f"update_repositories: error for {url}: {e}")
+
+                    for i in sorted(to_remove, reverse=True):
+                        repos.pop(i)
+
+                    if changed:
+                        self.repoManager.setRepositories(repos)
+
+                    run_on_ui_thread(lambda: BulletinHelper.show_success("Updated successfully!"))
+                except Exception as e:
+                    log(f"update_repositories: task error: {e}")
+
+            run_on_queue(task)
+
         isActionsCollapsed = settings.get("actions_collapsed", True)
         actionsCollapseIcon = "msg_go_up" if not isActionsCollapsed else "arrow_more_solar"
 
@@ -208,6 +276,12 @@ class RepositoriesSettings:
         toggleAllText = strings.disable_all_repositories if anyEnabled else strings.enable_all_repositories
 
         actionItems = [
+            Text(
+                text="Update repositories",
+                icon="msg_retry",
+                on_click=update_repositories,
+                link_alias="update_repos"
+            ),
             Text(
                 text=strings.export_repositories,
                 icon="msg_share",
@@ -294,7 +368,11 @@ class RepositoriesSettings:
         
         def makeOnShare(i):
             def share_repository(view):
-                repo = repos[i]
+                current_repos = self.repoManager.getRepositories()
+                if i >= len(current_repos):
+                    BulletinHelper.show_error(strings.failed_to_copy)
+                    return
+                repo = current_repos[i]
                 name = repo.get('name', '').strip()
                 url = repo.get('url', '').strip()
                 icon = repo.get('icon', '').strip()
@@ -348,23 +426,24 @@ class RepositoriesSettings:
             if not isCollapsed:
                 current_icon = repo.get('icon', '')
                 icon_text = strings.repo_icon_text.format(current_icon) if current_icon else strings.repo_icon_not_selected
+                key_suffix = repo['id'] if repo.get('id') else f"idx_{idx}"
                 settingsList.extend([
                     Switch(
-                        key=f"repo_enabled_{repo['id']}",
+                        key=f"repo_enabled_{key_suffix}",
                         text=strings.repo_enabled,
                         default=repo.get("enabled", True),
                         icon="msg_customize",
                         on_change=makeOnChange("enabled", idx)
                     ),
                     Input(
-                        key=f"repo_name_{repo['id']}",
+                        key=f"repo_name_{key_suffix}",
                         text=strings.repo_name,
                         default=repo.get("name", ""),
                         icon="msg_edit",
                         on_change=makeOnChange("name", idx)
                     ),
                     Input(
-                        key=f"repo_url_{repo['id']}",
+                        key=f"repo_url_{key_suffix}",
                         text=strings.repo_url,
                         default=repo.get("url", ""),
                         icon="msg_link",

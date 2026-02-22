@@ -1,4 +1,5 @@
 import re
+import json
 import threading
 from collections import deque
 from time import time
@@ -283,11 +284,24 @@ class InstallUI:
                 for repo in repos:
                     if not repo.get("enabled"):
                         continue
+                    repo_id = (repo.get("id") or "").strip()
                     repo_url = (repo.get("url") or "").strip()
                     if not repo_url:
                         continue
                     try:
-                        response = requests.get(repo_url, timeout=10)
+                        # Try to resolve plugins URL from cached repomap
+                        plugins_url = repo_url
+                        if repo_id:
+                            from org.telegram.messenger import ApplicationLoader
+                            import os
+                            pkg = ApplicationLoader.applicationContext.getPackageName()
+                            cache_path = f"/data/data/{pkg}/files/packitCache/{repo_id}.json"
+                            if os.path.exists(cache_path):
+                                with open(cache_path, "r", encoding="utf-8") as f:
+                                    cached = json.load(f)
+                                plugins_url = cached.get("repomap", {}).get("plugins") or repo_url
+
+                        response = requests.get(plugins_url, timeout=10)
                         if response.status_code != 200:
                             log(f"repo '{repo.get('name')}': HTTP {response.status_code}, skipping")
                             continue
@@ -332,7 +346,20 @@ class InstallUI:
 
         def load_task():
             try:
-                r = requests.get(repo_url, timeout=20)
+                # Try to resolve plugins URL from cached repomap
+                plugins_url = repo_url
+                repo_id = (repo.get("id") or "").strip()
+                if repo_id:
+                    from org.telegram.messenger import ApplicationLoader
+                    import os
+                    pkg = ApplicationLoader.applicationContext.getPackageName()
+                    cache_path = f"/data/data/{pkg}/files/packitCache/{repo_id}.json"
+                    if os.path.exists(cache_path):
+                        with open(cache_path, "r", encoding="utf-8") as f:
+                            cached = json.load(f)
+                        plugins_url = cached.get("repomap", {}).get("plugins") or repo_url
+
+                r = requests.get(plugins_url, timeout=20)
                 if r.status_code != 200:
                     raise Exception(f"HTTP {r.status_code}")
                 config = r.json()

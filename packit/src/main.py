@@ -29,6 +29,7 @@ class PackItPlugin(BasePlugin):
     def on_plugin_load(self):
         LocalConfig.init()
         isBeta.init()
+        self.repoManager.updateAllCaches()
         self.add_on_send_message_hook()
         self.hook_settings_header_ref = self.settingsBuilder._setup_settings_header_hook()
         self.deeplink_hook_ref = setup_deeplink_hook(self)
