@@ -8,7 +8,7 @@
     "install_icons": "Install Icons",
     "install_config": "Install Configuration",
     "not_ready_yet": "Not ready yet",
-    "settings_header": "Settings",
+    "settings_header": "Other",
     "deeplinks": "Deeplinks",
     "repositories": "Repositories",
     "other_settings": "Other Settings",
@@ -157,5 +157,6 @@
     "all_repositories": "All repositories",
     "search_all_repositories": "Search across all repositories",
     "plugin_view_button": "View",
-    "unnamed": "Unnamed"
+    "unnamed": "Unnamed",
+    "security_scan": "Security"
 }

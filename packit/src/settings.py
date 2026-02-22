@@ -184,6 +184,13 @@ class SettingsBuilder:
             BulletinHelper.show_info(strings.not_ready_yet)
         except Exception:
             pass
+
+    def _security_scan(self, view):
+        try:
+            from ui.bulletin import BulletinHelper
+            BulletinHelper.show_info(strings.not_ready_yet)
+        except Exception:
+            pass
     
     def _openPackitForum(self, view):
         try:
@@ -240,6 +247,13 @@ class SettingsBuilder:
                 text=strings.repositories,
                 icon="msg_folders",
                 create_sub_fragment=self.repositoriesSettings.build
+            ),
+            
+            Text(
+                text=strings.security_scan,
+                icon="msg_secret",
+                on_click=self._security_scan,
+                link_alias="security_scan"
             ),
             
             Text(

@@ -8,7 +8,7 @@
     "install_icons": "安装图标",
     "install_config": "安装配置",
     "not_ready_yet": "尚未准备好",
-    "settings_header": "设置",
+    "settings_header": "其他",
     "deeplinks": "深度链接",
     "repositories": "仓库",
     "other_settings": "其他设置",
@@ -161,5 +161,6 @@
     "skip_repository_selection": "跳过仓库选择",
     "skip_repository_selection_desc": "自动以「所有仓库」模式打开插件菜单。",
     "hide_repository_selection_button": "隐藏仓库选择按钮",
-    "hide_repository_selection_button_desc": "在插件菜单中隐藏仓库选择按钮。"
+    "hide_repository_selection_button_desc": "在插件菜单中隐藏仓库选择按钮。",
+    "security_scan": "安全"
 }

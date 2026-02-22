@@ -8,7 +8,7 @@
     "install_icons": "Установить иконки",
     "install_config": "Установить конфигурацию",
     "not_ready_yet": "Ещё не готово",
-    "settings_header": "Настройки",
+    "settings_header": "Другое",
     "deeplinks": "Внутренние ссылки",
     "repositories": "Источники",
     "other_settings": "Другие настройки",
@@ -157,5 +157,6 @@
     "search_all_repositories": "Поиск по всем репозиториям",
     "plugin_view_button": "Подробнее",
     "unnamed": "Без названия",
-    "support_send_message": "<З"
+    "support_send_message": "<З",
+    "security_scan": "Безопасность"
 }

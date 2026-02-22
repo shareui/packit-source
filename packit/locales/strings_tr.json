@@ -8,7 +8,7 @@
     "install_icons": "Simgeleri yükle",
     "install_config": "Yapılandırmayı yükle",
     "not_ready_yet": "Henüz hazır değil",
-    "settings_header": "Ayarlar",
+    "settings_header": "Diğer",
     "deeplinks": "İç bağlantılar",
     "repositories": "Kaynaklar",
     "other_settings": "Diğer ayarlar",
@@ -161,5 +161,6 @@
     "skip_repository_selection": "Depo seçimini atla",
     "skip_repository_selection_desc": "Eklenti menüsünü otomatik olarak \"Tüm depolar\" modunda açar.",
     "hide_repository_selection_button": "Depo seçim düğmesini gizle",
-    "hide_repository_selection_button_desc": "Eklenti menüsündeki depo seçim düğmesini gizler."
+    "hide_repository_selection_button_desc": "Eklenti menüsündeki depo seçim düğmesini gizler.",
+    "security_scan": "Güvenlik"
 }
