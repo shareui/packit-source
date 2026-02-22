@@ -8,6 +8,8 @@ from .packlog import packlog
 from .chat_ui import ChatButton
 from .deeplink import setup_deeplink_hook
 from .other.badges import BadgeManager
+from .other.localConfig import LocalConfig
+from .other import isBeta
 from android_utils import log
 
 
@@ -25,6 +27,8 @@ class PackItPlugin(BasePlugin):
         log("PackIt initialized!")
     
     def on_plugin_load(self):
+        LocalConfig.init()
+        isBeta.init()
         self.add_on_send_message_hook()
         self.hook_settings_header_ref = self.settingsBuilder._setup_settings_header_hook()
         self.deeplink_hook_ref = setup_deeplink_hook(self)
