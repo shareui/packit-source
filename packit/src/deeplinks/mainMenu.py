@@ -1,6 +1,10 @@
 from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment
-from elyx import strings
+try:
+    from elyx import strings
+except Exception as e:
+    import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 
 def handle(url):

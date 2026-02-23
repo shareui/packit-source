@@ -2,8 +2,16 @@ from ui.settings import Header, Switch, Divider, Text
 from ui.alert import AlertDialogBuilder
 from client_utils import get_last_fragment
 from android_utils import log
-from org.telegram.messenger import ApplicationLoader
-from elyx import strings, settings
+try:
+    from org.telegram.messenger import ApplicationLoader
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from elyx import strings, settings
+except Exception as e:
+    import android_utils as _au; _au.log(f"import elyx import strings, settings failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 import shutil
 import threading
 import time

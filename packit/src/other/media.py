@@ -1,7 +1,11 @@
 import os
 from android_utils import log
 from android.media import MediaPlayer, AudioManager
-from elyx import settings
+try:
+    from elyx import settings
+except Exception as e:
+    import android_utils as _au; _au.log(f"import elyx import settings failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 from java import dynamic_proxy
 
 

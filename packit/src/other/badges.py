@@ -1,6 +1,10 @@
 from android_utils import log
 from hook_utils import find_class, get_private_field
-from org.telegram.messenger import MessagesController
+try:
+    from org.telegram.messenger import MessagesController
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.messenger import MessagesController failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 import threading
 import urllib.request
 import json

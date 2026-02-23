@@ -3,11 +3,27 @@ from client_utils import get_last_fragment
 from base_plugin import MenuItemData, MenuItemType, MethodHook
 from ui.bulletin import BulletinHelper
 from java import jclass
-from org.telegram.ui import ChatActivity
+try:
+    from org.telegram.ui import ChatActivity
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.ui import ChatActivity failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 from hook_utils import find_class
-from com.exteragram.messenger.plugins import PluginsController
-from com.exteragram.messenger.plugins.ui import PluginSettingsActivity
-from elyx import settings, strings
+try:
+    from com.exteragram.messenger.plugins import PluginsController
+except Exception as e:
+    import android_utils as _au; _au.log(f"import com.exteragram.messenger.plugins import PluginsController failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from com.exteragram.messenger.plugins.ui import PluginSettingsActivity
+except Exception as e:
+    import android_utils as _au; _au.log(f"import com.exteragram.messenger.plugins.ui import PluginSettingsActivity failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from elyx import settings, strings
+except Exception as e:
+    import android_utils as _au; _au.log(f"import elyx import settings, strings failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 
 class ChatButton:

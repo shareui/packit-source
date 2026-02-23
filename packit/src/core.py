@@ -4,9 +4,21 @@ from android_utils import log, run_on_ui_thread
 from client_utils import run_on_queue, get_last_fragment
 from ui.bulletin import BulletinHelper
 from java.io import File, FileOutputStream
-from org.telegram.messenger import ApplicationLoader
-from com.exteragram.messenger.plugins import PluginsController
-from org.telegram.messenger import NotificationCenter
+try:
+    from org.telegram.messenger import ApplicationLoader
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
+    from .other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from com.exteragram.messenger.plugins import PluginsController
+except Exception as e:
+    import android_utils as _au; _au.log(f"import com.exteragram.messenger.plugins import PluginsController failed: {e}")
+    from .other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from org.telegram.messenger import NotificationCenter
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.messenger import NotificationCenter failed: {e}")
+    from .other.importFailed import showImportFailedAlert as _sifa; _sifa()
 import time
 import signal
 

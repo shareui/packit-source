@@ -1,10 +1,18 @@
 from ui.settings import Header, Text, Divider
 from ui.bulletin import BulletinHelper
-from org.telegram.messenger import AndroidUtilities
+try:
+    from org.telegram.messenger import AndroidUtilities
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 from android_utils import run_on_ui_thread
 from hook_utils import find_class
 from client_utils import get_last_fragment
-from elyx import strings
+try:
+    from elyx import strings
+except Exception as e:
+    import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 
 class IconSelector:

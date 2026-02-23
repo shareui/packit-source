@@ -21,7 +21,11 @@ class packlog:
     @staticmethod
     def _getMaxLogs():
         try:
-            from elyx import settings
+            try:
+                from elyx import settings
+            except Exception as e:
+                import android_utils as _au; _au.log(f"import elyx import settings failed: {e}")
+                from .other.importFailed import showImportFailedAlert as _sifa; _sifa()
             maxLogs = settings.get("max_logs_count", 100)
             if isinstance(maxLogs, str):
                 maxLogs = int(maxLogs) if maxLogs.strip() else 100
