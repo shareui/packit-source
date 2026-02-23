@@ -63,7 +63,7 @@ class DocumentationSettings:
             run_on_queue(lambda: Process.killProcess(Process.myPid()), GLOBAL_QUEUE, 1000)
 
     def _openSecretVideo(self, view):
-        self._openUrl("https://youtu.be/dQw4w9WgXcQ")
+        self._openUrl("https://youtu.be/xMHJGd3wwZk?si=ZpXaKUV-bpq_Fcob")
 
     def build(self):
       return [
