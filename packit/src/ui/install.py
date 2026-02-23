@@ -881,12 +881,13 @@ class InstallUI:
                     if s[0] < 6:
                         filtered.append(p)
                 filtered.sort(key=lambda p: search_mod.score(p, q, self.search_index, isRussian))
-            if sort_type == "alpha_az":
-                filtered.sort(key=lambda p: (1 if str(p.get("name") or p.get("id") or "")[:1].isdigit() else 0, str(p.get("name") or p.get("id") or "").lower()))
-            elif sort_type == "alpha_za":
-                filtered.sort(key=lambda p: (0 if str(p.get("name") or p.get("id") or "")[:1].isdigit() else 1, str(p.get("name") or p.get("id") or "").lower()), reverse=True)
-            elif sort_type == "authors":
-                filtered.sort(key=lambda p: str(p.get("author") or "").lower())
+            if not q:
+                if sort_type == "alpha_az":
+                    filtered.sort(key=lambda p: (1 if str(p.get("name") or p.get("id") or "")[:1].isdigit() else 0, str(p.get("name") or p.get("id") or "").lower()))
+                elif sort_type == "alpha_za":
+                    filtered.sort(key=lambda p: (0 if str(p.get("name") or p.get("id") or "")[:1].isdigit() else 1, str(p.get("name") or p.get("id") or "").lower()), reverse=True)
+                elif sort_type == "authors":
+                    filtered.sort(key=lambda p: str(p.get("author") or "").lower())
             self.filtered_plugins = filtered
             fragment = get_last_fragment()
             act = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
