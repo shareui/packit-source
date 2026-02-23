@@ -32,6 +32,7 @@ from .sort import show_sort_menu
 from . import search as search_mod
 from ..other.copy import copy_share_link
 from ..other.share import share_plugin_file
+from ..other.media import playSound
 from ..core import install_plugin
 
 
@@ -608,7 +609,13 @@ class InstallUI:
             clear_btn_icon.setScaleType(ImageView.ScaleType.CENTER)
             clear_btn.addView(clear_btn_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
             
+            clearSoundPath = os.path.join(os.path.dirname(__file__), "../../res/sounds/clear-search.mp3")
+
             def on_clear_click():
+                try:
+                    playSound(clearSoundPath)
+                except Exception:
+                    pass
                 try:
                     self.search.setText("")
                     self.last_search_query = ""
@@ -646,7 +653,16 @@ class InstallUI:
                 pass
             search_btn_icon.setScaleType(ImageView.ScaleType.CENTER)
             search_btn.addView(search_btn_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
-            search_btn.setOnClickListener(OnClickListener(lambda v: perform_search()))
+            searchBtnSoundPath = os.path.join(os.path.dirname(__file__), "../../res/sounds/search-btn.mp3")
+
+            def onSearchBtnClick(v):
+                try:
+                    playSound(searchBtnSoundPath)
+                except Exception:
+                    pass
+                perform_search()
+
+            search_btn.setOnClickListener(OnClickListener(onSearchBtnClick))
             self.install_ui._apply_press_scale(search_btn)
             search_row.addView(search_btn, LinearLayout.LayoutParams(AndroidUtilities.dp(52), AndroidUtilities.dp(42), 0))
             search_container.addView(search_row, FrameLayout.LayoutParams(-1, -2))
@@ -865,12 +881,13 @@ class InstallUI:
                     if s[0] < 6:
                         filtered.append(p)
                 filtered.sort(key=lambda p: search_mod.score(p, q, self.search_index, isRussian))
-            if sort_type == "alpha_az":
-                filtered.sort(key=lambda p: (1 if str(p.get("name") or p.get("id") or "")[:1].isdigit() else 0, str(p.get("name") or p.get("id") or "").lower()))
-            elif sort_type == "alpha_za":
-                filtered.sort(key=lambda p: (0 if str(p.get("name") or p.get("id") or "")[:1].isdigit() else 1, str(p.get("name") or p.get("id") or "").lower()), reverse=True)
-            elif sort_type == "authors":
-                filtered.sort(key=lambda p: str(p.get("author") or "").lower())
+            if not q:
+                if sort_type == "alpha_az":
+                    filtered.sort(key=lambda p: (1 if str(p.get("name") or p.get("id") or "")[:1].isdigit() else 0, str(p.get("name") or p.get("id") or "").lower()))
+                elif sort_type == "alpha_za":
+                    filtered.sort(key=lambda p: (0 if str(p.get("name") or p.get("id") or "")[:1].isdigit() else 1, str(p.get("name") or p.get("id") or "").lower()), reverse=True)
+                elif sort_type == "authors":
+                    filtered.sort(key=lambda p: str(p.get("author") or "").lower())
             self.filtered_plugins = filtered
             fragment = get_last_fragment()
             act = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
@@ -1185,7 +1202,16 @@ class InstallUI:
             install_text.setTypeface(AndroidUtilities.bold())
             install_text.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
             install_btn.addView(install_text)
-            install_btn.setOnClickListener(OnClickListener(lambda v: install_plugin(p)))
+            soundPath = os.path.join(os.path.dirname(__file__), "../../res/sounds/install.mp3")
+
+            def onInstallClick(v, plugin=p, path=soundPath):
+                try:
+                    playSound(path)
+                except Exception:
+                    pass
+                install_plugin(plugin)
+
+            install_btn.setOnClickListener(OnClickListener(onInstallClick))
             self.install_ui._apply_press_scale(install_btn)
             buttons.addView(install_btn, LayoutHelper.createLinear(-2, -2, 0, 0, 8, 0))
             spacer = View(act)
@@ -1219,7 +1245,13 @@ class InstallUI:
 
             act_for_share = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
 
-            def on_copy():
+            copyLinkSoundPath = os.path.join(os.path.dirname(__file__), "../../res/sounds/copy-link.mp3")
+
+            def on_copy(path=copyLinkSoundPath):
+                try:
+                    playSound(path)
+                except Exception:
+                    pass
                 copy_share_link(p, self.title)
 
             copy_btn = create_icon_pill("msg_link2", on_copy)

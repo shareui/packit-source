@@ -150,4 +150,14 @@ class OtherSettings:
                 red=True
             ),
             Divider(),
+            Header(text=strings.sfx_header),
+            Switch(
+                key="sfx_enabled",
+                text=strings.enable_sfx,
+                subtext=strings.enable_sfx_desc,
+                default=False,
+                icon="msg_voicechat",
+                link_alias="sfx_enabled"
+            ),
+            Divider(),
         ]

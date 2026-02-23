@@ -4,6 +4,7 @@ from .cfgComps.repos import RepositoriesSettings
 from .cfgComps.other import OtherSettings
 from .cfgComps.docs import DocumentationSettings
 from .cfgComps.contributors import ContributorsSettings
+from .cfgComps.security import SecuritySettings
 from ui.bulletin import BulletinHelper
 from base_plugin import BasePlugin, MethodHook
 from android_utils import run_on_ui_thread
@@ -42,6 +43,7 @@ class SettingsBuilder:
         self.otherSettings = OtherSettings(plugin.chatUI)
         self.documentationSettings = DocumentationSettings()
         self.contributorsSettings = ContributorsSettings()
+        self.securitySettings = SecuritySettings()
 
     def _setup_settings_header_hook(self):
         try:
@@ -250,7 +252,7 @@ class SettingsBuilder:
             Text(
                 text=strings.security_scan,
                 icon="msg_secret",
-                on_click=self._security_scan,
+                create_sub_fragment=self.securitySettings.build,
                 link_alias="security_scan"
             ),
             
