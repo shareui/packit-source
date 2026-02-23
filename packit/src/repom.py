@@ -2,9 +2,17 @@ import os
 import json
 import requests
 from client_utils import get_last_fragment, run_on_queue
-from elyx import settings, strings
+try:
+    from elyx import settings, strings
+except Exception as e:
+    import android_utils as _au; _au.log(f"import elyx import settings, strings failed: {e}")
+    from .other.importFailed import showImportFailedAlert as _sifa; _sifa()
 from android_utils import log
-from org.telegram.messenger import ApplicationLoader
+try:
+    from org.telegram.messenger import ApplicationLoader
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
+    from .other.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 OFFICIAL_REPO_URL = "https://raw.githubusercontent.com/shareui/packit/refs/heads/main/configs/repomap.json"
 

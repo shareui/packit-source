@@ -7,10 +7,26 @@ from android_utils import log, run_on_ui_thread
 from android_utils import OnClickListener
 from client_utils import get_last_fragment
 from hook_utils import find_class
-from org.telegram.ui.ActionBar import BottomSheet, Theme
-from org.telegram.ui.Components import LayoutHelper
-from org.telegram.messenger import AndroidUtilities
-from elyx import strings
+try:
+    from org.telegram.ui.ActionBar import BottomSheet, Theme
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.ui.ActionBar import BottomSheet, Theme failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from org.telegram.ui.Components import LayoutHelper
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.ui.Components import LayoutHelper failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from org.telegram.messenger import AndroidUtilities
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from elyx import strings
+except Exception as e:
+    import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 
 def show_repo_sheet(install_ui, repos, on_select=None):

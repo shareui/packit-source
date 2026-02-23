@@ -18,14 +18,42 @@ import requests
 from android_utils import log, run_on_ui_thread
 from client_utils import get_last_fragment, run_on_queue
 from ui.bulletin import BulletinHelper
-from elyx import settings, strings
-from org.telegram.ui.ActionBar import Theme
-from org.telegram.ui.Components import LayoutHelper, BackupImageView, EditTextBoldCursor
-from org.telegram.messenger import AndroidUtilities, MediaDataController, ImageLocation
+try:
+    from elyx import settings, strings
+except Exception as e:
+    import android_utils as _au; _au.log(f"import elyx import settings, strings failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from org.telegram.ui.ActionBar import Theme
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.ui.ActionBar import Theme failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from org.telegram.ui.Components import LayoutHelper, BackupImageView, EditTextBoldCursor
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.ui.Components import LayoutHelper, BackupImageView, EditTextBoldCursor failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from org.telegram.messenger import AndroidUtilities, MediaDataController, ImageLocation
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities, MediaDataController, ImageLocation failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 from android_utils import OnClickListener
-from com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment
-from com.exteragram.messenger.utils.text import LocaleUtils
-from com.exteragram.messenger.utils.ui import CanvasUtils
+try:
+    from com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment
+except Exception as e:
+    import android_utils as _au; _au.log(f"import com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from com.exteragram.messenger.utils.text import LocaleUtils
+except Exception as e:
+    import android_utils as _au; _au.log(f"import com.exteragram.messenger.utils.text import LocaleUtils failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from com.exteragram.messenger.utils.ui import CanvasUtils
+except Exception as e:
+    import android_utils as _au; _au.log(f"import com.exteragram.messenger.utils.ui import CanvasUtils failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 from .repo import show_repo_sheet
 from .sort import show_sort_menu
@@ -293,7 +321,11 @@ class InstallUI:
                         # Try to resolve plugins URL from cached repomap
                         plugins_url = repo_url
                         if repo_id:
-                            from org.telegram.messenger import ApplicationLoader
+                            try:
+                                from org.telegram.messenger import ApplicationLoader
+                            except Exception as e:
+                                import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
+                                from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
                             import os
                             pkg = ApplicationLoader.applicationContext.getPackageName()
                             cache_path = f"/data/data/{pkg}/files/packitCache/{repo_id}.json"
@@ -351,7 +383,11 @@ class InstallUI:
                 plugins_url = repo_url
                 repo_id = (repo.get("id") or "").strip()
                 if repo_id:
-                    from org.telegram.messenger import ApplicationLoader
+                    try:
+                        from org.telegram.messenger import ApplicationLoader
+                    except Exception as e:
+                        import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
+                        from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
                     import os
                     pkg = ApplicationLoader.applicationContext.getPackageName()
                     cache_path = f"/data/data/{pkg}/files/packitCache/{repo_id}.json"

@@ -1,6 +1,10 @@
 from client_utils import get_last_fragment
 from android.net import Uri
-from org.telegram.messenger.browser import Browser
+try:
+    from org.telegram.messenger.browser import Browser
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.messenger.browser import Browser failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 
 def handle(url):

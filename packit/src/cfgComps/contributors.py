@@ -1,11 +1,23 @@
 from ui.settings import Header, Text, Divider
 from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment
-from org.telegram.messenger.browser import Browser
+try:
+    from org.telegram.messenger.browser import Browser
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.messenger.browser import Browser failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 from android.net import Uri
 from android.content import Intent
-from org.telegram.messenger import ApplicationLoader
-from elyx import strings
+try:
+    from org.telegram.messenger import ApplicationLoader
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from elyx import strings
+except Exception as e:
+    import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 
 class ContributorsSettings:
@@ -45,7 +57,11 @@ class ContributorsSettings:
         def support_via_ton(view):
             tonAddress = "UQADRm0R1HNgMYuTfbHB3kdENuWt_Et5dFlEtrILK3LQ-KKL"
             try:
-                from org.telegram.messenger import AndroidUtilities
+                try:
+                    from org.telegram.messenger import AndroidUtilities
+                except Exception as e:
+                    import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities failed: {e}")
+                    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
                 if AndroidUtilities.addToClipboard(tonAddress):
                     BulletinHelper.show_success(strings.copied_to_clipboard)
                 else:

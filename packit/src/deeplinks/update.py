@@ -1,8 +1,16 @@
 from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment, run_on_queue
 from android_utils import log, run_on_ui_thread
-from org.telegram.messenger import ApplicationLoader
-from elyx import strings
+try:
+    from org.telegram.messenger import ApplicationLoader
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from elyx import strings
+except Exception as e:
+    import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 import requests
 import json
 import os

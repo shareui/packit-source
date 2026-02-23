@@ -2,7 +2,11 @@ import os
 from android_utils import log
 from android.media import MediaPlayer, AudioManager
 from java import dynamic_proxy
-from org.telegram.messenger import ApplicationLoader
+try:
+    from org.telegram.messenger import ApplicationLoader
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 
 def handle(url):

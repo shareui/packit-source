@@ -1,8 +1,16 @@
 from android_utils import log
-from org.telegram.messenger import AndroidUtilities, R as R_tg
+try:
+    from org.telegram.messenger import AndroidUtilities, R as R_tg
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities, R as R_tg failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 from client_utils import get_last_fragment
 from hook_utils import find_class
-from elyx import strings
+try:
+    from elyx import strings
+except Exception as e:
+    import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
 

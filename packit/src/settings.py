@@ -1,5 +1,9 @@
 from ui.settings import Header, Text, Divider
-from elyx import strings, metainfo
+try:
+    from elyx import strings, metainfo
+except Exception as e:
+    import android_utils as _au; _au.log(f"import elyx import strings, metainfo failed: {e}")
+    from .other.importFailed import showImportFailedAlert as _sifa; _sifa()
 from .cfgComps.repos import RepositoriesSettings
 from .cfgComps.other import OtherSettings
 from .cfgComps.docs import DocumentationSettings
@@ -9,16 +13,36 @@ from ui.bulletin import BulletinHelper
 from base_plugin import BasePlugin, MethodHook
 from android_utils import run_on_ui_thread
 from hook_utils import find_class, get_private_field
-from org.telegram.ui.ActionBar import Theme, BottomSheet
-from org.telegram.ui.Components import LayoutHelper, UItem, BackupImageView, EffectsTextView, BulletinFactory
-from com.exteragram.messenger.plugins.models import HeaderSetting
+try:
+    from org.telegram.ui.ActionBar import Theme, BottomSheet
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.ui.ActionBar import Theme, BottomSheet failed: {e}")
+    from .other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from org.telegram.ui.Components import LayoutHelper, UItem, BackupImageView, EffectsTextView, BulletinFactory
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.ui.Components import LayoutHelper, UItem, BackupImageView, EffectsTextView, BulletinFactory failed: {e}")
+    from .other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from com.exteragram.messenger.plugins.models import HeaderSetting
+except Exception as e:
+    import android_utils as _au; _au.log(f"import com.exteragram.messenger.plugins.models import HeaderSetting failed: {e}")
+    from .other.importFailed import showImportFailedAlert as _sifa; _sifa()
 from android.widget import FrameLayout, TextView, LinearLayout, ScrollView
 from android.view import Gravity
 from android.util import TypedValue
-from org.telegram.messenger import AndroidUtilities, ImageLocation, MediaDataController, R
+try:
+    from org.telegram.messenger import AndroidUtilities, ImageLocation, MediaDataController, R
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities, ImageLocation, MediaDataController, R failed: {e}")
+    from .other.importFailed import showImportFailedAlert as _sifa; _sifa()
 from .ui.install import InstallUI
 from client_utils import get_last_fragment
-from org.telegram.messenger.browser import Browser
+try:
+    from org.telegram.messenger.browser import Browser
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.messenger.browser import Browser failed: {e}")
+    from .other.importFailed import showImportFailedAlert as _sifa; _sifa()
 from android.net import Uri
 from java import dynamic_proxy as dyp
 from android_utils import OnClickListener, OnLongClickListener

@@ -3,10 +3,22 @@ from ui.bulletin import BulletinHelper
 from android.content import Intent
 from android.net import Uri
 from android.os import Process
-from org.telegram.messenger import ApplicationLoader
+try:
+    from org.telegram.messenger import ApplicationLoader
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 from client_utils import get_last_fragment, run_on_queue, GLOBAL_QUEUE
-from org.telegram.messenger.browser import Browser
-from elyx import strings, settings
+try:
+    from org.telegram.messenger.browser import Browser
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.messenger.browser import Browser failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from elyx import strings, settings
+except Exception as e:
+    import android_utils as _au; _au.log(f"import elyx import strings, settings failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 class DocumentationSettings:
     def __init__(self):
