@@ -185,6 +185,6 @@
   "sudo_password_desc": "Password for privileged operations",
   "sudo_password_saved": "Password saved",
   "scanning_header": "Scanning",
-  "signature_scan": "Signature scan",
+  "signature_scan": "Signature verification",
   "hash_comparison": "Hash comparison"
 }

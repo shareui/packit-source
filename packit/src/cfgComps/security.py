@@ -28,7 +28,7 @@ class SecuritySettings:
             Header(text=strings.scanning_header),
             Text(
                 text=strings.signature_scan,
-                icon="verified_profile",
+                icon="msg_search",
                 on_click=self._onNotReady
             ),
             Text(
