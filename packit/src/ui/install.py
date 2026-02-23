@@ -32,6 +32,7 @@ from .sort import show_sort_menu
 from . import search as search_mod
 from ..other.copy import copy_share_link
 from ..other.share import share_plugin_file
+from ..other.media import playSound
 from ..core import install_plugin
 
 
@@ -608,7 +609,13 @@ class InstallUI:
             clear_btn_icon.setScaleType(ImageView.ScaleType.CENTER)
             clear_btn.addView(clear_btn_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
             
+            clearSoundPath = os.path.join(os.path.dirname(__file__), "../../res/sounds/clear-search.mp3")
+
             def on_clear_click():
+                try:
+                    playSound(clearSoundPath)
+                except Exception:
+                    pass
                 try:
                     self.search.setText("")
                     self.last_search_query = ""
@@ -1185,7 +1192,16 @@ class InstallUI:
             install_text.setTypeface(AndroidUtilities.bold())
             install_text.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
             install_btn.addView(install_text)
-            install_btn.setOnClickListener(OnClickListener(lambda v: install_plugin(p)))
+            soundPath = os.path.join(os.path.dirname(__file__), "../../res/sounds/install.mp3")
+
+            def onInstallClick(v, plugin=p, path=soundPath):
+                try:
+                    playSound(path)
+                except Exception:
+                    pass
+                install_plugin(plugin)
+
+            install_btn.setOnClickListener(OnClickListener(onInstallClick))
             self.install_ui._apply_press_scale(install_btn)
             buttons.addView(install_btn, LayoutHelper.createLinear(-2, -2, 0, 0, 8, 0))
             spacer = View(act)
