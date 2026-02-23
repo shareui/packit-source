@@ -6,7 +6,7 @@ description: |
   Developers: [shareui](https://t.me/shareui), [Vestr](https://t.me/mr_Vestr)
   Forum: [PackItGround](https://t.me/packitground)
 id: shareui_packit
-version: "1.0.0-dev.41"
+version: "1.0.0-dev.43"
 author: "@packitGround"
 min_version: "12.2.10"
 icon: plugin232/17

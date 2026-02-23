@@ -13,6 +13,11 @@ import os
 
 BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
 
+# repo=add: required: name, link — optional: icon
+_REPO_ADD_REQUIRED = {"name", "link"}
+_REPO_ADD_OPTIONAL = {"icon"}
+_REPO_ADD_ALL = _REPO_ADD_REQUIRED | _REPO_ADD_OPTIONAL
+
 
 def _get_cache_dir() -> str:
     pkg = ApplicationLoader.applicationContext.getPackageName()
@@ -26,6 +31,16 @@ def handle(url, repoManager):
 
         parsed = urlparse(url)
         query = parse_qs(parsed.query, keep_blank_values=True)
+        # exclude the 'repo' key itself from arg count
+        argKeys = {k for k in query.keys() if k != "repo"}
+
+        if not _REPO_ADD_REQUIRED.issubset(argKeys):
+            BulletinHelper.show_error(strings.deeplink_too_few_args)
+            return
+
+        if not argKeys.issubset(_REPO_ADD_ALL):
+            BulletinHelper.show_error(strings.deeplink_too_many_args)
+            return
 
         name = query.get("name", [""])[0].strip()
         link = query.get("link", [""])[0].strip()
@@ -60,7 +75,6 @@ def handle(url, repoManager):
                     data = response.json()
                     repometa = data.get("repometa")
 
-                    # Save to cache if repometa has rm_rid
                     if repometa and repometa.get("rm_rid"):
                         try:
                             cache_dir = _get_cache_dir()
@@ -71,7 +85,6 @@ def handle(url, repoManager):
                         except Exception as e:
                             log(f"[PackIt] repo=add cache error: {e}")
 
-                    # Get plugin count via repomap.plugins URL if available
                     repomap = data.get("repomap", {})
                     plugins_url = repomap.get("plugins") if repomap else None
                     if plugins_url:
