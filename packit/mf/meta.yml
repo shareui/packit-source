@@ -8,5 +8,5 @@ description: |
 id: shareui_packit
 version: "1.0.0-dev.50"
 author: "@packitGround"
-min_version: "12.2.10"
+min_version: ">=12.3.1"
 icon: plugin232/17
