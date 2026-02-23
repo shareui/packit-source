@@ -43,3 +43,5 @@ packit/src/other/share.py — функция шаринга файлов
 используйте `from android_utils import log`
 
 без всяких приписок по типу [Packit] и тп. а так же без локализации, сугубо на английском
+
+@shareui хули README.md не обновляешь?
