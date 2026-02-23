@@ -653,7 +653,16 @@ class InstallUI:
                 pass
             search_btn_icon.setScaleType(ImageView.ScaleType.CENTER)
             search_btn.addView(search_btn_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
-            search_btn.setOnClickListener(OnClickListener(lambda v: perform_search()))
+            searchBtnSoundPath = os.path.join(os.path.dirname(__file__), "../../res/sounds/search-btn.mp3")
+
+            def onSearchBtnClick(v):
+                try:
+                    playSound(searchBtnSoundPath)
+                except Exception:
+                    pass
+                perform_search()
+
+            search_btn.setOnClickListener(OnClickListener(onSearchBtnClick))
             self.install_ui._apply_press_scale(search_btn)
             search_row.addView(search_btn, LinearLayout.LayoutParams(AndroidUtilities.dp(52), AndroidUtilities.dp(42), 0))
             search_container.addView(search_row, FrameLayout.LayoutParams(-1, -2))
@@ -1235,7 +1244,13 @@ class InstallUI:
 
             act_for_share = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
 
-            def on_copy():
+            copyLinkSoundPath = os.path.join(os.path.dirname(__file__), "../../res/sounds/copy-link.mp3")
+
+            def on_copy(path=copyLinkSoundPath):
+                try:
+                    playSound(path)
+                except Exception:
+                    pass
                 copy_share_link(p, self.title)
 
             copy_btn = create_icon_pill("msg_link2", on_copy)
