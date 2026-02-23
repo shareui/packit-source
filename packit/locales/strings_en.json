@@ -179,5 +179,12 @@
   "enable_sfx": "Enable SFX",
   "enable_sfx_desc": "Play sounds on plugin actions",
   "deeplink_too_few_args": "There are too few arguments.",
-  "deeplink_too_many_args": "There are too many arguments."
+  "deeplink_too_many_args": "There are too many arguments.",
+  "security_header": "Security",
+  "sudo_password": "Sudo password",
+  "sudo_password_desc": "Password for privileged operations",
+  "sudo_password_saved": "Password saved",
+  "scanning_header": "Scanning",
+  "signature_scan": "Signature scan",
+  "hash_comparison": "Hash comparison"
 }
