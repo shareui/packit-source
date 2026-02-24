@@ -5,6 +5,7 @@ except Exception as e:
     import android_utils as _au; _au.log(f"import elyx import strings, metainfo failed: {e}")
     from .other.importFailed import showImportFailedAlert as _sifa; _sifa()
 from .cfgComps.repos import RepositoriesSettings
+from .cfgComps.deeplinks import DeeplinksSettings
 from .cfgComps.other import OtherSettings
 from .cfgComps.docs import DocumentationSettings
 from .cfgComps.contributors import ContributorsSettings
@@ -64,6 +65,7 @@ class SettingsBuilder:
         self.repoManager = repoManager
         self.plugin = plugin
         self.repositoriesSettings = RepositoriesSettings(repoManager)
+        self.deeplinksSettings = DeeplinksSettings()
         self.otherSettings = OtherSettings(plugin.chatUI)
         self.documentationSettings = DocumentationSettings()
         self.contributorsSettings = ContributorsSettings()
@@ -264,7 +266,7 @@ class SettingsBuilder:
             Text(
                 text=strings.deeplinks,
                 icon="msg_link",
-                on_click=lambda v: BulletinHelper.show_info(strings.not_ready_yet)
+                create_sub_fragment=self.deeplinksSettings.build
             ),
             
             Text(

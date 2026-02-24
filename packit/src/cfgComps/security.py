@@ -46,7 +46,7 @@ class SecuritySettings:
                 key="sudo_password_input",
                 text=strings.sudo_password,
                 default="",
-                icon="msg_secret",
+                icon="fingerprint",
                 on_change=self._onPasswordChange
             ),
             Divider(text="This feature is not fully implemented yet."),
