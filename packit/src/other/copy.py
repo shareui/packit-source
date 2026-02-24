@@ -26,7 +26,7 @@ def copy_share_link(plugin_info: dict, repo_title: str):
         if not plugin_id:
             BulletinFactory.of(container, resource_provider).createErrorBulletin("Plugin has no id").show()
             return
-        share_link = f"tg://packit?install={repo_title}&{plugin_id}"
+        share_link = f"tg://packit?install&repo={repo_title}&plugin={plugin_id}"
         AndroidUtilities.addToClipboard(share_link)
         plugin_name = plugin_info.get("name") or plugin_info.get("id") or "Unknown"
         BulletinFactory.of(container, resource_provider).createSimpleBulletin(R_tg.raw.voip_invite, strings("plugin_link_copied", plugin_name)).show()

@@ -375,7 +375,8 @@ class InstallUI:
         fragment = get_last_fragment()
         if not fragment:
             return
-        self._show_plugins_universal(repo_name, [])
+        repo_id = (repo.get("id") or "").strip()
+        self._show_plugins_universal(repo_name, [], repo_id=repo_id)
 
         def load_task():
             try:
@@ -441,12 +442,12 @@ class InstallUI:
         except Exception as e:
             log(f"Failed to update current fragment plugins: {e}")
 
-    def _show_plugins_universal(self, repo_name: str, plugins: list):
+    def _show_plugins_universal(self, repo_name: str, plugins: list, repo_id: str = ""):
         fragment = get_last_fragment()
         if not fragment:
             return
         try:
-            delegate = self.PluginListFragment(self, repo_name, plugins, show_loading_initial=True)
+            delegate = self.PluginListFragment(self, repo_name, plugins, show_loading_initial=True, repo_id=repo_id)
             new_fragment = UniversalFragment(delegate)
             fragment.presentFragment(new_fragment)
             new_fragment.setTitle(repo_name, False, 0)
@@ -469,10 +470,11 @@ class InstallUI:
             log(f"Failed to show plugins universal: {e}")
 
     class PluginListFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
-        def __init__(self, install_ui, title, plugins, show_loading_initial=False):
+        def __init__(self, install_ui, title, plugins, show_loading_initial=False, repo_id=""):
             super().__init__()
             self.install_ui = install_ui
             self.title = title
+            self.repo_id = repo_id
             self.plugins = plugins
             self.show_loading_initial = show_loading_initial
             self.search_index = search_mod.build_index(plugins)
@@ -1288,7 +1290,7 @@ class InstallUI:
                     playSound(path)
                 except Exception:
                     pass
-                copy_share_link(p, self.title)
+                copy_share_link(p, self.repo_id or self.title)
 
             copy_btn = create_icon_pill("msg_link2", on_copy)
             share_btn = create_icon_pill("msg_forward", lambda: share_plugin_file(p, str(display_name), act_for_share))
