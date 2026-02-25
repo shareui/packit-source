@@ -116,6 +116,14 @@ class OtherSettings:
             Divider(),
             Header(text=strings.interface_header),
             Switch(
+                key="hide_unavailable_plugins",
+                text="Hide unavailable plugins",
+                subtext="Hide plugins that are incompatible with your client.",
+                default=False,
+                icon="msg_block",
+                link_alias="hide_unavailable_plugins"
+            ),
+            Switch(
                 key="old_sort_menu_design",
                 text=strings.classic_sort_menu,
                 subtext=strings.classic_sort_menu_desc,
