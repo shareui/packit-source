@@ -186,5 +186,21 @@
   "sudo_password_saved": "Password saved",
   "scanning_header": "Scanning",
   "signature_scan": "Signature verification",
-  "hash_comparison": "Hash comparison"
+  "hash_comparison": "Hash comparison",
+  "import_failed": "Some import failed, check the logs!",
+  "deeplinks_repositories_header": "Repositories",
+  "deeplinks_all_repositories": "All repositories",
+  "deeplinks_add_repository": "Adding repositories",
+  "deeplinks_installation_header": "Installation",
+  "deeplinks_plugins_menu": "Plugins menu",
+  "deeplinks_specific_repository": "Specific repository",
+  "deeplinks_install_plugin": "Installing the plugin",
+  "deeplinks_updates_header": "Updates",
+  "deeplinks_check_updates": "Refresh the cache of all repositories",
+  "deeplinks_check_updates_repo": "Refresh the cache in the repository",
+  "deeplinks_other_header": "Other",
+  "deeplinks_settings": "Settings",
+  "deeplinks_forum": "Forum",
+  "deeplinks_possible_problems": "Possible problems",
+  "deeplinks_restart": "Restart the app"
 }

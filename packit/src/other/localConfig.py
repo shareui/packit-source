@@ -1,8 +1,16 @@
 import os
 import json
 from android_utils import log
-from elyx import assets
-from org.telegram.messenger import ApplicationLoader
+try:
+    from elyx import assets
+except Exception as e:
+    import android_utils as _au; _au.log(f"import elyx import assets failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from org.telegram.messenger import ApplicationLoader
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 
 def _get_config_path() -> str:

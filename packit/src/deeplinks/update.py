@@ -1,8 +1,17 @@
 from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment, run_on_queue
 from android_utils import log, run_on_ui_thread
-from org.telegram.messenger import ApplicationLoader
-from elyx import strings
+try:
+    from org.telegram.messenger import ApplicationLoader
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from elyx import strings
+except Exception as e:
+    import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+from urllib.parse import urlparse, parse_qs
 import requests
 import json
 import os
@@ -74,10 +83,69 @@ def _run_update(repoManager):
     run_on_queue(task)
 
 
+def _run_update_single(repoManager, repoId: str):
+    def task():
+        try:
+            repos = repoManager.getRepositories()
+            cacheDir = _get_cache_dir()
+            os.makedirs(cacheDir, exist_ok=True)
+
+            target = next((r for r in repos if r.get("id") == repoId), None)
+            if not target:
+                run_on_ui_thread(lambda: BulletinHelper.show_error(f"Repository '{repoId}' not found"))
+                return
+
+            url = (target.get("url") or "").strip()
+            if not url:
+                run_on_ui_thread(lambda: BulletinHelper.show_error(f"Repository '{repoId}' has no URL"))
+                return
+
+            try:
+                r = requests.get(url, timeout=10)
+                if r.status_code != 200:
+                    log(f"update deeplink: HTTP {r.status_code} for {url}")
+                    run_on_ui_thread(lambda: BulletinHelper.show_error(f"HTTP {r.status_code}"))
+                    return
+                data = r.json()
+                repometa = data.get("repometa")
+                rmRid = repometa.get("rm_rid") if repometa else None
+
+                if not repometa or not rmRid:
+                    log(f"update deeplink: no repometa for '{url}'")
+                    run_on_ui_thread(lambda: BulletinHelper.show_error("Repository has no metadata"))
+                    return
+
+                cachePath = os.path.join(cacheDir, f"{rmRid}.json")
+                with open(cachePath, "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=2, ensure_ascii=False)
+                log(f"update deeplink: updated cache for '{rmRid}'")
+
+                idx = next((i for i, rp in enumerate(repos) if rp.get("id") == repoId), None)
+                if idx is not None and repos[idx].get("id") != rmRid:
+                    repos[idx]["id"] = rmRid
+                    repoManager.setRepositories(repos)
+
+                run_on_ui_thread(lambda: BulletinHelper.show_success(strings.update_repos_success))
+            except Exception as e:
+                log(f"update deeplink: error for {url}: {e}")
+                run_on_ui_thread(lambda: BulletinHelper.show_error(str(e)))
+        except Exception as e:
+            log(f"update deeplink: single task error: {e}")
+
+    run_on_queue(task)
+
+
 def handle(url, repoManager):
-    if url != "tg://packit?update":
+    if not url.startswith("tg://packit?update"):
         return
     try:
-        _run_update(repoManager)
+        parsed = urlparse(url)
+        query = parse_qs(parsed.query, keep_blank_values=True)
+        repoId = query.get("repo", [None])[0]
+
+        if repoId:
+            _run_update_single(repoManager, repoId.strip())
+        elif url == "tg://packit?update":
+            _run_update(repoManager)
     except Exception as e:
         log(f"update deeplink: handle error: {e}")

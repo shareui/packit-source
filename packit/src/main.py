@@ -1,6 +1,10 @@
 from typing import Any
 from base_plugin import BasePlugin, HookResult, HookStrategy
-from elyx import settings, strings
+try:
+    from elyx import settings, strings
+except Exception as e:
+    import android_utils as _au; _au.log(f"import elyx import settings, strings failed: {e}")
+    from .other.importFailed import showImportFailedAlert as _sifa; _sifa()
 from .repom import RepositoryManager
 from .core import PackItCore
 from .settings import SettingsBuilder

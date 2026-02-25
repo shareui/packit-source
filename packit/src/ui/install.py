@@ -18,14 +18,42 @@ import requests
 from android_utils import log, run_on_ui_thread
 from client_utils import get_last_fragment, run_on_queue
 from ui.bulletin import BulletinHelper
-from elyx import settings, strings
-from org.telegram.ui.ActionBar import Theme
-from org.telegram.ui.Components import LayoutHelper, BackupImageView, EditTextBoldCursor
-from org.telegram.messenger import AndroidUtilities, MediaDataController, ImageLocation
+try:
+    from elyx import settings, strings
+except Exception as e:
+    import android_utils as _au; _au.log(f"import elyx import settings, strings failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from org.telegram.ui.ActionBar import Theme
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.ui.ActionBar import Theme failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from org.telegram.ui.Components import LayoutHelper, BackupImageView, EditTextBoldCursor
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.ui.Components import LayoutHelper, BackupImageView, EditTextBoldCursor failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from org.telegram.messenger import AndroidUtilities, MediaDataController, ImageLocation
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities, MediaDataController, ImageLocation failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 from android_utils import OnClickListener
-from com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment
-from com.exteragram.messenger.utils.text import LocaleUtils
-from com.exteragram.messenger.utils.ui import CanvasUtils
+try:
+    from com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment
+except Exception as e:
+    import android_utils as _au; _au.log(f"import com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from com.exteragram.messenger.utils.text import LocaleUtils
+except Exception as e:
+    import android_utils as _au; _au.log(f"import com.exteragram.messenger.utils.text import LocaleUtils failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from com.exteragram.messenger.utils.ui import CanvasUtils
+except Exception as e:
+    import android_utils as _au; _au.log(f"import com.exteragram.messenger.utils.ui import CanvasUtils failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 from .repo import show_repo_sheet
 from .sort import show_sort_menu
@@ -34,6 +62,36 @@ from ..other.copy import copy_share_link
 from ..other.share import share_plugin_file
 from ..other.media import playSound
 from ..core import install_plugin
+
+
+def _parse_version(v_str):
+    try:
+        return tuple(int(x) for x in str(v_str).strip().split("."))
+    except Exception:
+        return (0,)
+
+def _is_min_version_satisfied(plugin_min_ver):
+    try:
+        from org.telegram.messenger import BuildVars
+        app_ver = BuildVars.BUILD_VERSION_STRING
+        return _parse_version(app_ver) >= _parse_version(plugin_min_ver)
+    except Exception:
+        return True
+
+def _filter_unavailable(plugins):
+    try:
+        from elyx import settings as _s
+        if not _s.get("hide_unavailable_plugins", False):
+            return plugins
+    except Exception:
+        return plugins
+    result = []
+    for p in plugins:
+        mv = p.get("min_version")
+        if not mv or _is_min_version_satisfied(mv):
+            result.append(p)
+    return result
+
 
 
 class InstallUI:
@@ -293,7 +351,11 @@ class InstallUI:
                         # Try to resolve plugins URL from cached repomap
                         plugins_url = repo_url
                         if repo_id:
-                            from org.telegram.messenger import ApplicationLoader
+                            try:
+                                from org.telegram.messenger import ApplicationLoader
+                            except Exception as e:
+                                import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
+                                from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
                             import os
                             pkg = ApplicationLoader.applicationContext.getPackageName()
                             cache_path = f"/data/data/{pkg}/files/packitCache/{repo_id}.json"
@@ -343,7 +405,8 @@ class InstallUI:
         fragment = get_last_fragment()
         if not fragment:
             return
-        self._show_plugins_universal(repo_name, [])
+        repo_id = (repo.get("id") or "").strip()
+        self._show_plugins_universal(repo_name, [], repo_id=repo_id)
 
         def load_task():
             try:
@@ -351,7 +414,11 @@ class InstallUI:
                 plugins_url = repo_url
                 repo_id = (repo.get("id") or "").strip()
                 if repo_id:
-                    from org.telegram.messenger import ApplicationLoader
+                    try:
+                        from org.telegram.messenger import ApplicationLoader
+                    except Exception as e:
+                        import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
+                        from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
                     import os
                     pkg = ApplicationLoader.applicationContext.getPackageName()
                     cache_path = f"/data/data/{pkg}/files/packitCache/{repo_id}.json"
@@ -390,13 +457,13 @@ class InstallUI:
             if hasattr(fragment, 'getDelegate') and fragment.getDelegate():
                 delegate = fragment.getDelegate()
                 if hasattr(delegate, 'plugins'):
-                    delegate.plugins = plugins
+                    delegate.plugins = _filter_unavailable(plugins)
                     delegate.filtered_plugins = []
                     delegate.visible_plugins = []
-                    delegate.search_index = search_mod.build_index(plugins)
+                    delegate.search_index = search_mod.build_index(delegate.plugins)
 
                     if hasattr(delegate, 'subtitle'):
-                        delegate.subtitle.setText(strings("total_plugins", len(plugins)))
+                        delegate.subtitle.setText(strings("total_plugins", len(delegate.plugins)))
 
                     if hasattr(delegate, 'results_container') and delegate.results_container:
                         delegate.build_list_with_sort("alpha_az")
@@ -405,12 +472,12 @@ class InstallUI:
         except Exception as e:
             log(f"Failed to update current fragment plugins: {e}")
 
-    def _show_plugins_universal(self, repo_name: str, plugins: list):
+    def _show_plugins_universal(self, repo_name: str, plugins: list, repo_id: str = ""):
         fragment = get_last_fragment()
         if not fragment:
             return
         try:
-            delegate = self.PluginListFragment(self, repo_name, plugins, show_loading_initial=True)
+            delegate = self.PluginListFragment(self, repo_name, plugins, show_loading_initial=True, repo_id=repo_id)
             new_fragment = UniversalFragment(delegate)
             fragment.presentFragment(new_fragment)
             new_fragment.setTitle(repo_name, False, 0)
@@ -433,13 +500,14 @@ class InstallUI:
             log(f"Failed to show plugins universal: {e}")
 
     class PluginListFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
-        def __init__(self, install_ui, title, plugins, show_loading_initial=False):
+        def __init__(self, install_ui, title, plugins, show_loading_initial=False, repo_id=""):
             super().__init__()
             self.install_ui = install_ui
             self.title = title
-            self.plugins = plugins
+            self.repo_id = repo_id
+            self.plugins = _filter_unavailable(plugins)
             self.show_loading_initial = show_loading_initial
-            self.search_index = search_mod.build_index(plugins)
+            self.search_index = search_mod.build_index(self.plugins)
             self.last_search_query = None
             self.filtered_plugins = []
             self.visible_plugins = []
@@ -1185,34 +1253,104 @@ class InstallUI:
             buttons.setPadding(0, AndroidUtilities.dp(8), 0, 0)
             base_color = Theme.getColor(Theme.key_featuredStickers_addButton)
             pressed_color = Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
+
+            plugin_min_version = p.get("min_version")
+            is_available = (not plugin_min_version) or _is_min_version_satisfied(plugin_min_version)
+
             install_btn = self.install_ui._create_pill(act, base_color, pressed_color)
             install_icon = ImageView(act)
-            icon_id = self.install_ui._resolve_icon("msg_view_file")
-            install_icon.setImageResource(icon_id)
-            try:
-                install_icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_buttonText))
-            except Exception:
-                pass
-            icon_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
-            icon_lp.rightMargin = AndroidUtilities.dp(6)
-            install_btn.addView(install_icon, icon_lp)
-            install_text = TextView(act)
-            install_text.setText(strings["plugin_view_button"])
-            install_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
-            install_text.setTypeface(AndroidUtilities.bold())
-            install_text.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
-            install_btn.addView(install_text)
-            soundPath = os.path.join(os.path.dirname(__file__), "../../res/sounds/install.mp3")
-
-            def onInstallClick(v, plugin=p, path=soundPath):
+            if is_available:
+                icon_id = self.install_ui._resolve_icon("msg_view_file")
+                install_icon.setImageResource(icon_id)
                 try:
-                    playSound(path)
+                    install_icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_buttonText))
                 except Exception:
                     pass
-                install_plugin(plugin)
+                icon_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
+                icon_lp.rightMargin = AndroidUtilities.dp(6)
+                install_btn.addView(install_icon, icon_lp)
+                install_text = TextView(act)
+                install_text.setText(strings["plugin_view_button"])
+                install_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+                install_text.setTypeface(AndroidUtilities.bold())
+                install_text.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
+                install_btn.addView(install_text)
+                soundPath = os.path.join(os.path.dirname(__file__), "../../res/sounds/install.mp3")
 
-            install_btn.setOnClickListener(OnClickListener(onInstallClick))
-            self.install_ui._apply_press_scale(install_btn)
+                def onInstallClick(v, plugin=p, path=soundPath):
+                    try:
+                        playSound(path)
+                    except Exception:
+                        pass
+                    install_plugin(plugin)
+
+                install_btn.setOnClickListener(OnClickListener(onInstallClick))
+                self.install_ui._apply_press_scale(install_btn)
+            else:
+                try:
+                    red_color = Theme.getColor(Theme.key_fill_RedDark)
+                except Exception:
+                    from android.graphics import Color
+                    red_color = Color.parseColor("#C62828")
+                import ctypes
+                bg_red = ctypes.c_int32((0x33 << 24) | (red_color & 0x00FFFFFF)).value
+                install_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                    AndroidUtilities.dp(18), bg_red, bg_red
+                ))
+                unavail_icon = ImageView(act)
+                unavail_icon.setImageResource(self.install_ui._resolve_icon("msg_block"))
+                try:
+                    unavail_icon.setColorFilter(red_color)
+                except Exception:
+                    pass
+                unavail_icon_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
+                unavail_icon_lp.rightMargin = AndroidUtilities.dp(6)
+                install_btn.addView(unavail_icon, unavail_icon_lp)
+                unavail_text = TextView(act)
+                unavail_text.setText("Unavailable")
+                unavail_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+                unavail_text.setTypeface(AndroidUtilities.bold())
+                unavail_text.setTextColor(red_color)
+                install_btn.addView(unavail_text)
+
+                def onUnavailableClick(v, plugin=p, act_ref=act):
+                    try:
+                        from ui.alert import AlertDialogBuilder
+                        from android.net import Uri
+                        try:
+                            from org.telegram.messenger.browser import Browser
+                        except Exception:
+                            Browser = None
+                        min_ver = plugin.get("min_version") or "?"
+                        try:
+                            from org.telegram.messenger import BuildVars
+                            cur_ver = BuildVars.BUILD_VERSION_STRING
+                        except Exception:
+                            cur_ver = "?"
+                        builder = AlertDialogBuilder(act_ref)
+                        builder.set_title("Unavailable")
+                        builder.set_message(
+                            f"The minimum client version required to install the plugin is {min_ver}. "
+                            f"However, your client version is {cur_ver}, the plugin cannot be installed."
+                        )
+                        def on_hide(b, w):
+                            b.dismiss()
+                            try:
+                                frag = get_last_fragment()
+                                act2 = frag.getParentActivity() if frag else None
+                                url = "https://t.me/exteraSettings?p=shareui_packit&s=null:hide_unavailable_plugins"
+                                if act2 and Browser:
+                                    Browser.openUrl(act2, Uri.parse(url), True, True, True, None, None, False, False, False)
+                            except Exception as e:
+                                log(f"open hide_unavailable url error: {e}")
+                        builder.set_negative_button("Hide unavailable", on_hide)
+                        builder.set_positive_button("OK", lambda b, w: b.dismiss())
+                        builder.show()
+                    except Exception as e:
+                        log(f"unavailable dialog error: {e}")
+
+                install_btn.setOnClickListener(OnClickListener(onUnavailableClick))
+
             buttons.addView(install_btn, LayoutHelper.createLinear(-2, -2, 0, 0, 8, 0))
             spacer = View(act)
             buttons.addView(spacer, LayoutHelper.createLinear(0, 0, 1.0))
@@ -1252,7 +1390,7 @@ class InstallUI:
                     playSound(path)
                 except Exception:
                     pass
-                copy_share_link(p, self.title)
+                copy_share_link(p, self.repo_id or self.title)
 
             copy_btn = create_icon_pill("msg_link2", on_copy)
             share_btn = create_icon_pill("msg_forward", lambda: share_plugin_file(p, str(display_name), act_for_share))

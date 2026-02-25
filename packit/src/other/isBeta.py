@@ -2,7 +2,11 @@ from android_utils import run_on_ui_thread, log
 from client_utils import get_last_fragment
 from ui.alert import AlertDialogBuilder
 from ui.bulletin import BulletinHelper
-from elyx import strings
+try:
+    from elyx import strings
+except Exception as e:
+    import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 from .localConfig import LocalConfig
 
 BETA = True
@@ -28,7 +32,7 @@ def _show_beta_dialog():
         builder.set_title(strings.beta_dialog_title)
         builder.set_message(strings.beta_dialog_message)
         builder.set_positive_button(strings.beta_dialog_ok, on_ok)
-        builder.set_negative_button(strings.beta_dialog_cancel, on_cancel)
+        builder.set_negative_button(strings.cancel_button, on_cancel)
         builder.show()
     except Exception as e:
         log(f"isBeta._show_beta_dialog: error: {e}")

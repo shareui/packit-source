@@ -1,12 +1,20 @@
 from ui.settings import Header, Input, Divider, Switch, Text
-from elyx import strings, settings
+try:
+    from elyx import strings, settings
+except Exception as e:
+    import android_utils as _au; _au.log(f"import elyx import strings, settings failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 from client_utils import get_last_fragment
 from ui.bulletin import BulletinHelper
 from ui.alert import AlertDialogBuilder
 from .icons import IconSelector
 from android_utils import log
 from hook_utils import find_class
-from org.telegram.messenger import R as R_tg
+try:
+    from org.telegram.messenger import R as R_tg
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.messenger import R as R_tg failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
 
@@ -167,7 +175,11 @@ class RepositoriesSettings:
             import requests
             import json
             import os
-            from org.telegram.messenger import ApplicationLoader
+            try:
+                from org.telegram.messenger import ApplicationLoader
+            except Exception as e:
+                import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
+                from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 
             def task():
                 try:
@@ -252,7 +264,11 @@ class RepositoriesSettings:
                 return
 
             try:
-                from org.telegram.messenger import AndroidUtilities
+                try:
+                    from org.telegram.messenger import AndroidUtilities
+                except Exception as e:
+                    import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities failed: {e}")
+                    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
                 if AndroidUtilities.addToClipboard("\n\n".join(links)):
                     frag = get_last_fragment()
                     container = frag.getParentActivity().getWindow().getDecorView()
@@ -380,7 +396,11 @@ class RepositoriesSettings:
                 share_url = f"tg://packit?repo=add&name={name}&link={url}&icon={icon}"
 
                 try:
-                    from org.telegram.messenger import AndroidUtilities
+                    try:
+                        from org.telegram.messenger import AndroidUtilities
+                    except Exception as e:
+                        import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities failed: {e}")
+                        from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
                     if AndroidUtilities.addToClipboard(share_url):
                         BulletinHelper.show_success(strings.repo_link_copied)
                     else:

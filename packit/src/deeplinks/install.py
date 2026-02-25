@@ -4,12 +4,20 @@ from android_utils import log, run_on_ui_thread
 from urllib.parse import urlparse, parse_qs
 from ..core import install_plugin
 from ..ui.install import InstallUI
-from elyx import strings
+try:
+    from elyx import strings
+except Exception as e:
+    import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 import requests
 import json
 import os
 
-from org.telegram.messenger import ApplicationLoader
+try:
+    from org.telegram.messenger import ApplicationLoader
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 # install&repo=<rm_id>: required: repo — optional: plugin
 _INSTALL_REQUIRED = {"repo"}

@@ -2,7 +2,11 @@ import hashlib
 from ui.settings import Header, Input, Divider, Text
 from ui.bulletin import BulletinHelper
 from android_utils import log
-from elyx import strings
+try:
+    from elyx import strings
+except Exception as e:
+    import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 from ..other.localConfig import LocalConfig
 
 
@@ -42,7 +46,7 @@ class SecuritySettings:
                 key="sudo_password_input",
                 text=strings.sudo_password,
                 default="",
-                icon="msg_secret",
+                icon="fingerprint",
                 on_change=self._onPasswordChange
             ),
             Divider(text="This feature is not fully implemented yet."),

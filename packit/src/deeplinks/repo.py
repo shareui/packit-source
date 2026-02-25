@@ -2,10 +2,22 @@ from ui.bulletin import BulletinHelper
 from ui.alert import AlertDialogBuilder
 from client_utils import get_last_fragment, run_on_queue
 from android_utils import log, run_on_ui_thread
-from elyx import strings
+try:
+    from elyx import strings
+except Exception as e:
+    import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 from hook_utils import find_class
-from org.telegram.messenger import R as R_tg, ApplicationLoader
-from com.exteragram.messenger.utils.text import LocaleUtils  # noqa
+try:
+    from org.telegram.messenger import R as R_tg, ApplicationLoader
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.messenger import R as R_tg, ApplicationLoader failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from com.exteragram.messenger.utils.text import LocaleUtils  # noqa
+except Exception as e:
+    import android_utils as _au; _au.log(f"import com.exteragram.messenger.utils.text import LocaleUtils  # noqa failed: {e}")
+    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 from urllib.parse import urlparse, parse_qs
 import requests
 import json
