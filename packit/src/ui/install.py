@@ -49,11 +49,6 @@ try:
 except Exception as e:
     import android_utils as _au; _au.log(f"import com.exteragram.messenger.utils.text import LocaleUtils failed: {e}")
     from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
-try:
-    from com.exteragram.messenger.utils.ui import CanvasUtils
-except Exception as e:
-    import android_utils as _au; _au.log(f"import com.exteragram.messenger.utils.ui import CanvasUtils failed: {e}")
-    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 from .repo import show_repo_sheet
 from .sort import show_sort_menu
@@ -577,12 +572,9 @@ class InstallUI:
                 except Exception:
                     pass
             try:
-                pill.setColor(CanvasUtils.INSTANCE.getAdaptedSurfaceColor())
+                pill.setColor(self.card_bg_color)
             except Exception:
-                try:
-                    pill.setColor(self.card_bg_color)
-                except Exception:
-                    pass
+                pass
             search_container.setBackground(pill)
             search_container.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(8))
             self.search = EditTextBoldCursor(act)
@@ -747,14 +739,11 @@ class InstallUI:
             repo_btn.setClickable(True)
             repo_btn.setFocusable(True)
             try:
-                surface_color = CanvasUtils.INSTANCE.getAdaptedSurfaceColor()
-                repo_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                    AndroidUtilities.dp(16), surface_color, surface_color
-                ))
-            except Exception:
                 repo_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
                     AndroidUtilities.dp(16), self.card_bg_color, self.card_pressed_color
                 ))
+            except Exception:
+                pass
             repo_btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
             repo_icon = ImageView(act)
             icon_id = self.install_ui._resolve_icon("msg_media")
@@ -793,15 +782,9 @@ class InstallUI:
             subtitle.setClickable(False)
             subtitle.setFocusable(False)
             try:
-                surface_color = CanvasUtils.INSTANCE.getAdaptedSurfaceColor()
-                subtitle.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                    AndroidUtilities.dp(16), surface_color, surface_color
-                ))
+                subtitle.setBackgroundColor(self.card_bg_color)
             except Exception:
-                try:
-                    subtitle.setBackgroundColor(self.card_bg_color)
-                except Exception:
-                    pass
+                pass
             try:
                 subtitle.setTextColor(self.text_color)
             except Exception:
@@ -814,14 +797,11 @@ class InstallUI:
             sort_btn.setClickable(True)
             sort_btn.setFocusable(True)
             try:
-                surface_color = CanvasUtils.INSTANCE.getAdaptedSurfaceColor()
-                sort_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                    AndroidUtilities.dp(16), surface_color, surface_color
-                ))
-            except Exception:
                 sort_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
                     AndroidUtilities.dp(16), self.card_bg_color, self.card_pressed_color
                 ))
+            except Exception:
+                pass
             sort_btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
             sort_icon = ImageView(act)
             icon_id = self.install_ui._resolve_icon("msg_list")
@@ -1123,9 +1103,8 @@ class InstallUI:
             container.setGravity(Gravity.TOP)
             container.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12))
             try:
-                surface_color = CanvasUtils.INSTANCE.getAdaptedSurfaceColor()
                 container.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                    AndroidUtilities.dp(18), surface_color, surface_color
+                    AndroidUtilities.dp(18), self.card_bg_color, self.card_bg_color
                 ))
             except Exception:
                 pass
@@ -1357,8 +1336,8 @@ class InstallUI:
 
             def create_icon_pill(icon_name, handler):
                 try:
-                    surface_color = CanvasUtils.INSTANCE.getAdaptedSurfaceColor()
-                    pressed_color = surface_color
+                    surface_color = self.card_bg_color
+                    pressed_color = self.card_pressed_color
                 except Exception:
                     surface_color = self.card_bg_color
                     pressed_color = self.card_pressed_color
