@@ -783,7 +783,9 @@ class InstallUI:
             subtitle.setClickable(False)
             subtitle.setFocusable(False)
             try:
-                subtitle.setBackgroundColor(self.card_bg_color)
+                subtitle.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                    AndroidUtilities.dp(16), self.card_bg_color, self.card_bg_color
+                ))
             except Exception:
                 pass
             try:
