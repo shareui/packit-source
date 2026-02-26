@@ -1,6 +1,6 @@
 from android_utils import run_on_ui_thread
 from client_utils import get_last_fragment
-from ui.alert_dialog import AlertDialogBuilder
+from org.telegram.ui.ActionBar import AlertDialog
 from elyx import strings
 
 _alerted = False
@@ -15,9 +15,9 @@ def showImportFailedAlert():
         fragment = get_last_fragment()
         if not fragment:
             return
-        builder = AlertDialogBuilder(fragment.getParentActivity())
-        builder.set_title("PackIt")
-        builder.set_message(strings["import_failed"])
+        builder = AlertDialog.Builder(fragment.getParentActivity())
+        builder.setTitle("PackIt")
+        builder.setMessage(strings["import_failed"])
         builder.setPositiveButton("OK", None)
         builder.show()
 
