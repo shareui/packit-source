@@ -476,22 +476,14 @@ class InstallUI:
             delegate = self.PluginListFragment(self, repo_name, plugins, show_loading_initial=True, repo_id=repo_id)
             new_fragment = UniversalFragment(delegate)
             fragment.presentFragment(new_fragment)
-            new_fragment.setTitle(repo_name, False, 0)
             try:
+                new_fragment.setTitle(repo_name, False, 0)
                 actionBar = new_fragment.getActionBar()
                 if actionBar:
                     R_tg = find_class("org.telegram.messenger.R")
                     actionBar.setBackButtonImage(R_tg.drawable.ic_ab_back)
-                    back_button = actionBar.backButtonImageView
-                    if back_button:
-                        def on_back_click(v):
-                            try:
-                                new_fragment.finishFragment()
-                            except Exception:
-                                pass
-                        back_button.setOnClickListener(OnClickListener(on_back_click))
             except Exception as e:
-                log(f"Failed to add back button: {e}")
+                log(f"Failed to setup action bar: {e}")
         except Exception as e:
             log(f"Failed to show plugins universal: {e}")
 
@@ -887,11 +879,22 @@ class InstallUI:
             return self.title
 
         def onBackPressed(self):
-            try:
-                get_last_fragment().finishFragment()
-            except Exception:
-                pass
-            return True
+            return False
+
+        def afterCreateView(self, v):
+            return None
+
+        def fillItems(self, items, adapter):
+            pass
+
+        def onClick(self, item, view, pos, x, y):
+            pass
+
+        def onLongClick(self, item, view, pos, x, y):
+            return False
+
+        def onMenuItemClick(self, mid):
+            pass
 
         def _get_localized_description(self, plugin):
             about = plugin.get("about", [])
