@@ -218,10 +218,11 @@ class InstallUI:
             except Exception:
                 pass
         from android.graphics import Color
+        cardBgColor = Theme.getColor(Theme.key_windowBackgroundWhite)
         if is_dark_theme:
             return {
                 "main_bg_color": Theme.getColor(Theme.key_windowBackgroundGray),
-                "card_bg_color": Color.parseColor("#181818"),
+                "card_bg_color": cardBgColor,
                 "card_pressed_color": Color.parseColor("#3C3C3C"),
                 "text_color": Color.WHITE,
                 "secondary_text_color": Color.parseColor("#CCCCCC"),
@@ -232,7 +233,7 @@ class InstallUI:
             }
         return {
             "main_bg_color": Theme.getColor(Theme.key_windowBackgroundGray),
-            "card_bg_color": Color.parseColor("#ffffff"),
+            "card_bg_color": cardBgColor,
             "card_pressed_color": Color.parseColor("#f5f5f5"),
             "text_color": Color.BLACK,
             "secondary_text_color": Color.parseColor("#666666"),
