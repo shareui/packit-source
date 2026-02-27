@@ -3,7 +3,7 @@ from client_utils import get_last_fragment, run_on_queue
 from android_utils import log, run_on_ui_thread
 from urllib.parse import urlparse, parse_qs
 from ..core import install_plugin
-from ..ui.install import InstallUI
+from ..ui.installUi.uiMain import InstallUI
 try:
     from elyx import strings
 except Exception as e:
