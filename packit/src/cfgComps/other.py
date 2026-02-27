@@ -96,15 +96,6 @@ class OtherSettings:
                 on_change=self.chat_button.on_chat_switch if self.chat_button else None
             ),
             Switch(
-                key="show_drawer_menu",
-                text=strings.button_in_side_menu,
-                subtext=strings.button_in_side_menu_desc,
-                default=False,
-                icon="msg_info",
-                link_alias="show_drawer_menu",
-                on_change=self.chat_button.on_drawer_switch if self.chat_button else None
-            ),
-            Switch(
                 key="show_chat_plugins_menu",
                 text=strings.button_in_chat_plugins,
                 subtext=strings.button_in_chat_plugins_desc,
@@ -139,8 +130,6 @@ class OtherSettings:
                 icon="msg_sticker",
                 link_alias="show_default_sticker"
             ),
-            Divider(),
-            Header(text=strings.repository_selection_header),
             Switch(
                 key="skip_repository_selection",
                 text=strings.skip_repository_selection,
@@ -158,14 +147,6 @@ class OtherSettings:
                 link_alias="hide_repository_selection_button"
             ),
             Divider(),
-            Header(text=strings.cache_header),
-            Text(
-                text=strings.clear_cache,
-                icon="msg_delete",
-                on_click=self._onClearCacheClick,
-                red=True
-            ),
-            Divider(),
             Header(text=strings.sfx_header),
             Switch(
                 key="sfx_enabled",
@@ -174,6 +155,15 @@ class OtherSettings:
                 default=False,
                 icon="msg_voicechat",
                 link_alias="sfx_enabled"
+            ),
+            Divider(),
+            # cache should always be at the bottom of the page
+            Header(text=strings.cache_header),
+            Text(
+                text=strings.clear_cache,
+                icon="msg_delete",
+                on_click=self._onClearCacheClick,
+                red=True
             ),
             Divider(),
         ]
