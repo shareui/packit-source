@@ -22,41 +22,41 @@ try:
     from elyx import settings, strings
 except Exception as e:
     import android_utils as _au; _au.log(f"import elyx import settings, strings failed: {e}")
-    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ...other.importFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.ui.ActionBar import Theme
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.ui.ActionBar import Theme failed: {e}")
-    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ...other.importFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.ui.Components import LayoutHelper, BackupImageView, EditTextBoldCursor
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.ui.Components import LayoutHelper, BackupImageView, EditTextBoldCursor failed: {e}")
-    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ...other.importFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.messenger import AndroidUtilities, MediaDataController, ImageLocation
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities, MediaDataController, ImageLocation failed: {e}")
-    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ...other.importFailed import showImportFailedAlert as _sifa; _sifa()
 from android_utils import OnClickListener
 try:
     from com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment
 except Exception as e:
     import android_utils as _au; _au.log(f"import com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment failed: {e}")
-    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ...other.importFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from com.exteragram.messenger.utils.text import LocaleUtils
 except Exception as e:
     import android_utils as _au; _au.log(f"import com.exteragram.messenger.utils.text import LocaleUtils failed: {e}")
-    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ...other.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 from .repo import show_repo_sheet
 from .sort import show_sort_menu
 from . import search as search_mod
-from ..other.copy import copy_share_link
-from ..other.share import share_plugin_file
-from ..other.media import playSound
-from ..core import install_plugin
+from ...other.copy import copy_share_link
+from ...other.share import share_plugin_file
+from ...other.media import playSound
+from ...core import install_plugin
 
 
 def _parse_version(v_str):
@@ -280,7 +280,7 @@ class InstallUI:
             video_view = VideoView(act)
             video_path = os.path.join(
                 os.path.dirname(__file__),
-                "../../res/anim.mp4"
+                "../../../res/anim.mp4"
             )
             video_view.setVideoPath(video_path)
             try:
@@ -351,7 +351,7 @@ class InstallUI:
                                 from org.telegram.messenger import ApplicationLoader
                             except Exception as e:
                                 import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
-                                from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+                                from ...other.importFailed import showImportFailedAlert as _sifa; _sifa()
                             import os
                             pkg = ApplicationLoader.applicationContext.getPackageName()
                             cache_path = f"/data/data/{pkg}/files/packitCache/{repo_id}.json"
@@ -414,7 +414,7 @@ class InstallUI:
                         from org.telegram.messenger import ApplicationLoader
                     except Exception as e:
                         import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
-                        from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+                        from ...other.importFailed import showImportFailedAlert as _sifa; _sifa()
                     import os
                     pkg = ApplicationLoader.applicationContext.getPackageName()
                     cache_path = f"/data/data/{pkg}/files/packitCache/{repo_id}.json"
@@ -662,7 +662,7 @@ class InstallUI:
             clear_btn_icon.setScaleType(ImageView.ScaleType.CENTER)
             clear_btn.addView(clear_btn_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
             
-            clearSoundPath = os.path.join(os.path.dirname(__file__), "../../res/sounds/clear-search.mp3")
+            clearSoundPath = os.path.join(os.path.dirname(__file__), "../../../res/sounds/clear-search.mp3")
 
             def on_clear_click():
                 try:
@@ -706,7 +706,7 @@ class InstallUI:
                 pass
             search_btn_icon.setScaleType(ImageView.ScaleType.CENTER)
             search_btn.addView(search_btn_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
-            searchBtnSoundPath = os.path.join(os.path.dirname(__file__), "../../res/sounds/search-btn.mp3")
+            searchBtnSoundPath = os.path.join(os.path.dirname(__file__), "../../../res/sounds/search-btn.mp3")
 
             def onSearchBtnClick(v):
                 try:
@@ -1260,7 +1260,7 @@ class InstallUI:
                 install_text.setTypeface(AndroidUtilities.bold())
                 install_text.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
                 install_btn.addView(install_text)
-                soundPath = os.path.join(os.path.dirname(__file__), "../../res/sounds/install.mp3")
+                soundPath = os.path.join(os.path.dirname(__file__), "../../../res/sounds/install.mp3")
 
                 def onInstallClick(v, plugin=p, path=soundPath):
                     try:
@@ -1368,7 +1368,7 @@ class InstallUI:
 
             act_for_share = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
 
-            copyLinkSoundPath = os.path.join(os.path.dirname(__file__), "../../res/sounds/copy-link.mp3")
+            copyLinkSoundPath = os.path.join(os.path.dirname(__file__), "../../../res/sounds/copy-link.mp3")
 
             def on_copy(path=copyLinkSoundPath):
                 try:

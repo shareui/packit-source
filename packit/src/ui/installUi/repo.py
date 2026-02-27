@@ -11,22 +11,22 @@ try:
     from org.telegram.ui.ActionBar import BottomSheet, Theme
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.ui.ActionBar import BottomSheet, Theme failed: {e}")
-    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ...other.importFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.ui.Components import LayoutHelper
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.ui.Components import LayoutHelper failed: {e}")
-    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ...other.importFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.messenger import AndroidUtilities
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities failed: {e}")
-    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ...other.importFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from elyx import strings
 except Exception as e:
     import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
-    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ...other.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 
 def show_repo_sheet(install_ui, repos, on_select=None):

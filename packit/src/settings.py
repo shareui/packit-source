@@ -37,7 +37,7 @@ try:
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities, ImageLocation, MediaDataController, R failed: {e}")
     from .other.importFailed import showImportFailedAlert as _sifa; _sifa()
-from .ui.install import InstallUI
+from .ui.installUi.uiMain import InstallUI
 from client_utils import get_last_fragment
 try:
     from org.telegram.messenger.browser import Browser
