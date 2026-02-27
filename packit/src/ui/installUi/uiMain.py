@@ -59,6 +59,13 @@ from ...other.media import playSound
 from ...core import install_plugin
 
 
+def _count_active_repos(repo_manager) -> int:
+    try:
+        repos = repo_manager.getRepositories() or []
+        return sum(1 for r in repos if r and r.get("enabled", True) and str(r.get("url") or "").strip())
+    except Exception:
+        return 0
+
 def _parse_version(v_str):
     try:
         return tuple(int(x) for x in str(v_str).strip().split("."))
@@ -459,7 +466,8 @@ class InstallUI:
                     delegate.search_index = search_mod.build_index(delegate.plugins)
 
                     if hasattr(delegate, 'subtitle'):
-                        delegate.subtitle.setText(strings("total_plugins", len(delegate.plugins)))
+                        repo_count = _count_active_repos(self.plugin.repoManager)
+                        delegate.subtitle.setText(strings("total_plugins", repo_count, len(delegate.plugins)))
 
                     if hasattr(delegate, 'results_container') and delegate.results_container:
                         delegate.build_list_with_sort("alpha_az")
@@ -769,7 +777,8 @@ class InstallUI:
             header_row.addView(repo_btn, LayoutHelper.createLinear(-2, -2, 1, 0, 8, 0))
             subtitle = TextView(act)
             subtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
-            subtitle.setText(strings("total_plugins", len(self.plugins)) if self.plugins else strings["total_plugins_unknown"])
+            repo_count = _count_active_repos(self.install_ui.plugin.repoManager)
+            subtitle.setText(strings("total_plugins", repo_count, len(self.plugins)) if self.plugins else strings["total_plugins_unknown"])
             subtitle.setGravity(Gravity.CENTER)
             subtitle.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(7), AndroidUtilities.dp(12), AndroidUtilities.dp(7))
             subtitle.setClickable(False)
@@ -980,7 +989,8 @@ class InstallUI:
         def _finish_loading_and_show_plugins(self, content_wrapper):
             try:
                 if hasattr(self, 'subtitle'):
-                    self.subtitle.setText(strings("total_plugins", len(self.plugins)))
+                    repo_count = _count_active_repos(self.install_ui.plugin.repoManager)
+                    self.subtitle.setText(strings("total_plugins", repo_count, len(self.plugins)))
 
                 if self.loading_container:
                     content_wrapper.removeView(self.loading_container)
