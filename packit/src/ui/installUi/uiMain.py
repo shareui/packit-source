@@ -59,6 +59,62 @@ from ...other.media import playSound
 from ...core import install_plugin
 
 
+def _count_active_repos(repo_manager) -> int:
+    try:
+        repos = repo_manager.getRepositories() or []
+        return sum(1 for r in repos if r and r.get("enabled", True) and str(r.get("url") or "").strip())
+    except Exception:
+        return 0
+
+def _plural_form(n: int, plural_type: str) -> str:
+    # returns "one", "few", or "many" based on count and language plural rule
+    if plural_type == "ru":
+        # slavic rule: 1→one, 2-4→few, 5+→many (also handles 11-19 edge case)
+        mod10 = n % 10
+        mod100 = n % 100
+        if mod10 == 1 and mod100 != 11:
+            return "one"
+        if 2 <= mod10 <= 4 and not (12 <= mod100 <= 14):
+            return "few"
+        return "many"
+    if plural_type == "pl":
+        # polish rule
+        mod10 = n % 10
+        mod100 = n % 100
+        if n == 1:
+            return "one"
+        if 2 <= mod10 <= 4 and not (12 <= mod100 <= 14):
+            return "few"
+        return "many"
+    # default "en" rule: 1→one, else→many
+    return "one" if n == 1 else "many"
+
+def _format_plural(n: int, key_one: str, key_few: str, key_many: str, plural_type: str) -> str:
+    form = _plural_form(n, plural_type)
+    template = key_many
+    if form == "one":
+        template = key_one
+    elif form == "few":
+        template = key_few
+    return template.replace("{0}", str(n))
+
+def _build_stats_label(repo_count: int, plugin_count: int) -> str:
+    try:
+        plural_type = strings["plural_type"]
+        repo_str = _format_plural(
+            repo_count,
+            strings["repo_one"], strings["repo_few"], strings["repo_many"],
+            plural_type
+        )
+        plugin_str = _format_plural(
+            plugin_count,
+            strings["plugin_one"], strings["plugin_few"], strings["plugin_many"],
+            plural_type
+        )
+        return f"{repo_str} · {plugin_str}"
+    except Exception:
+        return strings("total_plugins", repo_count, plugin_count)
+
 def _parse_version(v_str):
     try:
         return tuple(int(x) for x in str(v_str).strip().split("."))
@@ -498,7 +554,8 @@ class InstallUI:
                     delegate.search_index = search_mod.build_index(delegate.plugins)
 
                     if hasattr(delegate, 'subtitle'):
-                        delegate.subtitle.setText(strings("total_plugins", len(delegate.plugins)))
+                        repo_count = _count_active_repos(self.plugin.repoManager)
+                        delegate.subtitle.setText(_build_stats_label(repo_count, len(delegate.plugins)))
 
                     if hasattr(delegate, 'results_container') and delegate.results_container:
                         delegate.build_list_with_sort("alpha_az")
@@ -760,13 +817,13 @@ class InstallUI:
             search_container.addView(search_row, FrameLayout.LayoutParams(-1, -2))
             main_layout.addView(search_container, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8))
 
-            header_row = LinearLayout(act)
-            header_row.setOrientation(LinearLayout.HORIZONTAL)
-            header_row.setGravity(Gravity.CENTER_VERTICAL)
-            header_lp = LinearLayout.LayoutParams(-1, -2)
-            header_lp.topMargin = AndroidUtilities.dp(4)
-            header_lp.bottomMargin = AndroidUtilities.dp(12)
-            main_layout.addView(header_row, header_lp)
+            # header_row uses FrameLayout so subtitle is always centered
+            # regardless of its text length, with equal spacing on both sides
+            header_row = FrameLayout(act)
+            header_row_lp = LinearLayout.LayoutParams(-1, AndroidUtilities.dp(44))
+            header_row_lp.topMargin = AndroidUtilities.dp(4)
+            header_row_lp.bottomMargin = AndroidUtilities.dp(12)
+            main_layout.addView(header_row, header_row_lp)
             repo_btn = FrameLayout(act)
             repo_btn.setClickable(True)
             repo_btn.setFocusable(True)
@@ -805,10 +862,12 @@ class InstallUI:
             self.install_ui._apply_press_scale(repo_btn)
             if settings.get("hide_repository_selection_button", False):
                 repo_btn.setVisibility(View.GONE)
-            header_row.addView(repo_btn, LayoutHelper.createLinear(-2, -2, 1, 0, 8, 0))
+            repo_btn_lp = FrameLayout.LayoutParams(-2, -2, Gravity.LEFT | Gravity.CENTER_VERTICAL)
+            header_row.addView(repo_btn, repo_btn_lp)
             subtitle = TextView(act)
             subtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
-            subtitle.setText(strings("total_plugins", len(self.plugins)) if self.plugins else strings["total_plugins_unknown"])
+            repo_count = _count_active_repos(self.install_ui.plugin.repoManager)
+            subtitle.setText(_build_stats_label(repo_count, len(self.plugins)) if self.plugins else strings["total_plugins_unknown"])
             subtitle.setGravity(Gravity.CENTER)
             subtitle.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(7), AndroidUtilities.dp(12), AndroidUtilities.dp(7))
             subtitle.setClickable(False)
@@ -823,10 +882,10 @@ class InstallUI:
                 subtitle.setTextColor(self.text_color)
             except Exception:
                 pass
-            header_row.addView(subtitle, LayoutHelper.createLinear(-2, -2))
+            # center subtitle absolutely in the header row
+            subtitle_lp = FrameLayout.LayoutParams(-2, -2, Gravity.CENTER)
+            header_row.addView(subtitle, subtitle_lp)
             self.subtitle = subtitle
-            spacer = View(act)
-            header_row.addView(spacer, LayoutHelper.createLinear(0, 0, 1.0))
             sort_btn = FrameLayout(act)
             sort_btn.setClickable(True)
             sort_btn.setFocusable(True)
@@ -855,7 +914,8 @@ class InstallUI:
                 show_sort_menu(self.install_ui, act, self.current_sort_type, on_sort_selected)
             sort_btn.setOnClickListener(OnClickListener(lambda v: show_sort_menu_handler()))
             self.install_ui._apply_press_scale(sort_btn)
-            header_row.addView(sort_btn, LayoutHelper.createLinear(-2, -2))
+            sort_btn_lp = FrameLayout.LayoutParams(-2, -2, Gravity.RIGHT | Gravity.CENTER_VERTICAL)
+            header_row.addView(sort_btn, sort_btn_lp)
 
             scroll = ScrollView(act)
             scroll.setFillViewport(True)
@@ -1019,7 +1079,8 @@ class InstallUI:
         def _finish_loading_and_show_plugins(self, content_wrapper):
             try:
                 if hasattr(self, 'subtitle'):
-                    self.subtitle.setText(strings("total_plugins", len(self.plugins)))
+                    repo_count = _count_active_repos(self.install_ui.plugin.repoManager)
+                    self.subtitle.setText(_build_stats_label(repo_count, len(self.plugins)))
 
                 if self.loading_container:
                     content_wrapper.removeView(self.loading_container)
