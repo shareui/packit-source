@@ -5,7 +5,7 @@ from collections import deque
 from time import time
 from android.animation import ObjectAnimator
 from android.view import View, MotionEvent, Gravity
-from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView, VideoView
+from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView, VideoView, ProgressBar
 from android.util import TypedValue
 from android.text import TextWatcher, InputType
 from android.view.inputmethod import EditorInfo
@@ -327,6 +327,45 @@ class InstallUI:
             self._open_repo_plugins(repos[0])
             return
         show_repo_sheet(self, repos)
+
+    def _create_circular_loading(self, act, size_dp=20):
+        try:
+            from org.telegram.ui.Components import CircularProgressDrawable
+            color = Theme.getColor(Theme.key_featuredStickers_buttonText)
+            d = CircularProgressDrawable(color)
+            try:
+                d.size = float(AndroidUtilities.dp(size_dp))
+                d.thickness = float(AndroidUtilities.dp(2))
+            except Exception:
+                pass
+            v = ImageView(act)
+            v.setImageDrawable(d)
+            try:
+                v.setScaleType(ImageView.ScaleType.CENTER)
+            except Exception:
+                pass
+            return v
+        except Exception:
+            loading_view = ProgressBar(act)
+            try:
+                loading_view.setIndeterminate(True)
+            except Exception:
+                pass
+            try:
+                from android.content.res import ColorStateList
+                color = Theme.getColor(Theme.key_featuredStickers_addButton)
+                tint = ColorStateList.valueOf(color)
+                try:
+                    loading_view.setIndeterminateTintList(tint)
+                except Exception:
+                    pass
+            except Exception:
+                pass
+            try:
+                loading_view.setLayoutParams(FrameLayout.LayoutParams(AndroidUtilities.dp(size_dp), AndroidUtilities.dp(size_dp), Gravity.CENTER))
+            except Exception:
+                pass
+            return loading_view
 
     def _create_center_loading_animation(self, parent_layout):
         try:
@@ -1323,12 +1362,41 @@ class InstallUI:
                 install_btn.addView(install_text)
                 soundPath = os.path.join(os.path.dirname(__file__), "../../../res/sounds/install.mp3")
 
-                def onInstallClick(v, plugin=p, path=soundPath):
+                def onInstallClick(v, plugin=p, path=soundPath, install_icon=install_icon, install_btn=install_btn, icon_id=icon_id, act=act):
                     try:
                         playSound(path)
                     except Exception:
                         pass
-                    install_plugin(plugin)
+                    install_btn.setEnabled(False)
+                    loading_view = None
+                    try:
+                        loading_view = self.install_ui._create_circular_loading(act, size_dp=20)
+                    except Exception:
+                        loading_view = ProgressBar(act)
+                        try:
+                            loading_view.setIndeterminate(True)
+                        except Exception:
+                            pass
+
+                    icon_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
+                    icon_lp.rightMargin = AndroidUtilities.dp(6)
+                    install_btn.removeView(install_icon)
+                    install_btn.addView(loading_view, 0, icon_lp)
+
+                    def _finish(_ok):
+                        try:
+                            install_btn.setEnabled(True)
+                            install_btn.removeView(loading_view)
+                        except Exception:
+                            pass
+                        try:
+                            install_icon.setImageResource(icon_id)
+                            install_btn.addView(install_icon, 0, icon_lp)
+                            install_btn.invalidate()
+                        except Exception:
+                            pass
+
+                    install_plugin(plugin, on_finish=_finish)
 
                 install_btn.setOnClickListener(OnClickListener(onInstallClick))
                 self.install_ui._apply_press_scale(install_btn)

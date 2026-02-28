@@ -4,9 +4,9 @@ import requests
 from android_utils import log, run_on_ui_thread
 from client_utils import get_last_fragment
 from ui.bulletin import BulletinHelper
-from java.io import File, FileOutputStream
+from android.widget import ProgressBar, LinearLayout
 try:
-    from org.telegram.messenger import ApplicationLoader
+    from org.telegram.messenger import ApplicationLoader, AndroidUtilities
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
     from .other.importFailed import showImportFailedAlert as _sifa; _sifa()
@@ -57,16 +57,26 @@ def _dismiss_dialog(dlg):
     run_on_ui_thread(action)
 
 
-def install_plugin(plugin_info: dict):
+def install_plugin(plugin_info: dict, icon_view=None, button=None, original_icon_id=None, loading_view=None, on_finish=None):
     plugin_id = plugin_info.get("id")
     url = plugin_info.get("link") or plugin_info.get("raw")
 
     if not plugin_id or not url:
         BulletinHelper.show_error("Plugin has no link")
+        try:
+            if on_finish:
+                run_on_ui_thread(lambda: on_finish(False))
+        except Exception:
+            pass
         return
 
     fragment = get_last_fragment()
     if not fragment:
+        try:
+            if on_finish:
+                run_on_ui_thread(lambda: on_finish(False))
+        except Exception:
+            pass
         return
 
     # called from UI thread (onClick), so we create dialog synchronously here
@@ -135,15 +145,44 @@ def install_plugin(plugin_info: dict):
 
             def open_install_dialog():
                 try:
+                    if loading_view and button and icon_view:
+                        def _restore_icon():
+                            try:
+                                button.removeView(loading_view)
+                            except Exception:
+                                pass
+                            icon_view.setImageResource(original_icon_id)
+                            lp = LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
+                            lp.rightMargin = AndroidUtilities.dp(6)
+                            button.addView(icon_view, 0, lp)
+                            button.invalidate()
+
+                        run_on_ui_thread(_restore_icon)
+
                     PluginsController.getInstance().showInstallDialog(fragment, temp_path, True)
+                    try:
+                        if on_finish:
+                            on_finish(True)
+                    except Exception:
+                        pass
                 except Exception as e:
                     BulletinHelper.show_error(f"Failed to open install dialog: {e}")
+                    try:
+                        if on_finish:
+                            on_finish(False)
+                    except Exception:
+                        pass
 
             run_on_ui_thread(open_install_dialog)
         except Exception as e:
             log(f"core.install_plugin: error downloading '{plugin_id}' from '{url}': {e}")
             _dismiss_dialog(dlg)
             run_on_ui_thread(lambda: BulletinHelper.show_error("An error occurred while downloading"))
+            try:
+                if on_finish:
+                    run_on_ui_thread(lambda: on_finish(False))
+            except Exception:
+                pass
 
     threading.Thread(target=task, daemon=True).start()
 
