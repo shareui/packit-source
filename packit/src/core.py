@@ -1,7 +1,8 @@
 import os
+import threading
 import requests
 from android_utils import log, run_on_ui_thread
-from client_utils import run_on_queue, get_last_fragment
+from client_utils import get_last_fragment
 from ui.bulletin import BulletinHelper
 from android.widget import ProgressBar, LinearLayout
 try:
@@ -21,6 +22,39 @@ except Exception as e:
     from .other.importFailed import showImportFailedAlert as _sifa; _sifa()
 import time
 import signal
+
+
+def _get_real_dialog(dlg):
+    try:
+        return dlg.get_dialog() if hasattr(dlg, "get_dialog") else dlg
+    except Exception:
+        return dlg
+
+def _is_showing(dlg):
+    try:
+        real = _get_real_dialog(dlg)
+        return real and hasattr(real, "isShowing") and real.isShowing()
+    except Exception:
+        return False
+
+def _set_progress(dlg, value: int):
+    def action():
+        try:
+            if _is_showing(dlg):
+                dlg.set_progress(value)
+        except Exception:
+            pass
+    run_on_ui_thread(action)
+
+def _dismiss_dialog(dlg):
+    def action():
+        try:
+            real = _get_real_dialog(dlg)
+            if real and real.isShowing():
+                real.dismiss()
+        except Exception:
+            pass
+    run_on_ui_thread(action)
 
 
 def install_plugin(plugin_info: dict, icon_view=None, button=None, original_icon_id=None, loading_view=None, on_finish=None):
@@ -45,11 +79,18 @@ def install_plugin(plugin_info: dict, icon_view=None, button=None, original_icon
             pass
         return
 
+    # called from UI thread (onClick), so we create dialog synchronously here
+    from ui.alert import AlertDialogBuilder
+    ctx = fragment.getContext()
+    builder = AlertDialogBuilder(ctx, AlertDialogBuilder.ALERT_TYPE_LOADING)
+    builder.set_title("Downloading...")
+    builder.set_cancelable(False)
+    dlg = builder.show()
+    dlg.set_progress(0)
+
     def task():
         try:
-            BulletinHelper.show_info("Downloading plugin...")
-
-            r = requests.get(url, timeout=30)
+            r = requests.get(url, stream=True, timeout=30)
             if r.status_code != 200:
                 log(f"core.install_plugin: failed to download '{plugin_id}' from '{url}': HTTP {r.status_code}")
                 raise Exception(f"HTTP {r.status_code}")
@@ -62,10 +103,47 @@ def install_plugin(plugin_info: dict, icon_view=None, button=None, original_icon
                 pass
 
             temp_path = os.path.join(plugins_dir, f".temp_{plugin_id}.plugin")
-            with open(temp_path, "wb") as f:
-                f.write(r.content)
 
-            def open_dialog():
+            content_length = r.headers.get("content-length")
+            total = int(content_length) if content_length else 0
+            downloaded = 0
+
+            # read raw compressed stream so downloaded bytes match content-length
+            r.raw.decode_content = False
+            encoding = r.headers.get("content-encoding", "").lower()
+            with open(temp_path, "wb") as f:
+                if encoding in ("gzip", "deflate") and total:
+                    import zlib
+                    decompressor = zlib.decompressobj(zlib.MAX_WBITS | 16)
+                    while True:
+                        chunk = r.raw.read(8192)
+                        if not chunk:
+                            break
+                        try:
+                            f.write(decompressor.decompress(chunk))
+                        except Exception:
+                            f.write(chunk)
+                        downloaded += len(chunk)
+                        percent = min(99, int(downloaded * 100 / total))
+                        _set_progress(dlg, percent)
+                    try:
+                        f.write(decompressor.flush())
+                    except Exception:
+                        pass
+                else:
+                    while True:
+                        chunk = r.raw.read(8192)
+                        if not chunk:
+                            break
+                        f.write(chunk)
+                        if total:
+                            downloaded += len(chunk)
+                            percent = min(99, int(downloaded * 100 / total))
+                            _set_progress(dlg, percent)
+
+            _dismiss_dialog(dlg)
+
+            def open_install_dialog():
                 try:
                     if loading_view and button and icon_view:
                         def _restore_icon():
@@ -95,9 +173,10 @@ def install_plugin(plugin_info: dict, icon_view=None, button=None, original_icon
                     except Exception:
                         pass
 
-            run_on_ui_thread(open_dialog)
+            run_on_ui_thread(open_install_dialog)
         except Exception as e:
             log(f"core.install_plugin: error downloading '{plugin_id}' from '{url}': {e}")
+            _dismiss_dialog(dlg)
             run_on_ui_thread(lambda: BulletinHelper.show_error("An error occurred while downloading"))
             try:
                 if on_finish:
@@ -105,7 +184,7 @@ def install_plugin(plugin_info: dict, icon_view=None, button=None, original_icon
             except Exception:
                 pass
 
-    run_on_queue(task)
+    threading.Thread(target=task, daemon=True).start()
 
 
 class PackItCore:
