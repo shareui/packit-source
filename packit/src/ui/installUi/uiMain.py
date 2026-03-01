@@ -34,9 +34,9 @@ except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.ui.Components import LayoutHelper, BackupImageView, EditTextBoldCursor failed: {e}")
     from ...other.importFailed import showImportFailedAlert as _sifa; _sifa()
 try:
-    from org.telegram.messenger import AndroidUtilities, MediaDataController, ImageLocation
+    from org.telegram.messenger import AndroidUtilities, MediaDataController, ImageLocation, R as R_tg
 except Exception as e:
-    import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities, MediaDataController, ImageLocation failed: {e}")
+    import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities, MediaDataController, ImageLocation, R as R_tg failed: {e}")
     from ...other.importFailed import showImportFailedAlert as _sifa; _sifa()
 from android_utils import OnClickListener
 try:
@@ -48,14 +48,55 @@ try:
     from com.exteragram.messenger.utils.text import LocaleUtils
 except Exception as e:
     import android_utils as _au; _au.log(f"import com.exteragram.messenger.utils.text import LocaleUtils failed: {e}")
+try:
+    from org.telegram.ui.ActionBar import ActionBarPopupWindow
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.ui.ActionBar import ActionBarPopupWindow failed: {e}")
+    from ...other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from android.net import Uri
+except Exception as e:
+    import android_utils as _au; _au.log(f"import android.net import Uri failed: {e}")
+    from ...other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from org.telegram.messenger.browser import Browser
+except Exception:
+    Browser = None
+try:
+    from androidx.core.content import ContextCompat
+except Exception as e:
+    import android_utils as _au; _au.log(f"import androidx.core.content import ContextCompat failed: {e}")
+    from ...other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from android.graphics.drawable import GradientDrawable, RippleDrawable
+except Exception as e:
+    import android_utils as _au; _au.log(f"import android.graphics.drawable import GradientDrawable, RippleDrawable failed: {e}")
+    from ...other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from android.graphics import Color as AColor, PorterDuff
+except Exception as e:
+    import android_utils as _au; _au.log(f"import android.graphics import Color, PorterDuff failed: {e}")
+    from ...other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from android.content.res import ColorStateList as AColorStateList
+except Exception as e:
+    import android_utils as _au; _au.log(f"import android.content.res import ColorStateList failed: {e}")
+    from ...other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from android.view import View as AView, Gravity as AGravity
+except Exception as e:
+    import android_utils as _au; _au.log(f"import android.view import View, Gravity failed: {e}")
+    from ...other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from android.widget import FrameLayout as AFrame, LinearLayout as ALinear, TextView as AText, ImageView as AImage
+except Exception as e:
+    import android_utils as _au; _au.log(f"import android.widget import FrameLayout, LinearLayout, TextView, ImageView failed: {e}")
     from ...other.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 from .repo import show_repo_sheet
 from .sort import show_sort_menu
 from . import search as search_mod
-from ...other.copy import copy_share_link
-from ...other.share import share_plugin_file
-from ...other.media import playSound
+from .plugin_actions import copy_plugin_link, share_plugin_file, view_plugin_code, report_plugin
 from ...core import install_plugin
 
 
@@ -616,17 +657,9 @@ class InstallUI:
 
         def _handle_repo_select(self, selected):
             if selected == "all":
-                if self.title == "All repositories":
-                    return
-                else:
-                    self.install_ui._open_all_repos_plugins()
-            elif isinstance(selected, dict) and selected.get("name") == self.title:
-                return
-            else:
-                if isinstance(selected, dict):
-                    self.install_ui._open_repo_plugins(selected)
-                elif selected == "all":
-                    self.install_ui._open_all_repos_plugins()
+                self.install_ui._open_all_repos_plugins()
+            elif isinstance(selected, dict):
+                self.install_ui._open_repo_plugins(selected)
 
         def beforeCreateView(self):
             act = get_last_fragment().getContext()
@@ -1216,7 +1249,7 @@ class InstallUI:
                 pass
             
             icon_str = p.get("icon")
-            show_default_sticker = settings.get("show_default_sticker", True)
+            show_default_sticker = settings.get("show_default_sticker", False)
             show_icon = icon_str and icon_str != "Unknown"
             if not show_icon and show_default_sticker:
                 icon_str = "Plugins_Stickers/0"
@@ -1501,17 +1534,153 @@ class InstallUI:
 
             copyLinkSoundPath = os.path.join(os.path.dirname(__file__), "../../../res/sounds/copy-link.mp3")
 
-            def on_copy(path=copyLinkSoundPath):
+            def show_plugin_actions_menu(anchor_view):
                 try:
-                    playSound(path)
-                except Exception:
-                    pass
-                copy_share_link(p, self.repo_id or self.title)
+                    popup_layout = ActionBarPopupWindow.ActionBarPopupWindowLayout(act)
+                    popup_layout.setBackgroundColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuBackground))
+                    popup_layout.setFitItems(True)
+                    popup_window_ref = [None]
+                    
+                    def create_menu_item(icon_res: int, title: str, action, is_red=False):
+                        item_frame = AFrame(act)
+                        item_frame.setMinimumWidth(AndroidUtilities.dp(160))
+                        item_frame.setClickable(True)
+                        item_frame.setFocusable(True)
+                        try:
+                            try:
+                                bg_color = Theme.getColor(Theme.key_dialogBackgroundGray) & 0x20FFFFFF | 0x10000000
+                            except Exception:
+                                try:
+                                    bg_color = Theme.getColor(Theme.key_windowBackgroundGray) & 0x20FFFFFF | 0x10000000
+                                except Exception:
+                                    bg_color = AColor.parseColor("#F0F0F0")
+                            try:
+                                pressed_color = Theme.getColor(Theme.key_listSelector) & 0x40FFFFFF | 0x30000000
+                            except Exception:
+                                pressed_color = AColor.parseColor("#D0D0D0")
+                            btn_bg = GradientDrawable()
+                            btn_bg.setCornerRadius(AndroidUtilities.dp(10))
+                            btn_bg.setColor(bg_color)
+                            try:
+                                ripple_color = AColorStateList.valueOf(AColor.parseColor("#40000000"))
+                                pressed_bg = GradientDrawable()
+                                pressed_bg.setCornerRadius(AndroidUtilities.dp(10))
+                                pressed_bg.setColor(pressed_color)
+                                ripple_drawable = RippleDrawable(ripple_color, btn_bg, pressed_bg)
+                                item_frame.setBackground(ripple_drawable)
+                            except Exception:
+                                try:
+                                    item_frame.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                                        AndroidUtilities.dp(10),
+                                        bg_color,
+                                        pressed_color
+                                    ))
+                                except Exception:
+                                    item_frame.setBackground(btn_bg)
+                        except Exception:
+                            item_frame.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 2))
+                        
+                        item_content = ALinear(act)
+                        item_content.setOrientation(ALinear.HORIZONTAL)
+                        item_content.setGravity(AGravity.CENTER_VERTICAL)
+                        item_content.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12))
+                        
+                        icon = AImage(act)
+                        icon.setScaleType(AImage.ScaleType.CENTER)
+                        try:
+                            icon_drawable = ContextCompat.getDrawable(act, icon_res)
+                            if is_red:
+                                try:
+                                    red_color = Theme.getColor(Theme.key_text_RedRegular)
+                                except Exception:
+                                    red_color = AColor.parseColor("#FF3B30")
+                                icon_drawable.setColorFilter(red_color, PorterDuff.Mode.SRC_IN)
+                            else:
+                                try:
+                                    gray_color = Theme.getColor(Theme.key_dialogTextGray)
+                                except Exception:
+                                    gray_color = AColor.parseColor("#808080")
+                                icon_drawable.setColorFilter(gray_color, PorterDuff.Mode.SRC_IN)
+                            icon.setImageDrawable(icon_drawable)
+                        except Exception:
+                            icon.setImageResource(icon_res)
+                        
+                        item_content.addView(icon, LayoutHelper.createLinear(24, 24, AGravity.CENTER_VERTICAL, 0, 0, 12, 0))
+                        
+                        title_tv = AText(act)
+                        title_tv.setText(title)
+                        title_tv.setTextSize(14)
+                        try:
+                            if is_red:
+                                try:
+                                    red_color = Theme.getColor(Theme.key_text_RedRegular)
+                                except Exception:
+                                    red_color = AColor.parseColor("#FF3B30")
+                                title_tv.setTextColor(red_color)
+                            else:
+                                title_tv.setTextColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuItem))
+                        except Exception:
+                            pass
+                        item_content.addView(title_tv, LayoutHelper.createLinear(-1, -2, 1.0, AGravity.CENTER_VERTICAL))
+                        item_frame.addView(item_content)
+                        
+                        def _on_click(*_):
+                            try:
+                                if popup_window_ref[0]:
+                                    popup_window_ref[0].dismiss()
+                            except Exception:
+                                pass
+                            try:
+                                action()
+                            except Exception:
+                                pass
+                        
+                        item_frame.setOnClickListener(OnClickListener(_on_click))
+                        popup_layout.addView(item_frame, LayoutHelper.createLinear(-1, -2))
+                    
+                    def do_copy():
+                        copy_plugin_link(p, self.repo_id or self.title, copyLinkSoundPath)
+                    
+                    def do_share():
+                        share_plugin_file(p, str(display_name), act_for_share)
+                    
+                    def do_code():
+                        view_plugin_code(p, act)
+                    
+                    def do_report():
+                        report_plugin(p, act)
+                    
+                    icon_copy = getattr(R_tg.drawable, 'msg_copy', getattr(R_tg.drawable, 'msg_copy_filled', 0))
+                    icon_share = getattr(R_tg.drawable, 'msg_share', 0)
+                    icon_code = getattr(R_tg.drawable, 'msg_view_file', 0)
+                    icon_report = getattr(R_tg.drawable, 'msg_report', 0)
+                    
+                    create_menu_item(icon_copy, "Copy", do_copy, False)
+                    create_menu_item(icon_share, "Share", do_share, False)
+                    create_menu_item(icon_code, "Code", do_code, False)
+                    create_menu_item(icon_report, "Report", do_report, True)
+                    
+                    popup_window = ActionBarPopupWindow(popup_layout, -2, -2)
+                    popup_window_ref[0] = popup_window
+                    popup_window.setOutsideTouchable(True)
+                    popup_window.setClippingEnabled(True)
+                    popup_window.setAnimationStyle(R_tg.style.PopupContextAnimation)
+                    popup_window.setFocusable(True)
+                    popup_layout.measure(
+                        AView.MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(1000), AView.MeasureSpec.AT_MOST),
+                        AView.MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(1000), AView.MeasureSpec.AT_MOST)
+                    )
+                    location = [0, 0]
+                    anchor_view.getLocationInWindow(location)
+                    popup_x = location[0] + anchor_view.getWidth() - popup_layout.getMeasuredWidth()
+                    popup_y = location[1] - popup_layout.getMeasuredHeight()
+                    popup_window.showAtLocation(anchor_view, AGravity.TOP | AGravity.LEFT, popup_x, popup_y)
+                    popup_window.dimBehind()
+                except Exception as e:
+                    log(f"Error showing plugin actions menu: {e}")
 
-            copy_btn = create_icon_pill("msg_link2", on_copy)
-            share_btn = create_icon_pill("msg_forward", lambda: share_plugin_file(p, str(display_name), act_for_share))
-            buttons.addView(copy_btn, LayoutHelper.createLinear(-2, -2, 0, 0, 4, 0))
-            buttons.addView(share_btn, LayoutHelper.createLinear(-2, -2))
+            menu_btn = create_icon_pill("ic_ab_other", lambda: show_plugin_actions_menu(menu_btn))
+            buttons.addView(menu_btn, LayoutHelper.createLinear(-2, -2))
             container.addView(buttons, LayoutHelper.createLinear(-1, -2))
             row.addView(container)
             return row
