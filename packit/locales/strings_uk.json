@@ -66,6 +66,7 @@
     "packit": "PackIt",
     "packit_settings": "Налаштування PackIt",
     "plugin_not_found": "Плагін PackIt не знайдено... Незручно.",
+    "file_not_found": "Файл не знайдено :(",
     "error_opening_settings": "Помилка відкриття налаштувань: {0}",
     "error_generic": "Помилка: {0}",
     "icon_selected": "Іконка \"{0}\" вибрана!",

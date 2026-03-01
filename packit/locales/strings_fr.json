@@ -66,6 +66,7 @@
     "packit": "PackIt",
     "packit_settings": "Paramètres PackIt",
     "plugin_not_found": "Plugin PackIt introuvable. Gênant.",
+    "file_not_found": "Fichier introuvable :(",
     "error_opening_settings": "Erreur lors de l'ouverture des paramètres : {0}",
     "error_generic": "Erreur : {0}",
     "icon_selected": "Icône « {0} » sélectionnée !",

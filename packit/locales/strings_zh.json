@@ -66,6 +66,7 @@
     "packit": "PackIt",
     "packit_settings": "PackIt 设置",
     "plugin_not_found": "未找到 PackIt 插件，有点尴尬。",
+    "file_not_found": "文件未找到 :(",
     "error_opening_settings": "打开设置时出错：{0}",
     "error_generic": "错误：{0}",
     "icon_selected": "已选择图标「{0}」！",

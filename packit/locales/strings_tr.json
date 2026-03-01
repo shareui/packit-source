@@ -66,6 +66,7 @@
     "packit": "PackIt",
     "packit_settings": "PackIt ayarları",
     "plugin_not_found": "PackIt eklentisi bulunamadı...",
+    "file_not_found": "Dosya bulunamadı :(",
     "error_opening_settings": "Ayarlar açılırken hata: {0}",
     "error_generic": "Hata: {0}",
     "icon_selected": "\"{0}\" simgesi seçildi!",
