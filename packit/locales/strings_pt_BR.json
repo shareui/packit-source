@@ -66,6 +66,7 @@
     "packit": "PackIt",
     "packit_settings": "Configurações do PackIt",
     "plugin_not_found": "Plugin PackIt não encontrado. Que saia.",
+    "file_not_found": "Arquivo não encontrado :(",
     "error_opening_settings": "Erro ao abrir as configurações: {0}",
     "error_generic": "Erro: {0}",
     "icon_selected": "Ícone \"{0}\" selecionado!",

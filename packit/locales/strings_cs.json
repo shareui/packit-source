@@ -66,6 +66,7 @@
     "packit": "PackIt",
     "packit_settings": "Nastavení PackIt",
     "plugin_not_found": "Plugin PackIt nenalezen. Trapas.",
+    "file_not_found": "Soubor nenalezen :(",
     "error_opening_settings": "Chyba při otevírání nastavení: {0}",
     "error_generic": "Chyba: {0}",
     "icon_selected": "Ikona \"{0}\" vybrána!",

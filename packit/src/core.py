@@ -93,6 +93,20 @@ def install_plugin(plugin_info: dict, icon_view=None, button=None, original_icon
             r = requests.get(url, stream=True, timeout=30)
             if r.status_code != 200:
                 log(f"core.install_plugin: failed to download '{plugin_id}' from '{url}': HTTP {r.status_code}")
+                _dismiss_dialog(dlg)
+                if r.status_code == 404:
+                    try:
+                        from elyx import strings as _strings
+                        _msg = _strings["file_not_found"]
+                    except Exception:
+                        _msg = "File not found :("
+                    run_on_ui_thread(lambda: BulletinHelper.show_error(_msg))
+                    try:
+                        if on_finish:
+                            run_on_ui_thread(lambda: on_finish(False))
+                    except Exception:
+                        pass
+                    return
                 raise Exception(f"HTTP {r.status_code}")
 
             pkg = ApplicationLoader.applicationContext.getPackageName()

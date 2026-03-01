@@ -1384,17 +1384,19 @@ class InstallUI:
                     install_btn.addView(loading_view, 0, icon_lp)
 
                     def _finish(_ok):
-                        try:
-                            install_btn.setEnabled(True)
-                            install_btn.removeView(loading_view)
-                        except Exception:
-                            pass
-                        try:
-                            install_icon.setImageResource(icon_id)
-                            install_btn.addView(install_icon, 0, icon_lp)
-                            install_btn.invalidate()
-                        except Exception:
-                            pass
+                        def _restore():
+                            try:
+                                install_btn.setEnabled(True)
+                                install_btn.removeView(loading_view)
+                            except Exception:
+                                pass
+                            try:
+                                install_icon.setImageResource(icon_id)
+                                install_btn.addView(install_icon, 0, icon_lp)
+                                install_btn.invalidate()
+                            except Exception:
+                                pass
+                        threading.Timer(1.0, lambda: run_on_ui_thread(_restore)).start()
 
                     install_plugin(plugin, on_finish=_finish)
 

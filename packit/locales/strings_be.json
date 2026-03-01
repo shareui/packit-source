@@ -66,6 +66,7 @@
     "packit": "PackIt",
     "packit_settings": "Налады PackIt",
     "plugin_not_found": "Плагін PackIt не знойдзены... Няёмка.",
+    "file_not_found": "Файл не знойдзены :(",
     "error_opening_settings": "Памылка адкрыцця налад: {0}",
     "error_generic": "Памылка: {0}",
     "icon_selected": "Абразок \"{0}\" абраная!",
