@@ -616,17 +616,9 @@ class InstallUI:
 
         def _handle_repo_select(self, selected):
             if selected == "all":
-                if self.title == "All repositories":
-                    return
-                else:
-                    self.install_ui._open_all_repos_plugins()
-            elif isinstance(selected, dict) and selected.get("name") == self.title:
-                return
-            else:
-                if isinstance(selected, dict):
-                    self.install_ui._open_repo_plugins(selected)
-                elif selected == "all":
-                    self.install_ui._open_all_repos_plugins()
+                self.install_ui._open_all_repos_plugins()
+            elif isinstance(selected, dict):
+                self.install_ui._open_repo_plugins(selected)
 
         def beforeCreateView(self):
             act = get_last_fragment().getContext()
@@ -1216,7 +1208,7 @@ class InstallUI:
                 pass
             
             icon_str = p.get("icon")
-            show_default_sticker = settings.get("show_default_sticker", True)
+            show_default_sticker = settings.get("show_default_sticker", False)
             show_icon = icon_str and icon_str != "Unknown"
             if not show_icon and show_default_sticker:
                 icon_str = "Plugins_Stickers/0"
