@@ -25,5 +25,5 @@ OUTPUT_FILE="packit-${VERSION}.eaf"
 mkdir -p builds
 
 rm -f packit-*.eaf packit-*.zip
-zip -r "builds/${OUTPUT_FILE}" packit refmap.yml
+zip -P oxf -r "builds/${OUTPUT_FILE}" packit refmap.yml
 echo "created: builds/${OUTPUT_FILE}"
