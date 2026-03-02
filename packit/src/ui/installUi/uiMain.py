@@ -97,6 +97,7 @@ from .repo import show_repo_sheet
 from .sort import show_sort_menu
 from . import search as search_mod
 from .plugin_actions import copy_plugin_link, share_plugin_file, view_plugin_code, report_plugin
+from ...other.media import playSound
 from ...core import install_plugin
 
 
@@ -785,7 +786,7 @@ class InstallUI:
             clear_btn_icon_id = self.install_ui._resolve_icon("input_clear")
             clear_btn_icon.setImageResource(clear_btn_icon_id)
             try:
-                clear_btn_icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_buttonText))
+                clear_btn_icon.setColorFilter(self.text_color)
             except Exception:
                 pass
             clear_btn_icon.setScaleType(ImageView.ScaleType.CENTER)
@@ -1655,7 +1656,7 @@ class InstallUI:
                     icon_code = getattr(R_tg.drawable, 'msg_view_file', 0)
                     icon_report = getattr(R_tg.drawable, 'msg_report', 0)
                     
-                    create_menu_item(icon_copy, "Copy", do_copy, False)
+                    create_menu_item(icon_copy, "Copy link", do_copy, False)
                     create_menu_item(icon_share, "Share", do_share, False)
                     create_menu_item(icon_code, "Code", do_code, False)
                     create_menu_item(icon_report, "Report", do_report, True)
