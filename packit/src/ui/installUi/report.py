@@ -1,36 +1,27 @@
 from android_utils import log
 from client_utils import get_last_fragment
-from hook_utils import find_class
+from android.net import Uri
 try:
-    from org.telegram.messenger import AndroidUtilities, R as R_tg
-except Exception as e:
-    import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities, R as R_tg failed: {e}")
-    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
-from android.widget import Toast
+    from org.telegram.messenger.browser import Browser
+except Exception:
+    Browser = None
 
-
-BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
+REPORT_URL = "https://t.me/c/packitGround/970"
 
 def report_plugin(plugin_info: dict, activity):
     try:
-        plugin_name = plugin_info.get("name") or plugin_info.get("id") or "Unknown"
-        fragment = get_last_fragment()
-        if fragment and activity:
-            container = activity.getWindow().getDecorView()
-            resource_provider = fragment.getResourceProvider()
-            try:
-                BulletinFactory.of(container, resource_provider).createSimpleBulletin(
-                    R_tg.raw.info, 
-                    f"Report for {plugin_name} will be implemented later"
-                ).show()
-            except Exception:
-                try:
-                    toast = Toast.makeText(activity, f"Report feature coming soon for {plugin_name}", Toast.LENGTH_SHORT)
-                    toast.show()
-                except Exception:
-                    log(f"Could not show report notification for {plugin_name}")
-        
-        log(f"Report requested for plugin: {plugin_name}")
-        
+        frag = get_last_fragment()
+        act = frag.getParentActivity() if frag else activity
+        if act and Browser:
+            uri = Uri.parse(REPORT_URL)
+            Browser.openUrl(act, uri, True, True, True, None, None, False, False, False)
+        else:
+            from android.content import Intent
+            from org.telegram.messenger import ApplicationLoader
+            context = ApplicationLoader.applicationContext
+            intent = Intent(Intent.ACTION_VIEW)
+            intent.setData(Uri.parse(REPORT_URL))
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
     except Exception as e:
         log(f"Error in report_plugin: {e}")

@@ -55,12 +55,27 @@ def share_plugin_file(plugin_info: dict, display_name: str, activity):
         log(f"Error sharing plugin: {e}")
 
 
+def _convert_raw_github_url(url: str) -> str:
+    """Convert raw.githubusercontent.com URL to github.com for browser viewing."""
+    try:
+        import re
+        m = re.match(r'https://raw\.githubusercontent\.com/([^/]+)/([^/]+)/([^/]+)/(.*)', url)
+        if m:
+            owner, repo, branch, path = m.group(1), m.group(2), m.group(3), m.group(4)
+            return f"https://github.com/{owner}/{repo}/blob/{branch}/{path}"
+    except Exception:
+        pass
+    return url
+
+
 def view_plugin_code(plugin_info: dict, activity):
     try:
         plugin_url = plugin_info.get("link") or plugin_info.get("raw")
         if not plugin_url:
             BulletinFactory.of(activity.getWindow().getDecorView(), None).createErrorBulletin("Plugin has no link").show()
             return
+
+        plugin_url = _convert_raw_github_url(plugin_url)
 
         if activity and Browser:
             uri = Uri.parse(plugin_url)
