@@ -94,8 +94,8 @@ def _make_avatar_view(context, image_url, title_text, subtitle_text, username_ur
                 pass
 
         main_layout = LinearLayout(context)
-        main_layout.setOrientation(LinearLayout.VERTICAL)
-        main_layout.setGravity(Gravity.CENTER)
+        main_layout.setOrientation(LinearLayout.HORIZONTAL)
+        main_layout.setGravity(Gravity.CENTER_VERTICAL)
         main_layout.setPadding(dp(20), dp(20), dp(20), dp(20))
 
         img = BackupImageView(context)
@@ -112,10 +112,12 @@ def _make_avatar_view(context, image_url, title_text, subtitle_text, username_ur
             except Exception:
                 pass
 
-        main_layout.addView(img, LayoutHelper.createLinear(100, 100, Gravity.CENTER, 0, 0, 0, 12))
+        main_layout.addView(img, LayoutHelper.createLinear(60, 60, Gravity.CENTER_VERTICAL, 0, 0, 16, 0))
+
         text_container = LinearLayout(context)
         text_container.setOrientation(LinearLayout.VERTICAL)
-        text_container.setGravity(Gravity.CENTER)
+        text_container.setGravity(Gravity.CENTER_VERTICAL)
+
         title = TextView(context)
         title.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
         try:
@@ -125,18 +127,13 @@ def _make_avatar_view(context, image_url, title_text, subtitle_text, username_ur
         title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20)
         title.setText(title_text)
         title.setSingleLine(True)
-        title.setGravity(Gravity.CENTER)
         text_container.addView(title, LayoutHelper.createLinear(-1, -2, 0, 0, 4, 0))
 
         if subtitle_text:
-            subtitle_container = LinearLayout(context)
-            subtitle_container.setOrientation(LinearLayout.HORIZONTAL)
-            subtitle_container.setGravity(Gravity.CENTER)
             subtitle = TextView(context)
             subtitle.setTextColor(Theme.getColor(Theme.key_dialogTextBlue))
             subtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
             subtitle.setText(subtitle_text)
-            subtitle.setGravity(Gravity.CENTER)
             
             if username_url:
                 try:
@@ -148,10 +145,9 @@ def _make_avatar_view(context, image_url, title_text, subtitle_text, username_ur
                 except Exception:
                     pass
             
-            subtitle_container.addView(subtitle, LayoutHelper.createLinear(-1, -2))
-            text_container.addView(subtitle_container, LayoutHelper.createLinear(-1, -2))
+            text_container.addView(subtitle, LayoutHelper.createLinear(-1, -2))
 
-        main_layout.addView(text_container, LayoutHelper.createLinear(-1, -2, Gravity.CENTER))
+        main_layout.addView(text_container, LayoutHelper.createLinear(-1, -2, Gravity.CENTER_VERTICAL))
         container.addView(main_layout, LayoutHelper.createFrame(-1, -2, Gravity.CENTER))
 
         return container
