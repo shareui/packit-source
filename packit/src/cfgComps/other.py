@@ -115,6 +115,22 @@ class OtherSettings:
                 link_alias="hide_unavailable_plugins"
             ),
             Switch(
+                key="show_plugin_tags",
+                text=strings.show_plugin_tags,
+                subtext=strings.show_plugin_tags_desc,
+                default=True,
+                icon="menu_tag_filter",
+                link_alias="show_plugin_tags"
+            ),
+            Switch(
+                key="fuzzy_search",
+                text=strings.fuzzy_search,
+                subtext=strings.fuzzy_search_desc,
+                default=False,
+                icon="msg_search",
+                link_alias="fuzzy_search"
+            ),
+            Switch(
                 key="old_sort_menu_design",
                 text=strings.classic_sort_menu,
                 subtext=strings.classic_sort_menu_desc,
