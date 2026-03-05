@@ -877,6 +877,11 @@ class InstallUI:
                 pass
             repo_btn.addView(repo_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
             def show_repo_menu_handler():
+                try:
+                    imm = act.getSystemService("input_method")
+                    imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
+                except Exception:
+                    pass
                 fragment = get_last_fragment()
                 if fragment:
                     fragment.finishFragment()
@@ -939,6 +944,11 @@ class InstallUI:
                 pass
             sort_btn.addView(sort_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
             def show_sort_menu_handler():
+                try:
+                    imm = act.getSystemService("input_method")
+                    imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
+                except Exception:
+                    pass
                 def on_sort_selected(sort_type):
                     try:
                         current_q = self.search.getText().toString() if self.search else (self.last_search_query or "")
