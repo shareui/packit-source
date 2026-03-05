@@ -1,1 +1,1 @@
-from .secMain import setup_policy_button_hook
+from .signaturesBottomSheet import setup_policy_button_hook
