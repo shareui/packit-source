@@ -1073,11 +1073,12 @@ class InstallUI:
                     isRussian = Locale.getDefault().getLanguage() == "ru"
                 except Exception:
                     pass
+                fuzzy = settings.get("fuzzy_search", False)
                 for p in self.plugins:
-                    s = search_mod.score(p, q, self.search_index, isRussian)
+                    s = search_mod.score(p, q, self.search_index, isRussian, fuzzy)
                     if s[0] < 6:
                         filtered.append(p)
-                filtered.sort(key=lambda p: search_mod.score(p, q, self.search_index, isRussian))
+                filtered.sort(key=lambda p: search_mod.score(p, q, self.search_index, isRussian, fuzzy))
             if not q:
                 if sort_type == "alpha_az":
                     filtered.sort(key=lambda p: (1 if str(p.get("name") or p.get("id") or "")[:1].isdigit() else 0, str(p.get("name") or p.get("id") or "").lower()))

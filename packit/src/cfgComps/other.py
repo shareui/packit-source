@@ -123,6 +123,14 @@ class OtherSettings:
                 link_alias="show_plugin_tags"
             ),
             Switch(
+                key="fuzzy_search",
+                text=strings.fuzzy_search,
+                subtext=strings.fuzzy_search_desc,
+                default=False,
+                icon="msg_search",
+                link_alias="fuzzy_search"
+            ),
+            Switch(
                 key="old_sort_menu_design",
                 text=strings.classic_sort_menu,
                 subtext=strings.classic_sort_menu_desc,

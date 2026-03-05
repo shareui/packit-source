@@ -212,5 +212,7 @@
   "plugin_many": "{0} plugins",
   "plural_type": "en",
   "show_plugin_tags": "Show plugin tags",
-  "show_plugin_tags_desc": "Display category tags on plugin cards."
+  "show_plugin_tags_desc": "Display category tags on plugin cards.",
+  "fuzzy_search": "Fuzzy search",
+  "fuzzy_search_desc": "Find plugins even with typos (1 character off). May be slightly slower."
 }
