@@ -57,6 +57,13 @@ def _dismiss_dialog(dlg):
     run_on_ui_thread(action)
 
 
+def _is_elyx_plugin(plugin_info: dict) -> bool:
+    tags = plugin_info.get("tags") or []
+    for tag in tags:
+        if isinstance(tag, (list, tuple)) and len(tag) > 0 and tag[0] == "Elyx":
+            return True
+    return False
+
 def install_plugin(plugin_info: dict, icon_view=None, button=None, original_icon_id=None, loading_view=None, on_finish=None):
     plugin_id = plugin_info.get("id")
     url = plugin_info.get("link") or plugin_info.get("raw")
@@ -173,7 +180,13 @@ def install_plugin(plugin_info: dict, icon_view=None, button=None, original_icon
 
                         run_on_ui_thread(_restore_icon)
 
-                    PluginsController.getInstance().showInstallDialog(fragment, temp_path, True)
+                    if _is_elyx_plugin(plugin_info):
+                        from elyxcore import ElyxEngine
+                        from com.exteragram.messenger.plugins.ui.components import InstallPluginBottomSheet
+                        install_params = InstallPluginBottomSheet.PluginInstallParams(temp_path, False)
+                        ElyxEngine.instance.showInstallDialog(fragment, install_params)
+                    else:
+                        PluginsController.getInstance().showInstallDialog(fragment, temp_path, True)
                     try:
                         if on_finish:
                             on_finish(True)
