@@ -14,6 +14,7 @@ from .deeplinks import setup_deeplink_hook
 from .other.badges import BadgeManager
 from .other.localConfig import LocalConfig
 from .other import isBeta
+from .ui.securityUi import setup_policy_button_hook
 from android_utils import log
 
 
@@ -28,6 +29,7 @@ class PackItPlugin(BasePlugin):
         self.on_send_message_hook_ref = None
         self.hook_settings_header_ref = None
         self.deeplink_hook_ref = None
+        self.policy_button_hook_ref = None
         log("PackIt initialized!")
     
     def on_plugin_load(self):
@@ -39,6 +41,7 @@ class PackItPlugin(BasePlugin):
         self.deeplink_hook_ref = setup_deeplink_hook(self)
         self.chatUI.initialize_chat_menu()
         self.badgeManager.setup_hooks()
+        self.policy_button_hook_ref = setup_policy_button_hook(self)
         self._init_official_repository()
         log("PackIt loaded!")
     

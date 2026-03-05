@@ -275,7 +275,7 @@ class ContributorsSettings:
         items = []
 
         avatar_shareui = self._make_avatar_item(
-            "https://avatars.githubusercontent.com/u/244288900?v=4",
+            "https://raw.githubusercontent.com/shareui/packit/refs/heads/main/assets/shareui.jpg",
             title_text=str(strings.founder_shareui),
             subtitle_text="@shareui",
             username_url="https://t.me/shareui"
