@@ -2,8 +2,11 @@
 
 set -e
 
-META="packit/mf/meta.yml"
 ADD_VERSION=true
+ADD_PASSWORD=true
+
+META="packit/mf/meta.yml"
+PASSWORD="oxf"
 
 if [ ! -d "packit" ]; then
     echo "error: packit/ not found"
@@ -36,6 +39,10 @@ OUTPUT_FILE="packit-${VERSION}.eaf"
 
 mkdir -p builds
 
-rm -f builds/packit-*.eaf builds/packit-*.zip
-zip -P oxf -r "builds/${OUTPUT_FILE}" packit refmap.yml
+if [ "$ADD_PASSWORD" = true ]; then
+    zip -P "$PASSWORD" -r "builds/${OUTPUT_FILE}" packit refmap.yml
+else
+    zip -r "builds/${OUTPUT_FILE}" packit refmap.yml
+fi
+
 echo "created: builds/${OUTPUT_FILE}"
