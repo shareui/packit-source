@@ -1266,7 +1266,7 @@ class InstallUI:
             if not show_icon and show_default_sticker:
                 icon_str = "Plugins_Stickers/0"
                 show_icon = True
-            icon_size_dp = 52
+            icon_size_dp = 67
             top_row = LinearLayout(act)
             top_row.setOrientation(LinearLayout.HORIZONTAL)
             top_row.setGravity(Gravity.TOP)
@@ -1274,7 +1274,7 @@ class InstallUI:
             if show_icon:
                 try:
                     icon_view = BackupImageView(act)
-                    icon_view.setRoundRadius(AndroidUtilities.dp(8))
+                    icon_view.setRoundRadius(AndroidUtilities.dp(12))
                     try:
                         icon_view.getImageReceiver().setCrossfadeWithOldImage(True)
                     except Exception:
@@ -1282,7 +1282,7 @@ class InstallUI:
                     icon_size_px = AndroidUtilities.dp(icon_size_dp)
                     icon_lp = LinearLayout.LayoutParams(icon_size_px, icon_size_px)
                     icon_lp.rightMargin = AndroidUtilities.dp(12)
-                    icon_lp.topMargin = AndroidUtilities.dp(2)
+                    icon_lp.topMargin = AndroidUtilities.dp(5)
                     top_row.addView(icon_view, icon_lp)
 
                     def try_load_icon():
@@ -1341,7 +1341,7 @@ class InstallUI:
             name_tv.setText(str(display_name))
             name_tv.setTextColor(self.text_color)
             id_tv = TextView(act)
-            id_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            id_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
             version_text = str(p.get("version") or "").strip()
             author_text = str(p.get("author") or "").strip()
             if version_text and author_text:
@@ -1361,6 +1361,68 @@ class InstallUI:
                 pass
             col.addView(name_tv, LayoutHelper.createLinear(-1, -2))
             col.addView(id_tv, LayoutHelper.createLinear(-1, -2, 0, 2, 0, 0))
+            
+            tags = p.get("tags") or []
+            if tags and settings.get("show_plugin_tags", True):
+                tags_row = LinearLayout(act)
+                tags_row.setOrientation(LinearLayout.HORIZONTAL)
+                tags_row.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL)
+                tags_row.setPadding(0, AndroidUtilities.dp(6), 0, 0)
+                for tag in tags:
+                    if not isinstance(tag, (list, tuple)) or len(tag) < 2:
+                        continue
+                    tag_name = str(tag[0])
+                    tag_color_key = str(tag[1])
+                    tag_url = str(tag[2]) if len(tag) > 2 else None
+                    try:
+                        tag_color = Theme.getColor(getattr(Theme, tag_color_key))
+                    except Exception:
+                        continue
+                    import ctypes
+                    r = (tag_color >> 16) & 0xFF
+                    g = (tag_color >> 8) & 0xFF
+                    b = tag_color & 0xFF
+                    fill_color = ctypes.c_int32((0x33 << 24) | (r << 16) | (g << 8) | b).value
+                    text_color = ctypes.c_int32((0xFF << 24) | (r << 16) | (g << 8) | b).value
+                    tag_bg = GradientDrawable()
+                    tag_bg.setShape(GradientDrawable.RECTANGLE)
+                    tag_bg.setCornerRadius(AndroidUtilities.dp(6))
+                    tag_bg.setColor(fill_color)
+                    tag_tv = TextView(act)
+                    tag_tv.setText(tag_name)
+                    tag_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
+                    tag_tv.setTextColor(text_color)
+                    tag_tv.setBackground(tag_bg)
+                    tag_tv.setPadding(
+                        AndroidUtilities.dp(7), AndroidUtilities.dp(2),
+                        AndroidUtilities.dp(7), AndroidUtilities.dp(2)
+                    )
+                    if tag_url:
+                        tag_tv.setClickable(True)
+                        tag_tv.setFocusable(True)
+                        def onTagClick(v, url=tag_url):
+                            try:
+                                if url.startswith("https://t.me/"):
+                                    frag = get_last_fragment()
+                                    act2 = frag.getParentActivity() if frag else None
+                                    if act2:
+                                        Browser.openUrl(act2, Uri.parse(url), True, True, True, None, None, False, False, False)
+                                else:
+                                    from android.content import Intent
+                                    ctx = act
+                                    intent = Intent(Intent.ACTION_VIEW)
+                                    intent.setData(Uri.parse(url))
+                                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    ctx.startActivity(intent)
+                            except Exception as e:
+                                log(f"tag url open error: {e}")
+                        tag_tv.setOnClickListener(OnClickListener(onTagClick))
+                        self.install_ui._apply_press_scale(tag_tv)
+                    tag_lp = LinearLayout.LayoutParams(-2, -2)
+                    tag_lp.rightMargin = AndroidUtilities.dp(5)
+                    tags_row.addView(tag_tv, tag_lp)
+                col.addView(tags_row, LayoutHelper.createLinear(-1, -2))
+            
             top_row.addView(col, LayoutHelper.createLinear(0, -2, 1.0))
 
             desc_tv = TextView(act)
@@ -1694,67 +1756,6 @@ class InstallUI:
             menu_btn = create_icon_pill("ic_ab_other", lambda: show_plugin_actions_menu(menu_btn))
             buttons.addView(menu_btn, LayoutHelper.createLinear(-2, -2))
             container.addView(buttons, LayoutHelper.createLinear(-1, -2))
-
-            tags = p.get("tags") or []
-            if tags and settings.get("show_plugin_tags", True):
-                tags_row = LinearLayout(act)
-                tags_row.setOrientation(LinearLayout.HORIZONTAL)
-                tags_row.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL)
-                tags_row.setPadding(0, AndroidUtilities.dp(6), 0, 0)
-                for tag in tags:
-                    if not isinstance(tag, (list, tuple)) or len(tag) < 2:
-                        continue
-                    tag_name = str(tag[0])
-                    tag_color_key = str(tag[1])
-                    tag_url = str(tag[2]) if len(tag) > 2 else None
-                    try:
-                        tag_color = Theme.getColor(getattr(Theme, tag_color_key))
-                    except Exception:
-                        continue
-                    import ctypes
-                    r = (tag_color >> 16) & 0xFF
-                    g = (tag_color >> 8) & 0xFF
-                    b = tag_color & 0xFF
-                    fill_color = ctypes.c_int32((0x33 << 24) | (r << 16) | (g << 8) | b).value
-                    text_color = ctypes.c_int32((0xFF << 24) | (r << 16) | (g << 8) | b).value
-                    tag_bg = GradientDrawable()
-                    tag_bg.setShape(GradientDrawable.RECTANGLE)
-                    tag_bg.setCornerRadius(AndroidUtilities.dp(6))
-                    tag_bg.setColor(fill_color)
-                    tag_tv = TextView(act)
-                    tag_tv.setText(tag_name)
-                    tag_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
-                    tag_tv.setTextColor(text_color)
-                    tag_tv.setBackground(tag_bg)
-                    tag_tv.setPadding(
-                        AndroidUtilities.dp(7), AndroidUtilities.dp(2),
-                        AndroidUtilities.dp(7), AndroidUtilities.dp(2)
-                    )
-                    if tag_url:
-                        tag_tv.setClickable(True)
-                        tag_tv.setFocusable(True)
-                        def onTagClick(v, url=tag_url):
-                            try:
-                                if url.startswith("https://t.me/"):
-                                    frag = get_last_fragment()
-                                    act2 = frag.getParentActivity() if frag else None
-                                    if act2:
-                                        Browser.openUrl(act2, Uri.parse(url), True, True, True, None, None, False, False, False)
-                                else:
-                                    from android.content import Intent
-                                    ctx = act
-                                    intent = Intent(Intent.ACTION_VIEW)
-                                    intent.setData(Uri.parse(url))
-                                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    ctx.startActivity(intent)
-                            except Exception as e:
-                                log(f"tag url open error: {e}")
-                        tag_tv.setOnClickListener(OnClickListener(onTagClick))
-                        self.install_ui._apply_press_scale(tag_tv)
-                    tag_lp = LinearLayout.LayoutParams(-2, -2)
-                    tag_lp.rightMargin = AndroidUtilities.dp(5)
-                    tags_row.addView(tag_tv, tag_lp)
-                container.addView(tags_row, LayoutHelper.createLinear(-1, -2))
 
             row.addView(container)
             return row
