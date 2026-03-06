@@ -26,9 +26,11 @@ if (-not (Get-Command zip -ErrorAction SilentlyContinue)) {
     }
 }
 
+$ADD_VERSION = $true
+$ADD_PASSWORD = $true
 
 $META = "packit/mf/meta.yml"
-$ADD_VERSION = $true
+$PASSWORD = "oxf"
 
 if (-not (Test-Path "packit")) {
     Write-Error "error: packit/ not found"
@@ -55,11 +57,15 @@ if ($ADD_VERSION) {
     $VERSION = $NEW_VERSION
     Write-Host "version bumped: $NEW_VERSION"
 }
+
 $OUTPUT_FILE = "packit-${VERSION}.eaf"
 
 New-Item -ItemType Directory -Force -Path "builds" | Out-Null
 
-Remove-Item -Force -ErrorAction SilentlyContinue packit-*.eaf, packit-*.zip
+if ($ADD_PASSWORD) {
+    zip -P $PASSWORD -r "builds/$OUTPUT_FILE" packit refmap.yml
+} else {
+    zip -r "builds/$OUTPUT_FILE" packit refmap.yml
+}
 
-zip -P oxf -r "builds/$OUTPUT_FILE" packit refmap.yml
 Write-Host "created: builds/$OUTPUT_FILE"
