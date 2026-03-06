@@ -57,7 +57,7 @@ class DeeplinksSettings:
 
             Text(
                 text=strings.deeplinks_plugins_menu,
-                icon="files_storage",
+                icon="msg_list",
                 on_click=self._stub,
                 link_alias="dl_plugins_menu"
             ),
