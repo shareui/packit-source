@@ -104,6 +104,15 @@ class OtherSettings:
                 link_alias="show_chat_plugins_menu",
                 on_change=self.chat_button.on_chat_plugins_switch if self.chat_button else None
             ),
+            Switch(
+                key="show_dialogs_menu_button",
+                text=strings.button_in_dialogs_menu,
+                subtext=strings.button_in_dialogs_menu_desc,
+                default=False,
+                icon="msg_addbot",
+                link_alias="show_dialogs_menu_button",
+                on_change=self.chat_button.on_dialogs_menu_switch if self.chat_button else None
+            ),
             Divider(),
             Header(text=strings.interface_header),
             Switch(

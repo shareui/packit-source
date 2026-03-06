@@ -199,5 +199,7 @@
     "plugin_one": "{0} wtyczka",
     "plugin_few": "{0} wtyczki",
     "plugin_many": "{0} wtyczek",
-    "plural_type": "pl"
+    "plural_type": "pl",
+    "button_in_dialogs_menu": "Button in Dialogs Menu",
+    "button_in_dialogs_menu_desc": "Adds an install plugin button in the three-dot menu on the main screen."
 }

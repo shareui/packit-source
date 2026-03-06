@@ -19,9 +19,10 @@ except Exception as e:
 
 from .btnCAB import BtnCAB
 from .btnPluginsMenu import BtnPluginsMenu
+from .chatDialogButton import ChatDialogButton
 
 
-class ChatButton(BtnCAB, BtnPluginsMenu):
+class ChatButton(BtnCAB, BtnPluginsMenu, ChatDialogButton):
     def __init__(self, plugin):
         self.plugin = plugin
         self.packit_menu_id = 880034

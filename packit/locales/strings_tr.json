@@ -199,5 +199,7 @@
     "plugin_one": "{0} eklenti",
     "plugin_few": "{0} eklenti",
     "plugin_many": "{0} eklenti",
-    "plural_type": "en"
+    "plural_type": "en",
+    "button_in_dialogs_menu": "Button in Dialogs Menu",
+    "button_in_dialogs_menu_desc": "Adds an install plugin button in the three-dot menu on the main screen."
 }
