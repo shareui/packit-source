@@ -235,5 +235,8 @@
   "param_rm_id_desc": "Repository ID",
   "param_plugin_id_desc": "Plugin ID",
   "failed_to_open_deeplink": "Failed to open deeplink info",
+  "misc_header": "Misc",
+  "downloading_files": "Downloading files",
+  "download_path": "Path",
   "link_copied": "Link copied to clipboard!"
 }

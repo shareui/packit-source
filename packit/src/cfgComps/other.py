@@ -1,4 +1,4 @@
-from ui.settings import Header, Switch, Divider, Text
+from ui.settings import Header, Switch, Divider, Text, Input
 from ui.alert import AlertDialogBuilder
 from client_utils import get_last_fragment
 from android_utils import log
@@ -171,6 +171,14 @@ class OtherSettings:
                 default=False,
                 icon="msg_voicechat",
                 link_alias="sfx_enabled"
+            ),
+            Divider(),
+            Header(text=strings.misc_header),
+            Input(
+                key="download_path",
+                text=strings.download_path,
+                default="/storage/emulated/0/Download",
+                icon="msg_download"
             ),
             Divider(),
             # cache should always be at the bottom of the page

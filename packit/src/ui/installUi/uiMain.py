@@ -96,7 +96,7 @@ except Exception as e:
 from .repo import show_repo_sheet
 from .sort import show_sort_menu
 from . import search as search_mod
-from .plugin_actions import copy_plugin_link, share_plugin_file, view_plugin_code, report_plugin
+from .plugin_actions import copy_plugin_link, share_plugin_file, view_plugin_code, report_plugin, download_plugin_file
 from ...other.media import playSound
 from ...core import install_plugin
 
@@ -1536,41 +1536,58 @@ class InstallUI:
                 unavail_text.setTextColor(red_color)
                 install_btn.addView(unavail_text)
 
-                def onUnavailableClick(v, plugin=p, act_ref=act):
+                current_hint_ref = [None]
+
+                def onUnavailableClick(v, btn=install_btn, row_ref=row, hint_ref=current_hint_ref):
                     try:
-                        from ui.alert import AlertDialogBuilder
-                        from android.net import Uri
-                        try:
-                            from org.telegram.messenger.browser import Browser
-                        except Exception:
-                            Browser = None
-                        min_ver = plugin.get("min_version") or "?"
-                        try:
-                            from org.telegram.messenger import BuildVars
-                            cur_ver = BuildVars.BUILD_VERSION_STRING
-                        except Exception:
-                            cur_ver = "?"
-                        builder = AlertDialogBuilder(act_ref)
-                        builder.set_title("Unavailable")
-                        builder.set_message(
-                            f"The minimum client version required to install the plugin is {min_ver}. "
-                            f"However, your client version is {cur_ver}, the plugin cannot be installed."
-                        )
-                        def on_hide(b, w):
-                            b.dismiss()
+                        from org.telegram.ui.Stories.recorder import HintView2
+                        from android.text import Layout
+
+                        prev = hint_ref[0]
+                        if prev is not None:
                             try:
-                                frag = get_last_fragment()
-                                act2 = frag.getParentActivity() if frag else None
-                                url = "https://t.me/exteraSettings?p=shareui_packit&s=null:hide_unavailable_plugins"
-                                if act2 and Browser:
-                                    Browser.openUrl(act2, Uri.parse(url), True, True, True, None, None, False, False, False)
+                                prev.hide()
+                            except Exception:
+                                pass
+                            hint_ref[0] = None
+
+                        hint = (
+                            HintView2(row_ref.getContext(), 3)
+                            .setMultilineText(True)
+                            .setBgColor(Theme.getColor(Theme.key_undo_background))
+                            .setTextColor(Theme.getColor(Theme.key_undo_infoColor))
+                            .setText("The app version is below the minimum. Can be hidden in the settings.")
+                            .setTextAlign(Layout.Alignment.ALIGN_CENTER)
+                            .allowBlur(True)
+                            .setRounding(AndroidUtilities.dp(12))
+                        )
+                        try:
+                            hint.setMaxWidthPx(HintView2.cutInFancyHalf(hint.getText(), hint.getTextPaint()))
+                        except Exception:
+                            pass
+
+                        row_ref.addView(hint, LayoutHelper.createFrame(-1, 100, 55, 32, 0, 32, 0))
+                        hint_ref[0] = hint
+
+                        def _position_and_show():
+                            try:
+                                btn_loc = [0, 0]
+                                btn.getLocationInWindow(btn_loc)
+                                row_loc = [0, 0]
+                                row_ref.getLocationInWindow(row_loc)
+                                rel_x = btn_loc[0] - row_loc[0]
+                                rel_y = btn_loc[1] - row_loc[1]
+                                center_x = float(rel_x) + float(btn.getMeasuredWidth()) / 2.0
+                                hint.setTranslationY(float(rel_y - AndroidUtilities.dp(100) - AndroidUtilities.dp(6)))
+                                hint.setJointPx(0.0, float(-AndroidUtilities.dp(32)) + center_x)
+                                hint.setDuration(5500)
+                                hint.show()
                             except Exception as e:
-                                log(f"open hide_unavailable url error: {e}")
-                        builder.set_negative_button("Hide unavailable", on_hide)
-                        builder.set_positive_button("OK", lambda b, w: b.dismiss())
-                        builder.show()
+                                log(f"unavailable hint position error: {e}")
+
+                        run_on_ui_thread(_position_and_show)
                     except Exception as e:
-                        log(f"unavailable dialog error: {e}")
+                        log(f"unavailable hint error: {e}")
 
                 install_btn.setOnClickListener(OnClickListener(onUnavailableClick))
 
@@ -1712,6 +1729,9 @@ class InstallUI:
                         item_frame.setOnClickListener(OnClickListener(_on_click))
                         popup_layout.addView(item_frame, LayoutHelper.createLinear(-1, -2))
                     
+                    def do_download():
+                        download_plugin_file(p)
+
                     def do_copy():
                         copy_plugin_link(p, self.repo_id or self.title, copyLinkSoundPath)
                     
@@ -1724,6 +1744,7 @@ class InstallUI:
                     def do_report():
                         report_plugin(p, act)
                     
+                    icon_download = getattr(R_tg.drawable, 'msg_download', 0)
                     icon_copy = getattr(R_tg.drawable, 'msg_copy', getattr(R_tg.drawable, 'msg_copy_filled', 0))
                     icon_share = getattr(R_tg.drawable, 'msg_share', 0)
                     icon_code = getattr(R_tg.drawable, 'msg_view_file', 0)
@@ -1732,6 +1753,7 @@ class InstallUI:
                     create_menu_item(icon_copy, "Copy link", do_copy, False)
                     create_menu_item(icon_share, "Share", do_share, False)
                     create_menu_item(icon_code, "Code", do_code, False)
+                    create_menu_item(icon_download, "Download", do_download, False)
                     create_menu_item(icon_report, "Report", do_report, True)
                     
                     popup_window = ActionBarPopupWindow(popup_layout, -2, -2)
