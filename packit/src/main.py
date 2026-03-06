@@ -31,6 +31,7 @@ class PackItPlugin(BasePlugin):
         self.deeplink_hook_ref = None
         self.policy_button_hook_ref = None
         self.hash_button_hook_ref = None
+        self.dialogs_menu_hook_ref = None
         log("PackIt initialized!")
     
     def on_plugin_load(self):
@@ -44,6 +45,7 @@ class PackItPlugin(BasePlugin):
         self.badgeManager.setup_hooks()
         self.policy_button_hook_ref = setup_policy_button_hook(self)
         self.hash_button_hook_ref = setup_hash_button_hook(self, self.repoManager)
+        self.dialogs_menu_hook_ref = self.chatUI.setup_dialogs_menu_hook()
         self._init_official_repository()
         log("PackIt loaded!")
     
