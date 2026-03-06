@@ -5,6 +5,10 @@ try:
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.messenger import MessagesController failed: {e}")
     from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from org.telegram.messenger import ApplicationLoader
+except:
+    ApplicationLoader = None
 import threading
 import urllib.request
 import json
@@ -35,6 +39,12 @@ class BadgeManager:
         self.config_url = "https://raw.githubusercontent.com/shareui/packit/refs/heads/main/configs/internal_cfg.json"
         self.local_badges_config = {}
         self.api_badge_source = None
+        self.context = None
+        if ApplicationLoader:
+            try:
+                self.context = ApplicationLoader.applicationContext
+            except Exception as e:
+                log(f"[Packit Badges] Failed to get application context: {e}")
 
         try:
             self.current_lang = Locale.getDefault().getLanguage()
@@ -121,32 +131,70 @@ class BadgeManager:
         except:
             return False
     
+    def _load_from_prefs(self):
+        if not self.context:
+            return False
+        try:
+            prefs = self.context.getSharedPreferences("packit_badges", 0)
+            config_str = prefs.getString("badges_config", None)
+            if config_str:
+                self.local_badges_config = json.loads(config_str)
+                return True
+        except Exception as e:
+            log(f"[Packit Badges] Error loading from prefs: {e}")
+        return False
+    
+    def _save_to_prefs(self):
+        if not self.context:
+            return
+        try:
+            prefs = self.context.getSharedPreferences("packit_badges", 0)
+            editor = prefs.edit()
+            editor.putString("badges_config", json.dumps(self.local_badges_config))
+            editor.apply()
+        except Exception as e:
+            log(f"[Packit Badges] Error saving to prefs: {e}")
+    
+    def _update_from_url(self):
+        try:
+            old_config = self.local_badges_config.copy()
+            if self._load_config_from_url():
+                if old_config != self.local_badges_config:
+                    self._save_to_prefs()
+                    self._reload_badges()
+        except Exception as e:
+            log(f"[Packit Badges] Error updating from URL: {e}")
+    
+    def _reload_badges(self):
+        try:
+            if self.api_badge_source:
+                cache = get_private_field(self.api_badge_source, "cache")
+                if cache:
+                    for badge_id in self.custom_badges.keys():
+                        cache.remove(Long.valueOf(badge_id))
+            self.custom_badges.clear()
+            badges_data = self.local_badges_config.get('badges', [])
+            if badges_data:
+                BadgeDTO = find_class("com.exteragram.messenger.api.dto.BadgeDTO")
+                if BadgeDTO:
+                    self._add_badges_to_cache(badges_data, BadgeDTO)
+        except Exception as e:
+            log(f"[Packit Badges] Error reloading badges: {e}")
+    
     def _load_custom_badges(self):
         try:
             self.custom_badges.clear()
-            thread = threading.Thread(target=self._process_local_badges)
+            self._load_from_prefs()
+            badges_data = self.local_badges_config.get('badges', [])
+            if badges_data:
+                BadgeDTO = find_class("com.exteragram.messenger.api.dto.BadgeDTO")
+                if BadgeDTO:
+                    self._add_badges_to_cache(badges_data, BadgeDTO)
+            thread = threading.Thread(target=self._update_from_url)
             thread.daemon = True
             thread.start()
         except Exception as e:
             log(f"[Packit Badges] Error loading custom badges: {e}")
-    
-    def _process_local_badges(self):
-        try:
-            if not self._load_config_from_url():
-                self.local_badges_config = {'badges': []}
-            
-            badges_data = self.local_badges_config.get('badges', [])
-            if not badges_data:
-                return
-                
-            BadgeDTO = find_class("com.exteragram.messenger.api.dto.BadgeDTO")
-            if not BadgeDTO:
-                return
-
-            self._add_badges_to_cache(badges_data, BadgeDTO)
-                
-        except Exception as e:
-            log(f"[Packit Badges] Error processing local badges: {e}")
     
     def _add_badges_to_cache(self, badges_data, BadgeDTO):
         try:
