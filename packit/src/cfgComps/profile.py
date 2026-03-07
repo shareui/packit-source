@@ -3,6 +3,7 @@ from ui.bulletin import BulletinHelper
 from ui.alert import AlertDialogBuilder
 from client_utils import get_last_fragment
 from android_utils import log
+import threading
 import time
 try:
     from elyx import strings
@@ -226,11 +227,44 @@ class ProfileSettings:
         except Exception as e:
             log(f"profile._show_achievements: error: {e}")
 
-    def _show_export_not_ready(self, view):
+    def _do_export(self, download_path: str):
         try:
-            BulletinHelper.show_info(strings.not_ready_yet)
+            from ..other.exportBin.writer import export_to_downloads
+            from android_utils import run_on_ui_thread
+
+            out_path = export_to_downloads(download_path)
+            filename = out_path.split("/")[-1]
+
+            def show_ok():
+                try:
+                    BulletinHelper.show_info(strings("export_db_done", filename=filename))
+                except Exception as e:
+                    log(f"profile._do_export: bulletin error: {e}")
+
+            run_on_ui_thread(show_ok)
         except Exception as e:
-            log(f"profile._show_export_not_ready: error: {e}")
+            log(f"profile._do_export: error: {e}")
+
+            def show_err():
+                try:
+                    BulletinHelper.show_info(strings.export_db_error)
+                except Exception as ie:
+                    log(f"profile._do_export: error bulletin error: {ie}")
+
+            try:
+                from android_utils import run_on_ui_thread
+                run_on_ui_thread(show_err)
+            except Exception:
+                pass
+
+    def _show_export_db(self, view):
+        try:
+            from elyx import settings
+            download_path = settings.get("download_path", "/storage/emulated/0/Download")
+            t = threading.Thread(target=self._do_export, args=(download_path,), daemon=True)
+            t.start()
+        except Exception as e:
+            log(f"profile._show_export_db: error: {e}")
 
     def _show_statistics(self, view):
         try:
@@ -299,7 +333,7 @@ class ProfileSettings:
             Text(
                 text=strings["profile_export_db"],
                 icon="files_storage",
-                on_click=self._show_export_not_ready
+                on_click=self._show_export_db
             ),
             Divider(text=strings["profile_template_divider"]),
         ]

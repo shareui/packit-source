@@ -16,6 +16,7 @@ from .other.localConfig import LocalConfig
 from .other import isBeta
 from .ui.securityUi import setup_policy_button_hook, setup_hash_button_hook
 from .ui.installUi.installDismissHook import setup_install_dismiss_hook
+from .chatUi.packitFileUi.decryptorUi import setup_packit_file_hook
 from android_utils import log
 
 
@@ -40,9 +41,10 @@ class PackItPlugin(BasePlugin):
         LocalConfig.init()
         isBeta.init()
         try:
-            from .other.achievements import sync_completed, _load, _save
-            data, _ = sync_completed(_load())
-            _save(data)
+            from .other.achievements import sync_accounts, sync_completed, _load_account, _save_account
+            sync_accounts()
+            data, _ = sync_completed(_load_account())
+            _save_account(data)
         except Exception as e:
             log(f"PackIt: achievements sync error: {e}")
         try:
@@ -58,6 +60,7 @@ class PackItPlugin(BasePlugin):
         self.policy_button_hook_ref = setup_policy_button_hook(self)
         self.hash_button_hook_ref = setup_hash_button_hook(self, self.repoManager)
         self.install_dismiss_hook_ref = setup_install_dismiss_hook(self)
+        setup_packit_file_hook(self)
         self.dialogs_menu_hook_ref = self.chatUI.setup_dialogs_menu_hook()
         self._init_official_repository()
         log("PackIt loaded!")
@@ -120,6 +123,5 @@ class PackItPlugin(BasePlugin):
                 self.badgeManager.cleanup()
         except Exception as e:
             log(f"Error cleaning up badge manager: {e}")
-    
     def create_settings(self):
         return self.settingsBuilder.buildMainSettings()

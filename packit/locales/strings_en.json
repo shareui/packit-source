@@ -274,6 +274,8 @@
     "profile_achievements": "Achievements",
     "profile_statistics": "Statistics",
     "profile_export_db": "Export database",
+    "export_db_done": "Saved as {filename}",
+    "export_db_error": "Export failed",
     "profile_template_divider": "THIS IS AN INTERFACE TEMPLATE, A FULL UI WILL BE IMPLEMENTED LATER",
     "stat_account_level": "Account level: {level}",
     "stat_account_level_max": "Account level: 100",
@@ -315,5 +317,13 @@
     "sec_install_dialog_failed": "Failed to open install dialog",
     "sec_error_occurred": "An error occurred",
     "profile": "Profile",
-    "install_plugin_btn": "Install plugin"
+    "install_plugin_btn": "Install plugin",
+    "import_db_title": "Are you sure you want to apply the export?",
+    "import_db_subtitle": "Account level: {level} [{xp}xp]",
+    "import_db_confirm": "Yes, I'm sure",
+    "import_db_cancel": "I changed my mind",
+    "import_db_done": "Export successfully applied!",
+    "import_db_error": "Failed to read export",
+    "import_db_wrong_account": "Exports are intended for transfer between devices",
+    "reload": "Reload"
 }
