@@ -9,7 +9,7 @@ try:
 except Exception as e:
     import android_utils as _au; _au.log(f"exportBin.writer: import failed: {e}")
 
-# packit binary export format v2 (.packit)
+# packit binary export format (.packit)
 #
 # file layout (after decryption):
 #   [0:4]   magic      b"PCKT"
@@ -40,9 +40,6 @@ _FILE_NAMES = {
     "installDate":  "installDate.json",
     "localConfig":  "localConfig.json",
 }
-
-
-# --- cipher -----------------------------------------------------------------
 
 def _lcg_stream(seed: int, length: int) -> bytearray:
     # LCG keystream, Knuth MMIX constants
@@ -100,8 +97,6 @@ def _decipher(data: bytes, seed: int) -> bytes:
     return bytes(buf)
 
 
-# --- helpers ----------------------------------------------------------------
-
 def _get_configs_dir() -> str:
     pkg = ApplicationLoader.applicationContext.getPackageName()
     return f"/data/data/{pkg}/files/packitCache/packitConfigs"
@@ -142,7 +137,7 @@ def _pack_block(key: str, payload: bytes) -> bytes:
     return struct.pack(">B", len(keyBytes)) + keyBytes + struct.pack(">I", len(payload)) + payload
 
 
-# --- public -----------------------------------------------------------------
+# pub api 
 
 def build_binary() -> bytes:
     import time
