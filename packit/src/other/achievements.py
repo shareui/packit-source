@@ -7,511 +7,13 @@ except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
     from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 
-# each achievement: id, category, title, goal (int), hint shown on click
-ACHIEVEMENTS = [
-    # Installing plugins
-    {
-        "id": "first_plugin",
-        "category": "Installing plugins",
-        "title": "Newbie",
-        "goal": 1,
-        "hint": "Open PackIt, go to the installation interface and pick any plugin from the repository. Tap the install button and confirm the installation."
-    },
-    {
-        "id": "plugins_5",
-        "category": "Installing plugins",
-        "title": "Getting Started",
-        "goal": 5,
-        "hint": "Browse through the available repositories and install 5 plugins in total. Try exploring different categories to find something useful."
-    },
-    {
-        "id": "plugins_10",
-        "category": "Installing plugins",
-        "title": "Enthusiast",
-        "goal": 10,
-        "hint": "You are getting the hang of it. Install 10 plugins across any repositories. A good moment to add a few extra repos to expand your options."
-    },
-    {
-        "id": "plugins_25",
-        "category": "Installing plugins",
-        "title": "Collector",
-        "goal": 25,
-        "hint": "At this point you clearly enjoy customizing your client. Keep installing plugins until you reach 25 total installations."
-    },
-    {
-        "id": "plugins_50",
-        "category": "Installing plugins",
-        "title": "Power User",
-        "goal": 50,
-        "hint": "50 installations means you know what you want. At this point you probably have a solid setup. Keep going."
-    },
-    {
-        "id": "plugins_100",
-        "category": "Installing plugins",
-        "title": "Hoarder",
-        "goal": 100,
-        "hint": "100 plugins installed. You have tried almost everything out there. Do you even remember what half of them do?"
-    },
-    {
-        "id": "plugins_250",
-        "category": "Installing plugins",
-        "title": "Obsessed",
-        "goal": 250,
-        "hint": "250 installations. At this point PackIt is basically your lifestyle. Keep installing, there is no going back."
-    },
-    {
-        "id": "plugins_500",
-        "category": "Installing plugins",
-        "title": "No Life",
-        "goal": 500,
-        "hint": "500 plugin installations. We are not sure if this is impressive or concerning. Either way, you have earned this."
-    },
+def _load_achievements() -> list:
+    path = os.path.join(os.path.dirname(__file__), "../../res/achievList.json")
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
-    # Repositories
-    {
-        "id": "repo_1",
-        "category": "Repositories",
-        "title": "First Source",
-        "goal": 1,
-        "hint": "Add your first repository. Open PackIt settings, go to Repositories and paste a valid repository URL."
-    },
-    {
-        "id": "repo_3",
-        "category": "Repositories",
-        "title": "Expanding Horizons",
-        "goal": 3,
-        "hint": "Add 3 repositories in total. More sources mean more plugins to discover."
-    },
-    {
-        "id": "repo_5",
-        "category": "Repositories",
-        "title": "Multi-Source",
-        "goal": 5,
-        "hint": "You are pulling plugins from 5 different repositories. At this point you know exactly where to look."
-    },
-    {
-        "id": "repo_10",
-        "category": "Repositories",
-        "title": "Aggregator",
-        "goal": 10,
-        "hint": "10 repositories added. You have probably seen every plugin available at this point."
-    },
-    {
-        "id": "repo_50",
-        "category": "Repositories",
-        "title": "Repository Maniac",
-        "goal": 50,
-        "hint": "50 repositories. There is no way all of these are active. Are you okay?"
-    },
 
-    # Sharing
-    {
-        "id": "share_1",
-        "category": "Sharing",
-        "title": "Spread the Word",
-        "goal": 1,
-        "hint": "Share a plugin file with someone. Open any plugin in the installation interface, tap the burger menu and hit Share."
-    },
-    {
-        "id": "share_5",
-        "category": "Sharing",
-        "title": "Evangelist",
-        "goal": 5,
-        "hint": "You have shared 5 plugins. Your friends are either grateful or confused by now."
-    },
-    {
-        "id": "share_10",
-        "category": "Sharing",
-        "title": "Distributor",
-        "goal": 10,
-        "hint": "10 shares done. You are basically running your own plugin delivery service at this point."
-    },
-    {
-        "id": "share_25",
-        "category": "Sharing",
-        "title": "Plugin Dealer",
-        "goal": 25,
-        "hint": "25 plugins shared. People probably come to you when they need a recommendation."
-    },
-    {
-        "id": "share_50",
-        "category": "Sharing",
-        "title": "Community Pillar",
-        "goal": 50,
-        "hint": "50 shares. You are holding this community together one plugin file at a time."
-    },
-    {
-        "id": "share_100",
-        "category": "Sharing",
-        "title": "The Supplier",
-        "goal": 100,
-        "hint": "100 plugins shared. At this point sharing is just a reflex for you."
-    },
-
-    # Downloading
-    {
-        "id": "download_1",
-        "category": "Downloading",
-        "title": "Grab and Go",
-        "goal": 1,
-        "hint": "Download a plugin file to your device. Open any plugin in the installation interface, tap the burger menu and hit Download."
-    },
-    {
-        "id": "download_5",
-        "category": "Downloading",
-        "title": "Local Hoarder",
-        "goal": 5,
-        "hint": "You have downloaded 5 plugin files. Your downloads folder is getting interesting."
-    },
-    {
-        "id": "download_10",
-        "category": "Downloading",
-        "title": "Backup Freak",
-        "goal": 10,
-        "hint": "10 plugin files downloaded. Clearly you like having things locally, just in case."
-    },
-    {
-        "id": "download_25",
-        "category": "Downloading",
-        "title": "Archivist",
-        "goal": 25,
-        "hint": "25 downloads. You are building quite the offline collection."
-    },
-    {
-        "id": "download_50",
-        "category": "Downloading",
-        "title": "The Vault",
-        "goal": 50,
-        "hint": "50 plugin files saved locally. Nothing gets past you without being downloaded first."
-    },
-
-    # Viewing code
-    {
-        "id": "code_1",
-        "category": "Viewing code",
-        "title": "Curious",
-        "goal": 1,
-        "hint": "Open the source code of any plugin. Tap the burger menu in the installation interface and hit Code."
-    },
-    {
-        "id": "code_3",
-        "category": "Viewing code",
-        "title": "Peeking Inside",
-        "goal": 3,
-        "hint": "You have looked at the code of 3 plugins. Good habit — always know what you are installing."
-    },
-    {
-        "id": "code_5",
-        "category": "Viewing code",
-        "title": "Code Reader",
-        "goal": 5,
-        "hint": "5 plugins inspected. You are getting comfortable reading other people's code."
-    },
-    {
-        "id": "code_10",
-        "category": "Viewing code",
-        "title": "Reviewer",
-        "goal": 10,
-        "hint": "10 code reviews done. At this point you probably have opinions about code style."
-    },
-    {
-        "id": "code_25",
-        "category": "Viewing code",
-        "title": "Auditor",
-        "goal": 25,
-        "hint": "25 plugins reviewed. You take security seriously and that is genuinely admirable."
-    },
-    {
-        "id": "code_50",
-        "category": "Viewing code",
-        "title": "Inspector",
-        "goal": 50,
-        "hint": "50 code views. You probably spot patterns across plugins by now."
-    },
-    {
-        "id": "code_100",
-        "category": "Viewing code",
-        "title": "Paranoid",
-        "goal": 100,
-        "hint": "100 plugins checked before installing. Trust no one. Read everything. Stay safe."
-    },
-    {
-        "id": "code_200",
-        "category": "Viewing code",
-        "title": "The Analyst",
-        "goal": 200,
-        "hint": "200 code reviews. At this point you have read more plugin code than most plugin authors."
-    },
-
-    # Reporting
-    {
-        "id": "report_1",
-        "category": "Reporting",
-        "title": "Whistleblower",
-        "goal": 1,
-        "hint": "Report a plugin for the first time. If something looks wrong, tap the burger menu in the installation interface and hit Report."
-    },
-    {
-        "id": "report_5",
-        "category": "Reporting",
-        "title": "Watchdog",
-        "goal": 5,
-        "hint": "5 reports submitted. You are actively helping keep the ecosystem clean."
-    },
-    {
-        "id": "report_10",
-        "category": "Reporting",
-        "title": "Moderator at Heart",
-        "goal": 10,
-        "hint": "10 reports. You clearly care about the quality of what gets distributed here."
-    },
-    {
-        "id": "report_25",
-        "category": "Reporting",
-        "title": "Quality Guardian",
-        "goal": 25,
-        "hint": "25 reports filed. The community is safer because of people like you."
-    },
-    {
-        "id": "report_50",
-        "category": "Reporting",
-        "title": "The Sheriff",
-        "goal": 50,
-        "hint": "50 reports. Nobody gets away with a bad plugin on your watch."
-    },
-    {
-        "id": "report_100",
-        "category": "Reporting",
-        "title": "Zero Tolerance",
-        "goal": 100,
-        "hint": "100 reports submitted. Either you have very high standards or very low tolerance. Probably both."
-    },
-
-    # Copying links
-    {
-        "id": "copy_1",
-        "category": "Copying links",
-        "title": "Link Sharer",
-        "goal": 1,
-        "hint": "Copy a plugin link for the first time. Open any plugin in the installation interface, tap the burger menu and hit Copy link."
-    },
-    {
-        "id": "copy_5",
-        "category": "Copying links",
-        "title": "Referrer",
-        "goal": 5,
-        "hint": "5 links copied. You like sending people directly to specific plugins."
-    },
-    {
-        "id": "copy_10",
-        "category": "Copying links",
-        "title": "Link Machine",
-        "goal": 10,
-        "hint": "10 links copied. You are a reliable source of plugin references."
-    },
-    {
-        "id": "copy_50",
-        "category": "Copying links",
-        "title": "Hyperlinker",
-        "goal": 50,
-        "hint": "50 links copied. Your clipboard history must be fascinating."
-    },
-    {
-        "id": "copy_100",
-        "category": "Copying links",
-        "title": "Deep Linker",
-        "goal": 100,
-        "hint": "100 plugin links copied. At this point copy-pasting is basically muscle memory."
-    },
-    {
-        "id": "copy_250",
-        "category": "Copying links",
-        "title": "The Index",
-        "goal": 250,
-        "hint": "250 links copied. You are a living directory of plugin links at this point."
-    },
-
-    # Levels
-    {
-        "id": "level_1",
-        "category": "Levels",
-        "title": "Just downloaded PackIt",
-        "goal": 1,
-        "hint": "Welcome. You are just getting started."
-    },
-    {
-        "id": "level_5",
-        "category": "Levels",
-        "title": "Getting Comfortable",
-        "goal": 5,
-        "hint": "You have spent enough time with PackIt to know your way around. Level 5 reached."
-    },
-    {
-        "id": "level_10",
-        "category": "Levels",
-        "title": "Part of the Routine",
-        "goal": 10,
-        "hint": "PackIt is no longer new to you. It is just part of how you use Telegram now."
-    },
-    {
-        "id": "level_25",
-        "category": "Levels",
-        "title": "Here to Stay",
-        "goal": 25,
-        "hint": "Level 25. At this point it is safe to say you are not going anywhere."
-    },
-    {
-        "id": "level_50",
-        "category": "Levels",
-        "title": "Halfway There",
-        "goal": 50,
-        "hint": "Level 50. The halfway point. You have come a long way and there is still more ahead."
-    },
-    {
-        "id": "level_75",
-        "category": "Levels",
-        "title": "Deep in the Rabbit Hole",
-        "goal": 75,
-        "hint": "Level 75. Most people never get this far. You are not most people."
-    },
-    {
-        "id": "level_80",
-        "category": "Levels",
-        "title": "No Turning Back",
-        "goal": 80,
-        "hint": "Level 80. You have invested too much to stop now. Not that you would want to."
-    },
-    {
-        "id": "level_90",
-        "category": "Levels",
-        "title": "The Final Stretch",
-        "goal": 90,
-        "hint": "Level 90. The end is in sight. You can almost see the top from here."
-    },
-    {
-        "id": "level_95",
-        "category": "Levels",
-        "title": "Almost There",
-        "goal": 95,
-        "hint": "Level 95. Five levels away from the absolute maximum. Finish what you started."
-    },
-    {
-        "id": "level_100",
-        "category": "Levels",
-        "title": "Transcendent",
-        "goal": 100,
-        "hint": "Level 100. The maximum. There is nothing beyond this point. You have seen it all."
-    },
-
-    # Loyalty
-    {
-        "id": "days_30",
-        "category": "Loyalty",
-        "title": "First Month",
-        "goal": 30,
-        "hint": "You have been using PackIt for a month. The plugins are already part of your daily setup."
-    },
-    {
-        "id": "days_182",
-        "category": "Loyalty",
-        "title": "Half a Year",
-        "goal": 182,
-        "hint": "Six months with PackIt. You have seen updates come and go and you are still here."
-    },
-    {
-        "id": "days_365",
-        "category": "Loyalty",
-        "title": "One Year",
-        "goal": 365,
-        "hint": "A full year. PackIt has been part of your Telegram experience through all of it."
-    },
-    {
-        "id": "days_730",
-        "category": "Loyalty",
-        "title": "Two Years",
-        "goal": 730,
-        "hint": "Two years in. Assuming PackIt and exteraGram are still around — and if you are reading this, they are."
-    },
-    {
-        "id": "days_1095",
-        "category": "Loyalty",
-        "title": "Three Years",
-        "goal": 1095,
-        "hint": "Three years. Honestly impressive. We hope the plugin ecosystem is still alive and well by now."
-    },
-    {
-        "id": "days_1460",
-        "category": "Loyalty",
-        "title": "Four Years",
-        "goal": 1460,
-        "hint": "Four years. At this point you have probably outlasted a few Telegram forks. We appreciate your loyalty."
-    },
-    {
-        "id": "days_1825",
-        "category": "Loyalty",
-        "title": "Five Years",
-        "goal": 1825,
-        "hint": "Five years. Half a decade. We genuinely did not expect anyone to reach this. Is exteraGram even still a thing?"
-    },
-    {
-        "id": "days_2190",
-        "category": "Loyalty",
-        "title": "Six Years",
-        "goal": 2190,
-        "hint": "Six years. If you are still using PackIt in 2030 or whenever this is, you deserve a medal. Or a doctor."
-    },
-    {
-        "id": "days_2555",
-        "category": "Loyalty",
-        "title": "Seven Years",
-        "goal": 2555,
-        "hint": "Seven years. PackIt is either immortal or you forgot to uninstall it. Either way — respect."
-    },
-    {
-        "id": "days_2920",
-        "category": "Loyalty",
-        "title": "Eight Years",
-        "goal": 2920,
-        "hint": "Eight years. At this point we are genuinely surprised this codebase still runs. So are you, probably."
-    },
-    {
-        "id": "days_3285",
-        "category": "Loyalty",
-        "title": "Nine Years",
-        "goal": 3285,
-        "hint": "Nine years. Is Telegram still relevant? Is exteraGram maintained? We have no idea. But here you are."
-    },
-    {
-        "id": "days_3650",
-        "category": "Loyalty",
-        "title": "Ten Years",
-        "goal": 3650,
-        "hint": "Ten years. A decade. This achievement was written as a joke. We did not think anyone would ever see it. Hi."
-    },
-
-    # Unknown achievements
-    {
-        "id": "secret_premium",
-        "category": "Unknown achievements",
-        "title": "You got premium",
-        "goal": 1,
-        "hint": "I feel sorry for you if you were in a public place, or near your parents. But at least now you have premium."
-    },
-    {
-        "id": "secret_terraria",
-        "category": "Unknown achievements",
-        "title": "Now you are a terrorist",
-        "goal": 1,
-        "hint": "Now you're a terrorist... Should I call the police? Or the FBI?"
-    },
-    {
-        "id": "secret_identity",
-        "category": "Unknown achievements",
-        "title": "Are you sure it's you?",
-        "goal": 1,
-        "hint": "Bro, I don't think you're seriously the creator of the PackIt. Real or fake?"
-    },
-]
+ACHIEVEMENTS = _load_achievements()
 
 
 def _get_configs_dir() -> str:
@@ -622,13 +124,12 @@ _LOYALTY_ACHIEVEMENTS = {
 }
 
 
-def sync_completed(data: dict) -> dict:
-    # auto-update level achievement progress from current XP
+def sync_completed(data: dict) -> tuple:
+    # returns (updated_data, list_of_newly_completed_achievement_dicts)
     current_level = _level_from_xp(data.get("_xp", 0))
     for aid in _LEVEL_ACHIEVEMENTS:
         data[aid] = current_level
 
-    # auto-update loyalty achievement progress from days since install
     try:
         from .localConfig import days_since_install
         days = days_since_install()
@@ -637,18 +138,114 @@ def sync_completed(data: dict) -> dict:
     for aid in _LOYALTY_ACHIEVEMENTS:
         data[aid] = days
 
-    # award XP for newly completed achievements
     awarded = data.get("_awarded", [])
     total_xp = data.get("_xp", 0)
+    newly_completed = []
     for a in ACHIEVEMENTS:
         aid = a["id"]
         progress = data.get(aid, 0)
         if progress >= a["goal"] and aid not in awarded:
             total_xp += _XP_REWARDS.get(aid, 0)
             awarded.append(aid)
+            newly_completed.append(a)
     data["_xp"] = total_xp
     data["_awarded"] = awarded
-    return data
+    return data, newly_completed
+
+
+def _show_achievement_bulletin(achievement: dict):
+    try:
+        from android_utils import run_on_ui_thread
+        from client_utils import get_last_fragment
+        from org.telegram.ui.Components import BulletinFactory
+        from org.telegram.messenger import R
+        from androidx.core.content import ContextCompat
+
+        icon_name = achievement["icon"]
+        title = achievement["title"]
+
+        def show():
+            fragment = get_last_fragment()
+            if fragment is None:
+                return
+            try:
+                icon_res = getattr(R.drawable, icon_name)
+                drawable = ContextCompat.getDrawable(fragment.getContext(), icon_res)
+            except Exception as e:
+                log(f"achievements._show_achievement_bulletin: drawable error: {e}")
+                drawable = None
+
+            factory = BulletinFactory.of(fragment)
+            if drawable is not None:
+                bulletin = factory.createSimpleBulletin(drawable, "Achievement Unlocked!", title)
+            else:
+                bulletin = factory.createSimpleBulletin("Achievement Unlocked!", title)
+            bulletin.show(True)
+
+        run_on_ui_thread(show)
+    except Exception as e:
+        log(f"achievements._show_achievement_bulletin: error: {e}")
+
+
+def _play_achievement_sound():
+    try:
+        from android.media import MediaPlayer, AudioManager
+        from java import dynamic_proxy
+
+        sound_path = os.path.join(os.path.dirname(__file__), "../../res/sounds/received-achievement.mp3")
+
+        if not os.path.exists(sound_path):
+            log(f"achievements._play_achievement_sound: file not found: {sound_path}")
+            return
+
+        player = MediaPlayer()
+        try:
+            player.setAudioStreamType(AudioManager.STREAM_MUSIC)
+            player.setDataSource(sound_path)
+            player.prepare()
+        except Exception as e:
+            log(f"achievements._play_achievement_sound: prepare error: {e}")
+            try:
+                player.reset()
+                player.release()
+            except Exception:
+                pass
+            return
+
+        try:
+            player.start()
+        except Exception as e:
+            log(f"achievements._play_achievement_sound: start error: {e}")
+            try:
+                player.reset()
+                player.release()
+            except Exception:
+                pass
+            return
+
+        class _Listener(dynamic_proxy(MediaPlayer.OnCompletionListener)):
+            def onCompletion(self, mp):
+                try:
+                    mp.reset()
+                    mp.release()
+                except Exception:
+                    pass
+
+        try:
+            player.setOnCompletionListener(_Listener())
+        except Exception as e:
+            log(f"achievements._play_achievement_sound: listener error: {e}")
+    except Exception as e:
+        log(f"achievements._play_achievement_sound: error: {e}")
+
+
+def _notify_newly_completed(newly_completed: list):
+    if not newly_completed:
+        return
+    for a in newly_completed:
+        if a.get("playSound", True):
+            _play_achievement_sound()
+        _show_achievement_bulletin(a)
 
 
 #  public API 
@@ -660,16 +257,18 @@ def get_progress(achievement_id: str) -> int:
 def set_progress(achievement_id: str, value: int):
     data = _load()
     data[achievement_id] = value
-    data = sync_completed(data)
+    data, newly_completed = sync_completed(data)
     _save(data)
+    _notify_newly_completed(newly_completed)
 
 
 def increment(achievement_id: str, by: int = 1):
     data = _load()
     current = data.get(achievement_id, 0)
     data[achievement_id] = current + by
-    data = sync_completed(data)
+    data, newly_completed = sync_completed(data)
     _save(data)
+    _notify_newly_completed(newly_completed)
 
 
 def increment_category(category: str, by: int = 1):
@@ -679,8 +278,9 @@ def increment_category(category: str, by: int = 1):
         if a["category"] == category:
             current = data.get(a["id"], 0)
             data[a["id"]] = current + by
-    data = sync_completed(data)
+    data, newly_completed = sync_completed(data)
     _save(data)
+    _notify_newly_completed(newly_completed)
 
 
 _SECRET_ACHIEVEMENTS = {"secret_premium", "secret_terraria", "secret_identity"}
@@ -690,8 +290,9 @@ def unlock_secret(achievement_id: str):
     full_id = f"secret_{achievement_id}"
     data = _load()
     data[full_id] = 1
-    data = sync_completed(data)
+    data, newly_completed = sync_completed(data)
     _save(data)
+    _notify_newly_completed(newly_completed)
 
 
 def is_completed(achievement_id: str) -> bool:
@@ -717,7 +318,7 @@ def get_stats() -> dict:
     # returns raw progress counters for statistics display
     data = _load()
     # sync in case achievements were completed before XP system existed
-    data = sync_completed(data)
+    data, _ = sync_completed(data)
     _save(data)
     return {
         "installed_plugins": data.get("first_plugin", 0),
