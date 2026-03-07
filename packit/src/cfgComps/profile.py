@@ -104,7 +104,7 @@ def _make_profile_header(context):
             pass
         first_name = str(user.first_name) if user and user.first_name else "User"
         first_name = first_name[0].upper() + first_name[1:] if first_name else "User"
-        title.setText(f"{first_name} profile")
+        title.setText(strings("profile_title", first_name=first_name))
         title.setGravity(Gravity.CENTER)
         content.addView(title, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_HORIZONTAL, 16, 0, 16, 4))
 
@@ -154,7 +154,7 @@ class ProfileSettings:
             builder = AlertDialogBuilder(act)
             builder.set_title(achievement["title"])
             builder.set_message(achievement["hint"])
-            builder.set_positive_button("OK", lambda b, w: b.dismiss())
+            builder.set_positive_button(strings["ok_button"], lambda b, w: b.dismiss())
             builder.show()
         except Exception as e:
             log(f"profile._show_hint: error: {e}")
@@ -191,7 +191,7 @@ class ProfileSettings:
             builder = AlertDialogBuilder(act)
             builder.set_title(category)
             builder.set_items(labels, onItemClick)
-            builder.set_negative_button("Close", lambda b, w: b.dismiss())
+            builder.set_negative_button(strings["close_button"], lambda b, w: b.dismiss())
             builder.show()
         except Exception as e:
             log(f"profile._show_category: error: {e}")
@@ -219,9 +219,9 @@ class ProfileSettings:
                 self._show_category(cat, categories[cat])
 
             builder = AlertDialogBuilder(act)
-            builder.set_title("Achievements")
+            builder.set_title(strings["profile_achievements"])
             builder.set_items(cat_names, onCategoryClick)
-            builder.set_negative_button("Close", lambda b, w: b.dismiss())
+            builder.set_negative_button(strings["close_button"], lambda b, w: b.dismiss())
             builder.show()
         except Exception as e:
             log(f"profile._show_achievements: error: {e}")
@@ -248,32 +248,32 @@ class ProfileSettings:
                 days = 0
 
             if level >= 100:
-                level_line = "Account level: 100"
-                xp_line = f"Total points: {xp_a}/{xp_b}"
+                level_line = strings["stat_account_level_max"]
+                xp_line = strings("stat_xp_total", xp_a=xp_a, xp_b=xp_b)
             else:
-                level_line = f"Account level: {level}"
-                xp_line = f"To the next level: {xp_a}/{xp_b} points"
+                level_line = strings("stat_account_level", level=level)
+                xp_line = strings("stat_xp_to_next", xp_a=xp_a, xp_b=xp_b)
 
             lines = [
                 level_line,
                 xp_line,
                 "",
-                f"Achievements: {s['completed']}/{s['total']}",
-                f"Days of use: {days}",
+                strings("stat_achievements", completed=s['completed'], total=s['total']),
+                strings("stat_days_of_use", days=days),
                 "",
-                f"Installed plugins: {s['installed_plugins']}",
-                f"Repositories added: {s['repositories_added']}",
-                f"Plugins shared: {s['plugins_shared']}",
-                f"Plugins downloaded: {s['plugins_downloaded']}",
-                f"Code views: {s['code_views']}",
-                f"Reports sent: {s['reports_sent']}",
-                f"Links copied: {s['links_copied']}",
+                strings("stat_installed_plugins", count=s['installed_plugins']),
+                strings("stat_repositories_added", count=s['repositories_added']),
+                strings("stat_plugins_shared", count=s['plugins_shared']),
+                strings("stat_plugins_downloaded", count=s['plugins_downloaded']),
+                strings("stat_code_views", count=s['code_views']),
+                strings("stat_reports_sent", count=s['reports_sent']),
+                strings("stat_links_copied", count=s['links_copied']),
             ]
 
             builder = AlertDialogBuilder(act)
-            builder.set_title("Statistics")
+            builder.set_title(strings["profile_statistics"])
             builder.set_message("\n".join(lines))
-            builder.set_positive_button("OK", lambda b, w: b.dismiss())
+            builder.set_positive_button(strings["ok_button"], lambda b, w: b.dismiss())
             builder.show()
         except Exception as e:
             log(f"profile._show_statistics: error: {e}")
@@ -287,21 +287,21 @@ class ProfileSettings:
 
         items += [
             Text(
-                text="Achievements",
+                text=strings["profile_achievements"],
                 icon="msg_fave",
                 on_click=self._show_achievements
             ),
             Text(
-                text="Statistics",
+                text=strings["profile_statistics"],
                 icon="msg_stats",
                 on_click=self._show_statistics
             ),
             Text(
-                text="Export database",
+                text=strings["profile_export_db"],
                 icon="files_storage",
                 on_click=self._show_export_not_ready
             ),
-            Divider(text="THIS IS AN INTERFACE TEMPLATE, A FULL UI WILL BE IMPLEMENTED LATER"),
+            Divider(text=strings["profile_template_divider"]),
         ]
 
         return items

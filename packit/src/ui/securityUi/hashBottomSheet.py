@@ -2,6 +2,7 @@ from base_plugin import MethodHook
 from hook_utils import find_class
 from android_utils import log, OnClickListener
 from android.widget import ImageView
+from elyx import strings
 try:
     from org.telegram.messenger import AndroidUtilities, R as R_tg
 except Exception as e:
@@ -149,7 +150,7 @@ def _installFromRepo(pluginId: str, pluginsUrl: str, repoManager, act):
         return
 
     builder = AlertDialogBuilder(act, AlertDialogBuilder.ALERT_TYPE_SPINNER)
-    builder.set_title("Downloading...")
+    builder.set_title(strings["sec_hash_downloading"])
     builder.set_cancelable(False)
     dlg = builder.create()
     run_on_ui_thread(lambda: dlg.show())
@@ -167,7 +168,7 @@ def _installFromRepo(pluginId: str, pluginsUrl: str, repoManager, act):
             r = requests.get(pluginsUrl, timeout=15)
             if r.status_code != 200:
                 dismissDlg()
-                run_on_ui_thread(lambda: BulletinHelper.show_error(f"Failed to load repository: HTTP {r.status_code}"))
+                run_on_ui_thread(lambda: BulletinHelper.show_error(strings("sec_repo_load_failed", code=r.status_code)))
                 return
 
             plugin = None
@@ -178,13 +179,13 @@ def _installFromRepo(pluginId: str, pluginsUrl: str, repoManager, act):
 
             if not plugin:
                 dismissDlg()
-                run_on_ui_thread(lambda: BulletinHelper.show_error("Plugin not found in repository"))
+                run_on_ui_thread(lambda: BulletinHelper.show_error(strings["sec_plugin_not_in_repo"]))
                 return
 
             url = plugin.get("link") or plugin.get("raw")
             if not url:
                 dismissDlg()
-                run_on_ui_thread(lambda: BulletinHelper.show_error("Plugin has no link"))
+                run_on_ui_thread(lambda: BulletinHelper.show_error(strings["sec_plugin_no_link"]))
                 return
 
             pkg = ApplicationLoader.applicationContext.getPackageName()
@@ -195,7 +196,7 @@ def _installFromRepo(pluginId: str, pluginsUrl: str, repoManager, act):
             r2 = requests.get(url, stream=True, timeout=30)
             if r2.status_code != 200:
                 dismissDlg()
-                run_on_ui_thread(lambda: BulletinHelper.show_error(f"Failed to download: HTTP {r2.status_code}"))
+                run_on_ui_thread(lambda: BulletinHelper.show_error(strings("sec_download_failed", code=r2.status_code)))
                 return
 
             contentLength = r2.headers.get("content-length")
@@ -218,13 +219,13 @@ def _installFromRepo(pluginId: str, pluginsUrl: str, repoManager, act):
                     PluginsController.getInstance().showInstallDialog(fragment, tempPath, True)
                 except Exception as e:
                     log(f"hashBottomSheet: openDialog error: {e}")
-                    BulletinHelper.show_error("Failed to open install dialog")
+                    BulletinHelper.show_error(strings["sec_install_dialog_failed"])
 
             run_on_ui_thread(openDialog)
         except Exception as e:
             log(f"hashBottomSheet: _installFromRepo error: {e}")
             dismissDlg()
-            run_on_ui_thread(lambda: BulletinHelper.show_error("An error occurred"))
+            run_on_ui_thread(lambda: BulletinHelper.show_error(strings["sec_error_occurred"]))
 
     run_on_queue(task)
 
@@ -235,7 +236,7 @@ def _showResult(act, pluginId: str, localHash: str, localVersion: str | None, re
     import threading
 
     loading = AlertDialogBuilder(act, AlertDialogBuilder.ALERT_TYPE_SPINNER)
-    loading.set_title("Checking hash...")
+    loading.set_title(strings["sec_hash_checking"])
     loading.set_cancelable(False)
     dlg = loading.create()
     run_on_ui_thread(lambda: dlg.show())
@@ -250,9 +251,9 @@ def _showResult(act, pluginId: str, localHash: str, localVersion: str | None, re
             log(f"hashBottomSheet: repoHash={repoHash} repoVersion={repoVersion}")
 
             if repoHash is None:
-                msg = f"Plugin not found in \"{repoName}\"."
+                msg = strings("sec_hash_not_found", repo=repoName)
             elif repoHash == localHash:
-                msg = "The hash matches."
+                msg = strings["sec_hash_match"]
             else:
                 showInstall = True
                 # check if local version is newer than repo version
@@ -264,9 +265,9 @@ def _showResult(act, pluginId: str, localHash: str, localVersion: str | None, re
                         pass
 
                 if isNewer:
-                    msg = "The hash differs from the one in the repository. However, the version you want to install is newer than the one in the repository. Everything is probably fine."
+                    msg = strings["sec_hash_mismatch_newer"]
                 else:
-                    msg = "Hash mismatch!\n\nIt is recommended to install from the PackIt."
+                    msg = strings["sec_hash_mismatch"]
 
         except Exception as e:
             log(f"hashBottomSheet: _showResult work error: {e}")
@@ -278,9 +279,9 @@ def _showResult(act, pluginId: str, localHash: str, localVersion: str | None, re
             except Exception:
                 pass
             builder = AlertDialogBuilder(act)
-            builder.set_title("Hash comparison")
+            builder.set_title(strings["sec_hash_comparison_title"])
             builder.set_message(_msg)
-            builder.set_positive_button("OK", lambda b, w: b.dismiss())
+            builder.set_positive_button(strings["ok_button"], lambda b, w: b.dismiss())
             if _showInstall:
                 def onInstall(b, w):
                     b.dismiss()
@@ -289,7 +290,7 @@ def _showResult(act, pluginId: str, localHash: str, localVersion: str | None, re
                     except Exception as e:
                         log(f"hashBottomSheet: sheet dismiss error: {e}")
                     _installFromRepo(pluginId, pluginsUrl, repoManager, act)
-                builder.set_negative_button("Install", onInstall)
+                builder.set_negative_button(strings["sec_install_btn"], onInstall)
             builder.show()
 
         run_on_ui_thread(show)
@@ -303,7 +304,7 @@ def _showRepoSelector(act, filePath: str, repoManager, sheet):
     import threading
 
     loading = AlertDialogBuilder(act, AlertDialogBuilder.ALERT_TYPE_SPINNER)
-    loading.set_title("Loading...")
+    loading.set_title(strings["sec_hash_loading"])
     loading.set_cancelable(False)
     dlg = loading.create()
     run_on_ui_thread(lambda: dlg.show())
@@ -331,17 +332,17 @@ def _showRepoSelector(act, filePath: str, repoManager, sheet):
 
             if pluginId is None:
                 builder = AlertDialogBuilder(act)
-                builder.set_title("Hash comparison")
-                builder.set_message("Could not determine plugin ID.")
-                builder.set_positive_button("OK", lambda b, w: b.dismiss())
+                builder.set_title(strings["sec_hash_comparison_title"])
+                builder.set_message(strings["sec_hash_no_plugin_id"])
+                builder.set_positive_button(strings["ok_button"], lambda b, w: b.dismiss())
                 builder.show()
                 return
 
             if not repos:
                 builder = AlertDialogBuilder(act)
-                builder.set_title("Hash comparison")
-                builder.set_message("No repositories available.")
-                builder.set_positive_button("OK", lambda b, w: b.dismiss())
+                builder.set_title(strings["sec_hash_comparison_title"])
+                builder.set_message(strings["sec_hash_no_repos"])
+                builder.set_positive_button(strings["ok_button"], lambda b, w: b.dismiss())
                 builder.show()
                 return
 
@@ -353,9 +354,9 @@ def _showRepoSelector(act, filePath: str, repoManager, sheet):
                 _showResult(act, pluginId, localHash, localVersion, repoName, pluginsUrl, repoId, repoManager, sheet)
 
             builder = AlertDialogBuilder(act)
-            builder.set_title("Select repository")
+            builder.set_title(strings["sec_select_repo_title"])
             builder.set_items(names, onRepoSelected)
-            builder.set_negative_button("Cancel", lambda b, w: b.dismiss())
+            builder.set_negative_button(strings["sec_cancel_btn"], lambda b, w: b.dismiss())
             builder.show()
 
         run_on_ui_thread(show)

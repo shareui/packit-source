@@ -3,6 +3,7 @@ from hook_utils import find_class
 from android_utils import log, OnClickListener
 from client_utils import get_last_fragment
 from android.widget import ImageView
+from elyx import strings
 try:
     from org.telegram.messenger import AndroidUtilities, R as R_tg
 except Exception as e:
@@ -60,7 +61,7 @@ def _showResults(results: dict, act):
     LEVEL_ORDER = ["Critical", "High", "Medium", "Low"]
 
     if not results:
-        msg = "No known signatures found."
+        msg = strings["sec_no_signatures"]
     else:
         lines = []
         for level in LEVEL_ORDER:
@@ -73,7 +74,7 @@ def _showResults(results: dict, act):
         msg = "\n\n".join(lines)
 
     builder = AlertDialogBuilder(act)
-    builder.set_title("Signature scan")
+    builder.set_title(strings["sec_signature_scan_title"])
     builder.set_message(msg)
     def _openLink(b, w):
         b.dismiss()
@@ -84,8 +85,8 @@ def _showResults(results: dict, act):
         except Exception as e:
             log(f"securityUi: open link error: {e}")
 
-    builder.set_negative_button("Signatures?", _openLink)
-    builder.set_positive_button("OK", lambda b, w: b.dismiss())
+    builder.set_negative_button(strings["sec_signatures_btn"], _openLink)
+    builder.set_positive_button(strings["ok_button"], lambda b, w: b.dismiss())
     builder.show()
 
 
@@ -95,7 +96,7 @@ def _onPolicyClick(act, filePath: str):
     from ui.alert import AlertDialogBuilder
 
     loading = AlertDialogBuilder(act, AlertDialogBuilder.ALERT_TYPE_SPINNER)
-    loading.set_title("Scanning...")
+    loading.set_title(strings["sec_scanning"])
     loading.set_cancelable(False)
     dlg = loading.create()
     run_on_ui_thread(lambda: dlg.show())

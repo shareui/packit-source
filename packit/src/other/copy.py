@@ -24,7 +24,7 @@ def copy_share_link(plugin_info: dict, repo_title: str):
         container = fragment.getParentActivity().getWindow().getDecorView()
         resource_provider = fragment.getResourceProvider()
         if not plugin_id:
-            BulletinFactory.of(container, resource_provider).createErrorBulletin("Plugin has no id").show()
+            BulletinFactory.of(container, resource_provider).createErrorBulletin(strings["plugin_no_id"]).show()
             return
         share_link = f"tg://packit?install&repo={repo_title}&plugin={plugin_id}"
         AndroidUtilities.addToClipboard(share_link)
