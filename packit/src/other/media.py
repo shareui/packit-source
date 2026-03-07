@@ -13,6 +13,13 @@ def playSound(soundPath: str) -> None:
     if not settings.get("sfx_enabled", False):
         return
 
+    try:
+        from .achievements import is_achievement_pending
+        if is_achievement_pending():
+            return
+    except Exception:
+        pass
+
     if not soundPath or not os.path.exists(soundPath):
         log(f"media: sound file not found: {soundPath}")
         return

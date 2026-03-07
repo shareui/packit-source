@@ -276,7 +276,7 @@ class SettingsBuilder:
             ),
             
             Text(
-                text="Profile",
+                text=strings.profile,
                 icon="msg_contacts",
                 create_sub_fragment=self.profileSettings.build
             ),

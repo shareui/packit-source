@@ -37,7 +37,7 @@ def copy_plugin_link(plugin_info: dict, repo_title: str, sound_path: str = None)
         container = fragment.getParentActivity().getWindow().getDecorView()
         resource_provider = fragment.getResourceProvider()
         if not plugin_id:
-            BulletinFactory.of(container, resource_provider).createErrorBulletin("Plugin has no id").show()
+            BulletinFactory.of(container, resource_provider).createErrorBulletin(strings["plugin_no_id"]).show()
             return
         share_link = f"tg://packit?install&repo={repo_title}&plugin={plugin_id}"
         AndroidUtilities.addToClipboard(share_link)
@@ -84,7 +84,7 @@ def download_plugin_file(plugin_info: dict):
             fragment = _get_frag()
             if fragment:
                 BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
-                BulletinFactory.of(fragment.getParentActivity().getWindow().getDecorView(), fragment.getResourceProvider()).createErrorBulletin("Plugin has no download link").show()
+                BulletinFactory.of(fragment.getParentActivity().getWindow().getDecorView(), fragment.getResourceProvider()).createErrorBulletin(strings["plugin_no_download_link"]).show()
             return
 
         dest_dir = settings.get("download_path", "/storage/emulated/0/Download")
@@ -103,7 +103,7 @@ def download_plugin_file(plugin_info: dict):
             return
         ctx = fragment.getContext()
         builder = AlertDialogBuilder(ctx, AlertDialogBuilder.ALERT_TYPE_LOADING)
-        builder.set_title("Downloading...")
+        builder.set_title(strings["downloading_progress_title"])
         builder.set_cancelable(False)
         dlg = builder.show()
         dlg.set_progress(0)
@@ -131,7 +131,7 @@ def download_plugin_file(plugin_info: dict):
                 r = _req.get(link, stream=True, timeout=30)
                 if r.status_code != 200:
                     _dismiss()
-                    _run(lambda: _show_download_error("Server returned " + str(r.status_code)))
+                    _run(lambda: _show_download_error(strings("download_server_error", code=r.status_code)))
                     return
                 os.makedirs(str(dest_dir), exist_ok=True)
                 content_length = r.headers.get("content-length")
@@ -164,7 +164,7 @@ def download_plugin_file(plugin_info: dict):
                 folder = str(dest_dir).rstrip("/").rsplit("/", 1)[-1]
                 BulletinFactory.of(container, rp).createSimpleBulletin(
                     find_class("org.telegram.messenger.R").raw.ic_download,
-                    f"Saved in .../{folder}."
+                    strings("download_saved", folder=folder)
                 ).show()
             except Exception as e:
                 log(f"download: show ok error: {e}")
@@ -177,7 +177,7 @@ def download_plugin_file(plugin_info: dict):
                 container = fragment.getParentActivity().getWindow().getDecorView()
                 rp = fragment.getResourceProvider()
                 BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
-                BulletinFactory.of(container, rp).createErrorBulletin(f"Download failed: {msg}").show()
+                BulletinFactory.of(container, rp).createErrorBulletin(strings("download_failed", msg=msg)).show()
             except Exception as e:
                 log(f"download: show error error: {e}")
 
@@ -190,7 +190,7 @@ def view_plugin_code(plugin_info: dict, activity):
     try:
         plugin_url = plugin_info.get("link") or plugin_info.get("raw")
         if not plugin_url:
-            BulletinFactory.of(activity.getWindow().getDecorView(), None).createErrorBulletin("Plugin has no link").show()
+            BulletinFactory.of(activity.getWindow().getDecorView(), None).createErrorBulletin(strings["plugin_no_link"]).show()
             return
 
         plugin_url = _convert_raw_github_url(plugin_url)
@@ -211,11 +211,11 @@ def view_plugin_code(plugin_info: dict, activity):
                 log(f"Opening plugin URL via Intent: {plugin_url}")
             except Exception as e:
                 log(f"Failed to open URL via Intent: {e}")
-                BulletinFactory.of(activity.getWindow().getDecorView(), None).createErrorBulletin("Failed to open URL").show()
+                BulletinFactory.of(activity.getWindow().getDecorView(), None).createErrorBulletin(strings["failed_to_open_url"]).show()
                 
     except Exception as e:
         log(f"Error opening plugin URL: {e}")
         try:
-            BulletinFactory.of(activity.getWindow().getDecorView(), None).createErrorBulletin("Failed to open plugin URL").show()
+            BulletinFactory.of(activity.getWindow().getDecorView(), None).createErrorBulletin(strings["failed_to_open_plugin_url"]).show()
         except Exception:
             pass

@@ -3,7 +3,7 @@ from base_plugin import MethodHook
 from hook_utils import find_class
 from java import jclass, dynamic_proxy
 try:
-    from elyx import settings
+    from elyx import settings, strings
 except Exception as e:
     import android_utils as _au; _au.log(f"import elyx import settings failed: {e}")
 
@@ -68,7 +68,7 @@ class ChatDialogButton:
                             from ..ui.installUi.uiMain import InstallUI
                             run_on_ui_thread(lambda: InstallUI(plugin).open())
 
-                        io.add(icon_id, _String("Install plugin"), _OnClick(on_click))
+                        io.add(icon_id, _String(strings["install_plugin_btn"]), _OnClick(on_click))
                     except Exception as e:
                         log(f"ChatDialogButton: after_hooked_method error: {e}")
 

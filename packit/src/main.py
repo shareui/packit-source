@@ -15,6 +15,7 @@ from .other.badges import BadgeManager
 from .other.localConfig import LocalConfig
 from .other import isBeta
 from .ui.securityUi import setup_policy_button_hook, setup_hash_button_hook
+from .ui.installUi.installDismissHook import setup_install_dismiss_hook
 from android_utils import log
 
 
@@ -32,6 +33,7 @@ class PackItPlugin(BasePlugin):
         self.policy_button_hook_ref = None
         self.hash_button_hook_ref = None
         self.dialogs_menu_hook_ref = None
+        self.install_dismiss_hook_ref = None
         log("PackIt initialized!")
     
     def on_plugin_load(self):
@@ -39,7 +41,8 @@ class PackItPlugin(BasePlugin):
         isBeta.init()
         try:
             from .other.achievements import sync_completed, _load, _save
-            _save(sync_completed(_load()))
+            data, _ = sync_completed(_load())
+            _save(data)
         except Exception as e:
             log(f"PackIt: achievements sync error: {e}")
         try:
@@ -54,6 +57,7 @@ class PackItPlugin(BasePlugin):
         self.badgeManager.setup_hooks()
         self.policy_button_hook_ref = setup_policy_button_hook(self)
         self.hash_button_hook_ref = setup_hash_button_hook(self, self.repoManager)
+        self.install_dismiss_hook_ref = setup_install_dismiss_hook(self)
         self.dialogs_menu_hook_ref = self.chatUI.setup_dialogs_menu_hook()
         self._init_official_repository()
         log("PackIt loaded!")
@@ -96,8 +100,20 @@ class PackItPlugin(BasePlugin):
             params.message = f"Spamming 20 logs in background! Max limit: {maxLogs}"
             return HookResult(strategy=HookStrategy.MODIFY, params=params)
         
+        if params.message.startswith(".deleteachievements"):
+            try:
+                import os
+                from .other.achievements import _get_achievements_path
+                path = _get_achievements_path()
+                if os.path.exists(path):
+                    os.remove(path)
+                params.message = "Achievements deleted!"
+            except Exception as e:
+                params.message = f"Failed to delete achievements: {e}"
+            return HookResult(strategy=HookStrategy.MODIFY, params=params)
+
         return HookResult()
-    
+
     def on_plugin_unload(self):
         try:
             if hasattr(self, 'badgeManager'):

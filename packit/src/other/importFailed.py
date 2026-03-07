@@ -18,7 +18,7 @@ def showImportFailedAlert():
         builder = AlertDialog.Builder(fragment.getParentActivity())
         builder.setTitle("PackIt")
         builder.setMessage(strings["import_failed"])
-        builder.setPositiveButton("OK", None)
+        builder.setPositiveButton(strings["ok_button"], None)
         builder.show()
 
     run_on_ui_thread(show)
