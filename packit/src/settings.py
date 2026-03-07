@@ -9,6 +9,7 @@ from .cfgComps.deeplinks import DeeplinksSettings
 from .cfgComps.other import OtherSettings
 from .cfgComps.docs import DocumentationSettings
 from .cfgComps.contributors import ContributorsSettings
+from .cfgComps.profile import ProfileSettings
 from ui.bulletin import BulletinHelper
 from base_plugin import BasePlugin, MethodHook
 from android_utils import run_on_ui_thread
@@ -68,6 +69,7 @@ class SettingsBuilder:
         self.otherSettings = OtherSettings(plugin.chatUI)
         self.documentationSettings = DocumentationSettings()
         self.contributorsSettings = ContributorsSettings()
+        self.profileSettings = ProfileSettings()
 
     def _setup_settings_header_hook(self):
         try:
@@ -271,6 +273,12 @@ class SettingsBuilder:
                 text=strings.repositories,
                 icon="msg_folders",
                 create_sub_fragment=self.repositoriesSettings.build
+            ),
+            
+            Text(
+                text="Profile",
+                icon="msg_contacts",
+                create_sub_fragment=self.profileSettings.build
             ),
             
             Text(

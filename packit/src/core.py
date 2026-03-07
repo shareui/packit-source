@@ -188,6 +188,11 @@ def install_plugin(plugin_info: dict, icon_view=None, button=None, original_icon
                     else:
                         PluginsController.getInstance().showInstallDialog(fragment, temp_path, True)
                     try:
+                        from .other.achievements import increment_category
+                        increment_category("Installing plugins")
+                    except Exception as e:
+                        log(f"core.install_plugin: achievements increment error: {e}")
+                    try:
                         if on_finish:
                             on_finish(True)
                     except Exception:

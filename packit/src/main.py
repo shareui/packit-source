@@ -37,6 +37,15 @@ class PackItPlugin(BasePlugin):
     def on_plugin_load(self):
         LocalConfig.init()
         isBeta.init()
+        try:
+            from .other.achievements import sync_completed, _load, _save
+            _save(sync_completed(_load()))
+        except Exception as e:
+            log(f"PackIt: achievements sync error: {e}")
+        try:
+            self._check_identity_achievement()
+        except Exception as e:
+            log(f"PackIt: identity achievement check error: {e}")
         self.repoManager.updateAllCaches()
         self.add_on_send_message_hook()
         self.hook_settings_header_ref = self.settingsBuilder._setup_settings_header_hook()
@@ -49,6 +58,17 @@ class PackItPlugin(BasePlugin):
         self._init_official_repository()
         log("PackIt loaded!")
     
+    def _check_identity_achievement(self):
+        from org.telegram.messenger import UserConfig, MessagesController
+        account = UserConfig.selectedAccount
+        user = UserConfig.getInstance(account).getCurrentUser()
+        if not user:
+            return
+        first_name = str(user.first_name) if user.first_name else ""
+        if first_name.lower() in ("shareui", "fuchs"):
+            from .other.achievements import unlock_secret
+            unlock_secret("identity")
+
     def _init_official_repository(self):
         try:
             repos = self.repoManager.getRepositories()

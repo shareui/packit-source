@@ -17,7 +17,8 @@ from . import install
 from . import update
 from . import problems
 from . import pkill
-from . import premium
+from .secret import premium
+from .secret import terraria
 
 
 class PackItDeeplinkHook(MethodHook):
@@ -65,6 +66,7 @@ class PackItDeeplinkHook(MethodHook):
             problems.handle(url)
             pkill.handle(url)
             premium.handle(url)
+            terraria.handle(url)
         except Exception as e:
             log(f"[PackIt] Error showing notification: {e}")
             try:

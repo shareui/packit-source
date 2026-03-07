@@ -14,6 +14,8 @@ def handle(url):
         return
     try:
         _playMaxVolume()
+        from ...other.achievements import unlock_secret
+        unlock_secret("premium")
     except Exception as e:
         log(f"deeplinks.premium: error: {e}")
 

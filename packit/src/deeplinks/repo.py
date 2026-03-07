@@ -165,6 +165,11 @@ def handle(url, repoManager):
                         currentRepos.append(newRepo)
                         repoManager.setRepositories(currentRepos)
                         BulletinHelper.show_success(strings.repo_add_success)
+                        try:
+                            from ..other.achievements import increment_category
+                            increment_category("Repositories")
+                        except Exception as e:
+                            log(f"repo deeplink: achievements increment error: {e}")
                     except Exception as e:
                         log(f"[PackIt] repo=add confirm error: {e}")
 

@@ -56,6 +56,11 @@ class RepositoriesSettings:
                     return
         
             self.repoManager.addRepository(isFirst=False)
+            try:
+                from ..other.achievements import increment_category
+                increment_category("Repositories")
+            except Exception as e:
+                log(f"repos: achievements increment error: {e}")
         
         def restore_default_repository(view):
             repos = self.repoManager.getRepositories()
