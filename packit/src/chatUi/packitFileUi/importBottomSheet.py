@@ -12,9 +12,9 @@ from org.telegram.ui.Stories.recorder import ButtonWithCounterView
 def show_import_bottom_sheet(fragment, num_blocks: int, on_confirm):
     try:
         from elyx import strings
-        from ...other.achievements import get_level_info, _load
+        from ...other.achievements import get_level_info, _load_account
 
-        data = _load()
+        data = _load_account()
         level, xp_into, _ = get_level_info(data)
 
         activity = fragment.getParentActivity()
