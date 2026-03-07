@@ -7,6 +7,12 @@ except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
     from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 
+_achievement_pending = False
+
+
+def is_achievement_pending() -> bool:
+    return _achievement_pending
+
 def _load_achievements() -> list:
     path = os.path.join(os.path.dirname(__file__), "../../res/achievList.json")
     with open(path, "r", encoding="utf-8") as f:
@@ -240,11 +246,16 @@ def _play_achievement_sound():
 
 
 def _notify_newly_completed(newly_completed: list):
+    global _achievement_pending
     if not newly_completed:
         return
     for a in newly_completed:
         if a.get("playSound", True):
-            _play_achievement_sound()
+            _achievement_pending = True
+            try:
+                _play_achievement_sound()
+            finally:
+                _achievement_pending = False
         _show_achievement_bulletin(a)
 
 
