@@ -1731,18 +1731,43 @@ class InstallUI:
                     
                     def do_download():
                         download_plugin_file(p)
+                        try:
+                            from ...other.achievements import increment_category
+                            increment_category("Downloading")
+                        except Exception as e:
+                            log(f"uiMain: achievements increment error: {e}")
 
                     def do_copy():
                         copy_plugin_link(p, self.repo_id or self.title, copyLinkSoundPath)
-                    
+                        try:
+                            from ...other.achievements import increment_category
+                            increment_category("Copying links")
+                        except Exception as e:
+                            log(f"uiMain: achievements increment error: {e}")
+
                     def do_share():
                         share_plugin_file(p, str(display_name), act_for_share)
-                    
+                        try:
+                            from ...other.achievements import increment_category
+                            increment_category("Sharing")
+                        except Exception as e:
+                            log(f"uiMain: achievements increment error: {e}")
+
                     def do_code():
                         view_plugin_code(p, act)
-                    
+                        try:
+                            from ...other.achievements import increment_category
+                            increment_category("Viewing code")
+                        except Exception as e:
+                            log(f"uiMain: achievements increment error: {e}")
+
                     def do_report():
                         report_plugin(p, act)
+                        try:
+                            from ...other.achievements import increment_category
+                            increment_category("Reporting")
+                        except Exception as e:
+                            log(f"uiMain: achievements increment error: {e}")
                     
                     icon_download = getattr(R_tg.drawable, 'msg_download', 0)
                     icon_copy = getattr(R_tg.drawable, 'msg_copy', getattr(R_tg.drawable, 'msg_copy_filled', 0))

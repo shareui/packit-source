@@ -1,5 +1,6 @@
 import os
 import json
+from datetime import date
 from android_utils import log
 try:
     from elyx import assets
@@ -13,14 +14,49 @@ except Exception as e:
     from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 
-def _get_config_path() -> str:
+def _get_configs_dir() -> str:
     pkg = ApplicationLoader.applicationContext.getPackageName()
-    return f"/data/data/{pkg}/files/packitCache/localConfig.json"
+    return f"/data/data/{pkg}/files/packitCache/packitConfigs"
+
+
+def _get_config_path() -> str:
+    return f"{_get_configs_dir()}/localConfig.json"
 
 
 def _get_cache_dir() -> str:
     pkg = ApplicationLoader.applicationContext.getPackageName()
     return f"/data/data/{pkg}/files/packitCache"
+
+
+def _get_install_date_path() -> str:
+    return f"{_get_configs_dir()}/installDate.json"
+
+
+def _ensure_install_date():
+    path = _get_install_date_path()
+    if os.path.exists(path):
+        return
+    try:
+        os.makedirs(_get_configs_dir(), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump({"date": date.today().isoformat()}, f)
+        log(f"localConfig: install date recorded: {date.today().isoformat()}")
+    except Exception as e:
+        log(f"localConfig._ensure_install_date: error: {e}")
+
+
+def days_since_install() -> int:
+    try:
+        path = _get_install_date_path()
+        if not os.path.exists(path):
+            return 0
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        install = date.fromisoformat(data["date"])
+        return (date.today() - install).days
+    except Exception as e:
+        log(f"localConfig.days_since_install: error: {e}")
+        return 0
 
 
 def _load_asset_defaults() -> dict:
@@ -31,11 +67,12 @@ class LocalConfig:
     @staticmethod
     def init():
         try:
+            _ensure_install_date()
             config_path = _get_config_path()
             defaults = _load_asset_defaults()
 
             if not os.path.exists(config_path):
-                os.makedirs(_get_cache_dir(), exist_ok=True)
+                os.makedirs(_get_configs_dir(), exist_ok=True)
                 with open(config_path, "w", encoding="utf-8") as f:
                     f.write(assets.localConfig.content_string())
                 log(f"localConfig.init: done, final keys={list(defaults.keys())}")
