@@ -25,7 +25,7 @@ def _playMaxVolume():
     audioManager = ctx.getSystemService("audio")
     maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
 
-    soundPath = os.path.join(os.path.dirname(__file__), "../../res/sounds/pocxalko.mp3")
+    soundPath = os.path.join(os.path.dirname(__file__), "../../../res/sounds/pocxalko.mp3")
 
     player = MediaPlayer()
     try:

@@ -2,9 +2,9 @@ import os
 import json
 from android_utils import log
 try:
-    from org.telegram.messenger import ApplicationLoader
+    from org.telegram.messenger import ApplicationLoader, UserConfig
 except Exception as e:
-    import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
+    import android_utils as _au; _au.log(f"achievements: import failed: {e}")
     from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 _achievement_pending = False
@@ -12,6 +12,7 @@ _achievement_pending = False
 
 def is_achievement_pending() -> bool:
     return _achievement_pending
+
 
 def _load_achievements() -> list:
     path = os.path.join(os.path.dirname(__file__), "../../res/achievList.json")
@@ -31,13 +32,39 @@ def _get_achievements_path() -> str:
     return f"{_get_configs_dir()}/achievements.json"
 
 
+def _hash_account_id(user_id: int) -> str:
+    import hashlib
+    # salt prevents external plugins from reversing ids by hashing known values
+    raw = f"packit:{user_id}".encode()
+    return hashlib.sha256(raw).hexdigest()[:16]
+
+
+def _get_current_account_id() -> str:
+    try:
+        account = getattr(UserConfig, "selectedAccount", 0)
+        user_id = UserConfig.getInstance(account).getClientUserId()
+        return _hash_account_id(user_id)
+    except Exception as e:
+        log(f"achievements._get_current_account_id: {e}")
+        return "0"
+
+
 def _load() -> dict:
+    # returns the full file: {account_id: {achievement data}}
     path = _get_achievements_path()
     if not os.path.exists(path):
         return {}
     try:
         with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
+        # migrate flat format (no account keys) to per-account
+        if data and not any(len(k) == 16 and all(c in "0123456789abcdef" for c in k) for k in data):
+            account_id = _get_current_account_id()
+            log(f"achievements: migrating flat data to account {account_id}")
+            migrated = {account_id: data}
+            _save(migrated)
+            return migrated
+        return data
     except Exception as e:
         log(f"achievements._load: error: {e}")
         return {}
@@ -52,9 +79,29 @@ def _save(data: dict):
         log(f"achievements._save: error: {e}")
 
 
-#  XP system 
+def _load_account(account_id: str = None) -> dict:
+    if account_id is None:
+        account_id = _get_current_account_id()
+    return _load().get(account_id, {})
 
-# xp reward per achievement id, assigned by difficulty
+
+def _save_account(account_data: dict, account_id: str = None):
+    if account_id is None:
+        account_id = _get_current_account_id()
+    all_data = _load()
+    all_data[account_id] = account_data
+    _save(all_data)
+
+
+def load_account_data_for_import(account_id: str, account_data: dict):
+    # used by decryptorUi to write imported data into the correct account slot
+    all_data = _load()
+    all_data[account_id] = account_data
+    _save(all_data)
+
+
+#  XP system
+
 _XP_REWARDS = {
     "first_plugin": 100,   "plugins_5": 200,    "plugins_10": 400,
     "plugins_25": 900,     "plugins_50": 1600,  "plugins_100": 3000,
@@ -72,21 +119,18 @@ _XP_REWARDS = {
     "report_25": 2800,     "report_50": 5600,   "report_100": 11000,
     "copy_1": 100,         "copy_5": 300,       "copy_10": 600,
     "copy_50": 2000,       "copy_100": 4000,    "copy_250": 9000,
-    # level achievements give no XP
     "level_1": 0,  "level_5": 0,  "level_10": 0, "level_25": 0,
     "level_50": 0, "level_75": 0, "level_80": 0, "level_90": 0,
     "level_95": 0, "level_100": 0,
-    # loyalty achievements
     "days_30": 2000,    "days_182": 5500,   "days_365": 10000,  "days_730": 30000,
     "days_1095": 60000, "days_1460": 100000, "days_1825": 150000, "days_2190": 200000,
     "days_2555": 260000, "days_2920": 330000, "days_3285": 400000, "days_3650": 500000,
-    # secret achievements
     "secret_premium": 666,
     "secret_terraria": 911,
     "secret_identity": 0,
 }
 
-# total XP needed to reach a given level: 50 * (level-1)^2
+
 def _xp_for_level(level: int) -> int:
     return 50 * (level - 1) * (level - 1)
 
@@ -115,7 +159,7 @@ def get_level_info(data: dict) -> tuple:
     return level, xp_into, xp_needed
 
 
-#  sync: awards XP for newly completed achievements 
+#  sync
 
 _LEVEL_ACHIEVEMENTS = {
     "level_1": 1, "level_5": 5, "level_10": 10, "level_25": 25,
@@ -131,7 +175,7 @@ _LOYALTY_ACHIEVEMENTS = {
 
 
 def sync_completed(data: dict) -> tuple:
-    # returns (updated_data, list_of_newly_completed_achievement_dicts)
+    # data here is account-level dict, not the full file
     current_level = _level_from_xp(data.get("_xp", 0))
     for aid in _LEVEL_ACHIEVEMENTS:
         data[aid] = current_level
@@ -259,38 +303,35 @@ def _notify_newly_completed(newly_completed: list):
         _show_achievement_bulletin(a)
 
 
-#  public API 
+#  public API
 
 def get_progress(achievement_id: str) -> int:
-    return _load().get(achievement_id, 0)
+    return _load_account().get(achievement_id, 0)
 
 
 def set_progress(achievement_id: str, value: int):
-    data = _load()
+    data = _load_account()
     data[achievement_id] = value
     data, newly_completed = sync_completed(data)
-    _save(data)
+    _save_account(data)
     _notify_newly_completed(newly_completed)
 
 
 def increment(achievement_id: str, by: int = 1):
-    data = _load()
-    current = data.get(achievement_id, 0)
-    data[achievement_id] = current + by
+    data = _load_account()
+    data[achievement_id] = data.get(achievement_id, 0) + by
     data, newly_completed = sync_completed(data)
-    _save(data)
+    _save_account(data)
     _notify_newly_completed(newly_completed)
 
 
 def increment_category(category: str, by: int = 1):
-    # increments all achievements in the given category
-    data = _load()
+    data = _load_account()
     for a in ACHIEVEMENTS:
         if a["category"] == category:
-            current = data.get(a["id"], 0)
-            data[a["id"]] = current + by
+            data[a["id"]] = data.get(a["id"], 0) + by
     data, newly_completed = sync_completed(data)
-    _save(data)
+    _save_account(data)
     _notify_newly_completed(newly_completed)
 
 
@@ -299,10 +340,10 @@ _SECRET_ACHIEVEMENTS = {"secret_premium", "secret_terraria", "secret_identity"}
 
 def unlock_secret(achievement_id: str):
     full_id = f"secret_{achievement_id}"
-    data = _load()
+    data = _load_account()
     data[full_id] = 1
     data, newly_completed = sync_completed(data)
-    _save(data)
+    _save_account(data)
     _notify_newly_completed(newly_completed)
 
 
@@ -314,8 +355,7 @@ def is_completed(achievement_id: str) -> bool:
 
 
 def get_all_with_progress() -> list:
-    # returns list of dicts: achievement + current progress + secret flag
-    data = _load()
+    data = _load_account()
     result = []
     for a in ACHIEVEMENTS:
         progress = data.get(a["id"], 0)
@@ -326,11 +366,9 @@ def get_all_with_progress() -> list:
 
 
 def get_stats() -> dict:
-    # returns raw progress counters for statistics display
-    data = _load()
-    # sync in case achievements were completed before XP system existed
+    data = _load_account()
     data, _ = sync_completed(data)
-    _save(data)
+    _save_account(data)
     return {
         "installed_plugins": data.get("first_plugin", 0),
         "repositories_added": data.get("repo_1", 0),
@@ -344,3 +382,31 @@ def get_stats() -> dict:
         "completed": len(data.get("_awarded", [])),
         "total": len(ACHIEVEMENTS),
     }
+
+
+def sync_accounts():
+    # removes slots for accounts no longer logged in, adds empty slots for new ones
+    try:
+        from org.telegram.messenger import UserConfig as _UC
+
+        active_ids = set()
+        for i in range(_UC.MAX_ACCOUNT_COUNT):
+            instance = _UC.getInstance(i)
+            if instance.isClientActivated():
+                active_ids.add(_hash_account_id(instance.getClientUserId()))
+
+        all_data = _load()
+        stored_ids = set(all_data.keys())
+
+        for removed_id in stored_ids - active_ids:
+            del all_data[removed_id]
+            log(f"achievements.sync_accounts: removed slot for account {removed_id}")
+
+        for new_id in active_ids - stored_ids:
+            all_data[new_id] = {}
+            log(f"achievements.sync_accounts: added slot for account {new_id}")
+
+        if stored_ids != active_ids:
+            _save(all_data)
+    except Exception as e:
+        log(f"achievements.sync_accounts: {e}")
