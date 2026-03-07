@@ -544,7 +544,7 @@ def _save(data: dict):
         log(f"achievements._save: error: {e}")
 
 
-# --- XP system ---
+#  XP system 
 
 # xp reward per achievement id, assigned by difficulty
 _XP_REWARDS = {
@@ -607,7 +607,7 @@ def get_level_info(data: dict) -> tuple:
     return level, xp_into, xp_needed
 
 
-# --- sync: awards XP for newly completed achievements ---
+#  sync: awards XP for newly completed achievements 
 
 _LEVEL_ACHIEVEMENTS = {
     "level_1": 1, "level_5": 5, "level_10": 10, "level_25": 25,
@@ -651,7 +651,7 @@ def sync_completed(data: dict) -> dict:
     return data
 
 
-# --- public API ---
+#  public API 
 
 def get_progress(achievement_id: str) -> int:
     return _load().get(achievement_id, 0)
