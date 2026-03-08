@@ -525,7 +525,7 @@ class ProfileSettings:
             ),
             Text(
                 text=strings["profile_export_db"],
-                icon="files_storage",
+                icon="msg_unarchive",
                 on_click=self._show_export_db
             ),
             Divider(),

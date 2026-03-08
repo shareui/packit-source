@@ -444,6 +444,7 @@ class _CategoryFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegat
                             new_frag = UniversalFragment(delegate)
                             cur_frag.presentFragment(new_frag)
                             try:
+                                new_frag.setTitle(c, False, 0)
                                 R = find_class("org.telegram.messenger.R")
                                 new_frag.getActionBar().setBackButtonImage(R.drawable.ic_ab_back)
                             except Exception:
@@ -571,6 +572,7 @@ def show_hint_sheet(achievement: dict):
         close_tv.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
         close_btn.addView(close_tv, FrameLayout.LayoutParams(-1, -2))
         close_btn.setOnClickListener(OnClickListener(lambda v: sheet.dismiss()))
+        _apply_press_scale(close_btn)
         root.addView(close_btn, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8))
 
         sheet.setCustomView(root)
@@ -603,6 +605,7 @@ def show_achievements(categories: dict, cat_names: list):
         new_frag = UniversalFragment(delegate)
         frag.presentFragment(new_frag)
         try:
+            new_frag.setTitle(strings["profile_achievements"], False, 0)
             R = find_class("org.telegram.messenger.R")
             new_frag.getActionBar().setBackButtonImage(R.drawable.ic_ab_back)
         except Exception:

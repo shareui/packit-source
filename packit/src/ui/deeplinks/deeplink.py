@@ -1,4 +1,4 @@
-from android.view import View
+from android.view import View, MotionEvent
 from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView
 from android.view import Gravity
 from android.util import TypedValue
@@ -7,6 +7,7 @@ from android_utils import log, run_on_ui_thread
 from android_utils import OnClickListener
 from client_utils import get_last_fragment
 from hook_utils import find_class
+from java import dynamic_proxy
 try:
     from org.telegram.ui.ActionBar import BottomSheet, Theme
 except Exception as e:
@@ -145,6 +146,29 @@ DEEPLINKS_DATA = {
 }
 
 
+def _apply_press_scale(view):
+    try:
+        class _TouchListener(dynamic_proxy(View.OnTouchListener)):
+            def __init__(self, fn):
+                super().__init__()
+                self._fn = fn
+            def onTouch(self, v, event):
+                return self._fn(v, event)
+        def _on_touch(v, event):
+            try:
+                action = event.getActionMasked()
+                if action == MotionEvent.ACTION_DOWN:
+                    v.animate().scaleX(0.94).scaleY(0.94).setDuration(100).start()
+                elif action in (MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL):
+                    v.animate().scaleX(1.0).scaleY(1.0).setDuration(200).start()
+            except Exception:
+                pass
+            return False
+        view.setOnTouchListener(_TouchListener(_on_touch))
+    except Exception:
+        pass
+
+
 def show_deeplink_sheet(link_alias):
     fragment = get_last_fragment()
     if not fragment:
@@ -275,11 +299,12 @@ def show_deeplink_sheet(link_alias):
             copy_icon.setOnClickListener(OnClickListener(copy_link))
             copy_icon.setClickable(True)
             copy_icon.setFocusable(True)
+            _apply_press_scale(copy_icon)
             
             link_container.addView(link_text_view, LayoutHelper.createLinear(-2, -2, 1.0))
-            link_container.addView(copy_icon, LayoutHelper.createLinear(20, 20, 0, 8, -4, 0, 0))
+            link_container.addView(copy_icon, LayoutHelper.createLinear(24, 24, Gravity.CENTER_VERTICAL, 16, 0, 0, 0))
             
-            root.addView(link_container, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 16))
+            root.addView(link_container, LayoutHelper.createLinear(-1, -2, 0, 4, 0, 8))
 
             if description_text:
                 desc = TextView(act)
@@ -409,6 +434,7 @@ def show_deeplink_sheet(link_alias):
             
             close_btn.addView(close_text, FrameLayout.LayoutParams(-1, -2))
             close_btn.setOnClickListener(OnClickListener(lambda v: sheet.dismiss()))
+            _apply_press_scale(close_btn)
             
             root.addView(close_btn, LayoutHelper.createLinear(-1, -2, 0, 16, 0, 8))
             sheet.setCustomView(root)
