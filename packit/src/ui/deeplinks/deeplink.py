@@ -251,7 +251,7 @@ def show_deeplink_sheet(link_alias):
             try:
                 link_bg = GradientDrawable()
                 link_bg.setShape(GradientDrawable.RECTANGLE)
-                link_bg.setCornerRadius(AndroidUtilities.dp(28))
+                link_bg.setCornerRadius(AndroidUtilities.dp(12))
                 link_bg.setColor(0x00000000)
                 link_bg.setStroke(AndroidUtilities.dp(2), base_color)
                 link_container.setBackground(link_bg)
