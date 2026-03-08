@@ -341,5 +341,11 @@
     "stat_hint_reports_sent": "Number of plugin reports submitted.",
     "achiev_category_progress": "{completed} of {total} completed",
     "achiev_category_all_done": "All completed!",
-    "export_db_done_share": "Backup shared successfully"
+    "export_db_done_share": "Backup shared successfully",
+    "copy_link": "Copy link",
+    "share": "Share",
+    "code": "Code",
+    "download": "Download",
+    "translate": "Translate",
+    "report": "Report"
 }

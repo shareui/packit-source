@@ -1779,12 +1779,12 @@ class InstallUI:
                     icon_report = getattr(R_tg.drawable, 'msg_report', 0)
                     icon_translate = getattr(R_tg.drawable, 'msg_replace', 0)
                     
-                    create_menu_item(icon_copy, "Copy link", do_copy, False)
-                    create_menu_item(icon_share, "Share", do_share, False)
-                    create_menu_item(icon_code, "Code", do_code, False)
-                    create_menu_item(icon_download, "Download", do_download, False)
-                    create_menu_item(icon_translate, "Translate", do_translate, False)
-                    create_menu_item(icon_report, "Report", do_report, True)
+                    create_menu_item(icon_copy, strings["copy_link"], do_copy, False)
+                    create_menu_item(icon_share, strings["share"], do_share, False)
+                    create_menu_item(icon_code, strings["code"], do_code, False)
+                    create_menu_item(icon_download, strings["download"], do_download, False)
+                    create_menu_item(icon_translate, strings["translate"], do_translate, False)
+                    create_menu_item(icon_report, strings["report"], do_report, True)
                     
                     popup_window = ActionBarPopupWindow(popup_layout, -2, -2)
                     popup_window_ref[0] = popup_window
