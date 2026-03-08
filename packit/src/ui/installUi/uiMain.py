@@ -96,7 +96,7 @@ except Exception as e:
 from .repo import show_repo_sheet
 from .sort import show_sort_menu
 from . import search as search_mod
-from .plugin_actions import copy_plugin_link, share_plugin_file, view_plugin_code, report_plugin, download_plugin_file
+from .plugin_actions import copy_plugin_link, share_plugin_file, view_plugin_code, report_plugin, download_plugin_file, translate_plugin
 from ...other.media import playSound
 from ...core import install_plugin
 
@@ -1761,6 +1761,9 @@ class InstallUI:
                         except Exception as e:
                             log(f"uiMain: achievements increment error: {e}")
 
+                    def do_translate():
+                        translate_plugin(p)
+
                     def do_report():
                         report_plugin(p, act)
                         try:
@@ -1774,11 +1777,13 @@ class InstallUI:
                     icon_share = getattr(R_tg.drawable, 'msg_share', 0)
                     icon_code = getattr(R_tg.drawable, 'msg_view_file', 0)
                     icon_report = getattr(R_tg.drawable, 'msg_report', 0)
+                    icon_translate = getattr(R_tg.drawable, 'msg_replace', 0)
                     
                     create_menu_item(icon_copy, "Copy link", do_copy, False)
                     create_menu_item(icon_share, "Share", do_share, False)
                     create_menu_item(icon_code, "Code", do_code, False)
                     create_menu_item(icon_download, "Download", do_download, False)
+                    create_menu_item(icon_translate, "Translate", do_translate, False)
                     create_menu_item(icon_report, "Report", do_report, True)
                     
                     popup_window = ActionBarPopupWindow(popup_layout, -2, -2)
