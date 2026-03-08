@@ -347,5 +347,7 @@
     "code": "Code",
     "download": "Download",
     "translate": "Translate",
-    "report": "Report"
+    "report": "Report",
+    "no_description_to_translate": "No description to translate",
+    "translation_failed": "Translation failed"
 }

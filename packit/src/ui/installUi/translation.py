@@ -77,7 +77,7 @@ def translate_plugin(plugin_info: dict):
 
             description = _get_localized_description(plugin_info)
             if not description.strip():
-                run_on_ui_thread(lambda: BulletinFactory.of(get_last_fragment().getParentActivity().getWindow().getDecorView(), None).createErrorBulletin("No description to translate").show())
+                run_on_ui_thread(lambda: BulletinFactory.of(get_last_fragment().getParentActivity().getWindow().getDecorView(), None).createErrorBulletin(strings["no_description_to_translate"]).show())
                 return
 
             fragment = get_last_fragment()
@@ -124,7 +124,7 @@ def translate_plugin(plugin_info: dict):
         except Exception as e:
             log(f"translate: error: {e}")
             try:
-                run_on_ui_thread(lambda: BulletinFactory.of(get_last_fragment().getParentActivity().getWindow().getDecorView(), None).createErrorBulletin("Translation failed").show())
+                run_on_ui_thread(lambda: BulletinFactory.of(get_last_fragment().getParentActivity().getWindow().getDecorView(), None).createErrorBulletin(strings["translation_failed"]).show())
             except Exception:
                 pass
 
