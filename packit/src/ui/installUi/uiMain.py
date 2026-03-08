@@ -796,7 +796,7 @@ class InstallUI:
 
             def on_clear_click():
                 try:
-                    playSound(clearSoundPath)
+                    playSound(clearSoundPath, "sfx_clear_search")
                 except Exception:
                     pass
                 try:
@@ -840,7 +840,7 @@ class InstallUI:
 
             def onSearchBtnClick(v):
                 try:
-                    playSound(searchBtnSoundPath)
+                    playSound(searchBtnSoundPath, "sfx_search")
                 except Exception:
                     pass
                 perform_search()
@@ -1471,7 +1471,7 @@ class InstallUI:
 
                 def onInstallClick(v, plugin=p, path=soundPath, install_icon=install_icon, install_btn=install_btn, icon_id=icon_id, act=act):
                     try:
-                        playSound(path)
+                        playSound(path, "sfx_install")
                     except Exception:
                         pass
                     install_btn.setEnabled(False)

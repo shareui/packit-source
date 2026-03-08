@@ -25,7 +25,7 @@ def copy_plugin_link(plugin_info: dict, repo_title: str, sound_path: str = None)
     try:
         if sound_path:
             from ...other.media import playSound
-            playSound(sound_path)
+            playSound(sound_path, "sfx_copy_link")
     except Exception:
         pass
     
