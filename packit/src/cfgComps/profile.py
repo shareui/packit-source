@@ -1,8 +1,8 @@
 from ui.settings import Header, Text, Divider, Custom
 from ui.bulletin import BulletinHelper
-from ui.alert import AlertDialogBuilder
 from client_utils import get_last_fragment
 from android_utils import log
+from ..ui.achievementsUi import show_achievements
 import threading
 import time
 try:
@@ -147,62 +147,8 @@ class ProfileSettings:
             log(f"profile._make_header_item: error: {e}")
             return None
 
-    def _show_hint(self, achievement: dict):
-        try:
-            act = self._get_act()
-            if not act:
-                return
-            builder = AlertDialogBuilder(act)
-            builder.set_title(achievement["title"])
-            builder.set_message(achievement["hint"])
-            builder.set_positive_button(strings["ok_button"], lambda b, w: b.dismiss())
-            builder.show()
-        except Exception as e:
-            log(f"profile._show_hint: error: {e}")
-
-    def _show_category(self, category: str, achievements: list):
-        try:
-            act = self._get_act()
-            if not act:
-                return
-
-            labels = []
-            for a in achievements:
-                if a.get("secret") and not a.get("unlocked"):
-                    labels.append("???")
-                else:
-                    progress = a["progress"]
-                    goal = a["goal"]
-                    completed = progress >= goal
-                    if a.get("secret"):
-                        status = "✅" if completed else ""
-                        labels.append(f"{a['title']} {status}".rstrip())
-                    else:
-                        counter = f"[{goal}/{goal}]" if completed else f"[{progress}/{goal}]"
-                        status = "✅" if completed else ""
-                        labels.append(f"{counter} {a['title']} {status}".rstrip())
-
-            def onItemClick(bld, which: int):
-                bld.dismiss()
-                a = achievements[which]
-                if a.get("secret") and not a.get("unlocked"):
-                    return
-                self._show_hint(a)
-
-            builder = AlertDialogBuilder(act)
-            builder.set_title(category)
-            builder.set_items(labels, onItemClick)
-            builder.set_negative_button(strings["close_button"], lambda b, w: b.dismiss())
-            builder.show()
-        except Exception as e:
-            log(f"profile._show_category: error: {e}")
-
     def _show_achievements(self, view):
         try:
-            act = self._get_act()
-            if not act:
-                return
-
             items = get_all_with_progress()
 
             categories = {}
@@ -213,17 +159,7 @@ class ProfileSettings:
                 categories[cat].append(a)
 
             cat_names = list(categories.keys())
-
-            def onCategoryClick(bld, which: int):
-                bld.dismiss()
-                cat = cat_names[which]
-                self._show_category(cat, categories[cat])
-
-            builder = AlertDialogBuilder(act)
-            builder.set_title(strings["profile_achievements"])
-            builder.set_items(cat_names, onCategoryClick)
-            builder.set_negative_button(strings["close_button"], lambda b, w: b.dismiss())
-            builder.show()
+            show_achievements(categories, cat_names)
         except Exception as e:
             log(f"profile._show_achievements: error: {e}")
 
