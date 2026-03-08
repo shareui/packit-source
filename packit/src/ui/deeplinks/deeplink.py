@@ -227,7 +227,7 @@ def show_deeplink_sheet(link_alias):
             try:
                 link_bg = GradientDrawable()
                 link_bg.setShape(GradientDrawable.RECTANGLE)
-                link_bg.setCornerRadius(AndroidUtilities.dp(12))
+                link_bg.setCornerRadius(AndroidUtilities.dp(28))
                 link_bg.setColor(0x00000000)
                 link_bg.setStroke(AndroidUtilities.dp(2), base_color)
                 link_container.setBackground(link_bg)
@@ -277,9 +277,9 @@ def show_deeplink_sheet(link_alias):
             copy_icon.setFocusable(True)
             
             link_container.addView(link_text_view, LayoutHelper.createLinear(-2, -2, 1.0))
-            link_container.addView(copy_icon, LayoutHelper.createLinear(20, 20, 0, 8, -4, 0, 0))
+            link_container.addView(copy_icon, LayoutHelper.createLinear(24, 24, Gravity.CENTER_VERTICAL, 16, 0, 0, 0))
             
-            root.addView(link_container, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 16))
+            root.addView(link_container, LayoutHelper.createLinear(-1, -2, 0, 4, 0, 8))
 
             if description_text:
                 desc = TextView(act)
