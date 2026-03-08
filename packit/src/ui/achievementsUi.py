@@ -571,6 +571,7 @@ def show_hint_sheet(achievement: dict):
         close_tv.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
         close_btn.addView(close_tv, FrameLayout.LayoutParams(-1, -2))
         close_btn.setOnClickListener(OnClickListener(lambda v: sheet.dismiss()))
+        _apply_press_scale(close_btn)
         root.addView(close_btn, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8))
 
         sheet.setCustomView(root)
