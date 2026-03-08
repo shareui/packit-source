@@ -163,41 +163,76 @@ class ProfileSettings:
         except Exception as e:
             log(f"profile._show_achievements: error: {e}")
 
-    def _do_export(self, download_path: str):
+    def _do_export(self):
         try:
-            from ..other.exportBin.writer import export_to_downloads
+            from ..other.exportBin.writer import build_binary, _rand_suffix
             from android_utils import run_on_ui_thread
+            from java import jclass, dynamic_proxy
+            from java.io import File, FileOutputStream
+            import os
 
-            out_path = export_to_downloads(download_path)
-            filename = out_path.split("/")[-1]
-
-            def show_ok():
-                try:
-                    BulletinHelper.show_info(strings("export_db_done", filename=filename))
-                except Exception as e:
-                    log(f"profile._do_export: bulletin error: {e}")
-
-            run_on_ui_thread(show_ok)
-        except Exception as e:
-            log(f"profile._do_export: error: {e}")
-
-            def show_err():
-                try:
-                    BulletinHelper.show_info(strings.export_db_error)
-                except Exception as ie:
-                    log(f"profile._do_export: error bulletin error: {ie}")
+            data = build_binary()
 
             try:
-                from android_utils import run_on_ui_thread
-                run_on_ui_thread(show_err)
+                from elyx import settings as elyxSettings
+                download_path = elyxSettings.get("download_path", "/storage/emulated/0/Download")
             except Exception:
-                pass
+                download_path = "/storage/emulated/0/Download"
+
+            os.makedirs(download_path, exist_ok=True)
+            file_path = os.path.join(download_path, f"backup-{_rand_suffix(4)}.packit")
+            log(f"profile._do_export: writing to {file_path}")
+            temp_file = File(file_path)
+            if temp_file.exists():
+                temp_file.delete()
+            fos = FileOutputStream(temp_file)
+            fos.write(data)
+            fos.close()
+
+            def open_share():
+                try:
+                    from hook_utils import find_class
+                    ShareAlert = find_class("org.telegram.ui.Components.ShareAlert")
+                    fragment = get_last_fragment()
+                    if not fragment:
+                        return
+
+                    ShareDelegateClass = jclass("org.telegram.ui.Components.ShareAlert$ShareAlertDelegate")
+
+                    class ShareDelegate(dynamic_proxy(ShareDelegateClass)):
+                        def __init__(self):
+                            super().__init__()
+
+                        def didShare(self):
+                            pass
+
+                        def didCopy(self):
+                            return False
+
+                    share_alert = ShareAlert(
+                        fragment.getParentActivity(),
+                        None, None,
+                        temp_file.getAbsolutePath(),
+                        None, None,
+                        False, None, None,
+                        False, False, False,
+                        None, None
+                    )
+                    share_alert.setDelegate(ShareDelegate())
+                    fragment.showDialog(share_alert)
+                except Exception as e:
+                    log(f"profile._do_export.open_share: {e}")
+                    BulletinHelper.show_error(strings["export_db_error"])
+
+            run_on_ui_thread(open_share)
+        except Exception as e:
+            log(f"profile._do_export: {e}")
+            from android_utils import run_on_ui_thread
+            run_on_ui_thread(lambda: BulletinHelper.show_error(strings["export_db_error"]))
 
     def _show_export_db(self, view):
         try:
-            from elyx import settings
-            download_path = settings.get("download_path", "/storage/emulated/0/Download")
-            t = threading.Thread(target=self._do_export, args=(download_path,), daemon=True)
+            t = threading.Thread(target=self._do_export, daemon=True)
             t.start()
         except Exception as e:
             log(f"profile._show_export_db: error: {e}")
@@ -493,7 +528,7 @@ class ProfileSettings:
                 icon="files_storage",
                 on_click=self._show_export_db
             ),
-            Divider(text=strings["profile_template_divider"]),
+            Divider(),
         ]
 
         return items

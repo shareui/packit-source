@@ -329,5 +329,6 @@
     "stat_hint_code_views": "查看插件源代码的次数。",
     "stat_hint_reports_sent": "已提交的插件举报数量。",
     "achiev_category_progress": "{completed} of {total} completed",
-    "achiev_category_all_done": "All completed!"
+    "achiev_category_all_done": "All completed!",
+    "export_db_done_share": "Backup shared successfully"
 }

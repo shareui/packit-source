@@ -329,5 +329,6 @@
     "stat_hint_code_views": "Número de visualizaciones del código fuente del plugin.",
     "stat_hint_reports_sent": "Número de reportes de plugins enviados.",
     "achiev_category_progress": "{completed} of {total} completed",
-    "achiev_category_all_done": "All completed!"
+    "achiev_category_all_done": "All completed!",
+    "export_db_done_share": "Backup shared successfully"
 }

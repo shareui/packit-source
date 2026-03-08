@@ -329,5 +329,6 @@
     "stat_hint_code_views": "プラグインのソースコードの閲覧回数。",
     "stat_hint_reports_sent": "送信したプラグインレポート数。",
     "achiev_category_progress": "{completed} of {total} completed",
-    "achiev_category_all_done": "All completed!"
+    "achiev_category_all_done": "All completed!",
+    "export_db_done_share": "Backup shared successfully"
 }

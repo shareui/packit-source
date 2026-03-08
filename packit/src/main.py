@@ -14,7 +14,7 @@ from .deeplinks import setup_deeplink_hook
 from .other.badges import BadgeManager
 from .other.localConfig import LocalConfig
 from .other import isBeta
-from .ui.securityUi import setup_policy_button_hook, setup_hash_button_hook
+from .chatUi.securityUi import setup_policy_button_hook, setup_hash_button_hook
 from .ui.installUi.installDismissHook import setup_install_dismiss_hook
 from .chatUi.packitFileUi.decryptorUi import setup_packit_file_hook
 from android_utils import log
