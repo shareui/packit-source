@@ -299,6 +299,7 @@ def show_deeplink_sheet(link_alias):
             copy_icon.setOnClickListener(OnClickListener(copy_link))
             copy_icon.setClickable(True)
             copy_icon.setFocusable(True)
+            _apply_press_scale(copy_icon)
             
             link_container.addView(link_text_view, LayoutHelper.createLinear(-2, -2, 1.0))
             link_container.addView(copy_icon, LayoutHelper.createLinear(24, 24, Gravity.CENTER_VERTICAL, 16, 0, 0, 0))
