@@ -230,7 +230,7 @@
     "deeplinks_forum_desc": "打开 PackItGround Telegram 频道",
     "deeplinks_possible_problems": "常见问题",
     "deeplinks_possible_problems_desc": "在论坛打开已知问题帖子",
-    "download_path": "路径",
+    "download_path": "下载路径",
     "downloading_files": "正在下载文件",
     "failed_to_open_deeplink": "无法打开链接信息",
     "fuzzy_search": "模糊搜索",
@@ -319,5 +319,15 @@
     "sec_install_dialog_failed": "无法打开安装对话框",
     "sec_error_occurred": "发生错误",
     "profile": "个人资料",
-    "install_plugin_btn": "安装插件"
+    "install_plugin_btn": "安装插件",
+    "stat_hint_achievements": "已解锁的成就数量（占所有可用成就）。",
+    "stat_hint_days_of_use": "使用 PackIt 的天数。",
+    "stat_hint_installed_plugins": "安装的插件数量。",
+    "stat_hint_links_copied": "已复制到剪贴板的插件链接数量。",
+    "stat_hint_plugins_downloaded": "已下载的插件文件数量。",
+    "stat_hint_plugins_shared": "已与他人分享的插件数量。",
+    "stat_hint_code_views": "查看插件源代码的次数。",
+    "stat_hint_reports_sent": "已提交的插件举报数量。",
+    "achiev_category_progress": "{completed} of {total} completed",
+    "achiev_category_all_done": "All completed!"
 }

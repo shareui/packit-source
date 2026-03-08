@@ -1,8 +1,8 @@
 from ui.settings import Header, Text, Divider, Custom
 from ui.bulletin import BulletinHelper
-from ui.alert import AlertDialogBuilder
 from client_utils import get_last_fragment
 from android_utils import log
+from ..ui.achievementsUi import show_achievements
 import threading
 import time
 try:
@@ -147,62 +147,8 @@ class ProfileSettings:
             log(f"profile._make_header_item: error: {e}")
             return None
 
-    def _show_hint(self, achievement: dict):
-        try:
-            act = self._get_act()
-            if not act:
-                return
-            builder = AlertDialogBuilder(act)
-            builder.set_title(achievement["title"])
-            builder.set_message(achievement["hint"])
-            builder.set_positive_button(strings["ok_button"], lambda b, w: b.dismiss())
-            builder.show()
-        except Exception as e:
-            log(f"profile._show_hint: error: {e}")
-
-    def _show_category(self, category: str, achievements: list):
-        try:
-            act = self._get_act()
-            if not act:
-                return
-
-            labels = []
-            for a in achievements:
-                if a.get("secret") and not a.get("unlocked"):
-                    labels.append("???")
-                else:
-                    progress = a["progress"]
-                    goal = a["goal"]
-                    completed = progress >= goal
-                    if a.get("secret"):
-                        status = "✅" if completed else ""
-                        labels.append(f"{a['title']} {status}".rstrip())
-                    else:
-                        counter = f"[{goal}/{goal}]" if completed else f"[{progress}/{goal}]"
-                        status = "✅" if completed else ""
-                        labels.append(f"{counter} {a['title']} {status}".rstrip())
-
-            def onItemClick(bld, which: int):
-                bld.dismiss()
-                a = achievements[which]
-                if a.get("secret") and not a.get("unlocked"):
-                    return
-                self._show_hint(a)
-
-            builder = AlertDialogBuilder(act)
-            builder.set_title(category)
-            builder.set_items(labels, onItemClick)
-            builder.set_negative_button(strings["close_button"], lambda b, w: b.dismiss())
-            builder.show()
-        except Exception as e:
-            log(f"profile._show_category: error: {e}")
-
     def _show_achievements(self, view):
         try:
-            act = self._get_act()
-            if not act:
-                return
-
             items = get_all_with_progress()
 
             categories = {}
@@ -213,17 +159,7 @@ class ProfileSettings:
                 categories[cat].append(a)
 
             cat_names = list(categories.keys())
-
-            def onCategoryClick(bld, which: int):
-                bld.dismiss()
-                cat = cat_names[which]
-                self._show_category(cat, categories[cat])
-
-            builder = AlertDialogBuilder(act)
-            builder.set_title(strings["profile_achievements"])
-            builder.set_items(cat_names, onCategoryClick)
-            builder.set_negative_button(strings["close_button"], lambda b, w: b.dismiss())
-            builder.show()
+            show_achievements(categories, cat_names)
         except Exception as e:
             log(f"profile._show_achievements: error: {e}")
 
@@ -266,11 +202,23 @@ class ProfileSettings:
         except Exception as e:
             log(f"profile._show_export_db: error: {e}")
 
-    def _show_statistics(self, view):
+    def _make_stats_card(self, context):
+        log("profile: _make_stats_card start")
         try:
-            act = self._get_act()
-            if not act:
-                return
+            import re as _re
+            from android.widget import FrameLayout, LinearLayout, TextView
+            from android.view import Gravity
+            from android.util import TypedValue
+            from android.graphics import Color
+            from android.graphics.drawable import GradientDrawable
+            from org.telegram.messenger import AndroidUtilities
+            from org.telegram.ui.ActionBar import Theme
+            from org.telegram.ui.Components import LayoutHelper
+            from java import dynamic_proxy, jclass
+            from android_utils import OnClickListener
+            OnGlobalLayoutListener = jclass("android.view.ViewTreeObserver$OnGlobalLayoutListener")
+
+            dp = AndroidUtilities.dp
 
             s = get_stats()
             level, xp_a, xp_b = s["level_info"]
@@ -281,36 +229,241 @@ class ProfileSettings:
             except Exception:
                 days = 0
 
-            if level >= 100:
-                level_line = strings["stat_account_level_max"]
-                xp_line = strings("stat_xp_total", xp_a=xp_a, xp_b=xp_b)
-            else:
-                level_line = strings("stat_account_level", level=level)
-                xp_line = strings("stat_xp_to_next", xp_a=xp_a, xp_b=xp_b)
+            accent = Theme.getColor(Theme.key_featuredStickers_addButton)
+            textPrimary = Theme.getColor(Theme.key_windowBackgroundWhiteBlackText)
+            textSecondary = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+            bgColor = Theme.getColor(Theme.key_windowBackgroundWhite)
 
-            lines = [
-                level_line,
-                xp_line,
-                "",
-                strings("stat_achievements", completed=s['completed'], total=s['total']),
-                strings("stat_days_of_use", days=days),
-                "",
-                strings("stat_installed_plugins", count=s['installed_plugins']),
-                strings("stat_repositories_added", count=s['repositories_added']),
-                strings("stat_plugins_shared", count=s['plugins_shared']),
-                strings("stat_plugins_downloaded", count=s['plugins_downloaded']),
-                strings("stat_code_views", count=s['code_views']),
-                strings("stat_reports_sent", count=s['reports_sent']),
-                strings("stat_links_copied", count=s['links_copied']),
+            root = LinearLayout(context)
+            root.setOrientation(LinearLayout.VERTICAL)
+            root.setBackgroundColor(bgColor)
+            root.setPadding(dp(16), dp(12), dp(16), dp(16))
+            root.setClipChildren(False)
+            root.setClipToPadding(False)
+
+            # level row: label left, xp right
+            levelRow = LinearLayout(context)
+            levelRow.setOrientation(LinearLayout.HORIZONTAL)
+            levelRow.setGravity(Gravity.CENTER_VERTICAL)
+
+            levelLabel = TextView(context)
+            levelLabel.setTextColor(textPrimary)
+            levelLabel.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+            try:
+                levelLabel.setTypeface(AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_MEDIUM))
+            except Exception:
+                pass
+            if level >= 100:
+                levelLabel.setText(str(strings["stat_account_level_max"]))
+            else:
+                levelLabel.setText(str(strings("stat_account_level", level=level)))
+            levelRow.addView(levelLabel, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+
+            root.addView(levelRow, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 6))
+
+            # progress bar background
+            barBg = FrameLayout(context)
+            barBgDrawable = GradientDrawable()
+            barBgDrawable.setShape(GradientDrawable.RECTANGLE)
+            barBgDrawable.setCornerRadius(dp(4))
+            try:
+                barBgDrawable.setColor(Theme.multAlpha(accent, 0.15))
+            except Exception:
+                barBgDrawable.setColor(Color.argb(38, Color.red(accent), Color.green(accent), Color.blue(accent)))
+            barBg.setBackground(barBgDrawable)
+
+            # progress bar fill
+            fill = FrameLayout(context)
+            fillDrawable = GradientDrawable()
+            fillDrawable.setShape(GradientDrawable.RECTANGLE)
+            fillDrawable.setCornerRadius(dp(4))
+            fillDrawable.setColor(accent)
+            fill.setBackground(fillDrawable)
+
+            progress = min(1.0, max(0.0, xp_a / xp_b if xp_b > 0 else 1.0))
+            barBg.addView(fill, LayoutHelper.createFrame(-1, -1, Gravity.START | Gravity.TOP))
+
+            root.addView(barBg, LayoutHelper.createLinear(-1, 9, 0, 0, 0, 8))
+
+            # resize fill to correct width after layout
+            _progress = progress
+            _fill = fill
+            _dp4 = dp(4)
+
+            class _LayoutListener(dynamic_proxy(OnGlobalLayoutListener)):
+                def onGlobalLayout(self):
+                    w = barBg.getWidth()
+                    if w > 0:
+                        lp = _fill.getLayoutParams()
+                        lp.width = max(_dp4, int(w * _progress))
+                        _fill.setLayoutParams(lp)
+                    try:
+                        barBg.getViewTreeObserver().removeOnGlobalLayoutListener(self)
+                    except Exception:
+                        pass
+
+            barBg.getViewTreeObserver().addOnGlobalLayoutListener(_LayoutListener())
+
+            xpLabel = TextView(context)
+            xpLabel.setTextColor(textSecondary)
+            xpLabel.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
+            if level >= 100:
+                xpLabel.setText(str(strings("stat_xp_total", xp_a=xp_a, xp_b=xp_b)))
+            else:
+                xpLabel.setText(str(strings("stat_xp_to_next", xp_a=xp_a, xp_b=xp_b)))
+            root.addView(xpLabel, LayoutHelper.createLinear(-2, -2, 0, 4, 0, 0))
+
+            # divider
+            div = FrameLayout(context)
+            div.setBackgroundColor(Theme.getColor(Theme.key_divider))
+            root.addView(div, LayoutHelper.createLinear(-1, 1, 0, 0, 0, 12))
+
+            # counters: value on top (accent, bold), label below (secondary, small)
+            # (text, icon_drawable_name)
+            COUNTERS = [
+                (str(strings("stat_achievements",       completed=s["completed"], total=s["total"])), "msg_fave",     strings["stat_hint_achievements"]),
+                (str(strings("stat_days_of_use",        days=days)),                                  "msg_calendar2",strings["stat_hint_days_of_use"]),
+                (str(strings("stat_installed_plugins",  count=s["installed_plugins"])),               "msg_plugins",  strings["stat_hint_installed_plugins"]),
+                (str(strings("stat_links_copied",       count=s["links_copied"])),                    "msg_link",     strings["stat_hint_links_copied"]),
+                (str(strings("stat_plugins_downloaded", count=s["plugins_downloaded"])),              "msg_download", strings["stat_hint_plugins_downloaded"]),
+                (str(strings("stat_plugins_shared",     count=s["plugins_shared"])),                  "msg_share",    strings["stat_hint_plugins_shared"]),
+                (str(strings("stat_code_views",         count=s["code_views"])),                      "msg_stats",    strings["stat_hint_code_views"]),
+                (str(strings("stat_reports_sent",       count=s["reports_sent"])),                    "msg_report",   strings["stat_hint_reports_sent"]),
             ]
 
-            builder = AlertDialogBuilder(act)
-            builder.set_title(strings["profile_statistics"])
-            builder.set_message("\n".join(lines))
-            builder.set_positive_button(strings["ok_button"], lambda b, w: b.dismiss())
-            builder.show()
+            log(f"profile: stats card built ok, counters={len(COUNTERS)}")
+            _active_hint = [None]
+
+            def makeCell(text, iconName, hintText):
+                # horizontal: icon | (value + label stacked)
+                cell = LinearLayout(context)
+                cell.setOrientation(LinearLayout.HORIZONTAL)
+                cell.setGravity(Gravity.CENTER_VERTICAL)
+
+                try:
+                    from android.widget import ImageView
+                    iconView = ImageView(context)
+                    resId = context.getResources().getIdentifier(iconName, "drawable", context.getPackageName())
+                    if resId != 0:
+                        iconView.setImageResource(resId)
+                    else:
+                        iconView.setImageResource(R.drawable.msg_stats)
+                    iconView.setColorFilter(textSecondary)
+                    cell.addView(iconView, LayoutHelper.createLinear(18, 18, Gravity.CENTER_VERTICAL, 0, 0, 8, 0))
+                except Exception:
+                    pass
+
+                textBlock = LinearLayout(context)
+                textBlock.setOrientation(LinearLayout.VERTICAL)
+
+                m = _re.match(r"^(\S+)\s+(.*)", text)
+                valStr = m.group(1) if m else text
+                lblStr = m.group(2) if m else ""
+
+                valView = TextView(context)
+                valView.setTextColor(accent)
+                valView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+                try:
+                    valView.setTypeface(AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_MEDIUM))
+                except Exception:
+                    pass
+                valView.setText(valStr)
+                textBlock.addView(valView, LayoutHelper.createLinear(-2, -2))
+
+                if lblStr:
+                    lblView = TextView(context)
+                    lblView.setTextColor(textSecondary)
+                    lblView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
+                    lblView.setText(lblStr)
+                    textBlock.addView(lblView, LayoutHelper.createLinear(-2, -2, 0, 1, 0, 0))
+
+                cell.addView(textBlock, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+
+                def makeClickHandler(c, ht):
+                    def onClick(v):
+                        try:
+                            from org.telegram.ui.Stories.recorder import HintView2
+                            from android.text import Layout
+                            from android_utils import run_on_ui_thread
+                            from android.widget import FrameLayout as FL
+
+                            prev = _active_hint[0]
+                            if prev is not None:
+                                try:
+                                    prev.hide()
+                                    prev.getParent().removeView(prev)
+                                except Exception:
+                                    pass
+                                _active_hint[0] = None
+
+                            frag = get_last_fragment()
+                            decorView = frag.getParentActivity().getWindow().getDecorView()
+
+                            hint = (
+                                HintView2(c.getContext(), 3)
+                                .setMultilineText(True)
+                                .setBgColor(Theme.getColor(Theme.key_undo_background))
+                                .setTextColor(Theme.getColor(Theme.key_undo_infoColor))
+                                .setText(str(ht))
+                                .setTextAlign(Layout.Alignment.ALIGN_CENTER)
+                                .allowBlur(True)
+                                .setRounding(AndroidUtilities.dp(12))
+                            )
+                            try:
+                                hint.setMaxWidthPx(HintView2.cutInFancyHalf(hint.getText(), hint.getTextPaint()))
+                            except Exception:
+                                pass
+
+                            decorView.addView(hint, LayoutHelper.createFrame(-1, 100, 55, 32, 0, 32, 0))
+                            _active_hint[0] = hint
+
+                            def _show():
+                                try:
+                                    c_loc = [0, 0]
+                                    c.getLocationInWindow(c_loc)
+                                    decor_loc = [0, 0]
+                                    decorView.getLocationInWindow(decor_loc)
+                                    cell_x = c_loc[0] - decor_loc[0]
+                                    cell_y = c_loc[1] - decor_loc[1]
+                                    center_x = float(cell_x) + float(c.getMeasuredWidth()) / 2.0
+                                    ty = float(cell_y - AndroidUtilities.dp(100) - AndroidUtilities.dp(6))
+                                    jx = float(-AndroidUtilities.dp(32)) + center_x
+                                    hint.setTranslationY(ty)
+                                    hint.setJointPx(0.0, jx)
+                                    hint.setDuration(5500)
+                                    hint.show()
+                                except Exception as e:
+                                    log(f"profile: stat hint position error: {e}")
+
+                            run_on_ui_thread(_show)
+                        except Exception as e:
+                            log(f"profile: stat hint error: {e}")
+                    return onClick
+
+                cell.setOnClickListener(OnClickListener(makeClickHandler(cell, hintText)))
+                return cell
+
+            for rowStart in range(0, len(COUNTERS), 2):
+                # FrameLayout wraps the row so HintView2 overlays without pushing content
+                rowFrame = FrameLayout(context)
+                rowFrame.setClipChildren(False)
+                rowFrame.setClipToPadding(False)
+
+                _current_row = LinearLayout(context)
+                _current_row.setOrientation(LinearLayout.HORIZONTAL)
+                chunk = COUNTERS[rowStart:rowStart + 2]
+                for i, (text, icon, hint) in enumerate(chunk):
+                    cell = makeCell(text, icon, hint)
+                    leftM = 0 if i == 0 else dp(16)
+                    _current_row.addView(cell, LayoutHelper.createLinear(0, -2, 1.0, Gravity.TOP, leftM, 0, 0, 0))
+                rowFrame.addView(_current_row, LayoutHelper.createFrame(-1, -2))
+                bottomM = 10 if rowStart + 2 < len(COUNTERS) else 0
+                root.addView(rowFrame, LayoutHelper.createLinear(-1, -2, 0, 0, 0, bottomM))
+
+            return root
         except Exception as e:
-            log(f"profile._show_statistics: error: {e}")
+            log(f"profile._make_stats_card: error: {e}")
+            return None
 
     def build(self):
         items = []
@@ -319,16 +472,21 @@ class ProfileSettings:
         if header is not None:
             items.append(header)
 
+        try:
+            frag = get_last_fragment()
+            ctx = frag.getParentActivity() if frag else None
+            if ctx:
+                statsCard = self._make_stats_card(ctx)
+                if statsCard is not None:
+                    items.append(Custom(view=statsCard))
+        except Exception as e:
+            log(f"profile.build: stats card error: {e}")
+
         items += [
             Text(
                 text=strings["profile_achievements"],
                 icon="msg_fave",
                 on_click=self._show_achievements
-            ),
-            Text(
-                text=strings["profile_statistics"],
-                icon="msg_stats",
-                on_click=self._show_statistics
             ),
             Text(
                 text=strings["profile_export_db"],

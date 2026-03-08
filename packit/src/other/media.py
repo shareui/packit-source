@@ -9,8 +9,10 @@ except Exception as e:
 from java import dynamic_proxy
 
 
-def playSound(soundPath: str) -> None:
-    if not settings.get("sfx_enabled", False):
+def playSound(soundPath: str, soundKey: str = None) -> None:
+    if not settings.get("sfx_enabled", True):
+        return
+    if soundKey and not settings.get(soundKey, True):
         return
 
     try:

@@ -227,8 +227,9 @@ def show_deeplink_sheet(link_alias):
             try:
                 link_bg = GradientDrawable()
                 link_bg.setShape(GradientDrawable.RECTANGLE)
-                link_bg.setCornerRadius(AndroidUtilities.dp(28))
-                link_bg.setColor(base_color)
+                link_bg.setCornerRadius(AndroidUtilities.dp(12))
+                link_bg.setColor(0x00000000)
+                link_bg.setStroke(AndroidUtilities.dp(2), base_color)
                 link_container.setBackground(link_bg)
             except Exception:
                 try:
@@ -239,7 +240,7 @@ def show_deeplink_sheet(link_alias):
             link_text_view = TextView(act)
             link_text_view.setText(link_text)
             link_text_view.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
-            link_text_view.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+            link_text_view.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
             link_text_view.setTypeface(AndroidUtilities.getTypeface("fonts/rttc.ttf"))
 
             copy_icon = ImageView(act)
@@ -248,7 +249,7 @@ def show_deeplink_sheet(link_alias):
                 icon_id = getattr(R_tg.drawable, "msg_copy", 0)
                 copy_icon.setImageResource(icon_id)
                 try:
-                    copy_icon.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+                    copy_icon.setColorFilter(base_color)
                 except Exception:
                     pass
             except Exception:
@@ -315,8 +316,9 @@ def show_deeplink_sheet(link_alias):
                     try:
                         param_bg = GradientDrawable()
                         param_bg.setShape(GradientDrawable.RECTANGLE)
-                        param_bg.setCornerRadius(AndroidUtilities.dp(28))
-                        param_bg.setColor(Theme.getColor(Theme.key_windowBackgroundGray))
+                        param_bg.setCornerRadius(AndroidUtilities.dp(12))
+                        param_bg.setColor(0x00000000)
+                        param_bg.setStroke(AndroidUtilities.dp(2), Theme.getColor(Theme.key_windowBackgroundGray))
                         param_container.setBackground(param_bg)
                     except Exception:
                         try:
