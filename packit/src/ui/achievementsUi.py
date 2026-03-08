@@ -444,6 +444,7 @@ class _CategoryFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegat
                             new_frag = UniversalFragment(delegate)
                             cur_frag.presentFragment(new_frag)
                             try:
+                                new_frag.setTitle(c, False, 0)
                                 R = find_class("org.telegram.messenger.R")
                                 new_frag.getActionBar().setBackButtonImage(R.drawable.ic_ab_back)
                             except Exception:
@@ -604,6 +605,7 @@ def show_achievements(categories: dict, cat_names: list):
         new_frag = UniversalFragment(delegate)
         frag.presentFragment(new_frag)
         try:
+            new_frag.setTitle(strings["profile_achievements"], False, 0)
             R = find_class("org.telegram.messenger.R")
             new_frag.getActionBar().setBackButtonImage(R.drawable.ic_ab_back)
         except Exception:
