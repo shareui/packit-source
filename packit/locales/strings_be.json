@@ -329,5 +329,6 @@
     "stat_hint_code_views": "Колькасць прагляду зыходнага кода плагіна.",
     "stat_hint_reports_sent": "Колькасць адпраўленых скаргаў на плагіны.",
     "achiev_category_progress": "{completed} of {total} completed",
-    "achiev_category_all_done": "All completed!"
+    "achiev_category_all_done": "All completed!",
+    "export_db_done_share": "Backup shared successfully"
 }

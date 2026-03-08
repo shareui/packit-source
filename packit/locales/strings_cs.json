@@ -329,5 +329,6 @@
     "stat_hint_code_views": "Počet zobrazení zdrojového kódu pluginu.",
     "stat_hint_reports_sent": "Počet odeslaných hlášení pluginů.",
     "achiev_category_progress": "{completed} of {total} completed",
-    "achiev_category_all_done": "All completed!"
+    "achiev_category_all_done": "All completed!",
+    "export_db_done_share": "Backup shared successfully"
 }
