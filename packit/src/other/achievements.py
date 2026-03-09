@@ -128,6 +128,7 @@ _XP_REWARDS = {
     "secret_premium": 666,
     "secret_terraria": 911,
     "secret_identity": 0,
+    "secret_curiosity": 1500,
 }
 
 
@@ -335,7 +336,7 @@ def increment_category(category: str, by: int = 1):
     _notify_newly_completed(newly_completed)
 
 
-_SECRET_ACHIEVEMENTS = {"secret_premium", "secret_terraria", "secret_identity"}
+_SECRET_ACHIEVEMENTS = {"secret_premium", "secret_terraria", "secret_identity", "secret_curiosity"}
 
 
 def unlock_secret(achievement_id: str):

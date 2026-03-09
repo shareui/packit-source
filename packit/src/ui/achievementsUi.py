@@ -310,7 +310,20 @@ def _make_achievement_card(act, achievement: dict, on_hint_click):
         lp.leftMargin = AndroidUtilities.dp(10)
         card.addView(counter_tv, lp)
 
-    card.setOnClickListener(OnClickListener(lambda v: on_hint_click() if not is_secret_locked else None))
+    def _on_card_click(v):
+        nonlocal is_secret_locked
+        if is_secret_locked and achievement.get("id") == "secret_curiosity":
+            # clicking the card itself is the unlock trigger
+            try:
+                from ..other.achievements import unlock_secret
+                unlock_secret("curiosity")
+            except Exception as _e:
+                log(f"_make_achievement_card: unlock_secret failed: {_e}")
+            is_secret_locked = False
+        if not is_secret_locked:
+            on_hint_click()
+
+    card.setOnClickListener(OnClickListener(_on_card_click))
     _apply_press_scale(card)
     return card
 

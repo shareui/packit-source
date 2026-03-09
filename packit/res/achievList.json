@@ -619,5 +619,14 @@
     "hint": "Bro, I don't think you're seriously the creator of the PackIt. Real or fake?",
     "icon": "msg_secret",
     "playSound": true
+  },
+  {
+    "id": "secret_curiosity",
+    "category": "Unknown achievements",
+    "title": "Why are you reading this?",
+    "goal": 1,
+    "hint": "Why did you click here? There's nothing here. Go install some plugins. Seriously, close this and do something useful.",
+    "icon": "msg_info",
+    "playSound": true
   }
 ]
