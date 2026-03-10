@@ -1,5 +1,6 @@
 {
   "isBetaShow": false,
   "sudoPassword": "none",
-  "showTgc": false
+  "showTgc": false,
+  "installUiOpenCount": 0
 }

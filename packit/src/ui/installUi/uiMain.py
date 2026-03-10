@@ -645,10 +645,17 @@ class InstallUI:
             self.loading_container = None
             self.loading_video = None
 
-        def onFragmentCreate(self):
+        def onFragmentCreate(self, *_):
             pass
 
-        def onFragmentDestroy(self):
+        def onFragmentDestroy(self, *_):
+            try:
+                if hasattr(self, 'content_view') and self.content_view is not None:
+                    parent = self.content_view.getParent()
+                    if parent is not None:
+                        parent.removeView(self.content_view)
+            except Exception:
+                pass
             try:
                 if hasattr(self, 'search_hooks'):
                     for hook in self.search_hooks:
@@ -660,31 +667,37 @@ class InstallUI:
                 showTgc = LocalConfig.get("showTgc", False)
                 log(f"tgChannel: showTgc={showTgc}")
                 if not showTgc:
-                    from android_utils import run_on_ui_thread
-                    log("tgChannel: scheduling sheet in 500ms")
+                    count = LocalConfig.get("installUiOpenCount", 0) + 1
+                    LocalConfig.set("installUiOpenCount", count)
+                    log(f"tgChannel: installUiOpenCount={count}")
+                    if count >= 2:
+                        from android_utils import run_on_ui_thread
+                        log("tgChannel: scheduling sheet in 500ms")
 
-                    def _show():
-                        try:
-                            log("tgChannel: _show fired")
-                            from .tgChannelSheet import show_tg_channel_sheet
-                            frag = get_last_fragment()
-                            log(f"tgChannel: frag={frag}")
-                            if not frag:
-                                log("tgChannel: no fragment, abort")
-                                return
-                            act = frag.getParentActivity()
-                            rp = frag.getResourceProvider()
-                            log(f"tgChannel: act={act}, rp={rp}")
-                            if not act:
-                                log("tgChannel: act is None, abort")
-                                return
-                            log("tgChannel: calling show_tg_channel_sheet")
-                            show_tg_channel_sheet(act, rp)
-                            log("tgChannel: sheet shown")
-                        except Exception as e:
-                            log(f"tgChannel: _show error: {e}")
+                        def _show():
+                            try:
+                                log("tgChannel: _show fired")
+                                from .tgChannelSheet import show_tg_channel_sheet
+                                frag = get_last_fragment()
+                                log(f"tgChannel: frag={frag}")
+                                if not frag:
+                                    log("tgChannel: no fragment, abort")
+                                    return
+                                act = frag.getParentActivity()
+                                rp = frag.getResourceProvider()
+                                log(f"tgChannel: act={act}, rp={rp}")
+                                if not act:
+                                    log("tgChannel: act is None, abort")
+                                    return
+                                log("tgChannel: calling show_tg_channel_sheet")
+                                show_tg_channel_sheet(act, rp)
+                                log("tgChannel: sheet shown")
+                            except Exception as e:
+                                log(f"tgChannel: _show error: {e}")
 
-                    run_on_ui_thread(_show, 500)
+                        run_on_ui_thread(_show, 500)
+                    else:
+                        log("tgChannel: first visit, skip")
                 else:
                     log("tgChannel: already shown, skip")
             except Exception as e:
