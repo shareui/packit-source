@@ -10,14 +10,19 @@ except Exception as e:
 
 
 def handle(url):
+    log(f"deeplinks.terraria: handle called, url={url!r}")
     if url != "tg://packit?terraria":
+        log(f"deeplinks.terraria: url mismatch, skipping")
         return
     try:
         _playMaxVolume()
+        log(f"deeplinks.terraria: calling unlock_secret")
         from ...other.achievements import unlock_secret
         unlock_secret("terraria")
+        log(f"deeplinks.terraria: unlock_secret returned")
     except Exception as e:
-        log(f"deeplinks.terraria: error: {e}")
+        import traceback
+        log(f"deeplinks.terraria: error: {e}\n{traceback.format_exc()}")
 
 
 def _playMaxVolume():

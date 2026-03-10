@@ -618,8 +618,7 @@ class InstallUI:
                 new_fragment.setTitle(repo_name, False, 0)
                 actionBar = new_fragment.getActionBar()
                 if actionBar:
-                    R_tg = find_class("org.telegram.messenger.R")
-                    actionBar.setBackButtonImage(R_tg.drawable.ic_ab_back)
+                    actionBar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))
             except Exception as e:
                 log(f"Failed to setup action bar: {e}")
         except Exception as e:

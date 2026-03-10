@@ -1,13 +1,7 @@
 from ui.settings import Header, Text, Divider
 from ui.bulletin import BulletinHelper
-from android.content import Intent
 from android.net import Uri
 from android.os import Process
-try:
-    from org.telegram.messenger import ApplicationLoader
-except Exception as e:
-    import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
-    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 from client_utils import get_last_fragment, run_on_queue, GLOBAL_QUEUE
 try:
     from org.telegram.messenger.browser import Browser
@@ -50,9 +44,6 @@ class DocumentationSettings:
     def _openBugReport(self, view):
         self._openUrl("https://t.me/packitGround/85")
 
-    def _openForum(self, view):
-        self._openUrl("https://t.me/packitGround")
-
     def _openDeeplinks(self, view):
         self._openUrl("https://github.com/shareui/packit/blob/main/docs/deeplinks.md")
 
@@ -92,12 +83,6 @@ class DocumentationSettings:
               icon="msg_report",
               on_click=self._openBugReport,
               link_alias="report_bug"
-          ),
-          Text(
-              text=strings.official_forum,
-              icon="filled_folder_existing",
-              on_click=self._openForum,
-              link_alias="open_forum"
           ),
           Text(
               text=strings.how_to_enlighten,

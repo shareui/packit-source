@@ -198,15 +198,16 @@ def sync_completed(data: dict) -> tuple:
     # already have an accumulated counter — inherit the highest sibling value
     cat_max = {}
     for a in ACHIEVEMENTS:
-        if a["id"] in _LEVEL_ACHIEVEMENTS or a["id"] in _LOYALTY_ACHIEVEMENTS:
+        aid = a["id"]
+        if aid in _LEVEL_ACHIEVEMENTS or aid in _LOYALTY_ACHIEVEMENTS or aid in _SECRET_ACHIEVEMENTS:
             continue
         cat = a.get("category_key", a["category"])
-        val = data.get(a["id"], 0)
+        val = data.get(aid, 0)
         if val > cat_max.get(cat, 0):
             cat_max[cat] = val
     for a in ACHIEVEMENTS:
         aid = a["id"]
-        if aid in _LEVEL_ACHIEVEMENTS or aid in _LOYALTY_ACHIEVEMENTS:
+        if aid in _LEVEL_ACHIEVEMENTS or aid in _LOYALTY_ACHIEVEMENTS or aid in _SECRET_ACHIEVEMENTS:
             continue
         if data.get(aid, 0) == 0 and aid not in awarded:
             cat = a.get("category_key", a["category"])
@@ -220,38 +221,64 @@ def sync_completed(data: dict) -> tuple:
             total_xp += _XP_REWARDS.get(aid, 0)
             awarded.append(aid)
             newly_completed.append(a)
+
+    # recalculate level with updated XP so level achievements unlocked this round are caught
+    new_level = _level_from_xp(total_xp)
+    if new_level != current_level:
+        log(f"achievements.sync_completed: level changed {current_level} -> {new_level}, re-checking level achievements")
+        for aid in _LEVEL_ACHIEVEMENTS:
+            data[aid] = new_level
+        for a in ACHIEVEMENTS:
+            aid = a["id"]
+            if aid not in _LEVEL_ACHIEVEMENTS:
+                continue
+            if data.get(aid, 0) >= a["goal"] and aid not in awarded:
+                total_xp += _XP_REWARDS.get(aid, 0)
+                awarded.append(aid)
+                newly_completed.append(a)
     data["_xp"] = total_xp
     data["_awarded"] = awarded
     return data, newly_completed
 
 
-def _show_achievement_bulletin(achievement: dict):
+def _show_achievement_bulletin(achievement: dict, on_hide=None):
     try:
         from android_utils import run_on_ui_thread
         from client_utils import get_last_fragment
         from org.telegram.ui.Components import BulletinFactory
         from org.telegram.messenger import R
-        from androidx.core.content import ContextCompat
+        from java import dynamic_proxy
+        from java.lang import Runnable
+        from elyx import strings
 
         icon_name = achievement["icon"]
         title = achievement["title"]
 
+        class _Runnable(dynamic_proxy(Runnable)):
+            def __init__(self, fn):
+                super().__init__()
+                self._fn = fn
+            def run(self):
+                try:
+                    self._fn()
+                except Exception as _e:
+                    log(f"achievements: bulletin runnable error: {_e}")
+
         def show():
             fragment = get_last_fragment()
             if fragment is None:
+                if on_hide:
+                    on_hide()
                 return
-            try:
-                icon_res = getattr(R.drawable, icon_name)
-                drawable = ContextCompat.getDrawable(fragment.getContext(), icon_res)
-            except Exception as e:
-                log(f"achievements._show_achievement_bulletin: drawable error: {e}")
-                drawable = None
+
+            def _open():
+                from ..ui.achievementsUi import show_hint_sheet
+                show_hint_sheet(achievement)
 
             factory = BulletinFactory.of(fragment)
-            if drawable is not None:
-                bulletin = factory.createSimpleBulletin(drawable, "Achievement Unlocked!", title)
-            else:
-                bulletin = factory.createSimpleBulletin("Achievement Unlocked!", title)
+            bulletin = factory.createSimpleBulletin(R.raw.contact_check, "Achievement Unlocked!", title, strings.achiev_open, _Runnable(_open))
+            if on_hide:
+                bulletin.setOnHideListener(_Runnable(on_hide))
             bulletin.show(True)
 
         run_on_ui_thread(show)
@@ -312,17 +339,21 @@ def _play_achievement_sound():
 
 
 def _notify_newly_completed(newly_completed: list):
-    global _achievement_pending
+    log(f"achievements._notify_newly_completed: count={len(newly_completed)}")
     if not newly_completed:
         return
-    for a in newly_completed:
-        if a.get("playSound", True):
-            _achievement_pending = True
-            try:
-                _play_achievement_sound()
-            finally:
-                _achievement_pending = False
-        _show_achievement_bulletin(a)
+    _show_achievement_queue(list(newly_completed))
+
+
+def _show_achievement_queue(queue: list):
+    if not queue:
+        return
+    a = queue[0]
+    rest = queue[1:]
+    log(f"achievements._show_achievement_queue: id={a['id']}, remaining={len(rest)}")
+    if a.get("playSound", True):
+        _play_achievement_sound()
+    _show_achievement_bulletin(a, on_hide=lambda: _show_achievement_queue(rest))
 
 
 #  public API
@@ -357,14 +388,17 @@ def increment_category(category: str, by: int = 1):
     _notify_newly_completed(newly_completed)
 
 
-_SECRET_ACHIEVEMENTS = {"secret_premium", "secret_terraria", "secret_identity", "secret_curiosity"}
+_SECRET_ACHIEVEMENTS = {"secret_premium", "secret_terraria", "secret_identity", "secret_curiosity", "secret_subscriber"}
 
 
 def unlock_secret(achievement_id: str):
     full_id = f"secret_{achievement_id}"
+    log(f"achievements.unlock_secret: id={full_id}")
     data = _load_account()
+    log(f"achievements.unlock_secret: current value={data.get(full_id)}, awarded={full_id in data.get('_awarded', [])}")
     data[full_id] = 1
     data, newly_completed = sync_completed(data)
+    log(f"achievements.unlock_secret: newly_completed={[a['id'] for a in newly_completed]}")
     _save_account(data)
     _notify_newly_completed(newly_completed)
 

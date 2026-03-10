@@ -89,12 +89,27 @@ def _do_share(plugin_info: dict, display_name: str):
 
                 ShareDelegateClass = jclass("org.telegram.ui.Components.ShareAlert$ShareAlertDelegate")
 
+                _frag = frag
+
                 class ShareDelegate(dynamic_proxy(ShareDelegateClass)):
                     def __init__(self):
                         super().__init__()
 
                     def didShare(self):
-                        pass
+                        # didShare is called before dismiss() - post to UI thread so bulletin shows after dialog closes
+                        def _show_bulletin():
+                            try:
+                                from hook_utils import find_class as _fc
+                                from org.telegram.messenger import R as R_tg
+                                BulletinFactory = _fc("org.telegram.ui.Components.BulletinFactory")
+                                from elyx import strings as _strings
+                                container = _frag.getParentActivity().getWindow().getDecorView()
+                                rp = _frag.getResourceProvider()
+                                BulletinFactory.of(container, rp).createSimpleBulletin(R_tg.raw.voip_invite, _strings["plugin_install_success"]).show()
+                            except Exception as _be:
+                                log(f"share.ShareDelegate.didShare: {_be}")
+                        from android_utils import run_on_ui_thread as _run_ui
+                        _run_ui(_show_bulletin)
 
                     def didCopy(self):
                         return False

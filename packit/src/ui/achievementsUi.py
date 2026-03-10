@@ -20,6 +20,23 @@ except Exception as e:
 OnGlobalLayoutListener = jclass("android.view.ViewTreeObserver$OnGlobalLayoutListener")
 
 
+def _add_actionbar_glow(fv):
+    # fv must be the fragmentView already created; adds gradient overlay at top to soften actionBar edge
+    try:
+        from android.graphics import Color
+        from android.graphics.drawable import GradientDrawable as GD
+        from org.telegram.ui.Components import LayoutHelper
+        bg = Theme.getColor(Theme.key_windowBackgroundGray)
+        transparent = Color.argb(0, (bg >> 16) & 0xFF, (bg >> 8) & 0xFF, bg & 0xFF)
+        glow = GD(GD.Orientation.TOP_BOTTOM, [bg, transparent])
+        overlay = FrameLayout(fv.getContext())
+        overlay.setBackground(glow)
+        overlay.setClickable(False)
+        fv.addView(overlay, LayoutHelper.createFrame(-1, 24, 0x30, 0, 0, 0, 0))
+    except Exception as e:
+        log(f"_add_actionbar_glow: {e}")
+
+
 def _resolve_icon(name: str) -> int:
     try:
         return getattr(R_tg.drawable, name)
@@ -407,13 +424,15 @@ class _AchievementListFragment(dynamic_proxy(UniversalFragment.UniversalFragment
             root.addView(scroll, FrameLayout.LayoutParams(-1, -1))
             self._root_view = root
             log(f"achiev: _AchievementListFragment._root_view set: {root}")
+            _add_actionbar_glow(root)
             return root
         except Exception as e:
             log(f"achiev: _AchievementListFragment.beforeCreateView error: {e}")
             return None
 
     def afterCreateView(self, view):
-        log(f"achiev: _AchievementListFragment.afterCreateView called, view={view}")
+        if view is not None:
+            _add_actionbar_glow(view)
         return view
 
     def getTitle(self):
@@ -512,11 +531,11 @@ class _CategoryFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegat
                             new_frag = UniversalFragment(delegate)
                             cur_frag.presentFragment(new_frag)
                             try:
-                                new_frag.setTitle(c, False, 0)
-                                R = find_class("org.telegram.messenger.R")
-                                new_frag.getActionBar().setBackButtonImage(R.drawable.ic_ab_back)
-                            except Exception:
-                                pass
+                                from hook_utils import find_class as _fc
+                                new_frag.setTitle(str(strings[c]) if c in strings else c, False, 0)
+                                new_frag.getActionBar().setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))
+                            except Exception as _e:
+                                log(f"achievementsUi: category actionbar setup error: {_e}")
                         except Exception as e:
                             log(f"achievementsUi: open category fragment failed: {e}")
                     return on_click
@@ -531,13 +550,15 @@ class _CategoryFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegat
             root.addView(scroll, FrameLayout.LayoutParams(-1, -1))
             self._root_view = root
             log(f"achiev: _CategoryFragment._root_view set: {root}")
+            _add_actionbar_glow(root)
             return root
         except Exception as e:
             log(f"achiev: _CategoryFragment.beforeCreateView error: {e}")
             return None
 
     def afterCreateView(self, view):
-        log(f"achiev: _CategoryFragment.afterCreateView called, view={view}")
+        if view is not None:
+            _add_actionbar_glow(view)
         return view
 
     def getTitle(self):
@@ -677,9 +698,8 @@ def show_achievements(categories: dict, cat_names: list):
         frag.presentFragment(new_frag)
         try:
             new_frag.setTitle(strings["profile_achievements"], False, 0)
-            R = find_class("org.telegram.messenger.R")
-            new_frag.getActionBar().setBackButtonImage(R.drawable.ic_ab_back)
-        except Exception:
-            pass
+            new_frag.getActionBar().setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))
+        except Exception as _e:
+            log(f"achievementsUi: show_achievements actionbar setup error: {_e}")
     except Exception as e:
         log(f"achievementsUi.show_achievements: {e}")

@@ -218,6 +218,16 @@ class SettingsBuilder:
         except Exception:
             pass
     
+    def _openPackitChannel(self, view):
+        try:
+            frag = get_last_fragment()
+            act = frag.getParentActivity() if frag else None
+            if act:
+                uri = Uri.parse(strings.tg_channel_url)
+                Browser.openUrl(act, uri, True, True, True, None, None, False, False, False)
+        except Exception:
+            pass
+
     def _openPackitForum(self, view):
         try:
             frag = get_last_fragment()
@@ -289,6 +299,12 @@ class SettingsBuilder:
             
             Divider(),
             Header(text=strings.community_header),
+            
+            Text(
+                text=strings.packit_channel,
+                icon="msg_channel",
+                on_click=self._openPackitChannel
+            ),
             
             Text(
                 text=strings.packit_forum,
