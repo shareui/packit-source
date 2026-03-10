@@ -70,7 +70,7 @@ def _extractPluginId(filePath: str) -> str | None:
                     continue
                 try:
                     source = zf.read(name).decode("utf-8", errors="replace")
-                    m = re.search(r'__id__\s*=\s*["\']([^"\']+)["\']', source)
+                    m = re.search(r'__id__\s*=\s*["\'"]([^"\']+)["\']', source)
                     if m:
                         return m.group(1)
                 except Exception:
@@ -78,11 +78,10 @@ def _extractPluginId(filePath: str) -> str | None:
     except Exception:
         pass
 
-    # fallback: plain text plugin
     try:
         with open(filePath, "r", encoding="utf-8", errors="replace") as f:
             source = f.read()
-        m = re.search(r'__id__\s*=\s*["\']([^"\']+)["\']', source)
+        m = re.search(r'__id__\s*=\s*["\'"]([^"\']+)["\']', source)
         if m:
             return m.group(1)
     except Exception:
@@ -92,7 +91,6 @@ def _extractPluginId(filePath: str) -> str | None:
 
 
 def _loadCachedRepos() -> list:
-    # returns list of (name, pluginsUrl) for all cached repos that have repomap.plugins
     import os, json
     result = []
     try:
@@ -199,7 +197,6 @@ def _installFromRepo(pluginId: str, pluginsUrl: str, repoManager, act):
                 run_on_ui_thread(lambda: BulletinHelper.show_error(strings("sec_download_failed", code=r2.status_code)))
                 return
 
-            contentLength = r2.headers.get("content-length")
             r2.raw.decode_content = True
             with open(tempPath, "wb") as f:
                 while True:
@@ -230,7 +227,146 @@ def _installFromRepo(pluginId: str, pluginsUrl: str, repoManager, act):
     run_on_queue(task)
 
 
-def _showResult(act, pluginId: str, localHash: str, localVersion: str | None, repoName: str, pluginsUrl: str, repoId: str, repoManager, sheet):
+# ── UI helpers ────────────────────────────────────────────────────────────────
+
+def _resolveColor(colorKey: str, fallback: int) -> int:
+    try:
+        return Theme.getColor(getattr(Theme, colorKey))
+    except Exception:
+        return fallback
+
+
+def _applyPressScale(view):
+    from android.view import MotionEvent, View
+    from java import dynamic_proxy
+
+    try:
+        class _T(dynamic_proxy(View.OnTouchListener)):
+            def __init__(self):
+                super().__init__()
+
+            def onTouch(self, v, event):
+                try:
+                    a = event.getActionMasked()
+                    if a == MotionEvent.ACTION_DOWN:
+                        v.animate().scaleX(0.95).scaleY(0.95).setDuration(100).start()
+                    elif a in (MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL):
+                        v.animate().scaleX(1.0).scaleY(1.0).setDuration(150).start()
+                except Exception:
+                    pass
+                return False
+
+        view.setOnTouchListener(_T())
+    except Exception as e:
+        log(f"hashBottomSheet: _applyPressScale error: {e}")
+
+
+def _makeAccentBtn(act, text: str, onPress, colorKey: str = "key_featuredStickers_addButton",
+                   pressedKey: str = "key_featuredStickers_addButtonPressed",
+                   textColorKey: str = "key_featuredStickers_buttonText"):
+    from android.widget import LinearLayout, FrameLayout, TextView
+    from android.view import Gravity
+    from android.util import TypedValue
+
+    dp = AndroidUtilities.dp
+    wrapper = LinearLayout(act)
+    wrapper.setOrientation(LinearLayout.VERTICAL)
+    wrapper.setPadding(dp(16), dp(4), dp(16), dp(4))
+
+    btn = FrameLayout(act)
+    try:
+        base = Theme.getColor(getattr(Theme, colorKey))
+        pressed = Theme.getColor(getattr(Theme, pressedKey))
+    except Exception:
+        base = _resolveColor("key_windowBackgroundWhiteBlueButton", 0xFF1E88E5)
+        pressed = base
+    btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(28), base, pressed))
+    btn.setPadding(0, dp(14), 0, dp(14))
+    btn.setClickable(True)
+    btn.setFocusable(True)
+
+    label = TextView(act)
+    label.setText(text)
+    label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+    label.setTypeface(AndroidUtilities.bold())
+    label.setGravity(Gravity.CENTER)
+    try:
+        label.setTextColor(Theme.getColor(getattr(Theme, textColorKey)))
+    except Exception:
+        label.setTextColor(0xFFFFFFFF)
+    btn.addView(label, FrameLayout.LayoutParams(-1, -2))
+
+    btn.setOnClickListener(OnClickListener(onPress))
+    _applyPressScale(btn)
+
+    wrapper.addView(btn, LinearLayout.LayoutParams(-1, -2))
+    return wrapper
+
+
+def _showErrorSheet(act, msg: str):
+    from android.widget import LinearLayout, TextView, FrameLayout
+    from android.view import Gravity
+    from android.util import TypedValue
+    from org.telegram.ui.ActionBar import BottomSheet
+    from org.telegram.ui.Components import RLottieImageView
+
+    dp = AndroidUtilities.dp
+
+    try:
+        sheetRef = [None]
+
+        root = LinearLayout(act)
+        root.setOrientation(LinearLayout.VERTICAL)
+        root.setPadding(dp(16), dp(16), dp(16), dp(8))
+
+        # lottie error icon
+        try:
+            lottie = RLottieImageView(act)
+            lottie.setAnimation(R_tg.raw.error, dp(64), dp(64))
+            lottie.setAutoRepeat(False)
+            lottie.playAnimation()
+            lp = LinearLayout.LayoutParams(dp(64), dp(64))
+            lp.gravity = Gravity.CENTER_HORIZONTAL
+            lp.bottomMargin = dp(12)
+            root.addView(lottie, lp)
+        except Exception as e:
+            log(f"hashBottomSheet: error lottie: {e}")
+
+        tv = TextView(act)
+        tv.setText(msg)
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+        tv.setTextColor(_resolveColor("key_windowBackgroundWhiteGrayText", 0xFF9E9E9E))
+        tv.setGravity(Gravity.CENTER_HORIZONTAL)
+        lp2 = LinearLayout.LayoutParams(-1, -2)
+        lp2.bottomMargin = dp(16)
+        root.addView(tv, lp2)
+
+        closeBtn = _makeAccentBtn(
+            act,
+            strings["close_button"],
+            lambda v: sheetRef[0].dismiss() if sheetRef[0] else None,
+            "key_graySection",
+            "key_listSelector",
+            textColorKey="key_featuredStickers_addButton"
+        )
+        root.addView(closeBtn, LinearLayout.LayoutParams(-1, -2))
+
+        # bottom spacing
+        spacer = LinearLayout(act)
+        root.addView(spacer, LinearLayout.LayoutParams(-1, dp(8)))
+
+        builder = BottomSheet.Builder(act)
+        builder.setTitle(strings["sec_hash_comparison_title"], True)
+        builder.setCustomView(root)
+        sheet = builder.create()
+        sheetRef[0] = sheet
+        sheet.show()
+    except Exception as e:
+        log(f"hashBottomSheet: _showErrorSheet error: {e}")
+
+
+def _showResult(act, pluginId: str, localHash: str, localVersion: str | None,
+                repoName: str, pluginsUrl: str, repoId: str, repoManager, sheet):
     from ui.alert import AlertDialogBuilder
     from android_utils import run_on_ui_thread
     import threading
@@ -243,6 +379,7 @@ def _showResult(act, pluginId: str, localHash: str, localVersion: str | None, re
 
     def work():
         showInstall = False
+        state = "match"  # match | mismatch | newer | not_found | error
         msg = ""
         try:
             repoInfo = _getRepoPluginInfo(pluginId, pluginsUrl)
@@ -251,51 +388,185 @@ def _showResult(act, pluginId: str, localHash: str, localVersion: str | None, re
             log(f"hashBottomSheet: repoHash={repoHash} repoVersion={repoVersion}")
 
             if repoHash is None:
+                state = "not_found"
                 msg = strings("sec_hash_not_found", repo=repoName)
             elif repoHash == localHash:
+                state = "match"
                 msg = strings["sec_hash_match"]
             else:
                 showInstall = True
-                # check if local version is newer than repo version
                 isNewer = False
                 if localVersion and repoVersion:
                     try:
                         isNewer = _parseVersion(localVersion) > _parseVersion(repoVersion)
                     except Exception:
                         pass
-
                 if isNewer:
+                    state = "newer"
                     msg = strings["sec_hash_mismatch_newer"]
                 else:
+                    state = "mismatch"
                     msg = strings["sec_hash_mismatch"]
 
         except Exception as e:
             log(f"hashBottomSheet: _showResult work error: {e}")
+            state = "error"
             msg = f"Error: {e}"
 
-        def show(_msg=msg, _showInstall=showInstall):
+        def show(_state=state, _msg=msg, _showInstall=showInstall):
             try:
                 dlg.dismiss()
             except Exception:
                 pass
-            builder = AlertDialogBuilder(act)
-            builder.set_title(strings["sec_hash_comparison_title"])
-            builder.set_message(_msg)
-            builder.set_positive_button(strings["ok_button"], lambda b, w: b.dismiss())
-            if _showInstall:
-                def onInstall(b, w):
-                    b.dismiss()
-                    try:
-                        sheet.dismiss()
-                    except Exception as e:
-                        log(f"hashBottomSheet: sheet dismiss error: {e}")
-                    _installFromRepo(pluginId, pluginsUrl, repoManager, act)
-                builder.set_negative_button(strings["sec_install_btn"], onInstall)
-            builder.show()
+            _showResultSheet(act, _state, _msg, localHash, _showInstall,
+                             pluginId, pluginsUrl, repoManager, sheet)
 
         run_on_ui_thread(show)
 
     threading.Thread(target=work, daemon=True).start()
+
+
+def _showResultSheet(act, state: str, msg: str, localHash: str, showInstall: bool,
+                     pluginId: str, pluginsUrl: str, repoManager, sheet):
+    from android.widget import LinearLayout, TextView, FrameLayout
+    from android.view import Gravity
+    from android.util import TypedValue
+    from android.graphics.drawable import GradientDrawable
+    from org.telegram.ui.ActionBar import BottomSheet
+    from org.telegram.ui.Components import RLottieImageView
+
+    dp = AndroidUtilities.dp
+
+    # state -> (lottie_raw, color_key, fallback_color)
+    STATE_STYLE = {
+        "match":     ("done",  "key_avatar_nameInMessageGreen", 0xFF43A047),
+        "mismatch":  ("error", "key_text_RedBold",                    0xFFE53935),
+        "newer":     ("info",  "key_color_orange",                    0xFFFFA726),
+        "not_found": ("info",  "key_windowBackgroundWhiteGrayText",   0xFF9E9E9E),
+        "error":     ("error", "key_text_RedBold",                    0xFFE53935),
+    }
+
+    lottieRaw, colorKey, colorFallback = STATE_STYLE.get(state, STATE_STYLE["error"])
+    stateColor = _resolveColor(colorKey, colorFallback)
+
+    try:
+        sheetRef = [None]
+
+        root = LinearLayout(act)
+        root.setOrientation(LinearLayout.VERTICAL)
+        root.setPadding(dp(16), dp(16), dp(16), dp(8))
+
+        # lottie icon
+        try:
+            lottie = RLottieImageView(act)
+            lottie.setAnimation(getattr(R_tg.raw, lottieRaw), dp(72), dp(72))
+            lottie.setAutoRepeat(False)
+            lottie.playAnimation()
+            lp = LinearLayout.LayoutParams(dp(72), dp(72))
+            lp.gravity = Gravity.CENTER_HORIZONTAL
+            lp.bottomMargin = dp(10)
+            root.addView(lottie, lp)
+        except Exception as e:
+            log(f"hashBottomSheet: lottie {lottieRaw} error: {e}")
+
+        # status title (larger, black)
+        statusTv = TextView(act)
+        statusTv.setText(msg)
+        statusTv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 17 if state == "mismatch" else 15)
+        statusTv.setTextColor(_resolveColor("key_windowBackgroundWhiteBlackText", 0xFF212121))
+        if state == "mismatch":
+            statusTv.setTypeface(AndroidUtilities.bold())
+        statusTv.setGravity(Gravity.CENTER_HORIZONTAL)
+        lpTitle = LinearLayout.LayoutParams(-1, -2)
+        lpTitle.bottomMargin = dp(4) if state == "mismatch" else dp(14)
+        root.addView(statusTv, lpTitle)
+
+        # hint line for mismatch only
+        if state == "mismatch":
+            hintTv = TextView(act)
+            hintTv.setText(strings["sec_hash_mismatch_hint"])
+            hintTv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+            hintTv.setTextColor(_resolveColor("key_dialogTextGray2", 0xFF707070))
+            hintTv.setGravity(Gravity.CENTER_HORIZONTAL)
+            lpHint = LinearLayout.LayoutParams(-1, -2)
+            lpHint.bottomMargin = dp(14)
+            root.addView(hintTv, lpHint)
+
+        # hash card
+        hashCard = LinearLayout(act)
+        hashCard.setOrientation(LinearLayout.VERTICAL)
+        hashCard.setPadding(dp(12), dp(10), dp(12), dp(10))
+        try:
+            r = (stateColor >> 16) & 0xFF
+            g = (stateColor >> 8) & 0xFF
+            b = stateColor & 0xFF
+            gd = GradientDrawable()
+            gd.setCornerRadius(dp(10))
+            gd.setColor((0x18 << 24) | (r << 16) | (g << 8) | b)
+            hashCard.setBackground(gd)
+        except Exception:
+            pass
+
+        hashLabel = TextView(act)
+        hashLabel.setText("SHA-256")
+        hashLabel.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
+        hashLabel.setTypeface(AndroidUtilities.bold())
+        hashLabel.setTextColor(stateColor)
+        lp3 = LinearLayout.LayoutParams(-1, -2)
+        lp3.bottomMargin = dp(4)
+        hashCard.addView(hashLabel, lp3)
+
+        hashTv = TextView(act)
+        hashTv.setText(localHash)
+        hashTv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
+        hashTv.setTextColor(_resolveColor("key_windowBackgroundWhiteGrayText", 0xFF9E9E9E))
+        hashCard.addView(hashTv, LinearLayout.LayoutParams(-1, -2))
+
+        lp4 = LinearLayout.LayoutParams(-1, -2)
+        lp4.bottomMargin = dp(16)
+        root.addView(hashCard, lp4)
+
+        # buttons
+        if showInstall:
+            installBtn = _makeAccentBtn(
+                act,
+                strings["sec_install_btn"],
+                lambda v: (
+                    sheetRef[0].dismiss() if sheetRef[0] else None,
+                    _doInstall(sheet, pluginId, pluginsUrl, repoManager, act)
+                )
+            )
+            root.addView(installBtn, LinearLayout.LayoutParams(-1, -2))
+
+        closeBtn = _makeAccentBtn(
+            act,
+            strings["close_button"],
+            lambda v: sheetRef[0].dismiss() if sheetRef[0] else None,
+            "key_graySection",
+            "key_listSelector",
+            textColorKey="key_featuredStickers_addButton"
+        )
+        root.addView(closeBtn, LinearLayout.LayoutParams(-1, -2))
+
+        spacer = LinearLayout(act)
+        root.addView(spacer, LinearLayout.LayoutParams(-1, dp(8)))
+
+        builder = BottomSheet.Builder(act)
+        builder.setTitle(strings["sec_hash_comparison_title"], True)
+        builder.setCustomView(root)
+        s = builder.create()
+        sheetRef[0] = s
+        s.show()
+    except Exception as e:
+        log(f"hashBottomSheet: _showResultSheet error: {e}")
+
+
+def _doInstall(sheet, pluginId: str, pluginsUrl: str, repoManager, act):
+    try:
+        sheet.dismiss()
+    except Exception as e:
+        log(f"hashBottomSheet: sheet dismiss error: {e}")
+    _installFromRepo(pluginId, pluginsUrl, repoManager, act)
 
 
 def _showRepoSelector(act, filePath: str, repoManager, sheet):
@@ -331,37 +602,139 @@ def _showRepoSelector(act, filePath: str, repoManager, sheet):
                 pass
 
             if pluginId is None:
-                builder = AlertDialogBuilder(act)
-                builder.set_title(strings["sec_hash_comparison_title"])
-                builder.set_message(strings["sec_hash_no_plugin_id"])
-                builder.set_positive_button(strings["ok_button"], lambda b, w: b.dismiss())
-                builder.show()
+                _showErrorSheet(act, strings["sec_hash_no_plugin_id"])
                 return
 
             if not repos:
-                builder = AlertDialogBuilder(act)
-                builder.set_title(strings["sec_hash_comparison_title"])
-                builder.set_message(strings["sec_hash_no_repos"])
-                builder.set_positive_button(strings["ok_button"], lambda b, w: b.dismiss())
-                builder.show()
+                _showErrorSheet(act, strings["sec_hash_no_repos"])
                 return
 
-            names = [r[0] for r in repos]
-
-            def onRepoSelected(bld, which: int):
-                bld.dismiss()
-                repoName, pluginsUrl, repoId = repos[which]
-                _showResult(act, pluginId, localHash, localVersion, repoName, pluginsUrl, repoId, repoManager, sheet)
-
-            builder = AlertDialogBuilder(act)
-            builder.set_title(strings["sec_select_repo_title"])
-            builder.set_items(names, onRepoSelected)
-            builder.set_negative_button(strings["sec_cancel_btn"], lambda b, w: b.dismiss())
-            builder.show()
+            _showRepoSelectorSheet(act, repos, pluginId, localHash, localVersion, repoManager, sheet)
 
         run_on_ui_thread(show)
 
     threading.Thread(target=work, daemon=True).start()
+
+
+def _showRepoSelectorSheet(act, repos: list, pluginId: str, localHash: str,
+                           localVersion: str | None, repoManager, sheet):
+    from android.widget import LinearLayout, TextView, FrameLayout
+    from android.view import Gravity, View
+    from android.util import TypedValue
+    from org.telegram.ui.ActionBar import BottomSheet
+
+    dp = AndroidUtilities.dp
+
+    try:
+        sheetRef = [None]
+
+        root = LinearLayout(act)
+        root.setOrientation(LinearLayout.VERTICAL)
+        root.setPadding(dp(8), dp(4), dp(8), dp(8))
+
+        accentColor = _resolveColor("key_featuredStickers_addButton", 0xFF1E88E5)
+
+        for i, (name, pluginsUrl, repoId) in enumerate(repos):
+            row = LinearLayout(act)
+            row.setOrientation(LinearLayout.HORIZONTAL)
+            row.setGravity(Gravity.CENTER_VERTICAL)
+            row.setClickable(True)
+            row.setFocusable(True)
+            row.setPadding(dp(8), dp(10), dp(12), dp(10))
+
+            try:
+                row.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                    dp(8),
+                    Theme.getColor(Theme.key_dialogBackground),
+                    Theme.getColor(Theme.key_dialogBackgroundGray)
+                ))
+            except Exception:
+                try:
+                    row.setBackground(Theme.createSelectorDrawable(
+                        Theme.getColor(Theme.key_listSelector)
+                    ))
+                except Exception:
+                    pass
+
+            # icon
+            iconView = ImageView(act)
+            try:
+                iconView.setImageResource(getattr(R_tg.drawable, "msg_folders"))
+            except Exception:
+                pass
+            iconView.setColorFilter(accentColor)
+            iconView.setScaleType(ImageView.ScaleType.CENTER)
+            lpIcon = LinearLayout.LayoutParams(dp(24), dp(24))
+            lpIcon.rightMargin = dp(14)
+            row.addView(iconView, lpIcon)
+
+            # text column: name + @id
+            textCol = LinearLayout(act)
+            textCol.setOrientation(LinearLayout.VERTICAL)
+
+            nameTv = TextView(act)
+            nameTv.setText(name)
+            nameTv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+            nameTv.setTypeface(AndroidUtilities.bold())
+            nameTv.setTextColor(_resolveColor("key_dialogTextBlack", 0xFF212121))
+            textCol.addView(nameTv, LinearLayout.LayoutParams(-1, -2))
+
+            idTv = TextView(act)
+            idTv.setText(f"@{repoId}")
+            idTv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+            idTv.setTextColor(_resolveColor("key_dialogTextGray2", 0xFF9E9E9E))
+            lpId = LinearLayout.LayoutParams(-1, -2)
+            lpId.topMargin = dp(1)
+            textCol.addView(idTv, lpId)
+
+            row.addView(textCol, LinearLayout.LayoutParams(0, -2, 1.0))
+
+            # arrow
+            arrowView = ImageView(act)
+            try:
+                arrowView.setImageResource(getattr(R_tg.drawable, "msg_arrowright"))
+            except Exception:
+                pass
+            arrowView.setColorFilter(_resolveColor("key_dialogTextGray2", 0xFF9E9E9E))
+            arrowView.setScaleType(ImageView.ScaleType.CENTER)
+            row.addView(arrowView, LinearLayout.LayoutParams(dp(16), dp(16)))
+
+            def makeOnClick(n, u, rid):
+                def onClick(v):
+                    if sheetRef[0]:
+                        sheetRef[0].dismiss()
+                    _showResult(act, pluginId, localHash, localVersion, n, u, rid, repoManager, sheet)
+                return onClick
+
+            row.setOnClickListener(OnClickListener(makeOnClick(name, pluginsUrl, repoId)))
+            _applyPressScale(row)
+
+            root.addView(row, LinearLayout.LayoutParams(-1, -2))
+
+        # cancel button
+        cancelBtn = _makeAccentBtn(
+            act,
+            strings["sec_cancel_btn"],
+            lambda v: sheetRef[0].dismiss() if sheetRef[0] else None,
+            "key_graySection",
+            "key_listSelector",
+            textColorKey="key_featuredStickers_addButton"
+        )
+        lpCancel = LinearLayout.LayoutParams(-1, -2)
+        lpCancel.topMargin = dp(8)
+        root.addView(cancelBtn, lpCancel)
+
+        spacer = LinearLayout(act)
+        root.addView(spacer, LinearLayout.LayoutParams(-1, dp(8)))
+
+        builder = BottomSheet.Builder(act)
+        builder.setTitle(strings["sec_select_repo_title"], True)
+        builder.setCustomView(root)
+        s = builder.create()
+        sheetRef[0] = s
+        s.show()
+    except Exception as e:
+        log(f"hashBottomSheet: _showRepoSelectorSheet error: {e}")
 
 
 def _onHashClick(act, filePath: str, repoManager, sheet):
@@ -443,7 +816,6 @@ class SetCustomViewHook(MethodHook):
             except Exception as e:
                 log(f"hashBottomSheet: setBackground error: {e}")
 
-            # placed below the policy button (policy: top=60 right=16, this one: top=104 right=16)
             lp = LayoutHelper.createFrame(40, 40.0, 53, 0.0, 104.0, 16.0, 0.0)
             frame.addView(hash_btn, lp)
             log("hashBottomSheet: hash_btn added to frame")
