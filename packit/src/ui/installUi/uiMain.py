@@ -650,6 +650,8 @@ class InstallUI:
         def onFragmentDestroy(self, *_):
             try:
                 if hasattr(self, 'content_view') and self.content_view is not None:
+                    from ...other.achievements import unregister_bulletin_container
+                    unregister_bulletin_container(self.content_view)
                     parent = self.content_view.getParent()
                     if parent is not None:
                         parent.removeView(self.content_view)
@@ -723,6 +725,8 @@ class InstallUI:
 
             self.content_view = FrameLayout(act)
             self.content_view.setBackgroundColor(self.main_bg_color)
+            from ...other.achievements import register_bulletin_container
+            register_bulletin_container(self.content_view)
             main_layout = LinearLayout(act)
             main_layout.setOrientation(LinearLayout.VERTICAL)
             main_layout.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(16), AndroidUtilities.dp(16), AndroidUtilities.dp(14))

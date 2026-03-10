@@ -25,6 +25,7 @@
     "delete_button": "Supprimer",
     "close_button": "Fermer",
     "achiev_open": "Ouvrir",
+    "achiev_unlocked": "Succès débloqué !",
     "repo_link_copied": "Copié dans le presse-papiers ! Magique.",
     "failed_to_copy": "Échec de la copie :(",
     "repo_icon_text": "Icône : {0}",

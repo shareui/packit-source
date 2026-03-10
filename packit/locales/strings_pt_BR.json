@@ -25,6 +25,7 @@
     "delete_button": "Excluir",
     "close_button": "Fechar",
     "achiev_open": "Abrir",
+    "achiev_unlocked": "Conquista desbloqueada!",
     "repo_link_copied": "Copiado pro clipboard! Mágica.",
     "failed_to_copy": "Falha ao copiar :(",
     "repo_icon_text": "Ícone: {0}",

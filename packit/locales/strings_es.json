@@ -25,6 +25,7 @@
     "delete_button": "Eliminar",
     "close_button": "Cerrar",
     "achiev_open": "Abrir",
+    "achiev_unlocked": "¡Logro desbloqueado!",
     "repo_link_copied": "¡Copiado al portapapeles! Magia.",
     "failed_to_copy": "Error al copiar :(",
     "repo_icon_text": "Icono: {0}",

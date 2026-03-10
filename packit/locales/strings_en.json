@@ -25,6 +25,7 @@
     "delete_button": "Delete",
     "close_button": "Close",
     "achiev_open": "Open",
+    "achiev_unlocked": "Achievement Unlocked!",
     "repo_link_copied": "Copied to clipboard! Magic.",
     "failed_to_copy": "Failed to copy :(",
     "repo_icon_text": "Icon: {0}",

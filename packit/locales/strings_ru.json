@@ -25,6 +25,7 @@
     "delete_button": "Удалить",
     "close_button": "Закрыть",
     "achiev_open": "Открыть",
+    "achiev_unlocked": "Достижение разблокировано!",
     "repo_link_copied": "Уже в буфер обмене!",
     "failed_to_copy": "Буфер отказался… ну что ж, бывает",
     "repo_icon_text": "Иконка: {0}",

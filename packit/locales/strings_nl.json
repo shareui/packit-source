@@ -25,6 +25,7 @@
     "delete_button": "Verwijderen",
     "close_button": "Sluiten",
     "achiev_open": "Openen",
+    "achiev_unlocked": "Prestatie ontgrendeld!",
     "repo_link_copied": "Gekopieerd naar klembord! Magie.",
     "failed_to_copy": "Kopiëren mislukt :(",
     "repo_icon_text": "Icoon: {0}",

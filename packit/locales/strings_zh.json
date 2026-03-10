@@ -25,6 +25,7 @@
     "delete_button": "删除",
     "close_button": "关闭",
     "achiev_open": "打开",
+    "achiev_unlocked": "成就已解锁！",
     "repo_link_copied": "已复制到剪贴板！",
     "failed_to_copy": "复制失败 :(",
     "repo_icon_text": "图标：{0}",

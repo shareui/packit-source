@@ -8,10 +8,23 @@ except Exception as e:
     from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 _achievement_pending = False
+_bulletin_container = None  # FrameLayout registered by active UI fragments
 
 
 def is_achievement_pending() -> bool:
     return _achievement_pending
+
+
+def register_bulletin_container(container):
+    global _bulletin_container
+    _bulletin_container = container
+
+
+def unregister_bulletin_container(container):
+    global _bulletin_container
+    # only clear if it's still the same container (avoid race with fast navigation)
+    if _bulletin_container is container:
+        _bulletin_container = None
 
 
 def _load_achievements() -> list:
@@ -246,13 +259,15 @@ def _show_achievement_bulletin(achievement: dict, on_hide=None):
         from android_utils import run_on_ui_thread
         from client_utils import get_last_fragment
         from org.telegram.ui.Components import BulletinFactory
-        from org.telegram.messenger import R
+        from hook_utils import find_class
+        from androidx.core.content import ContextCompat
         from java import dynamic_proxy
         from java.lang import Runnable
         from elyx import strings
 
-        icon_name = achievement["icon"]
-        title = achievement["title"]
+        icon_name = achievement.get("icon", "msg_fave")
+        title_key = achievement.get("title_key", "")
+        title_fallback = achievement.get("title", "")
 
         class _Runnable(dynamic_proxy(Runnable)):
             def __init__(self, fn):
@@ -275,8 +290,28 @@ def _show_achievement_bulletin(achievement: dict, on_hide=None):
                 from ..ui.achievementsUi import show_hint_sheet
                 show_hint_sheet(achievement)
 
-            factory = BulletinFactory.of(fragment)
-            bulletin = factory.createSimpleBulletin(R.raw.contact_check, "Achievement Unlocked!", title, strings.achiev_open, _Runnable(_open))
+            ctx = fragment.getContext()
+            try:
+                R_tg = find_class("org.telegram.messenger.R")
+                icon_res = getattr(R_tg.drawable, icon_name)
+                drawable = ContextCompat.getDrawable(ctx, icon_res)
+            except Exception as _e:
+                log(f"achievements: bulletin icon error: {_e}")
+                drawable = None
+
+            title = str(strings[title_key]) if title_key and title_key in strings else title_fallback
+
+            container = _bulletin_container
+            if container is not None:
+                rp = fragment.getResourceProvider()
+                factory = BulletinFactory.of(container, rp)
+            else:
+                factory = BulletinFactory.of(fragment)
+
+            if drawable is not None:
+                bulletin = factory.createSimpleBulletin(drawable, strings.achiev_unlocked, title, strings.achiev_open, _Runnable(_open))
+            else:
+                bulletin = factory.createSimpleBulletin(strings.achiev_unlocked, title, strings.achiev_open, _Runnable(_open))
             if on_hide:
                 bulletin.setOnHideListener(_Runnable(on_hide))
             bulletin.show(True)

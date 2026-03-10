@@ -25,6 +25,7 @@
     "delete_button": "削除",
     "close_button": "閉じる",
     "achiev_open": "開く",
+    "achiev_unlocked": "実績解除！",
     "repo_link_copied": "クリップボードにコピーしました！",
     "failed_to_copy": "コピーに失敗しました :(",
     "repo_icon_text": "アイコン: {0}",

@@ -25,6 +25,7 @@
     "delete_button": "Выдаліць",
     "close_button": "Зачыніць",
     "achiev_open": "Адкрыць",
+    "achiev_unlocked": "Дасягненне разблакавана!",
     "repo_link_copied": "Ужо ў буферы! Магія.",
     "failed_to_copy": "Не атрымалася скапіяваць :(",
     "repo_icon_text": "Абразок: {0}",
