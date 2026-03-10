@@ -198,13 +198,24 @@ class ProfileSettings:
                         return
 
                     ShareDelegateClass = jclass("org.telegram.ui.Components.ShareAlert$ShareAlertDelegate")
+                    _fragment = fragment
 
                     class ShareDelegate(dynamic_proxy(ShareDelegateClass)):
                         def __init__(self):
                             super().__init__()
 
                         def didShare(self):
-                            pass
+                            # didShare is called before dismiss() - post to UI thread so bulletin shows after dialog closes
+                            def _show_bulletin():
+                                try:
+                                    from org.telegram.messenger import R as R_tg
+                                    BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
+                                    container = _fragment.getParentActivity().getWindow().getDecorView()
+                                    rp = _fragment.getResourceProvider()
+                                    BulletinFactory.of(container, rp).createSimpleBulletin(R_tg.raw.voip_invite, strings["export_db_done_share"]).show()
+                                except Exception as _be:
+                                    log(f"profile.ShareDelegate.didShare: {_be}")
+                            run_on_ui_thread(_show_bulletin)
 
                         def didCopy(self):
                             return False
@@ -219,7 +230,9 @@ class ProfileSettings:
                         None, None
                     )
                     share_alert.setDelegate(ShareDelegate())
+                    log("profile.open_share: delegate set, showing dialog")
                     fragment.showDialog(share_alert)
+                    log("profile.open_share: showDialog returned")
                 except Exception as e:
                     log(f"profile._do_export.open_share: {e}")
                     BulletinHelper.show_error(strings["export_db_error"])
