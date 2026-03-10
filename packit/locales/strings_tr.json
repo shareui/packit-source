@@ -335,5 +335,13 @@
     "tg_channel_subtitle": "Güncellemeler, duyurular ve değişiklik günlükleri. Sadece gerekli olanlar, söz veriyoruz.",
     "tg_channel_join": "Peki, tamam",
     "tg_channel_dismiss": "İstemiyorum",
-    "tg_channel_url": "https://t.me/packitappen/2"
+    "tg_channel_url": "https://t.me/packitappen/2",
+    "copy_link": "Bağlantıyı kopyala",
+    "share": "Paylaş",
+    "code": "Kod",
+    "download": "İndir",
+    "translate": "Çevir",
+    "report": "Raporla",
+    "hide_unavailable_plugins": "Kullanılamayan eklentileri gizle",
+    "hide_unavailable_plugins_desc": "İstemcinizle uyumsuz eklentileri gizleyin."
 }

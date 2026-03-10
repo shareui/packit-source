@@ -335,5 +335,13 @@
     "tg_channel_subtitle": "アップデート、お知らせ、変更履歴。必要なことだけ、約束します。",
     "tg_channel_join": "まあいいか",
     "tg_channel_dismiss": "結構です",
-    "tg_channel_url": "https://t.me/packitappen/2"
+    "tg_channel_url": "https://t.me/packitappen/2",
+    "copy_link": "リンクをコピー",
+    "share": "共有",
+    "code": "コード",
+    "download": "ダウンロード",
+    "translate": "翻訳",
+    "report": "報告",
+    "hide_unavailable_plugins": "利用不可のプラグインを非表示",
+    "hide_unavailable_plugins_desc": "クライアントと互換性のないプラグインを非表示にします。"
 }

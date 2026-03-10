@@ -335,5 +335,13 @@
     "tg_channel_subtitle": "Updates, aankondigingen en changelogs. Alleen het nodige, beloofd.",
     "tg_channel_join": "Oké dan",
     "tg_channel_dismiss": "Nee bedankt",
-    "tg_channel_url": "https://t.me/packitappen/2"
+    "tg_channel_url": "https://t.me/packitappen/2",
+    "copy_link": "Link kopiëren",
+    "share": "Delen",
+    "code": "Code",
+    "download": "Downloaden",
+    "translate": "Vertalen",
+    "report": "Melden",
+    "hide_unavailable_plugins": "Niet-beschikbare plugins verbergen",
+    "hide_unavailable_plugins_desc": "Plugins verbergen die niet compatibel zijn met jouw client."
 }

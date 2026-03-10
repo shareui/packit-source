@@ -335,5 +335,13 @@
     "tg_channel_subtitle": "更新、公告和更新日志。只推送必要的内容，保证。",
     "tg_channel_join": "好吧",
     "tg_channel_dismiss": "不想",
-    "tg_channel_url": "https://t.me/packitappen/2"
+    "tg_channel_url": "https://t.me/packitappen/2",
+    "copy_link": "复制链接",
+    "share": "分享",
+    "code": "代码",
+    "download": "下载",
+    "translate": "翻译",
+    "report": "举报",
+    "hide_unavailable_plugins": "隐藏不可用插件",
+    "hide_unavailable_plugins_desc": "隐藏与您的客户端不兼容的插件。"
 }

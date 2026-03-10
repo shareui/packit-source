@@ -6,7 +6,10 @@
     "goal": 1,
     "hint": "Open PackIt, go to the installation interface and pick any plugin from the repository. Tap the install button and confirm the installation.",
     "icon": "msg_plugins",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_first_plugin",
+    "hint_key": "achiev_hint_first_plugin",
+    "category_key": "achiev_cat_installing_plugins"
   },
   {
     "id": "plugins_5",
@@ -15,7 +18,10 @@
     "goal": 5,
     "hint": "Browse through the available repositories and install 5 plugins in total. Try exploring different categories to find something useful.",
     "icon": "msg_plugins",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_plugins_5",
+    "hint_key": "achiev_hint_plugins_5",
+    "category_key": "achiev_cat_installing_plugins"
   },
   {
     "id": "plugins_10",
@@ -24,7 +30,10 @@
     "goal": 10,
     "hint": "You are getting the hang of it. Install 10 plugins across any repositories. A good moment to add a few extra repos to expand your options.",
     "icon": "msg_plugins",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_plugins_10",
+    "hint_key": "achiev_hint_plugins_10",
+    "category_key": "achiev_cat_installing_plugins"
   },
   {
     "id": "plugins_25",
@@ -33,7 +42,10 @@
     "goal": 25,
     "hint": "At this point you clearly enjoy customizing your client. Keep installing plugins until you reach 25 total installations.",
     "icon": "msg_plugins",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_plugins_25",
+    "hint_key": "achiev_hint_plugins_25",
+    "category_key": "achiev_cat_installing_plugins"
   },
   {
     "id": "plugins_50",
@@ -41,6 +53,21 @@
     "title": "Power User",
     "goal": 50,
     "hint": "50 installations means you know what you want. At this point you probably have a solid setup. Keep going.",
+    "icon": "msg_plugins",
+    "playSound": true,
+    "title_key": "achiev_title_plugins_50",
+    "hint_key": "achiev_hint_plugins_50",
+    "category_key": "achiev_cat_installing_plugins"
+  },
+  {
+    "id": "plugins_75",
+    "category": "Installing plugins",
+    "category_key": "achiev_cat_installing_plugins",
+    "title": "Veteran",
+    "title_key": "achiev_title_plugins_75",
+    "goal": 75,
+    "hint": "75 plugins installed. You clearly know what you are doing at this point.",
+    "hint_key": "achiev_hint_plugins_75",
     "icon": "msg_plugins",
     "playSound": true
   },
@@ -51,6 +78,21 @@
     "goal": 100,
     "hint": "100 plugins installed. You have tried almost everything out there. Do you even remember what half of them do?",
     "icon": "msg_plugins",
+    "playSound": true,
+    "title_key": "achiev_title_plugins_100",
+    "hint_key": "achiev_hint_plugins_100",
+    "category_key": "achiev_cat_installing_plugins"
+  },
+  {
+    "id": "plugins_200",
+    "category": "Installing plugins",
+    "category_key": "achiev_cat_installing_plugins",
+    "title": "The Addict",
+    "title_key": "achiev_title_plugins_200",
+    "goal": 200,
+    "hint": "200 installations. You have explored more of this ecosystem than most people ever will.",
+    "hint_key": "achiev_hint_plugins_200",
+    "icon": "msg_plugins",
     "playSound": true
   },
   {
@@ -60,7 +102,10 @@
     "goal": 250,
     "hint": "250 installations. At this point PackIt is basically your lifestyle. Keep installing, there is no going back.",
     "icon": "msg_plugins",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_plugins_250",
+    "hint_key": "achiev_hint_plugins_250",
+    "category_key": "achiev_cat_installing_plugins"
   },
   {
     "id": "plugins_500",
@@ -69,7 +114,10 @@
     "goal": 500,
     "hint": "500 plugin installations. We are not sure if this is impressive or concerning. Either way, you have earned this.",
     "icon": "msg_plugins",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_plugins_500",
+    "hint_key": "achiev_hint_plugins_500",
+    "category_key": "achiev_cat_installing_plugins"
   },
   {
     "id": "repo_1",
@@ -78,7 +126,10 @@
     "goal": 1,
     "hint": "Add your first repository. Open PackIt settings, go to Repositories and paste a valid repository URL.",
     "icon": "filter_custom",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_repo_1",
+    "hint_key": "achiev_hint_repo_1",
+    "category_key": "achiev_cat_repositories"
   },
   {
     "id": "repo_3",
@@ -87,7 +138,10 @@
     "goal": 3,
     "hint": "Add 3 repositories in total. More sources mean more plugins to discover.",
     "icon": "filter_custom",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_repo_3",
+    "hint_key": "achiev_hint_repo_3",
+    "category_key": "achiev_cat_repositories"
   },
   {
     "id": "repo_5",
@@ -96,7 +150,10 @@
     "goal": 5,
     "hint": "You are pulling plugins from 5 different repositories. At this point you know exactly where to look.",
     "icon": "filter_custom",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_repo_5",
+    "hint_key": "achiev_hint_repo_5",
+    "category_key": "achiev_cat_repositories"
   },
   {
     "id": "repo_10",
@@ -104,6 +161,21 @@
     "title": "Aggregator",
     "goal": 10,
     "hint": "10 repositories added. You have probably seen every plugin available at this point.",
+    "icon": "filter_custom",
+    "playSound": true,
+    "title_key": "achiev_title_repo_10",
+    "hint_key": "achiev_hint_repo_10",
+    "category_key": "achiev_cat_repositories"
+  },
+  {
+    "id": "repo_20",
+    "category": "Repositories",
+    "category_key": "achiev_cat_repositories",
+    "title": "Network Builder",
+    "title_key": "achiev_title_repo_20",
+    "goal": 20,
+    "hint": "20 repositories connected. You have built yourself a serious plugin network.",
+    "hint_key": "achiev_hint_repo_20",
     "icon": "filter_custom",
     "playSound": true
   },
@@ -114,7 +186,10 @@
     "goal": 50,
     "hint": "50 repositories. There is no way all of these are active. Are you okay?",
     "icon": "filter_custom",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_repo_50",
+    "hint_key": "achiev_hint_repo_50",
+    "category_key": "achiev_cat_repositories"
   },
   {
     "id": "share_1",
@@ -123,7 +198,10 @@
     "goal": 1,
     "hint": "Share a plugin file with someone. Open any plugin in the installation interface, tap the burger menu and hit Share.",
     "icon": "msg_share",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_share_1",
+    "hint_key": "achiev_hint_share_1",
+    "category_key": "achiev_cat_sharing"
   },
   {
     "id": "share_5",
@@ -132,7 +210,10 @@
     "goal": 5,
     "hint": "You have shared 5 plugins. Your friends are either grateful or confused by now.",
     "icon": "msg_share",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_share_5",
+    "hint_key": "achiev_hint_share_5",
+    "category_key": "achiev_cat_sharing"
   },
   {
     "id": "share_10",
@@ -141,7 +222,10 @@
     "goal": 10,
     "hint": "10 shares done. You are basically running your own plugin delivery service at this point.",
     "icon": "msg_share",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_share_10",
+    "hint_key": "achiev_hint_share_10",
+    "category_key": "achiev_cat_sharing"
   },
   {
     "id": "share_25",
@@ -150,7 +234,10 @@
     "goal": 25,
     "hint": "25 plugins shared. People probably come to you when they need a recommendation.",
     "icon": "msg_share",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_share_25",
+    "hint_key": "achiev_hint_share_25",
+    "category_key": "achiev_cat_sharing"
   },
   {
     "id": "share_50",
@@ -159,7 +246,10 @@
     "goal": 50,
     "hint": "50 shares. You are holding this community together one plugin file at a time.",
     "icon": "msg_share",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_share_50",
+    "hint_key": "achiev_hint_share_50",
+    "category_key": "achiev_cat_sharing"
   },
   {
     "id": "share_100",
@@ -167,6 +257,21 @@
     "title": "The Supplier",
     "goal": 100,
     "hint": "100 plugins shared. At this point sharing is just a reflex for you.",
+    "icon": "msg_share",
+    "playSound": true,
+    "title_key": "achiev_title_share_100",
+    "hint_key": "achiev_hint_share_100",
+    "category_key": "achiev_cat_sharing"
+  },
+  {
+    "id": "share_200",
+    "category": "Sharing",
+    "category_key": "achiev_cat_sharing",
+    "title": "The Broadcaster",
+    "title_key": "achiev_title_share_200",
+    "goal": 200,
+    "hint": "200 plugins shared. At this point you are basically a one-person distribution network.",
+    "hint_key": "achiev_hint_share_200",
     "icon": "msg_share",
     "playSound": true
   },
@@ -177,7 +282,10 @@
     "goal": 1,
     "hint": "Download a plugin file to your device. Open any plugin in the installation interface, tap the burger menu and hit Download.",
     "icon": "msg_saved",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_download_1",
+    "hint_key": "achiev_hint_download_1",
+    "category_key": "achiev_cat_downloading"
   },
   {
     "id": "download_5",
@@ -186,7 +294,10 @@
     "goal": 5,
     "hint": "You have downloaded 5 plugin files. Your downloads folder is getting interesting.",
     "icon": "msg_saved",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_download_5",
+    "hint_key": "achiev_hint_download_5",
+    "category_key": "achiev_cat_downloading"
   },
   {
     "id": "download_10",
@@ -195,7 +306,10 @@
     "goal": 10,
     "hint": "10 plugin files downloaded. Clearly you like having things locally, just in case.",
     "icon": "msg_saved",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_download_10",
+    "hint_key": "achiev_hint_download_10",
+    "category_key": "achiev_cat_downloading"
   },
   {
     "id": "download_25",
@@ -204,7 +318,10 @@
     "goal": 25,
     "hint": "25 downloads. You are building quite the offline collection.",
     "icon": "msg_saved",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_download_25",
+    "hint_key": "achiev_hint_download_25",
+    "category_key": "achiev_cat_downloading"
   },
   {
     "id": "download_50",
@@ -212,6 +329,21 @@
     "title": "The Vault",
     "goal": 50,
     "hint": "50 plugin files saved locally. Nothing gets past you without being downloaded first.",
+    "icon": "msg_saved",
+    "playSound": true,
+    "title_key": "achiev_title_download_50",
+    "hint_key": "achiev_hint_download_50",
+    "category_key": "achiev_cat_downloading"
+  },
+  {
+    "id": "download_100",
+    "category": "Downloading",
+    "category_key": "achiev_cat_downloading",
+    "title": "The Packrat",
+    "title_key": "achiev_title_download_100",
+    "goal": 100,
+    "hint": "100 plugin files saved. Your storage is basically a plugin museum at this point.",
+    "hint_key": "achiev_hint_download_100",
     "icon": "msg_saved",
     "playSound": true
   },
@@ -222,7 +354,10 @@
     "goal": 1,
     "hint": "Open the source code of any plugin. Tap the burger menu in the installation interface and hit Code.",
     "icon": "msg_policy",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_code_1",
+    "hint_key": "achiev_hint_code_1",
+    "category_key": "achiev_cat_viewing_code"
   },
   {
     "id": "code_3",
@@ -231,7 +366,10 @@
     "goal": 3,
     "hint": "You have looked at the code of 3 plugins. Good habit — always know what you are installing.",
     "icon": "msg_policy",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_code_3",
+    "hint_key": "achiev_hint_code_3",
+    "category_key": "achiev_cat_viewing_code"
   },
   {
     "id": "code_5",
@@ -240,7 +378,10 @@
     "goal": 5,
     "hint": "5 plugins inspected. You are getting comfortable reading other people's code.",
     "icon": "msg_policy",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_code_5",
+    "hint_key": "achiev_hint_code_5",
+    "category_key": "achiev_cat_viewing_code"
   },
   {
     "id": "code_10",
@@ -249,7 +390,10 @@
     "goal": 10,
     "hint": "10 code reviews done. At this point you probably have opinions about code style.",
     "icon": "msg_policy",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_code_10",
+    "hint_key": "achiev_hint_code_10",
+    "category_key": "achiev_cat_viewing_code"
   },
   {
     "id": "code_25",
@@ -258,7 +402,10 @@
     "goal": 25,
     "hint": "25 plugins reviewed. You take security seriously and that is genuinely admirable.",
     "icon": "msg_policy",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_code_25",
+    "hint_key": "achiev_hint_code_25",
+    "category_key": "achiev_cat_viewing_code"
   },
   {
     "id": "code_50",
@@ -266,6 +413,21 @@
     "title": "Inspector",
     "goal": 50,
     "hint": "50 code views. You probably spot patterns across plugins by now.",
+    "icon": "msg_policy",
+    "playSound": true,
+    "title_key": "achiev_title_code_50",
+    "hint_key": "achiev_hint_code_50",
+    "category_key": "achiev_cat_viewing_code"
+  },
+  {
+    "id": "code_75",
+    "category": "Viewing code",
+    "category_key": "achiev_cat_viewing_code",
+    "title": "Deep Dive",
+    "title_key": "achiev_title_code_75",
+    "goal": 75,
+    "hint": "75 plugins reviewed. You read more code than most developers write.",
+    "hint_key": "achiev_hint_code_75",
     "icon": "msg_policy",
     "playSound": true
   },
@@ -276,6 +438,21 @@
     "goal": 100,
     "hint": "100 plugins checked before installing. Trust no one. Read everything. Stay safe.",
     "icon": "msg_policy",
+    "playSound": true,
+    "title_key": "achiev_title_code_100",
+    "hint_key": "achiev_hint_code_100",
+    "category_key": "achiev_cat_viewing_code"
+  },
+  {
+    "id": "code_150",
+    "category": "Viewing code",
+    "category_key": "achiev_cat_viewing_code",
+    "title": "The Skeptic",
+    "title_key": "achiev_title_code_150",
+    "goal": 150,
+    "hint": "150 code reviews. Trust is earned, not given. You made sure of that.",
+    "hint_key": "achiev_hint_code_150",
+    "icon": "msg_policy",
     "playSound": true
   },
   {
@@ -285,7 +462,10 @@
     "goal": 200,
     "hint": "200 code reviews. At this point you have read more plugin code than most plugin authors.",
     "icon": "msg_policy",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_code_200",
+    "hint_key": "achiev_hint_code_200",
+    "category_key": "achiev_cat_viewing_code"
   },
   {
     "id": "report_1",
@@ -294,7 +474,10 @@
     "goal": 1,
     "hint": "Report a plugin for the first time. If something looks wrong, tap the burger menu in the installation interface and hit Report.",
     "icon": "msg_report_other",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_report_1",
+    "hint_key": "achiev_hint_report_1",
+    "category_key": "achiev_cat_reporting"
   },
   {
     "id": "report_5",
@@ -303,7 +486,10 @@
     "goal": 5,
     "hint": "5 reports submitted. You are actively helping keep the ecosystem clean.",
     "icon": "msg_report_other",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_report_5",
+    "hint_key": "achiev_hint_report_5",
+    "category_key": "achiev_cat_reporting"
   },
   {
     "id": "report_10",
@@ -312,7 +498,10 @@
     "goal": 10,
     "hint": "10 reports. You clearly care about the quality of what gets distributed here.",
     "icon": "msg_report_other",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_report_10",
+    "hint_key": "achiev_hint_report_10",
+    "category_key": "achiev_cat_reporting"
   },
   {
     "id": "report_25",
@@ -321,7 +510,10 @@
     "goal": 25,
     "hint": "25 reports filed. The community is safer because of people like you.",
     "icon": "msg_report_other",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_report_25",
+    "hint_key": "achiev_hint_report_25",
+    "category_key": "achiev_cat_reporting"
   },
   {
     "id": "report_50",
@@ -330,7 +522,10 @@
     "goal": 50,
     "hint": "50 reports. Nobody gets away with a bad plugin on your watch.",
     "icon": "msg_report_other",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_report_50",
+    "hint_key": "achiev_hint_report_50",
+    "category_key": "achiev_cat_reporting"
   },
   {
     "id": "report_100",
@@ -338,6 +533,21 @@
     "title": "Zero Tolerance",
     "goal": 100,
     "hint": "100 reports submitted. Either you have very high standards or very low tolerance. Probably both.",
+    "icon": "msg_report_other",
+    "playSound": true,
+    "title_key": "achiev_title_report_100",
+    "hint_key": "achiev_hint_report_100",
+    "category_key": "achiev_cat_reporting"
+  },
+  {
+    "id": "report_200",
+    "category": "Reporting",
+    "category_key": "achiev_cat_reporting",
+    "title": "The Inspector General",
+    "title_key": "achiev_title_report_200",
+    "goal": 200,
+    "hint": "200 reports filed. Nobody takes quality more seriously than you. Nobody.",
+    "hint_key": "achiev_hint_report_200",
     "icon": "msg_report_other",
     "playSound": true
   },
@@ -348,7 +558,10 @@
     "goal": 1,
     "hint": "Copy a plugin link for the first time. Open any plugin in the installation interface, tap the burger menu and hit Copy link.",
     "icon": "msg_copy",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_copy_1",
+    "hint_key": "achiev_hint_copy_1",
+    "category_key": "achiev_cat_copying_links"
   },
   {
     "id": "copy_5",
@@ -357,7 +570,10 @@
     "goal": 5,
     "hint": "5 links copied. You like sending people directly to specific plugins.",
     "icon": "msg_copy",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_copy_5",
+    "hint_key": "achiev_hint_copy_5",
+    "category_key": "achiev_cat_copying_links"
   },
   {
     "id": "copy_10",
@@ -365,6 +581,21 @@
     "title": "Link Machine",
     "goal": 10,
     "hint": "10 links copied. You are a reliable source of plugin references.",
+    "icon": "msg_copy",
+    "playSound": true,
+    "title_key": "achiev_title_copy_10",
+    "hint_key": "achiev_hint_copy_10",
+    "category_key": "achiev_cat_copying_links"
+  },
+  {
+    "id": "copy_25",
+    "category": "Copying links",
+    "category_key": "achiev_cat_copying_links",
+    "title": "Go-To Guy",
+    "title_key": "achiev_title_copy_25",
+    "goal": 25,
+    "hint": "25 plugin links copied. People probably come to you when they need a direct link to something.",
+    "hint_key": "achiev_hint_copy_25",
     "icon": "msg_copy",
     "playSound": true
   },
@@ -375,7 +606,10 @@
     "goal": 50,
     "hint": "50 links copied. Your clipboard history must be fascinating.",
     "icon": "msg_copy",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_copy_50",
+    "hint_key": "achiev_hint_copy_50",
+    "category_key": "achiev_cat_copying_links"
   },
   {
     "id": "copy_100",
@@ -384,7 +618,10 @@
     "goal": 100,
     "hint": "100 plugin links copied. At this point copy-pasting is basically muscle memory.",
     "icon": "msg_copy",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_copy_100",
+    "hint_key": "achiev_hint_copy_100",
+    "category_key": "achiev_cat_copying_links"
   },
   {
     "id": "copy_250",
@@ -393,7 +630,10 @@
     "goal": 250,
     "hint": "250 links copied. You are a living directory of plugin links at this point.",
     "icon": "msg_copy",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_copy_250",
+    "hint_key": "achiev_hint_copy_250",
+    "category_key": "achiev_cat_copying_links"
   },
   {
     "id": "level_1",
@@ -402,7 +642,10 @@
     "goal": 1,
     "hint": "Welcome. You are just getting started.",
     "icon": "msg_data",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_level_1",
+    "hint_key": "achiev_hint_level_1",
+    "category_key": "achiev_cat_levels"
   },
   {
     "id": "level_5",
@@ -411,7 +654,10 @@
     "goal": 5,
     "hint": "You have spent enough time with PackIt to know your way around. Level 5 reached.",
     "icon": "msg_data",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_level_5",
+    "hint_key": "achiev_hint_level_5",
+    "category_key": "achiev_cat_levels"
   },
   {
     "id": "level_10",
@@ -420,7 +666,10 @@
     "goal": 10,
     "hint": "PackIt is no longer new to you. It is just part of how you use Telegram now.",
     "icon": "msg_data",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_level_10",
+    "hint_key": "achiev_hint_level_10",
+    "category_key": "achiev_cat_levels"
   },
   {
     "id": "level_25",
@@ -429,59 +678,32 @@
     "goal": 25,
     "hint": "Level 25. At this point it is safe to say you are not going anywhere.",
     "icon": "msg_data",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_level_25",
+    "hint_key": "achiev_hint_level_25",
+    "category_key": "achiev_cat_levels"
   },
   {
     "id": "level_50",
     "category": "Levels",
     "title": "Halfway There",
     "goal": 50,
-    "hint": "Level 50. The halfway point. You have come a long way and there is still more ahead.",
+    "hint": "Level 50. Ten more to go.",
     "icon": "msg_data",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_level_50",
+    "hint_key": "achiev_hint_level_50",
+    "category_key": "achiev_cat_levels"
   },
   {
-    "id": "level_75",
+    "id": "level_60",
     "category": "Levels",
-    "title": "Deep in the Rabbit Hole",
-    "goal": 75,
-    "hint": "Level 75. Most people never get this far. You are not most people.",
-    "icon": "msg_data",
-    "playSound": true
-  },
-  {
-    "id": "level_80",
-    "category": "Levels",
-    "title": "No Turning Back",
-    "goal": 80,
-    "hint": "Level 80. You have invested too much to stop now. Not that you would want to.",
-    "icon": "msg_data",
-    "playSound": true
-  },
-  {
-    "id": "level_90",
-    "category": "Levels",
-    "title": "The Final Stretch",
-    "goal": 90,
-    "hint": "Level 90. The end is in sight. You can almost see the top from here.",
-    "icon": "msg_data",
-    "playSound": true
-  },
-  {
-    "id": "level_95",
-    "category": "Levels",
-    "title": "Almost There",
-    "goal": 95,
-    "hint": "Level 95. Five levels away from the absolute maximum. Finish what you started.",
-    "icon": "msg_data",
-    "playSound": true
-  },
-  {
-    "id": "level_100",
-    "category": "Levels",
+    "category_key": "achiev_cat_levels",
     "title": "Transcendent",
-    "goal": 100,
-    "hint": "Level 100. The maximum. There is nothing beyond this point. You have seen it all.",
+    "title_key": "achiev_title_level_60",
+    "goal": 60,
+    "hint": "Level 60. The maximum. There is nothing beyond this point. You have seen it all.",
+    "hint_key": "achiev_hint_level_60",
     "icon": "msg_data",
     "playSound": true
   },
@@ -492,7 +714,10 @@
     "goal": 30,
     "hint": "You have been using PackIt for a month. The plugins are already part of your daily setup.",
     "icon": "msg_calendar2",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_days_30",
+    "hint_key": "achiev_hint_days_30",
+    "category_key": "achiev_cat_loyalty"
   },
   {
     "id": "days_182",
@@ -501,7 +726,10 @@
     "goal": 182,
     "hint": "Six months with PackIt. You have seen updates come and go and you are still here.",
     "icon": "msg_calendar2",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_days_182",
+    "hint_key": "achiev_hint_days_182",
+    "category_key": "achiev_cat_loyalty"
   },
   {
     "id": "days_365",
@@ -510,7 +738,10 @@
     "goal": 365,
     "hint": "A full year. PackIt has been part of your Telegram experience through all of it.",
     "icon": "msg_calendar2",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_days_365",
+    "hint_key": "achiev_hint_days_365",
+    "category_key": "achiev_cat_loyalty"
   },
   {
     "id": "days_730",
@@ -519,7 +750,10 @@
     "goal": 730,
     "hint": "Two years in. Assuming PackIt and exteraGram are still around — and if you are reading this, they are.",
     "icon": "msg_calendar2",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_days_730",
+    "hint_key": "achiev_hint_days_730",
+    "category_key": "achiev_cat_loyalty"
   },
   {
     "id": "days_1095",
@@ -528,7 +762,10 @@
     "goal": 1095,
     "hint": "Three years. Honestly impressive. We hope the plugin ecosystem is still alive and well by now.",
     "icon": "msg_calendar2",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_days_1095",
+    "hint_key": "achiev_hint_days_1095",
+    "category_key": "achiev_cat_loyalty"
   },
   {
     "id": "days_1460",
@@ -537,7 +774,10 @@
     "goal": 1460,
     "hint": "Four years. At this point you have probably outlasted a few Telegram forks. We appreciate your loyalty.",
     "icon": "msg_calendar2",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_days_1460",
+    "hint_key": "achiev_hint_days_1460",
+    "category_key": "achiev_cat_loyalty"
   },
   {
     "id": "days_1825",
@@ -546,7 +786,10 @@
     "goal": 1825,
     "hint": "Five years. Half a decade. We genuinely did not expect anyone to reach this. Is exteraGram even still a thing?",
     "icon": "msg_calendar2",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_days_1825",
+    "hint_key": "achiev_hint_days_1825",
+    "category_key": "achiev_cat_loyalty"
   },
   {
     "id": "days_2190",
@@ -555,7 +798,10 @@
     "goal": 2190,
     "hint": "Six years. If you are still using PackIt in 2030 or whenever this is, you deserve a medal. Or a doctor.",
     "icon": "msg_calendar2",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_days_2190",
+    "hint_key": "achiev_hint_days_2190",
+    "category_key": "achiev_cat_loyalty"
   },
   {
     "id": "days_2555",
@@ -564,7 +810,10 @@
     "goal": 2555,
     "hint": "Seven years. PackIt is either immortal or you forgot to uninstall it. Either way — respect.",
     "icon": "msg_calendar2",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_days_2555",
+    "hint_key": "achiev_hint_days_2555",
+    "category_key": "achiev_cat_loyalty"
   },
   {
     "id": "days_2920",
@@ -573,7 +822,10 @@
     "goal": 2920,
     "hint": "Eight years. At this point we are genuinely surprised this codebase still runs. So are you, probably.",
     "icon": "msg_calendar2",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_days_2920",
+    "hint_key": "achiev_hint_days_2920",
+    "category_key": "achiev_cat_loyalty"
   },
   {
     "id": "days_3285",
@@ -582,7 +834,10 @@
     "goal": 3285,
     "hint": "Nine years. Is Telegram still relevant? Is exteraGram maintained? We have no idea. But here you are.",
     "icon": "msg_calendar2",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_days_3285",
+    "hint_key": "achiev_hint_days_3285",
+    "category_key": "achiev_cat_loyalty"
   },
   {
     "id": "days_3650",
@@ -591,7 +846,10 @@
     "goal": 3650,
     "hint": "Ten years. A decade. This achievement was written as a joke. We did not think anyone would ever see it. Hi.",
     "icon": "msg_calendar2",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_days_3650",
+    "hint_key": "achiev_hint_days_3650",
+    "category_key": "achiev_cat_loyalty"
   },
   {
     "id": "secret_premium",
@@ -600,7 +858,10 @@
     "goal": 1,
     "hint": "I feel sorry for you if you were in a public place, or near your parents. But at least now you have premium.",
     "icon": "msg_gift_premium",
-    "playSound": false
+    "playSound": false,
+    "title_key": "achiev_title_secret_premium",
+    "hint_key": "achiev_hint_secret_premium",
+    "category_key": "achiev_cat_unknown"
   },
   {
     "id": "secret_terraria",
@@ -609,7 +870,10 @@
     "goal": 1,
     "hint": "Now you're a terrorist... Should I call the police? Or the FBI?",
     "icon": "msg_secret",
-    "playSound": false
+    "playSound": false,
+    "title_key": "achiev_title_secret_terraria",
+    "hint_key": "achiev_hint_secret_terraria",
+    "category_key": "achiev_cat_unknown"
   },
   {
     "id": "secret_identity",
@@ -618,7 +882,10 @@
     "goal": 1,
     "hint": "Bro, I don't think you're seriously the creator of the PackIt. Real or fake?",
     "icon": "msg_secret",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_secret_identity",
+    "hint_key": "achiev_hint_secret_identity",
+    "category_key": "achiev_cat_unknown"
   },
   {
     "id": "secret_curiosity",
@@ -627,7 +894,10 @@
     "goal": 1,
     "hint": "Why did you click here? There's nothing here. Go install some plugins. Seriously, close this and do something useful.",
     "icon": "msg_info",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_secret_curiosity",
+    "hint_key": "achiev_hint_secret_curiosity",
+    "category_key": "achiev_cat_unknown"
   },
   {
     "id": "secret_subscriber",
@@ -636,6 +906,9 @@
     "goal": 1,
     "hint": "You joined the PackIt channel. Now you are officially part of the loop. Updates, changelogs, chaos — all yours.",
     "icon": "msg_channel",
-    "playSound": true
+    "playSound": true,
+    "title_key": "achiev_title_secret_subscriber",
+    "hint_key": "achiev_hint_secret_subscriber",
+    "category_key": "achiev_cat_unknown"
   }
 ]

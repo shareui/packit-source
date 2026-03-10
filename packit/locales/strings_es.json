@@ -335,5 +335,13 @@
     "tg_channel_subtitle": "Actualizaciones, anuncios y registros de cambios. Solo lo necesario, lo prometemos.",
     "tg_channel_join": "Bueno, está bien",
     "tg_channel_dismiss": "No quiero",
-    "tg_channel_url": "https://t.me/packitappen/2"
+    "tg_channel_url": "https://t.me/packitappen/2",
+    "copy_link": "Copiar enlace",
+    "share": "Compartir",
+    "code": "Código",
+    "download": "Descargar",
+    "translate": "Traducir",
+    "report": "Reportar",
+    "hide_unavailable_plugins": "Ocultar plugins no disponibles",
+    "hide_unavailable_plugins_desc": "Ocultar plugins incompatibles con tu cliente."
 }

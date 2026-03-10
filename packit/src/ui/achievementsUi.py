@@ -109,7 +109,7 @@ def _make_category_card(act, category: str, achievements: list, on_click):
     except Exception:
         pass
     name_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
-    name_tv.setText(category)
+    name_tv.setText(str(strings[category]))
     name_tv.setTextColor(text_primary)
     top_row.addView(name_tv, LinearLayout.LayoutParams(0, -2, 1.0))
 
@@ -243,7 +243,7 @@ def _make_achievement_card(act, achievement: dict, on_hint_click):
         title_tv.setText("???")
         title_tv.setTextColor(text_secondary)
     else:
-        title_tv.setText(achievement.get("title", ""))
+        title_tv.setText(str(strings[achievement.get("title_key", "achiev_title_unknown")]))
         title_tv.setTextColor(text_primary)
     col.addView(title_tv, LayoutHelper.createLinear(-1, -2))
 
@@ -417,7 +417,7 @@ class _AchievementListFragment(dynamic_proxy(UniversalFragment.UniversalFragment
         return view
 
     def getTitle(self):
-        return self.category
+        return str(strings[self.category])
 
     def fillItems(self, items, adapter):
         pass
@@ -608,7 +608,7 @@ def show_hint_sheet(achievement: dict):
         except Exception:
             title_tv.setTypeface(AndroidUtilities.bold())
         title_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18)
-        title_tv.setText(achievement.get("title", ""))
+        title_tv.setText(str(strings[achievement.get("title_key", "achiev_title_unknown")]))
         title_tv.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
         title_row.addView(title_tv, LayoutHelper.createLinear(-1, -2))
         root.addView(title_row, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 14))
@@ -616,7 +616,7 @@ def show_hint_sheet(achievement: dict):
         # hint text
         hint_tv = TextView(act)
         hint_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
-        hint_tv.setText(achievement.get("hint", ""))
+        hint_tv.setText(str(strings[achievement.get("hint_key", "achiev_hint_unknown")]))
         hint_tv.setTextColor(Theme.getColor(Theme.key_dialogTextGray2))
         hint_tv.setLineSpacing(AndroidUtilities.dp(2), 1.0)
         root.addView(hint_tv, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 20))

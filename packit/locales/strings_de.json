@@ -335,5 +335,13 @@
     "tg_channel_subtitle": "Updates, Ankündigungen und Changelogs. Nur das Wesentliche, versprochen.",
     "tg_channel_join": "Na gut",
     "tg_channel_dismiss": "Kein Interesse",
-    "tg_channel_url": "https://t.me/packitappen/2"
+    "tg_channel_url": "https://t.me/packitappen/2",
+    "copy_link": "Link kopieren",
+    "share": "Teilen",
+    "code": "Code",
+    "download": "Herunterladen",
+    "translate": "Übersetzen",
+    "report": "Melden",
+    "hide_unavailable_plugins": "Nicht verfügbare Plugins ausblenden",
+    "hide_unavailable_plugins_desc": "Plugins ausblenden, die mit deinem Client nicht kompatibel sind."
 }

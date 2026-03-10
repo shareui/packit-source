@@ -335,5 +335,13 @@
     "tg_channel_subtitle": "Оновлення, оголошення та списки змін. Тільки те, що потрібно, обіцяємо.",
     "tg_channel_join": "Ну, добре",
     "tg_channel_dismiss": "Не хочу",
-    "tg_channel_url": "https://t.me/packitapp/2"
+    "tg_channel_url": "https://t.me/packitapp/2",
+    "copy_link": "Копіювати посилання",
+    "share": "Поділитися",
+    "code": "Код",
+    "download": "Завантажити",
+    "translate": "Перекласти",
+    "report": "Поскаржитись",
+    "hide_unavailable_plugins": "Приховати недоступні плагіни",
+    "hide_unavailable_plugins_desc": "Приховувати плагіни, несумісні з вашим клієнтом."
 }

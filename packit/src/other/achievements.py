@@ -120,8 +120,10 @@ _XP_REWARDS = {
     "copy_1": 100,         "copy_5": 300,       "copy_10": 600,
     "copy_50": 2000,       "copy_100": 4000,    "copy_250": 9000,
     "level_1": 0,  "level_5": 0,  "level_10": 0, "level_25": 0,
-    "level_50": 0, "level_75": 0, "level_80": 0, "level_90": 0,
-    "level_95": 0, "level_100": 0,
+    "level_50": 0, "level_60": 0,
+    "copy_25": 950,      "download_100": 4500,  "repo_20": 2500,
+    "share_200": 7000,   "plugins_75": 2000,    "plugins_200": 4500,
+    "report_200": 12000, "code_75": 7500,       "code_150": 10000,
     "days_30": 2000,    "days_182": 5500,   "days_365": 10000,  "days_730": 30000,
     "days_1095": 60000, "days_1460": 100000, "days_1825": 150000, "days_2190": 200000,
     "days_2555": 260000, "days_2920": 330000, "days_3285": 400000, "days_3650": 500000,
@@ -141,7 +143,7 @@ def _level_from_xp(total_xp: int) -> int:
     level = 1
     while _xp_for_level(level + 1) <= total_xp:
         level += 1
-    return min(level, 100)
+    return min(level, 60)
 
 
 def get_total_xp(data: dict) -> int:
@@ -152,8 +154,8 @@ def get_level_info(data: dict) -> tuple:
     # returns (level, xp_into_current_level, xp_needed_for_current_level)
     total_xp = get_total_xp(data)
     level = _level_from_xp(total_xp)
-    if level >= 100:
-        return 100, total_xp, _xp_for_level(100)
+    if level >= 60:
+        return 60, total_xp, _xp_for_level(60)
     current_level_xp = _xp_for_level(level)
     next_level_xp = _xp_for_level(level + 1)
     xp_into = total_xp - current_level_xp
@@ -165,8 +167,7 @@ def get_level_info(data: dict) -> tuple:
 
 _LEVEL_ACHIEVEMENTS = {
     "level_1": 1, "level_5": 5, "level_10": 10, "level_25": 25,
-    "level_50": 50, "level_75": 75, "level_80": 80, "level_90": 90,
-    "level_95": 95, "level_100": 100,
+    "level_50": 50, "level_60": 60,
 }
 
 _LOYALTY_ACHIEVEMENTS = {
@@ -192,6 +193,25 @@ def sync_completed(data: dict) -> tuple:
 
     awarded = data.get("_awarded", [])
     total_xp = data.get("_xp", 0)
+
+    # backfill: new achievements start at 0 but siblings in the same category
+    # already have an accumulated counter — inherit the highest sibling value
+    cat_max = {}
+    for a in ACHIEVEMENTS:
+        if a["id"] in _LEVEL_ACHIEVEMENTS or a["id"] in _LOYALTY_ACHIEVEMENTS:
+            continue
+        cat = a.get("category_key", a["category"])
+        val = data.get(a["id"], 0)
+        if val > cat_max.get(cat, 0):
+            cat_max[cat] = val
+    for a in ACHIEVEMENTS:
+        aid = a["id"]
+        if aid in _LEVEL_ACHIEVEMENTS or aid in _LOYALTY_ACHIEVEMENTS:
+            continue
+        if data.get(aid, 0) == 0 and aid not in awarded:
+            cat = a.get("category_key", a["category"])
+            data[aid] = cat_max.get(cat, 0)
+
     newly_completed = []
     for a in ACHIEVEMENTS:
         aid = a["id"]

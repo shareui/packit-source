@@ -398,8 +398,8 @@ class OtherSettings:
             Header(text=strings.interface_header),
             Switch(
                 key="hide_unavailable_plugins",
-                text="Hide unavailable plugins",
-                subtext="Hide plugins that are incompatible with your client.",
+                text=strings.hide_unavailable_plugins,
+                subtext=strings.hide_unavailable_plugins_desc,
                 default=False,
                 icon="msg_block",
                 link_alias="hide_unavailable_plugins"
