@@ -25,6 +25,7 @@
     "delete_button": "Löschen",
     "close_button": "Schließen",
     "achiev_open": "Öffnen",
+    "achiev_unlocked": "Erfolg freigeschaltet!",
     "repo_link_copied": "In die Zwischenablage kopiert! Zauberhaft.",
     "failed_to_copy": "Kopieren fehlgeschlagen :(",
     "repo_icon_text": "Symbol: {0}",

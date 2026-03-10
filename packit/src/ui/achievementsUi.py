@@ -358,6 +358,9 @@ class _AchievementListFragment(dynamic_proxy(UniversalFragment.UniversalFragment
     def onFragmentDestroy(self, *_):
         log("achiev: _AchievementListFragment.onFragmentDestroy called")
         try:
+            from ..other.achievements import unregister_bulletin_container
+            if hasattr(self, '_root_view') and self._root_view is not None:
+                unregister_bulletin_container(self._root_view)
             has_view = hasattr(self, '_root_view')
             log(f"achiev: has _root_view={has_view}")
             if has_view and self._root_view is not None:
@@ -424,6 +427,8 @@ class _AchievementListFragment(dynamic_proxy(UniversalFragment.UniversalFragment
             root.addView(scroll, FrameLayout.LayoutParams(-1, -1))
             self._root_view = root
             log(f"achiev: _AchievementListFragment._root_view set: {root}")
+            from ..other.achievements import register_bulletin_container
+            register_bulletin_container(root)
             _add_actionbar_glow(root)
             return root
         except Exception as e:
@@ -467,6 +472,9 @@ class _CategoryFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegat
     def onFragmentDestroy(self, *_):
         log("achiev: _CategoryFragment.onFragmentDestroy called")
         try:
+            from ..other.achievements import unregister_bulletin_container
+            if hasattr(self, '_root_view') and self._root_view is not None:
+                unregister_bulletin_container(self._root_view)
             has_view = hasattr(self, '_root_view')
             log(f"achiev: has _root_view={has_view}")
             if has_view and self._root_view is not None:
@@ -550,6 +558,8 @@ class _CategoryFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegat
             root.addView(scroll, FrameLayout.LayoutParams(-1, -1))
             self._root_view = root
             log(f"achiev: _CategoryFragment._root_view set: {root}")
+            from ..other.achievements import register_bulletin_container
+            register_bulletin_container(root)
             _add_actionbar_glow(root)
             return root
         except Exception as e:

@@ -25,6 +25,7 @@
     "delete_button": "Sil",
     "close_button": "Kapat",
     "achiev_open": "Aç",
+    "achiev_unlocked": "Başarım açıldı!",
     "repo_link_copied": "Panoya kopyalandı bile!",
     "failed_to_copy": "Pano kabul etmedi... Neyse, olur böyle",
     "repo_icon_text": "Simge: {0}",
