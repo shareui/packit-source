@@ -655,6 +655,40 @@ class InstallUI:
                         self.install_ui.plugin.unhook_method(hook)
             except Exception:
                 pass
+            try:
+                from ...other.localConfig import LocalConfig
+                showTgc = LocalConfig.get("showTgc", False)
+                log(f"tgChannel: showTgc={showTgc}")
+                if not showTgc:
+                    from android_utils import run_on_ui_thread
+                    log("tgChannel: scheduling sheet in 500ms")
+
+                    def _show():
+                        try:
+                            log("tgChannel: _show fired")
+                            from .tgChannelSheet import show_tg_channel_sheet
+                            frag = get_last_fragment()
+                            log(f"tgChannel: frag={frag}")
+                            if not frag:
+                                log("tgChannel: no fragment, abort")
+                                return
+                            act = frag.getParentActivity()
+                            rp = frag.getResourceProvider()
+                            log(f"tgChannel: act={act}, rp={rp}")
+                            if not act:
+                                log("tgChannel: act is None, abort")
+                                return
+                            log("tgChannel: calling show_tg_channel_sheet")
+                            show_tg_channel_sheet(act, rp)
+                            log("tgChannel: sheet shown")
+                        except Exception as e:
+                            log(f"tgChannel: _show error: {e}")
+
+                    run_on_ui_thread(_show, 500)
+                else:
+                    log("tgChannel: already shown, skip")
+            except Exception as e:
+                log(f"tgChannel: check error: {e}")
 
         def _handle_repo_select(self, selected):
             if selected == "all":

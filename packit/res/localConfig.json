@@ -1,4 +1,5 @@
 {
   "isBetaShow": false,
-  "sudoPassword": "none"
+  "sudoPassword": "none",
+  "showTgc": false
 }

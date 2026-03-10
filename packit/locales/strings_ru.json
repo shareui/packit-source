@@ -326,5 +326,10 @@
     "stat_hint_reports_sent": "Количество отправленных жалоб на плагины.",
     "achiev_category_progress": "{completed} of {total} completed",
     "achiev_category_all_done": "All completed!",
-    "export_db_done_share": "Backup shared successfully"
+    "export_db_done_share": "Backup shared successfully",
+    "tg_channel_title": "Эй, у нас есть канал!",
+    "tg_channel_subtitle": "Обновления, объявления и списки изменений. Только то, что необходимо, обещаем.",
+    "tg_channel_join": "Ну, хорошо",
+    "tg_channel_dismiss": "Не хочу",
+    "tg_channel_url": "https://t.me/packitapp/2"
 }

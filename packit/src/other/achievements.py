@@ -129,6 +129,7 @@ _XP_REWARDS = {
     "secret_terraria": 911,
     "secret_identity": 0,
     "secret_curiosity": 1500,
+    "secret_subscriber": 5000,
 }
 
 

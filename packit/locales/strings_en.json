@@ -349,5 +349,10 @@
     "translate": "Translate",
     "report": "Report",
     "no_description_to_translate": "No description to translate",
-    "translation_failed": "Translation failed"
+    "translation_failed": "Translation failed",
+    "tg_channel_title": "Hey, we have a channel",
+    "tg_channel_subtitle": "Updates, announcements, and changelogs. Only what is necessary, promise.",
+    "tg_channel_join": "Fine",
+    "tg_channel_dismiss": "Don't want",
+    "tg_channel_url": "https://t.me/packitappen/2"
 }

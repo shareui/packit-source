@@ -330,5 +330,10 @@
     "stat_hint_reports_sent": "Anzahl der eingereichten Plugin-Berichte.",
     "achiev_category_progress": "{completed} of {total} completed",
     "achiev_category_all_done": "All completed!",
-    "export_db_done_share": "Backup shared successfully"
+    "export_db_done_share": "Backup shared successfully",
+    "tg_channel_title": "Hey, wir haben einen Kanal!",
+    "tg_channel_subtitle": "Updates, Ankündigungen und Changelogs. Nur das Wesentliche, versprochen.",
+    "tg_channel_join": "Na gut",
+    "tg_channel_dismiss": "Kein Interesse",
+    "tg_channel_url": "https://t.me/packitappen/2"
 }

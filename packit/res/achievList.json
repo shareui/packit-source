@@ -628,5 +628,14 @@
     "hint": "Why did you click here? There's nothing here. Go install some plugins. Seriously, close this and do something useful.",
     "icon": "msg_info",
     "playSound": true
+  },
+  {
+    "id": "secret_subscriber",
+    "category": "Unknown achievements",
+    "title": "One of us",
+    "goal": 1,
+    "hint": "You joined the PackIt channel. Now you are officially part of the loop. Updates, changelogs, chaos — all yours.",
+    "icon": "msg_channel",
+    "playSound": true
   }
 ]

@@ -330,5 +330,10 @@
     "stat_hint_reports_sent": "已提交的插件举报数量。",
     "achiev_category_progress": "{completed} of {total} completed",
     "achiev_category_all_done": "All completed!",
-    "export_db_done_share": "Backup shared successfully"
+    "export_db_done_share": "Backup shared successfully",
+    "tg_channel_title": "嘿，我们有个频道！",
+    "tg_channel_subtitle": "更新、公告和更新日志。只推送必要的内容，保证。",
+    "tg_channel_join": "好吧",
+    "tg_channel_dismiss": "不想",
+    "tg_channel_url": "https://t.me/packitappen/2"
 }
