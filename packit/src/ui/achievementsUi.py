@@ -109,7 +109,7 @@ def _make_category_card(act, category: str, achievements: list, on_click):
     except Exception:
         pass
     name_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
-    name_tv.setText(category)
+    name_tv.setText(str(strings[category]))
     name_tv.setTextColor(text_primary)
     top_row.addView(name_tv, LinearLayout.LayoutParams(0, -2, 1.0))
 
@@ -243,11 +243,11 @@ def _make_achievement_card(act, achievement: dict, on_hint_click):
         title_tv.setText("???")
         title_tv.setTextColor(text_secondary)
     else:
-        title_tv.setText(achievement.get("title", ""))
+        title_tv.setText(str(strings[achievement.get("title_key", "achiev_title_unknown")]))
         title_tv.setTextColor(text_primary)
     col.addView(title_tv, LayoutHelper.createLinear(-1, -2))
 
-    if not is_secret_locked and not achievement.get("secret"):
+    if not is_secret_locked and not achievement.get("secret") and not completed:
         mini_bg = FrameLayout(act)
         mini_bg_drawable = GradientDrawable()
         mini_bg_drawable.setShape(GradientDrawable.RECTANGLE)
@@ -335,16 +335,42 @@ class _AchievementListFragment(dynamic_proxy(UniversalFragment.UniversalFragment
         self.achievements = achievements
         self.show_hint_fn = show_hint_fn
 
-    def onFragmentCreate(self):
-        pass
+    def onFragmentCreate(self, *_):
+        log("achiev: _AchievementListFragment.onFragmentCreate called")
 
-    def onFragmentDestroy(self):
-        pass
+    def onFragmentDestroy(self, *_):
+        log("achiev: _AchievementListFragment.onFragmentDestroy called")
+        try:
+            has_view = hasattr(self, '_root_view')
+            log(f"achiev: has _root_view={has_view}")
+            if has_view and self._root_view is not None:
+                parent = self._root_view.getParent()
+                log(f"achiev: parent={parent}")
+                if parent is not None:
+                    parent.removeView(self._root_view)
+                    log("achiev: removeView done")
+                else:
+                    log("achiev: parent is None, skip removeView")
+            else:
+                log("achiev: _root_view is None or missing")
+        except Exception as e:
+            log(f"achiev: onFragmentDestroy error: {e}")
 
     def beforeCreateView(self):
+        log("achiev: _AchievementListFragment.beforeCreateView called")
+        try:
+            if hasattr(self, '_root_view') and self._root_view is not None:
+                parent = self._root_view.getParent()
+                if parent is not None:
+                    parent.removeView(self._root_view)
+                    log("achiev: _AchievementListFragment removed old root_view")
+                self._root_view = None
+        except Exception as e:
+            log(f"achiev: _AchievementListFragment cleanup error: {e}")
         frag = get_last_fragment()
         act = frag.getParentActivity() if frag else None
         if not act:
+            log("achiev: act is None, abort")
             return None
         try:
             bg = Theme.getColor(Theme.key_windowBackgroundGray)
@@ -379,16 +405,19 @@ class _AchievementListFragment(dynamic_proxy(UniversalFragment.UniversalFragment
 
             scroll.addView(content, ScrollView.LayoutParams(-1, -2))
             root.addView(scroll, FrameLayout.LayoutParams(-1, -1))
+            self._root_view = root
+            log(f"achiev: _AchievementListFragment._root_view set: {root}")
             return root
         except Exception as e:
-            log(f"achievementsUi._AchievementListFragment.beforeCreateView: {e}")
+            log(f"achiev: _AchievementListFragment.beforeCreateView error: {e}")
             return None
 
     def afterCreateView(self, view):
+        log(f"achiev: _AchievementListFragment.afterCreateView called, view={view}")
         return view
 
     def getTitle(self):
-        return self.category
+        return str(strings[self.category])
 
     def fillItems(self, items, adapter):
         pass
@@ -413,16 +442,42 @@ class _CategoryFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegat
         self.cat_names = cat_names
         self.show_hint_fn = show_hint_fn
 
-    def onFragmentCreate(self):
-        pass
+    def onFragmentCreate(self, *_):
+        log("achiev: _CategoryFragment.onFragmentCreate called")
 
-    def onFragmentDestroy(self):
-        pass
+    def onFragmentDestroy(self, *_):
+        log("achiev: _CategoryFragment.onFragmentDestroy called")
+        try:
+            has_view = hasattr(self, '_root_view')
+            log(f"achiev: has _root_view={has_view}")
+            if has_view and self._root_view is not None:
+                parent = self._root_view.getParent()
+                log(f"achiev: parent={parent}")
+                if parent is not None:
+                    parent.removeView(self._root_view)
+                    log("achiev: removeView done")
+                else:
+                    log("achiev: parent is None, skip removeView")
+            else:
+                log("achiev: _root_view is None or missing")
+        except Exception as e:
+            log(f"achiev: _CategoryFragment.onFragmentDestroy error: {e}")
 
     def beforeCreateView(self):
+        log("achiev: _CategoryFragment.beforeCreateView called")
+        try:
+            if hasattr(self, '_root_view') and self._root_view is not None:
+                parent = self._root_view.getParent()
+                if parent is not None:
+                    parent.removeView(self._root_view)
+                    log("achiev: _CategoryFragment removed old root_view")
+                self._root_view = None
+        except Exception as e:
+            log(f"achiev: _CategoryFragment cleanup error: {e}")
         frag = get_last_fragment()
         act = frag.getParentActivity() if frag else None
         if not act:
+            log("achiev: act is None, abort")
             return None
         try:
             bg = Theme.getColor(Theme.key_windowBackgroundGray)
@@ -474,12 +529,15 @@ class _CategoryFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegat
 
             scroll.addView(content, ScrollView.LayoutParams(-1, -2))
             root.addView(scroll, FrameLayout.LayoutParams(-1, -1))
+            self._root_view = root
+            log(f"achiev: _CategoryFragment._root_view set: {root}")
             return root
         except Exception as e:
-            log(f"achievementsUi._CategoryFragment.beforeCreateView: {e}")
+            log(f"achiev: _CategoryFragment.beforeCreateView error: {e}")
             return None
 
     def afterCreateView(self, view):
+        log(f"achiev: _CategoryFragment.afterCreateView called, view={view}")
         return view
 
     def getTitle(self):
@@ -550,7 +608,7 @@ def show_hint_sheet(achievement: dict):
         except Exception:
             title_tv.setTypeface(AndroidUtilities.bold())
         title_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18)
-        title_tv.setText(achievement.get("title", ""))
+        title_tv.setText(str(strings[achievement.get("title_key", "achiev_title_unknown")]))
         title_tv.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
         title_row.addView(title_tv, LayoutHelper.createLinear(-1, -2))
         root.addView(title_row, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 14))
@@ -558,7 +616,7 @@ def show_hint_sheet(achievement: dict):
         # hint text
         hint_tv = TextView(act)
         hint_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
-        hint_tv.setText(achievement.get("hint", ""))
+        hint_tv.setText(str(strings[achievement.get("hint_key", "achiev_hint_unknown")]))
         hint_tv.setTextColor(Theme.getColor(Theme.key_dialogTextGray2))
         hint_tv.setLineSpacing(AndroidUtilities.dp(2), 1.0)
         root.addView(hint_tv, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 20))

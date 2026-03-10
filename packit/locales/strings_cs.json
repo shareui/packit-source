@@ -330,5 +330,18 @@
     "stat_hint_reports_sent": "Počet odeslaných hlášení pluginů.",
     "achiev_category_progress": "{completed} of {total} completed",
     "achiev_category_all_done": "All completed!",
-    "export_db_done_share": "Backup shared successfully"
+    "export_db_done_share": "Backup shared successfully",
+    "tg_channel_title": "Hej, máme kanál!",
+    "tg_channel_subtitle": "Aktualizace, oznámení a changelogy. Jen to podstatné, slibujeme.",
+    "tg_channel_join": "No dobře",
+    "tg_channel_dismiss": "Nechci",
+    "tg_channel_url": "https://t.me/packitappen/2",
+    "copy_link": "Kopírovat odkaz",
+    "share": "Sdílet",
+    "code": "Kód",
+    "download": "Stáhnout",
+    "translate": "Přeložit",
+    "report": "Nahlásit",
+    "hide_unavailable_plugins": "Skrýt nedostupné pluginy",
+    "hide_unavailable_plugins_desc": "Skrýt pluginy nekompatibilní s vaším klientem."
 }

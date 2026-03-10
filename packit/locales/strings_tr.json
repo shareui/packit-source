@@ -330,5 +330,18 @@
     "stat_hint_reports_sent": "Gönderilen eklenti raporu sayısı.",
     "achiev_category_progress": "{completed} of {total} completed",
     "achiev_category_all_done": "All completed!",
-    "export_db_done_share": "Backup shared successfully"
+    "export_db_done_share": "Backup shared successfully",
+    "tg_channel_title": "Hey, bir kanalımız var!",
+    "tg_channel_subtitle": "Güncellemeler, duyurular ve değişiklik günlükleri. Sadece gerekli olanlar, söz veriyoruz.",
+    "tg_channel_join": "Peki, tamam",
+    "tg_channel_dismiss": "İstemiyorum",
+    "tg_channel_url": "https://t.me/packitappen/2",
+    "copy_link": "Bağlantıyı kopyala",
+    "share": "Paylaş",
+    "code": "Kod",
+    "download": "İndir",
+    "translate": "Çevir",
+    "report": "Raporla",
+    "hide_unavailable_plugins": "Kullanılamayan eklentileri gizle",
+    "hide_unavailable_plugins_desc": "İstemcinizle uyumsuz eklentileri gizleyin."
 }

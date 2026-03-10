@@ -330,5 +330,18 @@
     "stat_hint_reports_sent": "Numero di segnalazioni di plugin inviate.",
     "achiev_category_progress": "{completed} of {total} completed",
     "achiev_category_all_done": "All completed!",
-    "export_db_done_share": "Backup shared successfully"
+    "export_db_done_share": "Backup shared successfully",
+    "tg_channel_title": "Ehi, abbiamo un canale!",
+    "tg_channel_subtitle": "Aggiornamenti, annunci e changelog. Solo l'essenziale, promesso.",
+    "tg_channel_join": "Va bene",
+    "tg_channel_dismiss": "Non voglio",
+    "tg_channel_url": "https://t.me/packitappen/2",
+    "copy_link": "Copia link",
+    "share": "Condividi",
+    "code": "Codice",
+    "download": "Scarica",
+    "translate": "Traduci",
+    "report": "Segnala",
+    "hide_unavailable_plugins": "Nascondi plugin non disponibili",
+    "hide_unavailable_plugins_desc": "Nascondi i plugin incompatibili con il tuo client."
 }

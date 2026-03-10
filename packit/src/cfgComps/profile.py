@@ -153,7 +153,7 @@ class ProfileSettings:
 
             categories = {}
             for a in items:
-                cat = a["category"]
+                cat = a.get("category_key", a["category"])
                 if cat not in categories:
                     categories[cat] = []
                 categories[cat].append(a)

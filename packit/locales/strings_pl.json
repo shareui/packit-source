@@ -330,5 +330,18 @@
     "stat_hint_reports_sent": "Liczba wysłanych zgłoszeń wtyczek.",
     "achiev_category_progress": "{completed} of {total} completed",
     "achiev_category_all_done": "All completed!",
-    "export_db_done_share": "Backup shared successfully"
+    "export_db_done_share": "Backup shared successfully",
+    "tg_channel_title": "Hej, mamy kanał!",
+    "tg_channel_subtitle": "Aktualizacje, ogłoszenia i changelogi. Tylko to, co potrzebne, obiecujemy.",
+    "tg_channel_join": "No dobra",
+    "tg_channel_dismiss": "Nie chcę",
+    "tg_channel_url": "https://t.me/packitappen/2",
+    "copy_link": "Kopiuj link",
+    "share": "Udostępnij",
+    "code": "Kod",
+    "download": "Pobierz",
+    "translate": "Przetłumacz",
+    "report": "Zgłoś",
+    "hide_unavailable_plugins": "Ukryj niedostępne wtyczki",
+    "hide_unavailable_plugins_desc": "Ukryj wtyczki niekompatybilne z twoim klientem."
 }
