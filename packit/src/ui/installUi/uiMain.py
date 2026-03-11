@@ -1555,7 +1555,7 @@ class InstallUI:
                                 pass
                         threading.Timer(1.0, lambda: run_on_ui_thread(_restore)).start()
 
-                    install_plugin(plugin, on_finish=_finish)
+                    install_plugin(plugin, on_finish=_finish, install_ui=self.install_ui, all_plugins=self.plugins)
 
                 install_btn.setOnClickListener(OnClickListener(onInstallClick))
                 self.install_ui._apply_press_scale(install_btn)
