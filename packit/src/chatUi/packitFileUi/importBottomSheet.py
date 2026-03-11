@@ -9,13 +9,16 @@ from org.telegram.ui.Components import LayoutHelper, StickerImageView
 from org.telegram.ui.Stories.recorder import ButtonWithCounterView
 
 
-def show_import_bottom_sheet(fragment, num_blocks: int, on_confirm):
+def show_import_bottom_sheet(fragment, num_blocks: int, on_confirm, import_level=None, import_xp=None):
     try:
         from elyx import strings
-        from ...other.achievements import get_level_info, _load_account
-
-        data = _load_account()
-        level, xp_into, _ = get_level_info(data)
+        if import_level is not None and import_xp is not None:
+            level = import_level
+            xp_into = import_xp
+        else:
+            from ...other.achievements import get_level_info, _load_account
+            data = _load_account()
+            level, xp_into, _ = get_level_info(data)
 
         activity = fragment.getParentActivity()
         resource_provider = fragment.getResourceProvider()
