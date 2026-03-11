@@ -552,6 +552,6 @@
   "update_sheet_update": "Update",
   "update_sheet_later": "Later",
   "icons_search_hint": "Search icons...",
-  "icons_count": "{0} icons"
+  "icons_count": "{0} icons",
   "plugin_tags": "Plugin Tags"
 }
