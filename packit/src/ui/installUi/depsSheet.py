@@ -351,7 +351,7 @@ def _make_dep_card(act, dep_id, dep_name, dep_version, dep_author, dep_min_versi
         from android.graphics import Color
         green_color = Color.parseColor("#4CAF50")
     if installed:
-        status_icon.setImageResource(_resolve_icon("verified_check"))
+        status_icon.setImageResource(_resolve_icon("msg_select"))
         status_icon.setColorFilter(green_color)
     else:
         status_icon.setImageResource(_resolve_icon("msg_cancel"))
@@ -492,15 +492,7 @@ def _make_dep_card(act, dep_id, dep_name, dep_version, dep_author, dep_min_versi
 
     def on_card_click(v):
         expanded[0] = not expanded[0]
-        if expanded[0]:
-            extra.setAlpha(0.0)
-            extra.setVisibility(View.VISIBLE)
-            extra.animate().alpha(1.0).setDuration(220).start()
-        else:
-            def _hide():
-                extra.setVisibility(View.GONE)
-                extra.setAlpha(1.0)
-            extra.animate().alpha(0.0).setDuration(180).withEndAction(_hide).start()
+        extra.setVisibility(View.VISIBLE if expanded[0] else View.GONE)
         try:
             chevron.animate().rotation(180.0 if expanded[0] else 0.0).setDuration(200).start()
         except Exception:
