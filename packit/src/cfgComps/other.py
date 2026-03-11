@@ -470,7 +470,7 @@ class OtherSettings:
             Header(text=strings.sfx_header),
             ExpandableSwitch(
                 key="sfx_enabled",
-                text=strings.enable_sfx,
+                text=strings.sfx_header,
                 collapsed=True,
                 children=[
                     Switch(key="sfx_install", text=strings.sfx_install, default=False, icon="msg_download", link_alias="sfx_install"),
