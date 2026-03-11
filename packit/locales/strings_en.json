@@ -550,5 +550,7 @@
   "update_sheet_title": "Update available!",
   "update_sheet_version": "PackIt v{0}",
   "update_sheet_update": "Update",
-  "update_sheet_later": "Later"
+  "update_sheet_later": "Later",
+  "icons_search_hint": "Search icons...",
+  "icons_count": "{0} icons"
 }
