@@ -23,6 +23,10 @@ try:
     from com.exteragram.messenger.plugins import PluginsController
 except Exception as e:
     import android_utils as _au; _au.log(f"deps_sheet: import PluginsController failed: {e}")
+try:
+    from org.telegram.messenger import NotificationCenter
+except Exception as e:
+    import android_utils as _au; _au.log(f"deps_sheet: import NotificationCenter failed: {e}")
 
 
 def _resolve_icon(name):
@@ -461,25 +465,54 @@ def _make_dep_card(act, dep_id, dep_name, dep_version, dep_author, dep_min_versi
             pass
         install_btn.addView(install_tv, FrameLayout.LayoutParams(-1, -2))
 
-        def _refresh_card(_ok=None):
+        observer_registered = [None]
+
+        def _do_refresh():
             try:
                 controller = PluginsController.getInstance()
                 now_installed = controller.getPluginEngine(dep_id) is not None
-                if now_installed:
+                if not now_installed:
+                    return
+                try:
+                    green_color = Theme.getColor(Theme.key_avatar_backgroundGreen)
+                except Exception:
+                    from android.graphics import Color
+                    green_color = Color.parseColor("#4CAF50")
+                status_icon.setImageResource(_resolve_icon("verified_check"))
+                status_icon.setColorFilter(green_color)
+                install_btn.setVisibility(View.GONE)
+                if observer_registered[0]:
                     try:
-                        green_color = Theme.getColor(Theme.key_avatar_backgroundGreen)
-                    except Exception:
-                        from android.graphics import Color
-                        green_color = Color.parseColor("#4CAF50")
-                    status_icon.setImageResource(_resolve_icon("verified_check"))
-                    status_icon.setColorFilter(green_color)
-                    install_btn.setVisibility(View.GONE)
+                        NotificationCenter.getGlobalInstance().removeObserver(
+                            observer_registered[0], NotificationCenter.pluginsUpdated
+                        )
+                        observer_registered[0] = None
+                    except Exception as e:
+                        log(f"depsSheet: removeObserver error: {e}")
             except Exception as e:
-                log(f"depsSheet: _refresh_card error for '{dep_id}': {e}")
+                log(f"depsSheet: _do_refresh error for '{dep_id}': {e}")
 
         def on_install(v):
             from ...core import install_plugin
-            install_plugin(dep_meta, install_ui=install_ui, on_finish=_refresh_card)
+            if observer_registered[0] is None:
+                try:
+                    from java import dynamic_proxy
+                    NotificationCenterDelegate = find_class(
+                        "org.telegram.messenger.NotificationCenter$NotificationCenterDelegate"
+                    )
+
+                    class _PluginsObserver(dynamic_proxy(NotificationCenterDelegate)):
+                        def didReceivedNotification(self, id, account, *args):
+                            run_on_ui_thread(_do_refresh)
+
+                    obs = _PluginsObserver()
+                    NotificationCenter.getGlobalInstance().addObserver(
+                        obs, NotificationCenter.pluginsUpdated
+                    )
+                    observer_registered[0] = obs
+                except Exception as e:
+                    log(f"depsSheet: addObserver error: {e}")
+            install_plugin(dep_meta, install_ui=install_ui)
 
         install_btn.setOnClickListener(OnClickListener(on_install))
         try:
@@ -492,11 +525,29 @@ def _make_dep_card(act, dep_id, dep_name, dep_version, dep_author, dep_min_versi
 
     def on_card_click(v):
         expanded[0] = not expanded[0]
-        extra.setVisibility(View.VISIBLE if expanded[0] else View.GONE)
         try:
             chevron.animate().rotation(180.0 if expanded[0] else 0.0).setDuration(200).start()
         except Exception:
             chevron.setRotation(180.0 if expanded[0] else 0.0)
+        if expanded[0]:
+            extra.setAlpha(0.0)
+            extra.setVisibility(View.VISIBLE)
+            try:
+                extra.animate().alpha(1.0).setDuration(250).start()
+            except Exception:
+                extra.setAlpha(1.0)
+        else:
+            try:
+                from android.animation import AnimatorListenerAdapter
+
+                class HideOnEnd(AnimatorListenerAdapter):
+                    def onAnimationEnd(self, anim):
+                        extra.setVisibility(View.GONE)
+                        extra.setAlpha(1.0)
+
+                extra.animate().alpha(0.0).setDuration(180).setListener(HideOnEnd()).start()
+            except Exception:
+                extra.setVisibility(View.GONE)
 
     outer.setOnClickListener(OnClickListener(on_card_click))
     return outer
