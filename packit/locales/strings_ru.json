@@ -515,5 +515,9 @@
   "report": "Пожаловаться",
   "hide_unavailable_plugins": "Скрыть недоступные плагины",
   "hide_unavailable_plugins_desc": "Скрывать плагины, несовместимые с вашим клиентом.",
-  "sec_hash_mismatch_hint": "Рекомендуется установить из PackIt."
+  "sec_hash_mismatch_hint": "Рекомендуется установить из PackIt.",
+  "update_sheet_title": "Доступно обновление!",
+  "update_sheet_version": "PackIt v{0}",
+  "update_sheet_update": "Обновить",
+  "update_sheet_later": "Позже"
 }

@@ -347,5 +347,9 @@
   "report": "Zgłoś",
   "hide_unavailable_plugins": "Ukryj niedostępne wtyczki",
   "hide_unavailable_plugins_desc": "Ukryj wtyczki niekompatybilne z twoim klientem.",
-  "sec_hash_mismatch_hint": "Zaleca się instalację przez PackIt."
+  "sec_hash_mismatch_hint": "Zaleca się instalację przez PackIt.",
+  "update_sheet_title": "Update available!",
+  "update_sheet_version": "PackIt v{0}",
+  "update_sheet_update": "Update",
+  "update_sheet_later": "Later"
 }

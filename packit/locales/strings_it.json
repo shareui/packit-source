@@ -347,5 +347,9 @@
   "report": "Segnala",
   "hide_unavailable_plugins": "Nascondi plugin non disponibili",
   "hide_unavailable_plugins_desc": "Nascondi i plugin incompatibili con il tuo client.",
-  "sec_hash_mismatch_hint": "Si consiglia di installare da PackIt."
+  "sec_hash_mismatch_hint": "Si consiglia di installare da PackIt.",
+  "update_sheet_title": "Update available!",
+  "update_sheet_version": "PackIt v{0}",
+  "update_sheet_update": "Update",
+  "update_sheet_later": "Later"
 }

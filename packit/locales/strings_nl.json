@@ -347,5 +347,9 @@
   "report": "Melden",
   "hide_unavailable_plugins": "Niet-beschikbare plugins verbergen",
   "hide_unavailable_plugins_desc": "Plugins verbergen die niet compatibel zijn met jouw client.",
-  "sec_hash_mismatch_hint": "Het wordt aanbevolen om te installeren via PackIt."
+  "sec_hash_mismatch_hint": "Het wordt aanbevolen om te installeren via PackIt.",
+  "update_sheet_title": "Update available!",
+  "update_sheet_version": "PackIt v{0}",
+  "update_sheet_update": "Update",
+  "update_sheet_later": "Later"
 }

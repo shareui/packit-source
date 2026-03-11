@@ -347,5 +347,9 @@
   "report": "Raporla",
   "hide_unavailable_plugins": "Kullanılamayan eklentileri gizle",
   "hide_unavailable_plugins_desc": "İstemcinizle uyumsuz eklentileri gizleyin.",
-  "sec_hash_mismatch_hint": "PackIt üzerinden kurulum önerilir."
+  "sec_hash_mismatch_hint": "PackIt üzerinden kurulum önerilir.",
+  "update_sheet_title": "Update available!",
+  "update_sheet_version": "PackIt v{0}",
+  "update_sheet_update": "Update",
+  "update_sheet_later": "Later"
 }
