@@ -164,8 +164,6 @@
   "repository_selection_header": "Výběr repozitářů",
   "skip_repository_selection": "Přeskočit výběr repozitáře",
   "skip_repository_selection_desc": "Automaticky otevře nabídku pluginů v režimu \"Všechny repozitáře\".",
-  "hide_repository_selection_button": "Skrýt tlačítko výběru repozitáře",
-  "hide_repository_selection_button_desc": "Skryje tlačítko výběru repozitáře v nabídce pluginů.",
   "security_scan": "Zabezpečení",
   "cache_header": "Cache",
   "clear_cache": "Vymazat cache",

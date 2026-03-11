@@ -95,6 +95,7 @@ except Exception as e:
 
 from .repo import show_repo_sheet
 from .sort import show_sort_menu
+from .teg import show_tag_filter_menu
 from . import search as search_mod
 from .plugin_actions import copy_plugin_link, share_plugin_file, view_plugin_code, report_plugin, download_plugin_file, translate_plugin
 from ...other.media import playSound
@@ -156,6 +157,18 @@ def _build_stats_label(repo_count: int, plugin_count: int) -> str:
         return f"{repo_str} · {plugin_str}"
     except Exception:
         return strings("total_plugins", repo_count, plugin_count)
+
+def _build_plugin_count_label(plugin_count: int) -> str:
+    try:
+        plural_type = strings["plural_type"]
+        plugin_str = _format_plural(
+            plugin_count,
+            strings["plugin_one"], strings["plugin_few"], strings["plugin_many"],
+            plural_type
+        )
+        return plugin_str
+    except Exception:
+        return strings("plugin_many", plugin_count)
 
 def _parse_version(v_str):
     try:
@@ -597,7 +610,7 @@ class InstallUI:
 
                     if hasattr(delegate, 'subtitle'):
                         repo_count = _count_active_repos(self.plugin.repoManager)
-                        delegate.subtitle.setText(_build_stats_label(repo_count, len(delegate.plugins)))
+                        delegate.subtitle.setText(_build_plugin_count_label(len(delegate.plugins)))
 
                     if hasattr(delegate, 'results_container') and delegate.results_container:
                         delegate.build_list_with_sort("alpha_az")
@@ -640,6 +653,7 @@ class InstallUI:
             self.is_loading = False
             self.scroll_listener = None
             self.current_sort_type = "alpha_az"
+            self.selected_tags = set()
             self.batch_size = 10
             self.loading_container = None
             self.loading_video = None
@@ -949,14 +963,39 @@ class InstallUI:
                 show_repo_sheet(self.install_ui, repos, on_select=self._handle_repo_select)
             repo_btn.setOnClickListener(OnClickListener(lambda v: show_repo_menu_handler()))
             self.install_ui._apply_press_scale(repo_btn)
-            if settings.get("hide_repository_selection_button", False):
-                repo_btn.setVisibility(View.GONE)
             repo_btn_lp = FrameLayout.LayoutParams(-2, -2, Gravity.LEFT | Gravity.CENTER_VERTICAL)
             header_row.addView(repo_btn, repo_btn_lp)
+
+            repo_count_btn = FrameLayout(act)
+            repo_count_btn.setClickable(True)
+            repo_count_btn.setFocusable(True)
+            try:
+                repo_count_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                    AndroidUtilities.dp(16), self.card_bg_color, self.card_pressed_color
+                ))
+            except Exception:
+                pass
+            repo_count_btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
+            repo_count_text = TextView(act)
+            repo_count = _count_active_repos(self.install_ui.plugin.repoManager)
+            repo_count_text.setText(str(repo_count))
+            repo_count_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            repo_count_text.setTypeface(AndroidUtilities.bold())
+            repo_count_text.setGravity(Gravity.CENTER)
+            try:
+                repo_count_text.setTextColor(self.text_color)
+            except Exception:
+                pass
+            repo_count_btn.addView(repo_count_text, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
+            repo_count_btn.setOnClickListener(OnClickListener(lambda v: show_repo_menu_handler()))
+            self.install_ui._apply_press_scale(repo_count_btn)
+            repo_count_btn_lp = FrameLayout.LayoutParams(-2, -2, Gravity.LEFT | Gravity.CENTER_VERTICAL)
+            repo_count_btn_lp.leftMargin = AndroidUtilities.dp(40)
+            header_row.addView(repo_count_btn, repo_count_btn_lp)
+
             subtitle = TextView(act)
             subtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
-            repo_count = _count_active_repos(self.install_ui.plugin.repoManager)
-            subtitle.setText(_build_stats_label(repo_count, len(self.plugins)) if self.plugins else strings["total_plugins_unknown"])
+            subtitle.setText(_build_plugin_count_label(len(self.plugins)) if self.plugins else strings["total_plugins_unknown"])
             subtitle.setGravity(Gravity.CENTER)
             subtitle.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(7), AndroidUtilities.dp(12), AndroidUtilities.dp(7))
             subtitle.setClickable(False)
@@ -975,6 +1014,51 @@ class InstallUI:
             subtitle_lp = FrameLayout.LayoutParams(-2, -2, Gravity.CENTER)
             header_row.addView(subtitle, subtitle_lp)
             self.subtitle = subtitle
+
+            tag_filter_btn = FrameLayout(act)
+            tag_filter_btn.setClickable(True)
+            tag_filter_btn.setFocusable(True)
+            try:
+                tag_filter_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                    AndroidUtilities.dp(16), self.card_bg_color, self.card_pressed_color
+                ))
+            except Exception:
+                pass
+            tag_filter_btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
+            tag_filter_icon = ImageView(act)
+            icon_id = self.install_ui._resolve_icon("menu_tag_filter_solar")
+            tag_filter_icon.setImageResource(icon_id)
+            try:
+                tag_filter_icon.setColorFilter(self.text_color)
+            except Exception:
+                pass
+            tag_filter_btn.addView(tag_filter_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
+            
+            def show_tag_filter_handler():
+                try:
+                    imm = act.getSystemService("input_method")
+                    imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
+                except Exception:
+                    pass
+                def on_tags_selected(tags):
+                    try:
+                        self.selected_tags = tags
+                    except Exception:
+                        pass
+                def on_save():
+                    try:
+                        current_q = self.search.getText().toString() if self.search else (self.last_search_query or "")
+                        self.build_list_with_sort(self.current_sort_type, current_q)
+                    except Exception:
+                        pass
+                show_tag_filter_menu(self.install_ui, act, self.plugins, self.selected_tags, on_tags_selected, on_save)
+            
+            tag_filter_btn.setOnClickListener(OnClickListener(lambda v: show_tag_filter_handler()))
+            self.install_ui._apply_press_scale(tag_filter_btn)
+            tag_filter_btn_lp = FrameLayout.LayoutParams(-2, -2, Gravity.RIGHT | Gravity.CENTER_VERTICAL)
+            tag_filter_btn_lp.rightMargin = AndroidUtilities.dp(40)
+            header_row.addView(tag_filter_btn, tag_filter_btn_lp)
+            
             sort_btn = FrameLayout(act)
             sort_btn.setClickable(True)
             sort_btn.setFocusable(True)
@@ -1129,6 +1213,20 @@ class InstallUI:
                     if s[0] < 6:
                         filtered.append(p)
                 filtered.sort(key=lambda p: search_mod.score(p, q, self.search_index, isRussian, fuzzy))
+
+            if self.selected_tags:
+                tag_filtered = []
+                for p in filtered:
+                    plugin_tags = p.get("tags", [])
+                    if isinstance(plugin_tags, list):
+                        for tag_info in plugin_tags:
+                            if isinstance(tag_info, list) and len(tag_info) >= 1:
+                                tag_name = tag_info[0]
+                                if tag_name in self.selected_tags:
+                                    tag_filtered.append(p)
+                                    break
+                filtered = tag_filtered
+            
             if not q:
                 if sort_type == "alpha_az":
                     filtered.sort(key=lambda p: (1 if str(p.get("name") or p.get("id") or "")[:1].isdigit() else 0, str(p.get("name") or p.get("id") or "").lower()))
@@ -1174,8 +1272,7 @@ class InstallUI:
         def _finish_loading_and_show_plugins(self, content_wrapper):
             try:
                 if hasattr(self, 'subtitle'):
-                    repo_count = _count_active_repos(self.install_ui.plugin.repoManager)
-                    self.subtitle.setText(_build_stats_label(repo_count, len(self.plugins)))
+                    self.subtitle.setText(_build_plugin_count_label(len(self.plugins)))
 
                 if self.loading_container:
                     content_wrapper.removeView(self.loading_container)

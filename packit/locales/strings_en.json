@@ -64,8 +64,6 @@
   "repository_selection_header": "Repository Selection",
   "skip_repository_selection": "Skip repository selection",
   "skip_repository_selection_desc": "Automatically opens the plugins menu in \"All repositories\" mode.",
-  "hide_repository_selection_button": "Hide repository selection button",
-  "hide_repository_selection_button_desc": "Hides the repository selection button in the plugins menu.",
   "everything_working": "All systems operational. Relax.",
   "packit": "PackIt",
   "packit_settings": "PackIt Settings",
@@ -552,5 +550,6 @@
   "update_sheet_update": "Update",
   "update_sheet_later": "Later",
   "icons_search_hint": "Search icons...",
-  "icons_count": "{0} icons"
+  "icons_count": "{0} icons",
+  "plugin_tags": "Plugin Tags"
 }

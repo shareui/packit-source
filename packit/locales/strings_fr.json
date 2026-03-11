@@ -164,8 +164,6 @@
   "repository_selection_header": "Sélection du dépôt",
   "skip_repository_selection": "Ignorer la sélection du dépôt",
   "skip_repository_selection_desc": "Ouvre automatiquement le menu des plugins en mode \"Tous les dépôts\".",
-  "hide_repository_selection_button": "Masquer le bouton de sélection du dépôt",
-  "hide_repository_selection_button_desc": "Masque le bouton de sélection du dépôt dans le menu des plugins.",
   "security_scan": "Sécurité",
   "cache_header": "Cache",
   "clear_cache": "Vider le cache",

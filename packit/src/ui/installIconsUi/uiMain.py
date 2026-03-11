@@ -620,8 +620,6 @@ class InstallIconsUI:
 
             repo_btn.setOnClickListener(OnClickListener(lambda v: show_repo_menu_handler()))
             self.install_ui._apply_press_scale(repo_btn)
-            if settings.get("hide_repository_selection_button", False):
-                repo_btn.setVisibility(View.GONE)
             header_row.addView(repo_btn, FrameLayout.LayoutParams(-2, -2, Gravity.LEFT | Gravity.CENTER_VERTICAL))
 
             subtitle = TextView(act)

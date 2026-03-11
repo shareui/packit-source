@@ -164,8 +164,6 @@
   "repository_selection_header": "Выбар рэпазіторыяў",
   "skip_repository_selection": "Прапускаць выбар рэпазіторыяў",
   "skip_repository_selection_desc": "Аўтаматычна адкрывае меню плагінаў у рэжыме \"Усе рэпазіторыі\".",
-  "hide_repository_selection_button": "Схаваць кнопку выбару рэпазіторыяў",
-  "hide_repository_selection_button_desc": "Хавае кнопку выбару рэпазіторыяў у меню плагінаў.",
   "security_scan": "Бяспека",
   "cache_header": "Кэш",
   "clear_cache": "Ачысціць кэш",

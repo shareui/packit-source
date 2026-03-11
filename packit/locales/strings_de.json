@@ -164,8 +164,6 @@
   "repository_selection_header": "Repository-Auswahl",
   "skip_repository_selection": "Repository-Auswahl überspringen",
   "skip_repository_selection_desc": "Öffnet das Plugin-Menü automatisch im Modus \"Alle Repositories\".",
-  "hide_repository_selection_button": "Repository-Auswahlschaltfläche ausblenden",
-  "hide_repository_selection_button_desc": "Blendet die Repository-Auswahlschaltfläche im Plugin-Menü aus.",
   "security_scan": "Sicherheit",
   "cache_header": "Cache",
   "clear_cache": "Cache leeren",

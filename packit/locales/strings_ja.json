@@ -164,8 +164,6 @@
   "repository_selection_header": "リポジトリ選択",
   "skip_repository_selection": "リポジトリ選択をスキップ",
   "skip_repository_selection_desc": "プラグインメニューを「すべてのリポジトリ」モードで自動的に開きます。",
-  "hide_repository_selection_button": "リポジトリ選択ボタンを非表示",
-  "hide_repository_selection_button_desc": "プラグインメニューのリポジトリ選択ボタンを非表示にします。",
   "security_scan": "セキュリティ",
   "cache_header": "キャッシュ",
   "clear_cache": "キャッシュを削除",

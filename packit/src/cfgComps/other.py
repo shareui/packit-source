@@ -458,15 +458,7 @@ class OtherSettings:
                 icon="msg_leave",
                 link_alias="skip_repository_selection"
             ),
-            Switch(
-                key="hide_repository_selection_button",
-                text=strings.hide_repository_selection_button,
-                subtext=strings.hide_repository_selection_button_desc,
-                default=False,
-                icon="msg_unpin",
-                link_alias="hide_repository_selection_button"
-            ),
-            Divider(),
+                        Divider(),
             Header(text=strings.sfx_header),
             ExpandableSwitch(
                 key="sfx_enabled",
