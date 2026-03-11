@@ -136,11 +136,20 @@ def _handleInstallPlugin(repo: dict, pluginId: str):
                         plugin = item
                         break
 
+            # normalize pluginsRaw to list for all_plugins
+            all_plugins = []
+            if isinstance(pluginsRaw, dict):
+                for pid, info in pluginsRaw.items():
+                    if isinstance(info, dict):
+                        all_plugins.append({"id": pid, **info})
+            elif isinstance(pluginsRaw, list):
+                all_plugins = [p for p in pluginsRaw if isinstance(p, dict)]
+
             if not plugin:
                 run_on_ui_thread(lambda: BulletinHelper.show_error(f"Plugin '{pluginId}' not found"))
                 return
 
-            run_on_ui_thread(lambda: install_plugin(plugin))
+            run_on_ui_thread(lambda: install_plugin(plugin, all_plugins=all_plugins))
         except Exception as e:
             log(f"deeplinks.install: fetch error: {e}")
             run_on_ui_thread(lambda: BulletinHelper.show_error("An error occurred while loading plugin"))
