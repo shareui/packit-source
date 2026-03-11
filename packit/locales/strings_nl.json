@@ -164,8 +164,6 @@
   "repository_selection_header": "Repositoryselectie",
   "skip_repository_selection": "Repositoryselectie overslaan",
   "skip_repository_selection_desc": "Opent het pluginmenu automatisch in de modus \"Alle repositories\".",
-  "hide_repository_selection_button": "Knop voor repositoryselectie verbergen",
-  "hide_repository_selection_button_desc": "Verbergt de knop voor repositoryselectie in het pluginmenu.",
   "security_scan": "Beveiliging",
   "cache_header": "Cache",
   "clear_cache": "Cache wissen",

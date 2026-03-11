@@ -64,8 +64,6 @@
   "repository_selection_header": "Выбор репозиториев",
   "skip_repository_selection": "Пропускать выбор репозиториев",
   "skip_repository_selection_desc": "Автоматически открывает меню плагинов в режиме \"Все репозитории\".",
-  "hide_repository_selection_button": "Скрыть кнопку выбора репозиториев",
-  "hide_repository_selection_button_desc": "Скрывает кнопку выбора репозиториев в меню плагинов.",
   "everything_working": "Всё работает в штатном режиме! <3",
   "packit": "PackIt",
   "packit_settings": "Настройки PackIt",

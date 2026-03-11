@@ -164,8 +164,6 @@
   "repository_selection_header": "Depo Seçimi",
   "skip_repository_selection": "Depo seçimini atla",
   "skip_repository_selection_desc": "Eklenti menüsünü otomatik olarak \"Tüm depolar\" modunda açar.",
-  "hide_repository_selection_button": "Depo seçim düğmesini gizle",
-  "hide_repository_selection_button_desc": "Eklenti menüsündeki depo seçim düğmesini gizler.",
   "security_scan": "Güvenlik",
   "cache_header": "Önbellek",
   "clear_cache": "Önbelleği temizle",

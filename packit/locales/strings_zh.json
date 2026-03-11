@@ -164,8 +164,6 @@
   "repository_selection_header": "仓库选择",
   "skip_repository_selection": "跳过仓库选择",
   "skip_repository_selection_desc": "自动以「所有仓库」模式打开插件菜单。",
-  "hide_repository_selection_button": "隐藏仓库选择按钮",
-  "hide_repository_selection_button_desc": "在插件菜单中隐藏仓库选择按钮。",
   "security_scan": "安全",
   "cache_header": "缓存",
   "clear_cache": "清除缓存",

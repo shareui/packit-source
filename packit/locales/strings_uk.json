@@ -164,8 +164,6 @@
   "repository_selection_header": "Вибір репозиторіїв",
   "skip_repository_selection": "Пропускати вибір репозиторію",
   "skip_repository_selection_desc": "Автоматично відкриває меню плагінів у режимі \"Усі репозиторії\".",
-  "hide_repository_selection_button": "Приховати кнопку вибору репозиторію",
-  "hide_repository_selection_button_desc": "Приховує кнопку вибору репозиторію в меню плагінів.",
   "security_scan": "Безпека",
   "cache_header": "Кеш",
   "clear_cache": "Очистити кеш",

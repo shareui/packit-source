@@ -164,8 +164,6 @@
   "repository_selection_header": "Selección de repositorio",
   "skip_repository_selection": "Omitir selección de repositorio",
   "skip_repository_selection_desc": "Abre automáticamente el menú de plugins en el modo \"Todos los repositorios\".",
-  "hide_repository_selection_button": "Ocultar botón de selección de repositorio",
-  "hide_repository_selection_button_desc": "Oculta el botón de selección de repositorio en el menú de plugins.",
   "security_scan": "Seguridad",
   "cache_header": "Caché",
   "clear_cache": "Limpiar caché",
