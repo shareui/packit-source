@@ -63,7 +63,15 @@ class PackItPlugin(BasePlugin):
         setup_packit_file_hook(self)
         self.dialogs_menu_hook_ref = self.chatUI.setup_dialogs_menu_hook()
         self._init_official_repository()
+        self._check_for_update()
         log("PackIt loaded!")
+
+    def _check_for_update(self):
+        try:
+            from .ui.updateSheet import check_and_show
+            check_and_show()
+        except Exception as e:
+            log(f"PackIt: update check error: {e}")
     
     def _check_identity_achievement(self):
         from org.telegram.messenger import UserConfig, MessagesController

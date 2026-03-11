@@ -2,5 +2,6 @@
   "isBetaShow": false,
   "sudoPassword": "none",
   "showTgc": false,
-  "installUiOpenCount": 0
+  "installUiOpenCount": 0,
+  "update_dismissed_ver": ""
 }

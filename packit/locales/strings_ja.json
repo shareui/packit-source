@@ -347,5 +347,9 @@
   "report": "報告",
   "hide_unavailable_plugins": "利用不可のプラグインを非表示",
   "hide_unavailable_plugins_desc": "クライアントと互換性のないプラグインを非表示にします。",
-  "sec_hash_mismatch_hint": "PackIt からインストールすることをお勧めします。"
+  "sec_hash_mismatch_hint": "PackIt からインストールすることをお勧めします。",
+  "update_sheet_title": "Update available!",
+  "update_sheet_version": "PackIt v{0}",
+  "update_sheet_update": "Update",
+  "update_sheet_later": "Later"
 }

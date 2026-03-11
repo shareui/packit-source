@@ -546,5 +546,9 @@
   "achiev_hint_level_60": "Level 60. The maximum. There is nothing beyond this point. You have seen it all.",
   "hide_unavailable_plugins": "Hide unavailable plugins",
   "hide_unavailable_plugins_desc": "Hide plugins that are incompatible with your client.",
-  "sec_hash_mismatch_hint": "It is recommended to install from PackIt."
+  "sec_hash_mismatch_hint": "It is recommended to install from PackIt.",
+  "update_sheet_title": "Update available!",
+  "update_sheet_version": "PackIt v{0}",
+  "update_sheet_update": "Update",
+  "update_sheet_later": "Later"
 }

@@ -347,5 +347,9 @@
   "report": "Паскардзіцца",
   "hide_unavailable_plugins": "Схаваць недаступныя плагіны",
   "hide_unavailable_plugins_desc": "Хаваць плагіны, несумяшчальныя з вашым кліентам.",
-  "sec_hash_mismatch_hint": "Рэкамендуецца ўсталяваць з PackIt."
+  "sec_hash_mismatch_hint": "Рэкамендуецца ўсталяваць з PackIt.",
+  "update_sheet_title": "Update available!",
+  "update_sheet_version": "PackIt v{0}",
+  "update_sheet_update": "Update",
+  "update_sheet_later": "Later"
 }

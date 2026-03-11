@@ -347,5 +347,9 @@
   "report": "Nahlásit",
   "hide_unavailable_plugins": "Skrýt nedostupné pluginy",
   "hide_unavailable_plugins_desc": "Skrýt pluginy nekompatibilní s vaším klientem.",
-  "sec_hash_mismatch_hint": "Doporučuje se instalovat z PackIt."
+  "sec_hash_mismatch_hint": "Doporučuje se instalovat z PackIt.",
+  "update_sheet_title": "Update available!",
+  "update_sheet_version": "PackIt v{0}",
+  "update_sheet_update": "Update",
+  "update_sheet_later": "Later"
 }

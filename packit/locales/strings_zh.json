@@ -347,5 +347,9 @@
   "report": "举报",
   "hide_unavailable_plugins": "隐藏不可用插件",
   "hide_unavailable_plugins_desc": "隐藏与您的客户端不兼容的插件。",
-  "sec_hash_mismatch_hint": "建议从 PackIt 安装。"
+  "sec_hash_mismatch_hint": "建议从 PackIt 安装。",
+  "update_sheet_title": "Update available!",
+  "update_sheet_version": "PackIt v{0}",
+  "update_sheet_update": "Update",
+  "update_sheet_later": "Later"
 }
