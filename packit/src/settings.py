@@ -38,6 +38,7 @@ except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities, ImageLocation, MediaDataController, R failed: {e}")
     from .other.importFailed import showImportFailedAlert as _sifa; _sifa()
 from .ui.installUi.uiMain import InstallUI
+from .ui.installIconsUi.uiMain import InstallIconsUI
 from client_utils import get_last_fragment
 try:
     from org.telegram.messenger.browser import Browser
@@ -199,8 +200,8 @@ class SettingsBuilder:
     
     def _install_icons(self, view):
         try:
-            from ui.bulletin import BulletinHelper
-            BulletinHelper.show_info(strings.not_ready_yet)
+            install_icons_ui = InstallIconsUI(self.plugin)
+            install_icons_ui.open()
         except Exception:
             pass
     
