@@ -951,8 +951,6 @@ class InstallUI:
                 show_repo_sheet(self.install_ui, repos, on_select=self._handle_repo_select)
             repo_btn.setOnClickListener(OnClickListener(lambda v: show_repo_menu_handler()))
             self.install_ui._apply_press_scale(repo_btn)
-            if settings.get("hide_repository_selection_button", False):
-                repo_btn.setVisibility(View.GONE)
             repo_btn_lp = FrameLayout.LayoutParams(-2, -2, Gravity.LEFT | Gravity.CENTER_VERTICAL)
             header_row.addView(repo_btn, repo_btn_lp)
             subtitle = TextView(act)
