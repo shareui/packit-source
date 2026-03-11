@@ -31,6 +31,20 @@ import time
 import os
 import signal
 
+from typing import List, Any, Callable
+from dataclasses import dataclass, field
+
+
+@dataclass
+class ExpandableSwitch:
+    key: str
+    text: str
+    children: List[Any] = field(default_factory=list)
+    collapsed: bool = True
+    on_switch_click: Callable = field(default=None, compare=False, repr=False)
+    link_alias: str = None
+    type: str = field(default="expandable_switch", init=False)
+
 
 def _getCacheInfo(cacheDir):
     # returns (human-readable size string, file count)
@@ -454,20 +468,19 @@ class OtherSettings:
             ),
             Divider(),
             Header(text=strings.sfx_header),
-            Switch(
+            ExpandableSwitch(
                 key="sfx_enabled",
-                text=strings.enable_sfx,
-                subtext=strings.enable_sfx_desc,
-                default=True,
-                icon="msg_voicechat",
-                link_alias="sfx_enabled",
-                on_change=lambda v: settings.set("sfx_enabled", v, reload_settings=True)
+                text=strings.sfx_header,
+                collapsed=True,
+                children=[
+                    Switch(key="sfx_install", text=strings.sfx_install, default=False, icon="msg_download", link_alias="sfx_install"),
+                    Switch(key="sfx_copy_link", text=strings.sfx_copy_link, default=False, icon="msg_link", link_alias="sfx_copy_link"),
+                    Switch(key="sfx_search", text=strings.sfx_search, default=False, icon="msg_search", link_alias="sfx_search"),
+                    Switch(key="sfx_clear_search", text=strings.sfx_clear_search, default=False, icon="msg_close", link_alias="sfx_clear_search"),
+                    Switch(key="sfx_achievement", text=strings.sfx_achievement, default=True, icon="msg_gift_premium", link_alias="sfx_achievement"),
+                ],
+                link_alias="sfx_enabled"
             ),
-            Switch(key="sfx_install", text=strings.sfx_install, default=False, icon="msg_download", link_alias="sfx_install") if settings.get("sfx_enabled", False) else None,
-            Switch(key="sfx_copy_link", text=strings.sfx_copy_link, default=False, icon="msg_link", link_alias="sfx_copy_link") if settings.get("sfx_enabled", False) else None,
-            Switch(key="sfx_search", text=strings.sfx_search, default=False, icon="msg_search", link_alias="sfx_search") if settings.get("sfx_enabled", False) else None,
-            Switch(key="sfx_clear_search", text=strings.sfx_clear_search, default=False, icon="msg_close", link_alias="sfx_clear_search") if settings.get("sfx_enabled", False) else None,
-            Switch(key="sfx_achievement", text=strings.sfx_achievement, default=True, icon="msg_gift_premium", link_alias="sfx_achievement") if settings.get("sfx_enabled", False) else None,
             Divider(),
             Header(text=strings.misc_header),
         ]

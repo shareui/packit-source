@@ -359,12 +359,7 @@ class ProfileSettings:
                 xpLabel.setText(str(strings("stat_xp_total", xp_a=xp_a, xp_b=xp_b)))
             else:
                 xpLabel.setText(str(strings("stat_xp_to_next", xp_a=xp_a, xp_b=xp_b)))
-            root.addView(xpLabel, LayoutHelper.createLinear(-2, -2, 0, 4, 0, 0))
-
-            # divider
-            div = FrameLayout(context)
-            div.setBackgroundColor(Theme.getColor(Theme.key_divider))
-            root.addView(div, LayoutHelper.createLinear(-1, 1, 0, 0, 0, 12))
+            root.addView(xpLabel, LayoutHelper.createLinear(-2, -2, 0, 4, 0, 12))
 
             # counters: value on top (accent, bold), label below (secondary, small)
             # (text, icon_drawable_name)

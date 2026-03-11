@@ -51,6 +51,27 @@ class _DocumentHandler(MethodHook):
                 return
 
             blocks = _parse_blocks(plaintext)
+            import_level = None
+            import_xp = None
+            if "achievements" in blocks:
+                try:
+                    import json
+                    from ...other.achievements import get_level_info
+                    
+                    achievements_data = json.loads(blocks["achievements"])
+                    def _is_hashed_id(k: str) -> bool:
+                        return len(k) == 16 and all(c in "0123456789abcdef" for c in k)
+                    
+                    if achievements_data and all(_is_hashed_id(k) for k in achievements_data):
+                        from ...other.achievements import _hash_account_id
+                        account_id = _hash_account_id(export_user_id)
+                        account_data = achievements_data.get(account_id, {})
+                    else:
+                        account_data = achievements_data
+                    
+                    import_level, import_xp, _ = get_level_info(account_data)
+                except Exception as e:
+                    log(f"decryptorUi: failed to extract level info: {e}")
 
             from client_utils import get_last_fragment
             from .importBottomSheet import show_import_bottom_sheet
@@ -62,7 +83,7 @@ class _DocumentHandler(MethodHook):
             def show():
                 frag = get_last_fragment()
                 if frag:
-                    show_import_bottom_sheet(frag, len(blocks), on_confirm)
+                    show_import_bottom_sheet(frag, len(blocks), on_confirm, import_level, import_xp)
 
             run_on_ui_thread(show)
         except Exception:

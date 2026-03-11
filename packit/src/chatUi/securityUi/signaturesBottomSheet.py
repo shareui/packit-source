@@ -16,6 +16,10 @@ try:
     from org.telegram.ui.Components import LayoutHelper
 except Exception as e:
     log(f"securityUi: import LayoutHelper error: {e}")
+try:
+    from android.view import View
+except Exception as e:
+    View = find_class("android.view.View")
 
 SIGNATURES_URL = "https://raw.githubusercontent.com/shareui/packit/refs/heads/main/configs/signatures.json"
 
@@ -93,7 +97,7 @@ def _buildResultsScrollView(act, results: dict):
 
     root = LinearLayout(act)
     root.setOrientation(LinearLayout.VERTICAL)
-    root.setPadding(dp(16), dp(8), dp(16), dp(4))
+    root.setPadding(dp(0), dp(8), dp(0), dp(4))
 
     if not results:
         _appendCleanState(act, root)
@@ -264,7 +268,7 @@ def _buildLearnMoreBtn(act, onPress) -> object:
 
     wrapper = LinearLayout(act)
     wrapper.setOrientation(LinearLayout.VERTICAL)
-    wrapper.setPadding(dp(16), dp(4), dp(16), dp(8))
+    wrapper.setPadding(dp(0), dp(4), dp(0), dp(8))
 
     btn = FrameLayout(act)
     try:
@@ -311,7 +315,7 @@ def _buildCloseBtn(act, onPress) -> object:
 
     wrapper = LinearLayout(act)
     wrapper.setOrientation(LinearLayout.VERTICAL)
-    wrapper.setPadding(dp(16), 0, dp(16), dp(12))
+    wrapper.setPadding(dp(0), 0, dp(0), dp(0))
 
     btn = FrameLayout(act)
     try:
@@ -350,7 +354,9 @@ def _buildCloseBtn(act, onPress) -> object:
 
 
 def _showResults(results: dict, act):
-    from android.widget import LinearLayout
+    from android.widget import LinearLayout, TextView
+    from android.view import Gravity
+    from android.util import TypedValue
     from org.telegram.ui.ActionBar import BottomSheet
 
     try:
@@ -368,6 +374,25 @@ def _showResults(results: dict, act):
 
         wrapper = LinearLayout(act)
         wrapper.setOrientation(LinearLayout.VERTICAL)
+        wrapper.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(16), AndroidUtilities.dp(20), AndroidUtilities.dp(8))
+        try:
+            wrapper.setBackgroundColor(Theme.getColor(Theme.key_dialogBackground))
+        except Exception:
+            pass
+
+        title = TextView(act)
+        title.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
+        title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 24)
+        try:
+            title.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+        except Exception:
+            title.setTypeface(AndroidUtilities.bold())
+        title.setText(strings["sec_signature_scan_title"])
+        title.setGravity(Gravity.CENTER)
+        wrapper.addView(title, LinearLayout.LayoutParams(-1, -2))
+
+        title_margin = View(act)
+        wrapper.addView(title_margin, LinearLayout.LayoutParams(-1, AndroidUtilities.dp(16)))
 
         scrollView = _buildResultsScrollView(act, results)
         wrapper.addView(scrollView, LinearLayout.LayoutParams(
@@ -388,7 +413,6 @@ def _showResults(results: dict, act):
         ))
 
         builder = BottomSheet.Builder(act)
-        builder.setTitle(strings["sec_signature_scan_title"], True)
         builder.setCustomView(wrapper)
         sheet = builder.create()
         sheetRef[0] = sheet

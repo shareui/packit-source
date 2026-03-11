@@ -305,7 +305,7 @@ def _makeAccentBtn(act, text: str, onPress, colorKey: str = "key_featuredSticker
 
 def _showErrorSheet(act, msg: str):
     from android.widget import LinearLayout, TextView, FrameLayout
-    from android.view import Gravity
+    from android.view import Gravity, View
     from android.util import TypedValue
     from org.telegram.ui.ActionBar import BottomSheet
     from org.telegram.ui.Components import RLottieImageView
@@ -317,7 +317,28 @@ def _showErrorSheet(act, msg: str):
 
         root = LinearLayout(act)
         root.setOrientation(LinearLayout.VERTICAL)
-        root.setPadding(dp(16), dp(16), dp(16), dp(8))
+        root.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(16), AndroidUtilities.dp(20), AndroidUtilities.dp(8))
+        try:
+            root.setBackground(_create_rounded_bg(Theme.getColor(Theme.key_dialogBackground)))
+        except Exception:
+            try:
+                root.setBackgroundColor(Theme.getColor(Theme.key_dialogBackground))
+            except Exception:
+                pass
+
+        title = TextView(act)
+        title.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
+        title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 24)
+        try:
+            title.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+        except Exception:
+            title.setTypeface(AndroidUtilities.bold())
+        title.setText(strings["sec_hash_comparison_title"])
+        title.setGravity(Gravity.CENTER)
+        root.addView(title, LinearLayout.LayoutParams(-1, -2))
+
+        title_margin = View(act)
+        root.addView(title_margin, LinearLayout.LayoutParams(-1, AndroidUtilities.dp(16)))
 
         # lottie error icon
         try:
@@ -341,22 +362,19 @@ def _showErrorSheet(act, msg: str):
         lp2.bottomMargin = dp(16)
         root.addView(tv, lp2)
 
-        closeBtn = _makeAccentBtn(
-            act,
-            strings["close_button"],
-            lambda v: sheetRef[0].dismiss() if sheetRef[0] else None,
-            "key_graySection",
-            "key_listSelector",
-            textColorKey="key_featuredStickers_addButton"
-        )
+        closeBtn = _create_close_button(act, strings["close_button"])
+        
+        def on_close(v):
+            try:
+                sheetRef[0].dismiss()
+            except Exception:
+                pass
+        
+        closeBtn.setOnClickListener(OnClickListener(lambda v: on_close(v)))
+        _applyPressScale(closeBtn)
         root.addView(closeBtn, LinearLayout.LayoutParams(-1, -2))
 
-        # bottom spacing
-        spacer = LinearLayout(act)
-        root.addView(spacer, LinearLayout.LayoutParams(-1, dp(8)))
-
         builder = BottomSheet.Builder(act)
-        builder.setTitle(strings["sec_hash_comparison_title"], True)
         builder.setCustomView(root)
         sheet = builder.create()
         sheetRef[0] = sheet
@@ -429,7 +447,7 @@ def _showResult(act, pluginId: str, localHash: str, localVersion: str | None,
 def _showResultSheet(act, state: str, msg: str, localHash: str, showInstall: bool,
                      pluginId: str, pluginsUrl: str, repoManager, sheet):
     from android.widget import LinearLayout, TextView, FrameLayout
-    from android.view import Gravity
+    from android.view import Gravity, View
     from android.util import TypedValue
     from android.graphics.drawable import GradientDrawable
     from org.telegram.ui.ActionBar import BottomSheet
@@ -454,7 +472,28 @@ def _showResultSheet(act, state: str, msg: str, localHash: str, showInstall: boo
 
         root = LinearLayout(act)
         root.setOrientation(LinearLayout.VERTICAL)
-        root.setPadding(dp(16), dp(16), dp(16), dp(8))
+        root.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(16), AndroidUtilities.dp(20), AndroidUtilities.dp(8))
+        try:
+            root.setBackground(_create_rounded_bg(Theme.getColor(Theme.key_dialogBackground)))
+        except Exception:
+            try:
+                root.setBackgroundColor(Theme.getColor(Theme.key_dialogBackground))
+            except Exception:
+                pass
+
+        title = TextView(act)
+        title.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
+        title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 24)
+        try:
+            title.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+        except Exception:
+            title.setTypeface(AndroidUtilities.bold())
+        title.setText(strings["sec_hash_comparison_title"])
+        title.setGravity(Gravity.CENTER)
+        root.addView(title, LinearLayout.LayoutParams(-1, -2))
+
+        title_margin = View(act)
+        root.addView(title_margin, LinearLayout.LayoutParams(-1, AndroidUtilities.dp(16)))
 
         # lottie icon
         try:
@@ -528,31 +567,35 @@ def _showResultSheet(act, state: str, msg: str, localHash: str, showInstall: boo
 
         # buttons
         if showInstall:
-            installBtn = _makeAccentBtn(
-                act,
-                strings["sec_install_btn"],
-                lambda v: (
-                    sheetRef[0].dismiss() if sheetRef[0] else None,
-                    _doInstall(sheet, pluginId, pluginsUrl, repoManager, act)
-                )
-            )
+            installBtn = _create_close_button(act, strings["sec_install_btn"])
+            
+            def on_install(v):
+                try:
+                    sheetRef[0].dismiss()
+                except Exception:
+                    pass
+                _doInstall(sheet, pluginId, pluginsUrl, repoManager, act)
+            
+            installBtn.setOnClickListener(OnClickListener(lambda v: on_install(v)))
+            _applyPressScale(installBtn)
             root.addView(installBtn, LinearLayout.LayoutParams(-1, -2))
 
-        closeBtn = _makeAccentBtn(
-            act,
-            strings["close_button"],
-            lambda v: sheetRef[0].dismiss() if sheetRef[0] else None,
-            "key_graySection",
-            "key_listSelector",
-            textColorKey="key_featuredStickers_addButton"
-        )
+        close_margin = View(act)
+        root.addView(close_margin, LinearLayout.LayoutParams(-1, AndroidUtilities.dp(16)))
+
+        closeBtn = _create_close_button(act, strings["close_button"])
+        
+        def on_close(v):
+            try:
+                sheetRef[0].dismiss()
+            except Exception:
+                pass
+        
+        closeBtn.setOnClickListener(OnClickListener(lambda v: on_close(v)))
+        _applyPressScale(closeBtn)
         root.addView(closeBtn, LinearLayout.LayoutParams(-1, -2))
 
-        spacer = LinearLayout(act)
-        root.addView(spacer, LinearLayout.LayoutParams(-1, dp(8)))
-
         builder = BottomSheet.Builder(act)
-        builder.setTitle(strings["sec_hash_comparison_title"], True)
         builder.setCustomView(root)
         s = builder.create()
         sheetRef[0] = s
@@ -616,6 +659,55 @@ def _showRepoSelector(act, filePath: str, repoManager, sheet):
     threading.Thread(target=work, daemon=True).start()
 
 
+def _create_rounded_bg(color):
+    from android.graphics.drawable import GradientDrawable
+    bg = GradientDrawable()
+    bg.setShape(GradientDrawable.RECTANGLE)
+    bg.setCornerRadii([
+        AndroidUtilities.dp(20), AndroidUtilities.dp(20),
+        AndroidUtilities.dp(20), AndroidUtilities.dp(20),
+        0, 0, 0, 0
+    ])
+    bg.setColor(color)
+    return bg
+
+
+def _create_close_button(act, text=None):
+    from android.widget import FrameLayout, TextView
+    from android.view import Gravity
+    from android.util import TypedValue
+    
+    close_btn = FrameLayout(act)
+    try:
+        from elyx import strings
+        resolvedText = text if text is not None else strings["close_button"]
+    except Exception:
+        resolvedText = text if text is not None else "Close"
+    
+    try:
+        base_color = Theme.getColor(Theme.key_featuredStickers_addButton)
+    except Exception:
+        base_color = Theme.getColor(Theme.key_dialogTextBlue)
+    try:
+        pressed_color = Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
+    except Exception:
+        pressed_color = base_color
+    close_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+        AndroidUtilities.dp(28), base_color, pressed_color
+    ))
+    close_btn.setPadding(0, AndroidUtilities.dp(14), 0, AndroidUtilities.dp(14))
+    close_btn.setClickable(True)
+    close_btn.setFocusable(True)
+    close_text = TextView(act)
+    close_text.setText(resolvedText)
+    close_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
+    close_text.setTypeface(AndroidUtilities.bold())
+    close_text.setGravity(Gravity.CENTER)
+    close_text.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
+    close_btn.addView(close_text, FrameLayout.LayoutParams(-1, -2))
+    return close_btn
+
+
 def _showRepoSelectorSheet(act, repos: list, pluginId: str, localHash: str,
                            localVersion: str | None, repoManager, sheet):
     from android.widget import LinearLayout, TextView, FrameLayout
@@ -630,7 +722,27 @@ def _showRepoSelectorSheet(act, repos: list, pluginId: str, localHash: str,
 
         root = LinearLayout(act)
         root.setOrientation(LinearLayout.VERTICAL)
-        root.setPadding(dp(8), dp(4), dp(8), dp(8))
+        root.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(16), AndroidUtilities.dp(20), AndroidUtilities.dp(8))
+        try:
+            root.setBackground(_create_rounded_bg(Theme.getColor(Theme.key_dialogBackground)))
+        except Exception:
+            try:
+                root.setBackgroundColor(Theme.getColor(Theme.key_dialogBackground))
+            except Exception:
+                pass
+        title = TextView(act)
+        title.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
+        title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 24)
+        try:
+            title.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+        except Exception:
+            title.setTypeface(AndroidUtilities.bold())
+        title.setText(strings["sec_select_repo_title"])
+        title.setGravity(Gravity.CENTER)
+        root.addView(title, LinearLayout.LayoutParams(-1, -2))
+
+        title_margin = View(act)
+        root.addView(title_margin, LinearLayout.LayoutParams(-1, AndroidUtilities.dp(16)))
 
         accentColor = _resolveColor("key_featuredStickers_addButton", 0xFF1E88E5)
 
@@ -711,24 +823,23 @@ def _showRepoSelectorSheet(act, repos: list, pluginId: str, localHash: str,
 
             root.addView(row, LinearLayout.LayoutParams(-1, -2))
 
-        # cancel button
-        cancelBtn = _makeAccentBtn(
-            act,
-            strings["sec_cancel_btn"],
-            lambda v: sheetRef[0].dismiss() if sheetRef[0] else None,
-            "key_graySection",
-            "key_listSelector",
-            textColorKey="key_featuredStickers_addButton"
-        )
-        lpCancel = LinearLayout.LayoutParams(-1, -2)
-        lpCancel.topMargin = dp(8)
-        root.addView(cancelBtn, lpCancel)
 
-        spacer = LinearLayout(act)
-        root.addView(spacer, LinearLayout.LayoutParams(-1, dp(8)))
+        cancel_margin = View(act)
+        root.addView(cancel_margin, LinearLayout.LayoutParams(-1, AndroidUtilities.dp(16)))
+
+        cancelBtn = _create_close_button(act, strings["sec_cancel_btn"])
+
+        def on_close(v):
+            try:
+                sheetRef[0].dismiss()
+            except Exception:
+                pass
+
+        cancelBtn.setOnClickListener(OnClickListener(lambda v: on_close(v)))
+        _applyPressScale(cancelBtn)
+        root.addView(cancelBtn, LinearLayout.LayoutParams(-1, -2))
 
         builder = BottomSheet.Builder(act)
-        builder.setTitle(strings["sec_select_repo_title"], True)
         builder.setCustomView(root)
         s = builder.create()
         sheetRef[0] = s
