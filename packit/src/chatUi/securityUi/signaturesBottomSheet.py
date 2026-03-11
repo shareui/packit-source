@@ -315,7 +315,7 @@ def _buildCloseBtn(act, onPress) -> object:
 
     wrapper = LinearLayout(act)
     wrapper.setOrientation(LinearLayout.VERTICAL)
-    wrapper.setPadding(dp(0), 0, dp(0), dp(12))
+    wrapper.setPadding(dp(0), 0, dp(0), dp(0))
 
     btn = FrameLayout(act)
     try:
