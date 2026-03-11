@@ -158,6 +158,18 @@ def _build_stats_label(repo_count: int, plugin_count: int) -> str:
     except Exception:
         return strings("total_plugins", repo_count, plugin_count)
 
+def _build_plugin_count_label(plugin_count: int) -> str:
+    try:
+        plural_type = strings["plural_type"]
+        plugin_str = _format_plural(
+            plugin_count,
+            strings["plugin_one"], strings["plugin_few"], strings["plugin_many"],
+            plural_type
+        )
+        return plugin_str
+    except Exception:
+        return strings("plugin_many", plugin_count)
+
 def _parse_version(v_str):
     try:
         return tuple(int(x) for x in str(v_str).strip().split("."))
@@ -598,7 +610,7 @@ class InstallUI:
 
                     if hasattr(delegate, 'subtitle'):
                         repo_count = _count_active_repos(self.plugin.repoManager)
-                        delegate.subtitle.setText(_build_stats_label(repo_count, len(delegate.plugins)))
+                        delegate.subtitle.setText(_build_plugin_count_label(len(delegate.plugins)))
 
                     if hasattr(delegate, 'results_container') and delegate.results_container:
                         delegate.build_list_with_sort("alpha_az")
@@ -953,10 +965,37 @@ class InstallUI:
             self.install_ui._apply_press_scale(repo_btn)
             repo_btn_lp = FrameLayout.LayoutParams(-2, -2, Gravity.LEFT | Gravity.CENTER_VERTICAL)
             header_row.addView(repo_btn, repo_btn_lp)
+
+            repo_count_btn = FrameLayout(act)
+            repo_count_btn.setClickable(True)
+            repo_count_btn.setFocusable(True)
+            try:
+                repo_count_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                    AndroidUtilities.dp(16), self.card_bg_color, self.card_pressed_color
+                ))
+            except Exception:
+                pass
+            repo_count_btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
+            repo_count_text = TextView(act)
+            repo_count = _count_active_repos(self.install_ui.plugin.repoManager)
+            repo_count_text.setText(str(repo_count))
+            repo_count_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            repo_count_text.setTypeface(AndroidUtilities.bold())
+            repo_count_text.setGravity(Gravity.CENTER)
+            try:
+                repo_count_text.setTextColor(self.text_color)
+            except Exception:
+                pass
+            repo_count_btn.addView(repo_count_text, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
+            repo_count_btn.setOnClickListener(OnClickListener(lambda v: show_repo_menu_handler()))
+            self.install_ui._apply_press_scale(repo_count_btn)
+            repo_count_btn_lp = FrameLayout.LayoutParams(-2, -2, Gravity.LEFT | Gravity.CENTER_VERTICAL)
+            repo_count_btn_lp.leftMargin = AndroidUtilities.dp(40)
+            header_row.addView(repo_count_btn, repo_count_btn_lp)
+
             subtitle = TextView(act)
             subtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
-            repo_count = _count_active_repos(self.install_ui.plugin.repoManager)
-            subtitle.setText(_build_stats_label(repo_count, len(self.plugins)) if self.plugins else strings["total_plugins_unknown"])
+            subtitle.setText(_build_plugin_count_label(len(self.plugins)) if self.plugins else strings["total_plugins_unknown"])
             subtitle.setGravity(Gravity.CENTER)
             subtitle.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(7), AndroidUtilities.dp(12), AndroidUtilities.dp(7))
             subtitle.setClickable(False)
@@ -1233,8 +1272,7 @@ class InstallUI:
         def _finish_loading_and_show_plugins(self, content_wrapper):
             try:
                 if hasattr(self, 'subtitle'):
-                    repo_count = _count_active_repos(self.install_ui.plugin.repoManager)
-                    self.subtitle.setText(_build_stats_label(repo_count, len(self.plugins)))
+                    self.subtitle.setText(_build_plugin_count_label(len(self.plugins)))
 
                 if self.loading_container:
                     content_wrapper.removeView(self.loading_container)
