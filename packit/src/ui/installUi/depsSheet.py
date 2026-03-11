@@ -122,7 +122,7 @@ def show_deps_sheet(install_ui, plugin_info: dict, on_confirm, all_plugins: list
 
             title_tv = TextView(act)
             title_tv.setText(strings["deps_sheet_title"])
-            title_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 22)
+            title_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 24)
             try:
                 title_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
             except Exception:
@@ -210,7 +210,7 @@ def show_deps_sheet(install_ui, plugin_info: dict, on_confirm, all_plugins: list
                 install_ui._apply_press_scale(action_btn)
             except Exception:
                 pass
-            root.addView(action_btn, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 4))
+            root.addView(action_btn, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 16))
 
             cancel_btn = FrameLayout(act)
             cancel_btn.setClickable(True)
