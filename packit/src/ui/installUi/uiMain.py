@@ -95,6 +95,7 @@ except Exception as e:
 
 from .repo import show_repo_sheet
 from .sort import show_sort_menu
+from .teg import show_tag_filter_menu
 from . import search as search_mod
 from .plugin_actions import copy_plugin_link, share_plugin_file, view_plugin_code, report_plugin, download_plugin_file, translate_plugin
 from ...other.media import playSound
@@ -640,6 +641,7 @@ class InstallUI:
             self.is_loading = False
             self.scroll_listener = None
             self.current_sort_type = "alpha_az"
+            self.selected_tags = set()
             self.batch_size = 10
             self.loading_container = None
             self.loading_video = None
@@ -975,6 +977,51 @@ class InstallUI:
             subtitle_lp = FrameLayout.LayoutParams(-2, -2, Gravity.CENTER)
             header_row.addView(subtitle, subtitle_lp)
             self.subtitle = subtitle
+
+            tag_filter_btn = FrameLayout(act)
+            tag_filter_btn.setClickable(True)
+            tag_filter_btn.setFocusable(True)
+            try:
+                tag_filter_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                    AndroidUtilities.dp(16), self.card_bg_color, self.card_pressed_color
+                ))
+            except Exception:
+                pass
+            tag_filter_btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
+            tag_filter_icon = ImageView(act)
+            icon_id = self.install_ui._resolve_icon("menu_tag_filter_solar")
+            tag_filter_icon.setImageResource(icon_id)
+            try:
+                tag_filter_icon.setColorFilter(self.text_color)
+            except Exception:
+                pass
+            tag_filter_btn.addView(tag_filter_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
+            
+            def show_tag_filter_handler():
+                try:
+                    imm = act.getSystemService("input_method")
+                    imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
+                except Exception:
+                    pass
+                def on_tags_selected(tags):
+                    try:
+                        self.selected_tags = tags
+                    except Exception:
+                        pass
+                def on_save():
+                    try:
+                        current_q = self.search.getText().toString() if self.search else (self.last_search_query or "")
+                        self.build_list_with_sort(self.current_sort_type, current_q)
+                    except Exception:
+                        pass
+                show_tag_filter_menu(self.install_ui, act, self.plugins, self.selected_tags, on_tags_selected, on_save)
+            
+            tag_filter_btn.setOnClickListener(OnClickListener(lambda v: show_tag_filter_handler()))
+            self.install_ui._apply_press_scale(tag_filter_btn)
+            tag_filter_btn_lp = FrameLayout.LayoutParams(-2, -2, Gravity.RIGHT | Gravity.CENTER_VERTICAL)
+            tag_filter_btn_lp.rightMargin = AndroidUtilities.dp(40)
+            header_row.addView(tag_filter_btn, tag_filter_btn_lp)
+            
             sort_btn = FrameLayout(act)
             sort_btn.setClickable(True)
             sort_btn.setFocusable(True)
@@ -1129,6 +1176,20 @@ class InstallUI:
                     if s[0] < 6:
                         filtered.append(p)
                 filtered.sort(key=lambda p: search_mod.score(p, q, self.search_index, isRussian, fuzzy))
+
+            if self.selected_tags:
+                tag_filtered = []
+                for p in filtered:
+                    plugin_tags = p.get("tags", [])
+                    if isinstance(plugin_tags, list):
+                        for tag_info in plugin_tags:
+                            if isinstance(tag_info, list) and len(tag_info) >= 1:
+                                tag_name = tag_info[0]
+                                if tag_name in self.selected_tags:
+                                    tag_filtered.append(p)
+                                    break
+                filtered = tag_filtered
+            
             if not q:
                 if sort_type == "alpha_az":
                     filtered.sort(key=lambda p: (1 if str(p.get("name") or p.get("id") or "")[:1].isdigit() else 0, str(p.get("name") or p.get("id") or "").lower()))
