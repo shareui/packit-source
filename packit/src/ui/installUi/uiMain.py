@@ -1474,6 +1474,18 @@ class InstallUI:
                     icon_lp.topMargin = AndroidUtilities.dp(5)
                     top_row.addView(icon_view, icon_lp)
 
+                    def onIconClick(v, plugin=p):
+                        try:
+                            from ..pluginProfile.fragment import show_plugin_profile
+                            show_plugin_profile(plugin, self.install_ui, self.plugins)
+                        except Exception as e:
+                            log(f"pluginProfile: open error: {e}")
+
+                    icon_view.setClickable(True)
+                    icon_view.setFocusable(True)
+                    icon_view.setOnClickListener(OnClickListener(onIconClick))
+                    self.install_ui._apply_press_scale(icon_view)
+
                     def try_load_icon():
                         try:
                             if "/" not in str(icon_str):
@@ -1998,6 +2010,14 @@ class InstallUI:
                         except Exception as e:
                             log(f"uiMain: achievements increment error: {e}")
                     
+                    def do_more(_p=p):
+                        try:
+                            from ..pluginProfile.fragment import show_plugin_profile
+                            show_plugin_profile(_p, self.install_ui, self.plugins)
+                        except Exception as e:
+                            log(f"uiMain: do_more error: {e}")
+
+                    icon_more = getattr(R_tg.drawable, 'msg_info', 0)
                     icon_download = getattr(R_tg.drawable, 'msg_download', 0)
                     icon_copy = getattr(R_tg.drawable, 'msg_copy', getattr(R_tg.drawable, 'msg_copy_filled', 0))
                     icon_share = getattr(R_tg.drawable, 'msg_share', 0)
@@ -2005,6 +2025,7 @@ class InstallUI:
                     icon_report = getattr(R_tg.drawable, 'msg_report', 0)
                     icon_translate = getattr(R_tg.drawable, 'msg_replace', 0)
                     
+                    create_menu_item(icon_more, strings["profile"], do_more, False)
                     create_menu_item(icon_copy, strings["copy_link"], do_copy, False)
                     create_menu_item(icon_share, strings["share"], do_share, False)
                     create_menu_item(icon_code, strings["code"], do_code, False)
