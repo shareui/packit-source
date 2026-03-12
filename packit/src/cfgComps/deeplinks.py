@@ -35,6 +35,9 @@ class DeeplinksSettings:
     def _show_specific_plugin(self, view):
         show_deeplink_sheet("dl_specific_plugin")
 
+    def _show_specific_icon_pack(self, view):
+        show_deeplink_sheet("dl_specific_icon_pack")
+
     def _show_update_all(self, view):
         show_deeplink_sheet("dl_update_all")
 
@@ -100,6 +103,13 @@ class DeeplinksSettings:
                 icon="msg_download",
                 on_click=self._show_specific_plugin,
                 link_alias="dl_specific_plugin"
+            ),
+
+            Text(
+                text=strings.deeplinks_install_icon_pack,
+                icon="msg_sticker",
+                on_click=self._show_specific_icon_pack,
+                link_alias="dl_specific_icon_pack"
             ),
 
             Divider(),

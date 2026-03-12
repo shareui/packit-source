@@ -1151,4 +1151,15 @@ class InstallIconsUI:
                     run_on_ui_thread(lambda b=b: iv.setImageBitmap(b))
 
             threading.Thread(target=fetch_all, daemon=True).start()
+
+            card.setClickable(True)
+            card.setFocusable(True)
+            def _on_click(v, _icon=icon):
+                try:
+                    from ...core import install_icon_pack
+                    install_icon_pack(_icon)
+                except Exception as ex:
+                    log(f"icons: card click error: {ex}")
+            card.setOnClickListener(OnClickListener(_on_click))
+            self.install_ui._apply_press_scale(card)
             return card

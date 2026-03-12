@@ -70,6 +70,15 @@ DEEPLINKS_DATA = {
             {"name": "plugin_id", "required": True, "desc": strings.param_plugin_id_desc}
         ]
     },
+    "dl_specific_icon_pack": {
+        "title": strings.deeplinks_install_icon_pack,
+        "link": "tg://packit?install&repo=<rm_id>&icon=<icon_id>",
+        "description": strings.deeplinks_install_icon_pack_desc,
+        "params": [
+            {"name": "rm_id", "required": True, "desc": strings.param_rm_id_desc},
+            {"name": "icon_id", "required": True, "desc": strings.param_icon_id_desc}
+        ]
+    },
     "dl_update_all": {
         "title": strings.deeplinks_check_updates,
         "link": "tg://packit?update",
@@ -330,7 +339,8 @@ def show_deeplink_sheet(link_alias):
                     "plugin_id": "msg_saved",
                     "name": "msg_edit",
                     "link": "msg_link",
-                    "icon": "msg_folders"
+                    "icon": "msg_folders",
+                    "icon_id": "msg_sticker"
                 }
 
                 for param in params:

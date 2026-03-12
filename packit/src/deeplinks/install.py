@@ -2,7 +2,7 @@ from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment, run_on_queue
 from android_utils import log, run_on_ui_thread
 from urllib.parse import urlparse, parse_qs
-from ..core import install_plugin
+from ..core import install_plugin, install_icon_pack
 from ..ui.installUi.uiMain import InstallUI
 try:
     from elyx import strings
@@ -19,9 +19,9 @@ except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
     from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 
-# install&repo=<rm_id>: required: repo — optional: plugin
+# install&repo=<rm_id>: required: repo — optional: plugin, icon
 _INSTALL_REQUIRED = {"repo"}
-_INSTALL_OPTIONAL = {"plugin"}
+_INSTALL_OPTIONAL = {"plugin", "icon"}
 _INSTALL_ALL = _INSTALL_REQUIRED | _INSTALL_OPTIONAL
 
 
@@ -78,6 +78,7 @@ def handle(url, repoManager):
 
         repoId = query.get("repo", [""])[0].strip()
         pluginId = query.get("plugin", [""])[0].strip()
+        iconId = query.get("icon", [""])[0].strip()
 
         if not repoId:
             BulletinHelper.show_error(strings.deeplink_too_few_args)
@@ -86,6 +87,10 @@ def handle(url, repoManager):
         repo = _findRepo(repoManager, repoId)
         if not repo:
             BulletinHelper.show_error(f"Repository '{repoId}' not found")
+            return
+
+        if iconId:
+            _handleInstallIconPack(repo, iconId)
             return
 
         if not pluginId:
@@ -153,5 +158,60 @@ def _handleInstallPlugin(repo: dict, pluginId: str):
         except Exception as e:
             log(f"deeplinks.install: fetch error: {e}")
             run_on_ui_thread(lambda: BulletinHelper.show_error("An error occurred while loading plugin"))
+
+    run_on_queue(task)
+
+
+def _resolveIconsUrl(repo: dict) -> str:
+    repoId = (repo.get("id") or "").strip()
+    fallback = (repo.get("url") or "").strip()
+    if not repoId:
+        return fallback
+    try:
+        cachePath = _getCachePath(repoId)
+        if os.path.exists(cachePath):
+            with open(cachePath, "r", encoding="utf-8") as f:
+                cached = json.load(f)
+            return cached.get("repomap", {}).get("icons") or fallback
+    except Exception:
+        pass
+    return fallback
+
+
+def _handleInstallIconPack(repo: dict, iconId: str):
+    def task():
+        try:
+            iconsUrl = _resolveIconsUrl(repo)
+            if not iconsUrl:
+                run_on_ui_thread(lambda: BulletinHelper.show_error("Repository URL is empty"))
+                return
+
+            r = requests.get(iconsUrl, timeout=15)
+            if r.status_code != 200:
+                run_on_ui_thread(lambda: BulletinHelper.show_error(f"Failed to load repository: HTTP {r.status_code}"))
+                return
+
+            data = r.json()
+            iconsRaw = data.get("icons", [])
+
+            icon = None
+            if isinstance(iconsRaw, dict):
+                info = iconsRaw.get(iconId)
+                if isinstance(info, dict):
+                    icon = {"id": iconId, **info}
+            elif isinstance(iconsRaw, list):
+                for item in iconsRaw:
+                    if isinstance(item, dict) and item.get("id") == iconId:
+                        icon = item
+                        break
+
+            if not icon:
+                run_on_ui_thread(lambda: BulletinHelper.show_error(f"Icon pack '{iconId}' not found"))
+                return
+
+            run_on_ui_thread(lambda: install_icon_pack(icon))
+        except Exception as e:
+            log(f"deeplinks.install: icon fetch error: {e}")
+            run_on_ui_thread(lambda: BulletinHelper.show_error("An error occurred while loading icon pack"))
 
     run_on_queue(task)

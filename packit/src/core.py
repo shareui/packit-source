@@ -5,6 +5,7 @@ from android_utils import log, run_on_ui_thread
 from client_utils import get_last_fragment
 from ui.bulletin import BulletinHelper
 from android.widget import ProgressBar, LinearLayout
+from java import dynamic_proxy
 try:
     from org.telegram.messenger import ApplicationLoader, AndroidUtilities
 except Exception as e:
@@ -222,6 +223,150 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
                     run_on_ui_thread(lambda: on_finish(False))
             except Exception:
                 pass
+
+    threading.Thread(target=task, daemon=True).start()
+
+
+def install_icon_pack(icon_info: dict):
+    pack_id = icon_info.get("id")
+    url = icon_info.get("link")
+    name = str(icon_info.get("name") or pack_id or "Unknown")
+    author = str(icon_info.get("author") or "")
+    version = str(icon_info.get("version") or "1.0")
+
+    if not pack_id or not url:
+        BulletinHelper.show_error("Icon pack has no link")
+        return
+
+    fragment = get_last_fragment()
+    if not fragment:
+        return
+
+    from ui.alert import AlertDialogBuilder
+    ctx = fragment.getContext()
+    builder = AlertDialogBuilder(ctx, AlertDialogBuilder.ALERT_TYPE_LOADING)
+    builder.set_title("Downloading...")
+    builder.set_cancelable(False)
+    dlg = builder.show()
+    dlg.set_progress(0)
+
+    def task():
+        try:
+            r = requests.get(url, stream=True, timeout=30)
+            if r.status_code != 200:
+                log(f"core.install_icon_pack: HTTP {r.status_code} for '{pack_id}'")
+                _dismiss_dialog(dlg)
+                run_on_ui_thread(lambda: BulletinHelper.show_error(f"Download failed: HTTP {r.status_code}"))
+                return
+
+            pkg = ApplicationLoader.applicationContext.getPackageName()
+            tmp_path = f"/data/data/{pkg}/cache/packit_iconpack_{pack_id}.icons"
+
+            content_length = r.headers.get("content-length")
+            total = int(content_length) if content_length else 0
+            downloaded = 0
+            r.raw.decode_content = True
+            with open(tmp_path, "wb") as f:
+                while True:
+                    chunk = r.raw.read(8192)
+                    if not chunk:
+                        break
+                    f.write(chunk)
+                    if total:
+                        downloaded += len(chunk)
+                        _set_progress(dlg, min(99, int(downloaded * 100 / total)))
+
+            # parse pack on background thread — parsePackFromZip is a suspend function
+            # must be called with a valid Continuation, not None
+            # use kotlinx runBlocking which provides a proper coroutine context
+            from hook_utils import find_class
+
+            IconPackStorage = find_class("com.exteragram.messenger.icons.IconPackStorage")
+            IconManager = find_class("com.exteragram.messenger.icons.IconManager")
+            InstallIconPackBottomSheet = find_class("com.exteragram.messenger.icons.ui.components.InstallIconPackBottomSheet")
+            File = find_class("java.io.File")
+            tmp_file_obj = File(tmp_path)
+
+            result_holder = [None]
+            done_event = threading.Event()
+
+            Continuation = find_class("kotlin.coroutines.Continuation")
+            EmptyCoroutineContext = find_class("kotlin.coroutines.EmptyCoroutineContext")
+
+            class _ParseCont(dynamic_proxy(Continuation)):
+                def getContext(self):
+                    return EmptyCoroutineContext.INSTANCE
+                def resumeWith(self, result):
+                    # kotlin inline Result<T> at JVM level passes value directly on success
+                    result_holder[0] = result
+                    done_event.set()
+
+            IconPackStorage.INSTANCE.parsePackFromZip(tmp_file_obj, _ParseCont())
+            done_event.wait(timeout=30)
+
+            parsed_pack = result_holder[0]
+
+            _dismiss_dialog(dlg)
+
+            if parsed_pack is None:
+                log(f"core.install_icon_pack: parsePackFromZip returned None for '{pack_id}'")
+                run_on_ui_thread(lambda: BulletinHelper.show_error("Failed to read icon pack"))
+                return
+
+            def open_sheet(pp=parsed_pack):
+                try:
+                    frag = get_last_fragment()
+                    if not frag:
+                        return
+
+                    class _Delegate(dynamic_proxy(InstallIconPackBottomSheet.InstallDelegate)):
+                        def __init__(self):
+                            super().__init__()
+                        def onInstall(self, enableAfterInstall, isUpdate):
+                            def do_install():
+                                try:
+                                    install_done = threading.Event()
+                                    install_result = [None]
+
+                                    class _InstCont(dynamic_proxy(Continuation)):
+                                        def getContext(self):
+                                            return EmptyCoroutineContext.INSTANCE
+                                        def resumeWith(self, res):
+                                            install_result[0] = res
+                                            install_done.set()
+
+                                    IconPackStorage.INSTANCE.installPack(tmp_file_obj, _InstCont())
+                                    install_done.wait(timeout=60)
+
+                                    result = bool(install_result[0]) if install_result[0] is not None else False
+
+                                    if result:
+                                        if enableAfterInstall:
+                                            run_on_ui_thread(lambda: IconManager.INSTANCE.setActiveCustomPack(pack_id))
+                                        run_on_ui_thread(lambda: BulletinHelper.show_success(f"'{name}' installed"))
+                                    else:
+                                        run_on_ui_thread(lambda: BulletinHelper.show_error("Installation failed"))
+                                except Exception as ex:
+                                    log(f"core.install_icon_pack: installPack error: {ex}")
+                                    run_on_ui_thread(lambda: BulletinHelper.show_error(f"Error: {ex}"))
+                                finally:
+                                    try:
+                                        os.remove(tmp_path)
+                                    except Exception:
+                                        pass
+                            threading.Thread(target=do_install, daemon=True).start()
+
+                    sheet = InstallIconPackBottomSheet(frag.getContext(), pp, _Delegate())
+                    frag.showDialog(sheet)
+                except Exception as ex:
+                    log(f"core.install_icon_pack: open_sheet error: {ex}")
+                    BulletinHelper.show_error(f"Failed to open install sheet: {ex}")
+
+            run_on_ui_thread(open_sheet)
+        except Exception as e:
+            log(f"core.install_icon_pack: error: {e}")
+            _dismiss_dialog(dlg)
+            run_on_ui_thread(lambda: BulletinHelper.show_error("An error occurred while downloading"))
 
     threading.Thread(target=task, daemon=True).start()
 

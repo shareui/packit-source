@@ -360,7 +360,7 @@
   "import_db_cancel": "I changed my mind",
   "import_db_done": "Export successfully applied!",
   "import_db_error": "Failed to read export",
-  "import_db_wrong_account": "Exports are intended for transfer between devices",
+  "import_db_wrong_account": "Exports are intended for transfer between devices, not accounts!",
   "reload": "Reload",
   "stat_hint_achievements": "Number of achievements unlocked out of all available.",
   "stat_hint_days_of_use": "Number of days PackIt has been used.",
@@ -568,5 +568,8 @@
   "icons_search_hint": "Search icons...",
   "icons_count": "{0} icons",
   "plugin_tags": "Plugin Tags",
-  "support_with_stars": "Support with Stars"
+  "support_with_stars": "Support with Stars",
+  "deeplinks_install_icon_pack": "Installing the icon pack",
+  "deeplinks_install_icon_pack_desc": "Install a specific icon pack from a repository",
+  "param_icon_id_desc": "Icon pack ID"
 }

@@ -204,6 +204,7 @@ class InstallUI:
     def __init__(self, plugin):
         self.plugin = plugin
         self.repoManager = plugin.repoManager
+        log(f"InstallUI: created id={id(self)}")
 
     def _parse_github_url(self, url):
         try:
@@ -689,11 +690,13 @@ class InstallUI:
             self.batch_size = 10
             self.loading_container = None
             self.loading_video = None
+            log(f"InstallUI: PluginListFragment created id={id(self)} title='{title}' repo_id='{repo_id}' install_ui_id={id(install_ui)}")
 
         def onFragmentCreate(self, *_):
             pass
 
         def onFragmentDestroy(self, *_):
+            log(f"InstallUI: PluginListFragment destroyed id={id(self)} title='{getattr(self, 'title', '?')}' repo_id='{getattr(self, 'repo_id', '?')}'")
             try:
                 if hasattr(self, 'content_view') and self.content_view is not None:
                     from ...other.achievements import unregister_bulletin_container
