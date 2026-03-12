@@ -165,7 +165,7 @@ def _make_link_row(context, icon_name, label_text, link_text, on_click):
         row.setOrientation(LinearLayout.HORIZONTAL)
         row.setGravity(Gravity.CENTER_VERTICAL)
         row.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite))
-        row.setPadding(dp(16), dp(10), dp(16), dp(10))
+        row.setPadding(dp(20), dp(10), dp(16), dp(10))
         row.setMinimumHeight(dp(50))
         row.setClickable(True)
         row.setOnClickListener(OnClickListener(on_click))
@@ -186,7 +186,7 @@ def _make_link_row(context, icon_name, label_text, link_text, on_click):
                 icon_view.setImageDrawable(drawable)
         except Exception:
             pass
-        row.addView(icon_view, LayoutHelper.createLinear(24, 24, Gravity.CENTER_VERTICAL, 0, 0, 16, 0))
+        row.addView(icon_view, LayoutHelper.createLinear(24, 24, Gravity.CENTER_VERTICAL, 0, 0, 24, 0))
 
         label = TextView(context)
         label.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
@@ -308,6 +308,27 @@ class ContributorsSettings:
         except Exception:
             return None
 
+    def _make_small_divider(self):
+        try:
+            frag = get_last_fragment()
+            ctx = frag.getParentActivity() if frag else None
+            if not ctx:
+                return None
+            
+            from android.view import View
+            
+            divider = View(ctx)
+            divider.setMinimumHeight(AndroidUtilities.dp(1))
+            divider.setBackgroundColor(Theme.getColor(Theme.key_divider))
+            container = FrameLayout(ctx)
+            params = FrameLayout.LayoutParams(-1, AndroidUtilities.dp(1))
+            params.setMargins(AndroidUtilities.dp(68), AndroidUtilities.dp(4), AndroidUtilities.dp(16), 0)
+            container.addView(divider, params)
+            
+            return Custom(view=container)
+        except Exception:
+            return None
+
     def _make_link_item(self, icon_name, label_text, link_text, on_click):
         try:
             frag = get_last_fragment()
@@ -356,13 +377,29 @@ class ContributorsSettings:
         else:
             items.append(Header(text=strings.founder_shareui))
 
-        for item in [
-            self._make_link_item("msg_link", str(strings.github), "github.com/shareui", lambda v: self._open_url("https://github.com/shareui")),
-            self._make_link_item("msg_message", str(strings.direct_message), "t.me/shareui", lambda v: self._open_url("https://t.me/shareui")),
-            self._make_link_item("msg_channel", str(strings.personal_channel), "t.me/fuchslog", lambda v: self._open_url("https://t.me/fuchslog")),
-        ]:
-            if item is not None:
-                items.append(item)
+        item = self._make_link_item("msg_link", str(strings.github), "github.com/shareui", lambda v: self._open_url("https://github.com/shareui"))
+        if item is not None:
+            items.append(item)
+
+        divider = self._make_small_divider()
+        if divider is not None:
+            items.append(divider)
+
+        item = self._make_link_item("msg_message", str(strings.direct_message), "t.me/shareui", lambda v: self._open_url("https://t.me/shareui"))
+        if item is not None:
+            items.append(item)
+
+        divider = self._make_small_divider()
+        if divider is not None:
+            items.append(divider)
+
+        item = self._make_link_item("msg_channel", str(strings.personal_channel), "t.me/fuchslog", lambda v: self._open_url("https://t.me/fuchslog"))
+        if item is not None:
+            items.append(item)
+
+        divider = self._make_small_divider()
+        if divider is not None:
+            items.append(divider)
 
         items += [
             Text(
@@ -379,9 +416,9 @@ class ContributorsSettings:
                 link_alias="support_ton_s",
                 on_click=support_via_ton
             ),
-
-            Divider(),
         ]
+
+        items.append(Divider())
 
         avatar_vestr = self._make_avatar_item(
             "https://avatars.githubusercontent.com/u/184731661?v=4",
@@ -394,13 +431,29 @@ class ContributorsSettings:
         else:
             items.append(Header(text=strings.lead_developer_vestr))
 
-        for item in [
-            self._make_link_item("msg_link", str(strings.github), "github.com/mr-vestr", lambda v: self._open_url("https://github.com/mr-vestr")),
-            self._make_link_item("msg_message", str(strings.direct_message), "t.me/mr_Vestr", lambda v: self._open_url("https://t.me/mr_Vestr")),
-            self._make_link_item("msg_channel", str(strings.personal_channel), "t.me/I_am_Vestr", lambda v: self._open_url("https://t.me/I_am_Vestr")),
-        ]:
-            if item is not None:
-                items.append(item)
+        item = self._make_link_item("msg_link", str(strings.github), "github.com/mr-vestr", lambda v: self._open_url("https://github.com/mr-vestr"))
+        if item is not None:
+            items.append(item)
+
+        divider = self._make_small_divider()
+        if divider is not None:
+            items.append(divider)
+
+        item = self._make_link_item("msg_message", str(strings.direct_message), "t.me/mr_Vestr", lambda v: self._open_url("https://t.me/mr_Vestr"))
+        if item is not None:
+            items.append(item)
+
+        divider = self._make_small_divider()
+        if divider is not None:
+            items.append(divider)
+
+        item = self._make_link_item("msg_channel", str(strings.personal_channel), "t.me/I_am_Vestr", lambda v: self._open_url("https://t.me/I_am_Vestr"))
+        if item is not None:
+            items.append(item)
+            
+        divider = self._make_small_divider()
+        if divider is not None:
+            items.append(divider)
 
         items += [
             Text(
