@@ -922,7 +922,9 @@ class InstallUI:
             header_row_lp.topMargin = AndroidUtilities.dp(4)
             header_row_lp.bottomMargin = AndroidUtilities.dp(12)
             main_layout.addView(header_row, header_row_lp)
-            repo_btn = FrameLayout(act)
+            repo_btn = LinearLayout(act)
+            repo_btn.setOrientation(LinearLayout.HORIZONTAL)
+            repo_btn.setGravity(Gravity.CENTER_VERTICAL)
             repo_btn.setClickable(True)
             repo_btn.setFocusable(True)
             try:
@@ -931,7 +933,8 @@ class InstallUI:
                 ))
             except Exception:
                 pass
-            repo_btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
+            repo_btn.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(8), AndroidUtilities.dp(12), AndroidUtilities.dp(8))
+            
             repo_icon = ImageView(act)
             icon_id = self.install_ui._resolve_icon("msg_media")
             repo_icon.setImageResource(icon_id)
@@ -939,7 +942,38 @@ class InstallUI:
                 repo_icon.setColorFilter(self.text_color)
             except Exception:
                 pass
-            repo_btn.addView(repo_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
+            repo_btn.addView(repo_icon, LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20)))
+            
+            repo_count_container = FrameLayout(act)
+            repo_count_text = TextView(act)
+            repo_count = _count_active_repos(self.install_ui.plugin.repoManager)
+            repo_count_text.setText(str(repo_count))
+            repo_count_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
+            repo_count_text.setTypeface(AndroidUtilities.bold())
+            repo_count_text.setGravity(Gravity.CENTER)
+            try:
+                repo_count_text.setTextColor(self.text_color)
+            except Exception:
+                pass
+
+            badge_bg = GradientDrawable()
+            badge_bg.setShape(GradientDrawable.OVAL)
+            badge_bg.setColor(0x00000000)
+            try:
+                badge_bg.setStroke(AndroidUtilities.dp(1.5), self.text_color)
+            except Exception:
+                badge_bg.setStroke(AndroidUtilities.dp(1.5), 0xFFFFFFFF)
+            repo_count_text.setBackground(badge_bg)
+            
+            badge_size = AndroidUtilities.dp(18) if repo_count < 10 else AndroidUtilities.dp(20)
+            repo_count_text.setLayoutParams(FrameLayout.LayoutParams(badge_size, badge_size))
+            repo_count_container.addView(repo_count_text, FrameLayout.LayoutParams(badge_size, badge_size, Gravity.CENTER))
+            
+            repo_count_container_lp = LinearLayout.LayoutParams(-2, -2)
+            repo_count_container_lp.leftMargin = AndroidUtilities.dp(6)
+            repo_count_container_lp.gravity = Gravity.CENTER_VERTICAL
+            repo_btn.addView(repo_count_container, repo_count_container_lp)
+            
             def show_repo_menu_handler():
                 try:
                     imm = act.getSystemService("input_method")
@@ -965,33 +999,6 @@ class InstallUI:
             self.install_ui._apply_press_scale(repo_btn)
             repo_btn_lp = FrameLayout.LayoutParams(-2, -2, Gravity.LEFT | Gravity.CENTER_VERTICAL)
             header_row.addView(repo_btn, repo_btn_lp)
-
-            repo_count_btn = FrameLayout(act)
-            repo_count_btn.setClickable(True)
-            repo_count_btn.setFocusable(True)
-            try:
-                repo_count_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                    AndroidUtilities.dp(16), self.card_bg_color, self.card_pressed_color
-                ))
-            except Exception:
-                pass
-            repo_count_btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
-            repo_count_text = TextView(act)
-            repo_count = _count_active_repos(self.install_ui.plugin.repoManager)
-            repo_count_text.setText(str(repo_count))
-            repo_count_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
-            repo_count_text.setTypeface(AndroidUtilities.bold())
-            repo_count_text.setGravity(Gravity.CENTER)
-            try:
-                repo_count_text.setTextColor(self.text_color)
-            except Exception:
-                pass
-            repo_count_btn.addView(repo_count_text, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
-            repo_count_btn.setOnClickListener(OnClickListener(lambda v: show_repo_menu_handler()))
-            self.install_ui._apply_press_scale(repo_count_btn)
-            repo_count_btn_lp = FrameLayout.LayoutParams(-2, -2, Gravity.LEFT | Gravity.CENTER_VERTICAL)
-            repo_count_btn_lp.leftMargin = AndroidUtilities.dp(40)
-            header_row.addView(repo_count_btn, repo_count_btn_lp)
 
             subtitle = TextView(act)
             subtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
