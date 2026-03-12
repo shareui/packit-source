@@ -227,7 +227,7 @@
   "show_plugin_tags": "Show plugin tags",
   "show_plugin_tags_desc": "Display category tags on plugin cards.",
   "show_plugin_size": "Show plugin size",
-  "show_plugin_size_desc": "Fetches file size via HEAD request and shows it on the plugin card.",
+  "show_plugin_size_desc": "Display the file size of the plugin as specified in the repository config.",
   "show_plugin_min_version": "Show minimum version",
   "show_plugin_min_version_desc": "Display the minimum app version required to run the plugin.",
   "show_plugin_deps_count": "Show dependencies count",
