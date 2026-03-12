@@ -419,22 +419,6 @@ class OtherSettings:
                 link_alias="hide_unavailable_plugins"
             ),
             Switch(
-                key="show_plugin_tags",
-                text=strings.show_plugin_tags,
-                subtext=strings.show_plugin_tags_desc,
-                default=True,
-                icon="menu_tag_filter",
-                link_alias="show_plugin_tags"
-            ),
-            Switch(
-                key="fuzzy_search",
-                text=strings.fuzzy_search,
-                subtext=strings.fuzzy_search_desc,
-                default=False,
-                icon="msg_search",
-                link_alias="fuzzy_search"
-            ),
-            Switch(
                 key="old_sort_menu_design",
                 text=strings.classic_sort_menu,
                 subtext=strings.classic_sort_menu_desc,
@@ -450,6 +434,26 @@ class OtherSettings:
                 icon="msg_sticker",
                 link_alias="show_default_sticker"
             ),
+            Divider(),
+            Header(text=strings.plugin_card_header),
+            Switch(
+                key="show_plugin_tags",
+                text=strings.show_plugin_tags,
+                subtext=strings.show_plugin_tags_desc,
+                default=True,
+                icon="menu_tag_filter",
+                link_alias="show_plugin_tags"
+            ),
+            Divider(),
+            Header(text=strings.navigation_header),
+            Switch(
+                key="hide_repo_button",
+                text=strings.hide_repo_button,
+                subtext=strings.hide_repo_button_desc,
+                default=False,
+                icon="msg_close",
+                link_alias="hide_repo_button"
+            ),
             Switch(
                 key="skip_repository_selection",
                 text=strings.skip_repository_selection,
@@ -458,7 +462,7 @@ class OtherSettings:
                 icon="msg_leave",
                 link_alias="skip_repository_selection"
             ),
-                        Divider(),
+            Divider(),
             Header(text=strings.sfx_header),
             ExpandableSwitch(
                 key="sfx_enabled",
@@ -475,6 +479,14 @@ class OtherSettings:
             ),
             Divider(),
             Header(text=strings.misc_header),
+            Switch(
+                key="fuzzy_search",
+                text=strings.fuzzy_search,
+                subtext=strings.fuzzy_search_desc,
+                default=False,
+                icon="msg_search",
+                link_alias="fuzzy_search"
+            ),
         ]
 
         pathCardBuilt = False
@@ -496,6 +508,15 @@ class OtherSettings:
                     icon="msg_download"
                 )
             )
+
+        items.append(Switch(
+            key="disable_achievements_notify",
+            text=strings.disable_achievements_notify,
+            subtext=strings.disable_achievements_notify_desc,
+            default=False,
+            icon="msg_gift_premium",
+            link_alias="disable_achievements_notify"
+        ))
 
         items.append(Divider())
 
