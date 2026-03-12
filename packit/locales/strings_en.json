@@ -33,6 +33,8 @@
   "repo_enabled": "Enabled",
   "repo_name": "Name",
   "repo_url": "Config URL",
+  "invalid_repository": "Invalid repository",
+  "repository_added": "Repository added",
   "share_repository": "Share",
   "remove_repository": "Remove",
   "failed_to_open_link": "Couldn't open the link. Classic.",

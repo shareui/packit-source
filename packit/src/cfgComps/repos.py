@@ -19,6 +19,175 @@ except Exception as e:
 BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
 
 
+def _showAddRepoDialog(context, repoManager):
+    try:
+        from android.text import InputType
+        from android.content import DialogInterface
+        from android.view import View
+        from android.widget import ScrollView, LinearLayout, TextView, FrameLayout, ImageView
+        from android.view import Gravity
+        from android.util import TypedValue
+        from java import dynamic_proxy
+        from org.telegram.ui.ActionBar import AlertDialog, Theme
+        from org.telegram.ui.Components import EditTextBoldCursor, OutlineTextContainerView, RLottieImageView, LayoutHelper, CircularProgressDrawable
+        from org.telegram.messenger import AndroidUtilities
+        from client_utils import run_on_queue
+        from android_utils import run_on_ui_thread, OnClickListener
+
+        dp = AndroidUtilities.dp
+
+        builder = AlertDialog.Builder(context)
+
+        frameLayout = FrameLayout(context)
+        builder.setView(frameLayout)
+
+        scrollView = ScrollView(context)
+        scrollView.setFillViewport(True)
+        frameLayout.addView(scrollView, LayoutHelper.createFrame(-1, -1))
+
+        linear = LinearLayout(context)
+        linear.setOrientation(LinearLayout.VERTICAL)
+        linear.setGravity(Gravity.CENTER_HORIZONTAL)
+        scrollView.addView(linear, LayoutHelper.createFrame(-1, -2, Gravity.TOP))
+
+        try:
+            anim = RLottieImageView(context)
+            anim.setAnimation(R_tg.raw.shared_link_enter, 100, 100)
+            anim.playAnimation()
+            linear.addView(anim, LayoutHelper.createLinear(100, 100, Gravity.CENTER_HORIZONTAL, 0, 16, 0, 0))
+        except Exception as e:
+            log(f"repos: add repo dialog anim error: {e}")
+
+        titleView = TextView(context)
+        titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+        titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18)
+        titleView.setGravity(Gravity.CENTER_HORIZONTAL)
+        titleView.setTypeface(AndroidUtilities.bold())
+        titleView.setText(str(strings.add_repository))
+        linear.addView(titleView, LayoutHelper.createFrame(-2, -2, Gravity.CENTER_HORIZONTAL, 24, 8, 24, 0))
+
+        outlineView = OutlineTextContainerView(context)
+        outlineView.setText(str(strings.repo_url))
+        outlineView.animateSelection(1, False)
+        linear.addView(outlineView, LayoutHelper.createLinear(-1, -2, Gravity.CENTER_HORIZONTAL, 24, 24, 24, 16))
+
+        inputField = EditTextBoldCursor(context)
+        inputField.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18)
+        inputField.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+        inputField.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText))
+        inputField.setBackground(None)
+        inputField.setSingleLine(True)
+        inputField.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI)
+        inputField.setCursorColor(Theme.getColor(Theme.key_windowBackgroundWhiteInputFieldActivated))
+        inputField.setCursorWidth(1.5)
+        padding = dp(16)
+        inputField.setPadding(padding, padding, padding, padding)
+        outlineView.addView(inputField, LayoutHelper.createFrame(-1, -2))
+        outlineView.attachEditText(inputField)
+
+        class _FocusListener(dynamic_proxy(View.OnFocusChangeListener)):
+            def onFocusChange(self, v, hasFocus):
+                outlineView.animateSelection(1 if hasFocus else 0)
+
+        inputField.setOnFocusChangeListener(_FocusListener())
+
+        # button: LinearLayout with TextView inside, same pattern as installUi details button
+        doneBtn = LinearLayout(context)
+        doneBtn.setOrientation(LinearLayout.HORIZONTAL)
+        doneBtn.setGravity(Gravity.CENTER)
+        doneBtn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+            dp(6),
+            Theme.getColor(Theme.key_featuredStickers_addButton),
+            Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
+        ))
+        doneBtn.setClickable(True)
+        doneBtn.setFocusable(True)
+
+        btnLabel = TextView(context)
+        btnLabel.setText(str(strings.add_repository))
+        btnLabel.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
+        btnLabel.setGravity(Gravity.CENTER)
+        btnLabel.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
+        doneBtn.addView(btnLabel, LayoutHelper.createLinear(-2, -2, Gravity.CENTER))
+
+        linear.addView(doneBtn, LayoutHelper.createFrame(-1, 44, Gravity.TOP, 30, 0, 30, 16))
+
+        dialog = builder.create()
+
+        def _setLoading(isLoading):
+            try:
+                doneBtn.setEnabled(not isLoading)
+                doneBtn.removeAllViews()
+                if isLoading:
+                    color = Theme.getColor(Theme.key_featuredStickers_buttonText)
+                    spinnerDrawable = CircularProgressDrawable(color)
+                    try:
+                        spinnerDrawable.size = float(dp(20))
+                        spinnerDrawable.thickness = float(dp(2))
+                    except Exception:
+                        pass
+                    spinnerView = ImageView(context)
+                    spinnerView.setImageDrawable(spinnerDrawable)
+                    spinnerView.setScaleType(ImageView.ScaleType.CENTER)
+                    doneBtn.addView(spinnerView, LayoutHelper.createLinear(20, 20, Gravity.CENTER))
+                else:
+                    doneBtn.addView(btnLabel, LayoutHelper.createLinear(-2, -2, Gravity.CENTER))
+            except Exception as e:
+                log(f"repos: _setLoading error: {e}")
+
+        def onAdd():
+            url = str(inputField.getText()).strip()
+            if not url:
+                return
+            AndroidUtilities.hideKeyboard(inputField)
+            run_on_ui_thread(lambda: _setLoading(True))
+
+            def task():
+                repometa, reason = repoManager.addRepositoryWithUrl(url)
+
+                def onDone():
+                    dialog.dismiss()
+                    if reason is not None:
+                        try:
+                            BulletinHelper.show_error(f"{strings.invalid_repository}: {reason}")
+                        except Exception as e:
+                            log(f"repos: add repo error bulletin error: {e}")
+                    else:
+                        try:
+                            frag = get_last_fragment()
+                            container = frag.getParentActivity().getWindow().getDecorView()
+                            resourceProvider = frag.getResourceProvider()
+                            BulletinFactory.of(container, resourceProvider).createSimpleBulletin(
+                                R_tg.raw.shared_link_enter,
+                                str(strings.repository_added)
+                            ).show()
+                            if frag and hasattr(frag, "rebuildAllItems"):
+                                frag.rebuildAllItems()
+                        except Exception as e:
+                            log(f"repos: add repo success bulletin error: {e}")
+
+                run_on_ui_thread(onDone)
+
+            run_on_queue(task)
+
+        doneBtn.setOnClickListener(OnClickListener(lambda v: onAdd()))
+
+        class _DismissListener(dynamic_proxy(DialogInterface.OnDismissListener)):
+            def onDismiss(self, d):
+                AndroidUtilities.hideKeyboard(inputField)
+
+        class _ShowListener(dynamic_proxy(DialogInterface.OnShowListener)):
+            def onShow(self, d):
+                inputField.requestFocus()
+                AndroidUtilities.showKeyboard(inputField)
+
+        dialog.setOnDismissListener(_DismissListener())
+        dialog.setOnShowListener(_ShowListener())
+        dialog.show()
+    except Exception as e:
+        log(f"repos: _showAddRepoDialog error: {e}")
+
+
 class RepositoriesSettings:
     def __init__(self, repoManager):
         self.repoManager = repoManager
@@ -40,27 +209,19 @@ class RepositoriesSettings:
             repos = self.repoManager.getRepositories()
             if len(repos) >= 10:
                 try:
-                    log("Repository add failed: max limit reached (10)")
                     BulletinHelper.show_error(strings.max_repositories_allowed)
                 except Exception as e:
                     log(f"{e}")
                 return
-            
-            for repo in repos:
-                if repo.get('isFirst', False):
-                    continue
-                    
-                if not repo.get('name', '').strip() or not repo.get('url', '').strip():
-                    log("Repository add failed: previous repository not filled")
-                    BulletinHelper.show_error(strings.fill_previous_repository)
-                    return
-        
-            self.repoManager.addRepository(isFirst=False)
+
             try:
-                from ..other.achievements import increment_category
-                increment_category("Repositories")
+                frag = get_last_fragment()
+                ctx = frag.getParentActivity() if frag else None
+                if not ctx:
+                    return
+                _showAddRepoDialog(ctx, self.repoManager)
             except Exception as e:
-                log(f"repos: achievements increment error: {e}")
+                log(f"repos: add_new_repository error: {e}")
         
         def restore_default_repository(view):
             repos = self.repoManager.getRepositories()
@@ -190,7 +351,7 @@ class RepositoriesSettings:
                 try:
                     repos = self.repoManager.getRepositories()
                     pkg = ApplicationLoader.applicationContext.getPackageName()
-                    cache_dir = f"/data/data/{pkg}/files/packitCache"
+                    cache_dir = f"/data/data/{pkg}/files/packitCache/reposCache"
                     os.makedirs(cache_dir, exist_ok=True)
                     changed = False
                     to_remove = []
