@@ -154,6 +154,64 @@ def _make_avatar_view(context, image_url, title_text, subtitle_text, username_ur
     except Exception:
         return None
 
+def _make_link_row(context, icon_name, label_text, link_text, on_click):
+    # row: icon | label (fill) | accent link text
+    try:
+        from org.telegram.messenger import R as R_tg
+        from androidx.core.content import ContextCompat
+        dp = AndroidUtilities.dp
+
+        row = LinearLayout(context)
+        row.setOrientation(LinearLayout.HORIZONTAL)
+        row.setGravity(Gravity.CENTER_VERTICAL)
+        row.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite))
+        row.setPadding(dp(16), dp(10), dp(16), dp(10))
+        row.setMinimumHeight(dp(50))
+        row.setClickable(True)
+        row.setOnClickListener(OnClickListener(on_click))
+
+        try:
+            selector = Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 2)
+            row.setBackground(selector)
+        except Exception:
+            pass
+
+        icon_view = ImageView(context)
+        icon_view.setScaleType(ImageView.ScaleType.CENTER)
+        try:
+            res_id = getattr(R_tg.drawable, icon_name)
+            drawable = ContextCompat.getDrawable(context, res_id)
+            if drawable is not None:
+                drawable.setTint(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon))
+                icon_view.setImageDrawable(drawable)
+        except Exception:
+            pass
+        row.addView(icon_view, LayoutHelper.createLinear(24, 24, Gravity.CENTER_VERTICAL, 0, 0, 16, 0))
+
+        label = TextView(context)
+        label.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+        label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
+        label.setText(label_text)
+        label.setSingleLine(True)
+        row.addView(label, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+
+        link = TextView(context)
+        link.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteValueText))
+        link.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+        link.setText(link_text)
+        link.setSingleLine(True)
+        try:
+            link.setTypeface(AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_MEDIUM))
+        except Exception:
+            pass
+        row.addView(link, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL, 8, 0, 0, 0))
+
+        return row
+    except Exception as e:
+        _au.log(f"contributors._make_link_row error: {e}")
+        return None
+
+
 def _open_username_url(url):
     try:
         if url.startswith("https://t.me/"):
@@ -250,6 +308,19 @@ class ContributorsSettings:
         except Exception:
             return None
 
+    def _make_link_item(self, icon_name, label_text, link_text, on_click):
+        try:
+            frag = get_last_fragment()
+            ctx = frag.getParentActivity() if frag else None
+            if not ctx:
+                return None
+            view = _make_link_row(ctx, icon_name, label_text, link_text, on_click)
+            if view is None:
+                return None
+            return Custom(view=view)
+        except Exception:
+            return None
+
     def build(self):
         def support_via_send(view):
             try:
@@ -285,25 +356,15 @@ class ContributorsSettings:
         else:
             items.append(Header(text=strings.founder_shareui))
 
+        for item in [
+            self._make_link_item("msg_link", str(strings.github), "github.com/shareui", lambda v: self._open_url("https://github.com/shareui")),
+            self._make_link_item("msg_message", str(strings.direct_message), "t.me/shareui", lambda v: self._open_url("https://t.me/shareui")),
+            self._make_link_item("msg_channel", str(strings.personal_channel), "t.me/fuchslog", lambda v: self._open_url("https://t.me/fuchslog")),
+        ]:
+            if item is not None:
+                items.append(item)
+
         items += [
-            Text(
-                text=strings.github,
-                icon="msg_link",
-                link_alias="github_s",
-                on_click=lambda v: self._open_url("https://github.com/shareui")
-            ),
-            Text(
-                text=strings.direct_message,
-                icon="msg_message",
-                link_alias="direct_s",
-                on_click=lambda v: self._open_url("https://t.me/shareui")
-            ),
-            Text(
-                text=strings.personal_channel,
-                icon="msg_channel",
-                link_alias="tgc_s",
-                on_click=lambda v: self._open_url("https://t.me/shuiilog")
-            ),
             Text(
                 text=strings.support_via_send,
                 icon="filled_paid_suggest_24",
@@ -333,25 +394,15 @@ class ContributorsSettings:
         else:
             items.append(Header(text=strings.lead_developer_vestr))
 
+        for item in [
+            self._make_link_item("msg_link", str(strings.github), "github.com/mr-vestr", lambda v: self._open_url("https://github.com/mr-vestr")),
+            self._make_link_item("msg_message", str(strings.direct_message), "t.me/mr_Vestr", lambda v: self._open_url("https://t.me/mr_Vestr")),
+            self._make_link_item("msg_channel", str(strings.personal_channel), "t.me/I_am_Vestr", lambda v: self._open_url("https://t.me/I_am_Vestr")),
+        ]:
+            if item is not None:
+                items.append(item)
+
         items += [
-            Text(
-                text=strings.github,
-                icon="msg_link",
-                link_alias="github_v",
-                on_click=lambda v: self._open_url("https://github.com/mr-vestr")
-            ),
-            Text(
-                text=strings.direct_message,
-                icon="msg_message",
-                link_alias="direct_v",
-                on_click=lambda v: self._open_url("https://t.me/mr_Vestr")
-            ),
-            Text(
-                text=strings.personal_channel,
-                icon="msg_channel",
-                link_alias="tgc_v",
-                on_click=lambda v: self._open_url("https://t.me/I_am_Vestr")
-            ),
             Text(
                 text=strings.support_with_stars,
                 icon="menu_feature_reactions",
