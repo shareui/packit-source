@@ -383,6 +383,12 @@ def _notify_newly_completed(newly_completed: list):
 def _show_achievement_queue(queue: list):
     if not queue:
         return
+    try:
+        from elyx import settings
+        if settings.get("disable_achievements_notify", False):
+            return
+    except Exception as e:
+        log(f"achievements._show_achievement_queue: settings check error: {e}")
     a = queue[0]
     rest = queue[1:]
     log(f"achievements._show_achievement_queue: id={a['id']}, remaining={len(rest)}")
