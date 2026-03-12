@@ -323,52 +323,9 @@ def _show_achievement_bulletin(achievement: dict, on_hide=None):
 
 def _play_achievement_sound():
     try:
-        from android.media import MediaPlayer, AudioManager
-        from java import dynamic_proxy
-
+        from .media import playSound
         sound_path = os.path.join(os.path.dirname(__file__), "../../res/sounds/received-achievement.mp3")
-
-        if not os.path.exists(sound_path):
-            log(f"achievements._play_achievement_sound: file not found: {sound_path}")
-            return
-
-        player = MediaPlayer()
-        try:
-            player.setAudioStreamType(AudioManager.STREAM_MUSIC)
-            player.setDataSource(sound_path)
-            player.prepare()
-        except Exception as e:
-            log(f"achievements._play_achievement_sound: prepare error: {e}")
-            try:
-                player.reset()
-                player.release()
-            except Exception:
-                pass
-            return
-
-        try:
-            player.start()
-        except Exception as e:
-            log(f"achievements._play_achievement_sound: start error: {e}")
-            try:
-                player.reset()
-                player.release()
-            except Exception:
-                pass
-            return
-
-        class _Listener(dynamic_proxy(MediaPlayer.OnCompletionListener)):
-            def onCompletion(self, mp):
-                try:
-                    mp.reset()
-                    mp.release()
-                except Exception:
-                    pass
-
-        try:
-            player.setOnCompletionListener(_Listener())
-        except Exception as e:
-            log(f"achievements._play_achievement_sound: listener error: {e}")
+        playSound(sound_path, "sfx_achievement", check_pending=False, default=True)
     except Exception as e:
         log(f"achievements._play_achievement_sound: error: {e}")
 

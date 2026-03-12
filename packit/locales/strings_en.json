@@ -360,7 +360,7 @@
   "import_db_cancel": "I changed my mind",
   "import_db_done": "Export successfully applied!",
   "import_db_error": "Failed to read export",
-  "import_db_wrong_account": "Exports are intended for transfer between devices",
+  "import_db_wrong_account": "Exports are intended for transfer between devices, not accounts!",
   "reload": "Reload",
   "stat_hint_achievements": "Number of achievements unlocked out of all available.",
   "stat_hint_days_of_use": "Number of days PackIt has been used.",

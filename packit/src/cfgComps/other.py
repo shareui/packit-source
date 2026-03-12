@@ -449,7 +449,7 @@ class OtherSettings:
                 text=strings.show_plugin_size,
                 subtext=strings.show_plugin_size_desc,
                 default=False,
-                icon="msg_fave",
+                icon="files_internal",
                 link_alias="show_plugin_size"
             ),
             Switch(

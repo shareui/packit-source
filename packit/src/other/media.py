@@ -9,18 +9,19 @@ except Exception as e:
 from java import dynamic_proxy
 
 
-def playSound(soundPath: str, soundKey: str = None) -> None:
+def playSound(soundPath: str, soundKey: str = None, check_pending: bool = True, default: bool = False) -> None:
     if not settings.get("sfx_enabled", True):
         return
-    if soundKey and not settings.get(soundKey, True):
+    if soundKey and not settings.get(soundKey, default):
         return
 
-    try:
-        from .achievements import is_achievement_pending
-        if is_achievement_pending():
-            return
-    except Exception:
-        pass
+    if check_pending:
+        try:
+            from .achievements import is_achievement_pending
+            if is_achievement_pending():
+                return
+        except Exception:
+            pass
 
     if not soundPath or not os.path.exists(soundPath):
         log(f"media: sound file not found: {soundPath}")

@@ -258,13 +258,6 @@ class SettingsBuilder:
             ),
             
             Text(
-                text=strings.install_config,
-                icon="msg_settings_old",
-                on_click=self._install_config,
-                link_alias="install_config"
-            ),
-            
-            Text(
                 text=strings.check_updates,
                 icon="msg_retry",
                 on_click=self._check_updates,
