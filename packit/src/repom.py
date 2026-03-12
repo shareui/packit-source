@@ -19,7 +19,7 @@ OFFICIAL_REPO_URL = "https://raw.githubusercontent.com/shareui/packit/refs/heads
 
 def _get_cache_dir() -> str:
     pkg = ApplicationLoader.applicationContext.getPackageName()
-    return f"/data/data/{pkg}/files/packitCache"
+    return f"/data/data/{pkg}/files/packitCache/reposCache"
 
 
 class RepositoryManager:
@@ -71,6 +71,72 @@ class RepositoryManager:
         except Exception as e:
             log(f"repom: _fetch_and_save_repomap error: {e}")
             return None
+
+    def addRepositoryWithUrl(self, url: str):
+        # fetch, validate rm_rid + rm_name, save cache, append repo
+        # returns (repometa, error_reason) — error_reason is None on success
+        try:
+            r = requests.get(url, timeout=15)
+            status = r.status_code
+            if status != 200:
+                reasons = {
+                    301: "permanently redirected",
+                    302: "redirected",
+                    303: "see other",
+                    307: "temporarily redirected",
+                    308: "permanently redirected",
+                    400: "bad request",
+                    401: "unauthorized",
+                    403: "forbidden",
+                    404: "file not found",
+                    408: "request timeout",
+                    410: "resource gone",
+                    429: "rate limited, try again later",
+                    451: "unavailable for legal reasons",
+                    500: "server error",
+                    502: "bad gateway",
+                    503: "service unavailable",
+                    504: "gateway timeout",
+                }
+                reason = reasons.get(status, f"HTTP {status}")
+                return None, reason
+            data = r.json()
+        except Exception as e:
+            return None, str(e)
+
+        repometa = data.get("repometa")
+        if not repometa:
+            return None, "missing repometa"
+
+        rm_rid = repometa.get("rm_rid")
+        if not rm_rid:
+            return None, "missing rm_rid"
+
+        rm_name = repometa.get("rm_name")
+        if not rm_name:
+            return None, "missing rm_name"
+
+        try:
+            cache_dir = _get_cache_dir()
+            os.makedirs(cache_dir, exist_ok=True)
+            cache_path = os.path.join(cache_dir, f"{rm_rid}.json")
+            with open(cache_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            log(f"repom: saved repomap to {cache_path}")
+        except Exception as e:
+            log(f"repom: addRepositoryWithUrl: cache save error: {e}")
+
+        repos = self.getRepositories()
+        newRepo = {
+            "id": rm_rid,
+            "name": rm_name,
+            "url": url,
+            "enabled": True,
+            "collapsed": False
+        }
+        repos.append(newRepo)
+        self.setRepositories(repos)
+        return repometa, None
 
     def addRepository(self, isFirst=False):
         if isFirst:

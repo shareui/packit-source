@@ -96,7 +96,7 @@ def _loadCachedRepos() -> list:
     try:
         from org.telegram.messenger import ApplicationLoader
         pkg = ApplicationLoader.applicationContext.getPackageName()
-        cacheDir = f"/data/data/{pkg}/files/packitCache"
+        cacheDir = f"/data/data/{pkg}/files/packitCache/reposCache"
     except Exception as e:
         log(f"hashBottomSheet: _loadCachedRepos error: {e}")
         return result
