@@ -59,8 +59,6 @@
   "interface_header": "Interface",
   "plugin_card_header": "Plugin Card",
   "navigation_header": "Navigation",
-  "hide_repo_button": "Hide repository selection button",
-  "hide_repo_button_desc": "Hides the repository selector button from the plugins screen.",
   "classic_sort_menu": "Classic Sort Menu",
   "classic_sort_menu_desc": "Use the classic design for the plugin sort menu.",
   "show_default_sticker": "Show default sticker",
