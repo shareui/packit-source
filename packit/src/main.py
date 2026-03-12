@@ -15,6 +15,7 @@ from .other.badges import BadgeManager
 from .other.localConfig import LocalConfig
 from .other import isBeta
 from .chatUi.securityUi import setup_policy_button_hook, setup_hash_button_hook
+from .chatUi.pillWidget import setup_pill_widget
 from .ui.installUi.installDismissHook import setup_install_dismiss_hook
 from .chatUi.packitFileUi.decryptorUi import setup_packit_file_hook
 from android_utils import log
@@ -35,6 +36,7 @@ class PackItPlugin(BasePlugin):
         self.hash_button_hook_ref = None
         self.dialogs_menu_hook_ref = None
         self.install_dismiss_hook_ref = None
+        self.pill_widget_hook_ref = None
         log("PackIt initialized!")
     
     def on_plugin_load(self):
@@ -65,6 +67,8 @@ class PackItPlugin(BasePlugin):
         self.hash_button_hook_ref = setup_hash_button_hook(self, self.repoManager)
         self.install_dismiss_hook_ref = setup_install_dismiss_hook(self)
         setup_packit_file_hook(self)
+        if settings.get("show_pill_widget", False):
+            self.pill_widget_hook_ref = setup_pill_widget(self)
         self.dialogs_menu_hook_ref = self.chatUI.setup_dialogs_menu_hook()
         self._init_official_repository()
         self._check_for_update()

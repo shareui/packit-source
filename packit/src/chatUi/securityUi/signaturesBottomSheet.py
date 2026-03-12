@@ -35,7 +35,7 @@ _LEVEL_ORDER = ["Critical", "High", "Medium", "Low"]
 
 def _fetchSignatures():
     import urllib.request, json
-    with urllib.request.urlopen(SIGNATURES_URL, timeout=10) as r:
+    with urllib.request.urlopen(urllib.request.Request(SIGNATURES_URL, headers={"User-Agent": "PackIt/1.0 (Android; github.com/shareui/packit)"}), timeout=10) as r:
         return json.loads(r.read().decode())["signatures"]
 
 

@@ -95,7 +95,7 @@ except Exception as e:
 
 from .repo import show_repo_sheet
 from .sort import show_sort_menu
-from .teg import show_tag_filter_menu
+from .tags import show_tag_filter_menu
 from . import search as search_mod
 from .plugin_actions import copy_plugin_link, share_plugin_file, view_plugin_code, report_plugin, download_plugin_file, translate_plugin
 from ...other.media import playSound
@@ -460,51 +460,22 @@ class InstallUI:
             act = get_last_fragment().getContext()
             loading_container = FrameLayout(act)
             loading_container.setLayoutParams(FrameLayout.LayoutParams(-1, -1, Gravity.CENTER))
-            video_view = VideoView(act)
-            video_path = os.path.join(
-                os.path.dirname(__file__),
-                "../../../res/anim.mp4"
-            )
-            video_view.setVideoPath(video_path)
-            try:
-                audio_manager = act.getSystemService(act.AUDIO_SERVICE)
-                if audio_manager:
-                    video_view.setAudioFocusRequest(0)
-            except Exception:
-                pass
 
-            size = AndroidUtilities.dp(120)
-            video_params = FrameLayout.LayoutParams(size, size, Gravity.CENTER)
-            video_view.setLayoutParams(video_params)
+            from org.telegram.ui.Components import CircularProgressDrawable
+            size = 122
+            color = Theme.getColor(Theme.key_dialogLinkSelection)
+            thickness = float(AndroidUtilities.dp(8))
+            # use 3-arg ctor: size is set before setStyle, so m3IndicatorView gets correct size
+            d = CircularProgressDrawable(float(size), thickness, color)
+            d.setBounds(0, 0, size, size)
 
-            circle = GradientDrawable()
-            circle.setShape(GradientDrawable.OVAL)
-            circle.setColor(0x00000000)
-            video_view.setBackground(circle)
-            video_view.setClipToOutline(True)
+            spinner = ImageView(act)
+            spinner.setImageDrawable(d)
+            spinner.setScaleType(ImageView.ScaleType.FIT_CENTER)
+            lp = FrameLayout.LayoutParams(size, size, Gravity.CENTER)
+            loading_container.addView(spinner, lp)
 
-            loading_container.addView(video_view)
-
-            class CompletionListener(dynamic_proxy(MediaPlayer.OnCompletionListener)):
-                def __init__(self, vv):
-                    super().__init__()
-                    self.vv = vv
-
-                def onCompletion(self, mp):
-                    self.vv.start()
-
-            video_view.setOnCompletionListener(CompletionListener(video_view))
-
-            try:
-                media_player = video_view.getMediaPlayer()
-                if media_player:
-                    media_player.setVolume(0, 0)
-            except Exception:
-                pass
-            
-            video_view.start()
-            
-            return loading_container, video_view
+            return loading_container, spinner
         except Exception as e:
             log(f"Failed to create center loading animation: {e}")
             return None, None
@@ -1153,7 +1124,8 @@ class InstallUI:
                 content_wrapper.setLayoutParams(ScrollView.LayoutParams(-1, -2))
                 self.loading_container, self.loading_video = self.install_ui._create_center_loading_animation(content_wrapper)
                 if self.loading_container:
-                    content_wrapper.addView(self.loading_container, FrameLayout.LayoutParams(-1, -1))
+                    # add to content_view (full-screen FrameLayout) for true screen centering
+                    self.content_view.addView(self.loading_container, FrameLayout.LayoutParams(-1, -1))
                     def load_plugins_after_animation():
                         try:
                             self._finish_loading_and_show_plugins(content_wrapper)
@@ -1320,7 +1292,11 @@ class InstallUI:
                     self.subtitle.setText(_build_plugin_count_label(len(self.plugins)))
 
                 if self.loading_container:
-                    content_wrapper.removeView(self.loading_container)
+                    # loading_container is in content_view, not content_wrapper
+                    try:
+                        self.content_view.removeView(self.loading_container)
+                    except Exception:
+                        content_wrapper.removeView(self.loading_container)
                     self.loading_container = None
                     self.loading_video = None
 
