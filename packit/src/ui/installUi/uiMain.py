@@ -1105,6 +1105,9 @@ class InstallUI:
             scroll = ScrollView(act)
             scroll.setFillViewport(True)
             scroll.setVerticalScrollBarEnabled(False)
+            scroll.setBackgroundColor(self.main_bg_color)
+            scroll.setFadingEdgeLength(AndroidUtilities.dp(24))
+            scroll.setVerticalFadingEdgeEnabled(True)
             try:
                 scroll.setNestedScrollingEnabled(True)
             except Exception:
