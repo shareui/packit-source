@@ -1,6 +1,6 @@
 import traceback
 from android_utils import log
-from android.view import Gravity, View
+from android.view import Gravity, View, MotionEvent
 from android.widget import FrameLayout, LinearLayout, ScrollView, TextView
 from java import dynamic_proxy
 from org.telegram.messenger import AndroidUtilities, R
@@ -12,6 +12,29 @@ try:
     from org.telegram.messenger.browser import Browser
 except Exception:
     Browser = None
+
+
+def _apply_press_scale(view):
+    try:
+        class _TouchListener(dynamic_proxy(View.OnTouchListener)):
+            def __init__(self, fn):
+                super().__init__()
+                self._fn = fn
+            def onTouch(self, v, event):
+                return self._fn(v, event)
+        def _on_touch(v, event):
+            try:
+                action = event.getActionMasked()
+                if action == MotionEvent.ACTION_DOWN:
+                    v.animate().scaleX(0.94).scaleY(0.94).setDuration(100).start()
+                elif action in (MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL):
+                    v.animate().scaleX(1.0).scaleY(1.0).setDuration(200).start()
+            except Exception:
+                pass
+            return False
+        view.setOnTouchListener(_TouchListener(_on_touch))
+    except Exception:
+        pass
 
 
 def show_tg_channel_sheet(activity, resource_provider):
@@ -71,6 +94,7 @@ def show_tg_channel_sheet(activity, resource_provider):
                     log(f"tgChannelSheet: failed to open url: {traceback.format_exc()}")
 
         joinBtn.setOnClickListener(_JoinClick())
+        _apply_press_scale(joinBtn)
         linear.addView(joinBtn, LayoutHelper.createFrame(-1, 48.0, 0, 16.0, 12.0, 16.0, 8.0))
 
         dismissBtn = ButtonWithCounterView(activity, False, resource_provider)
@@ -84,6 +108,7 @@ def show_tg_channel_sheet(activity, resource_provider):
                 LocalConfig.set("showTgc", True)
 
         dismissBtn.setOnClickListener(_DismissClick())
+        _apply_press_scale(dismissBtn)
         linear.addView(dismissBtn, LayoutHelper.createFrame(-1, 48.0, 0, 16.0, 0.0, 16.0, 0.0))
 
         scroll = ScrollView(activity)
