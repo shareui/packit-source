@@ -272,8 +272,8 @@ def _buildLearnMoreBtn(act, onPress) -> object:
 
     btn = FrameLayout(act)
     try:
-        base = Theme.getColor(Theme.key_featuredStickers_addButton)
-        pressed = Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
+        base = Theme.getColor(Theme.key_graySection)
+        pressed = Theme.getColor(Theme.key_listSelector)
     except Exception:
         base = _resolveColor("key_windowBackgroundWhiteBlueButton", 0xFF1E88E5)
         pressed = base
@@ -288,9 +288,9 @@ def _buildLearnMoreBtn(act, onPress) -> object:
     label.setTypeface(AndroidUtilities.bold())
     label.setGravity(Gravity.CENTER)
     try:
-        label.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
+        label.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
     except Exception:
-        label.setTextColor(0xFFFFFFFF)
+        label.setTextColor(0xFF000000)
     btn.addView(label, FrameLayout.LayoutParams(
         FrameLayout.LayoutParams.MATCH_PARENT,
         FrameLayout.LayoutParams.WRAP_CONTENT
@@ -319,8 +319,8 @@ def _buildCloseBtn(act, onPress) -> object:
 
     btn = FrameLayout(act)
     try:
-        base = Theme.getColor(Theme.key_graySection)
-        pressed = Theme.getColor(Theme.key_listSelector)
+        base = Theme.getColor(Theme.key_featuredStickers_addButton)
+        pressed = Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
     except Exception:
         base = _resolveColor("key_windowBackgroundWhiteBlueButton", 0xFF1E88E5)
         pressed = base
@@ -335,9 +335,9 @@ def _buildCloseBtn(act, onPress) -> object:
     label.setTypeface(AndroidUtilities.bold())
     label.setGravity(Gravity.CENTER)
     try:
-        label.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton))
+        label.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
     except Exception:
-        label.setTextColor(0xFF1E88E5)
+        label.setTextColor(0xFFFFFFFF)
     btn.addView(label, FrameLayout.LayoutParams(
         FrameLayout.LayoutParams.MATCH_PARENT,
         FrameLayout.LayoutParams.WRAP_CONTENT
