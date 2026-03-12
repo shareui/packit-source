@@ -1,7 +1,7 @@
 from android.widget import LinearLayout, TextView, FrameLayout
 from android.util import TypedValue
 from android.graphics.drawable import GradientDrawable
-from android.view import Gravity
+from android.view import Gravity, MotionEvent
 from android_utils import run_on_ui_thread, log, OnClickListener
 from client_utils import get_last_fragment
 try:
@@ -19,6 +19,29 @@ from .localConfig import LocalConfig
 
 BETA = True
 _COUNTDOWN_SEC = 5
+
+
+def _apply_press_scale(view):
+    try:
+        class _TouchListener(dynamic_proxy(View.OnTouchListener)):
+            def __init__(self, fn):
+                super().__init__()
+                self._fn = fn
+            def onTouch(self, v, event):
+                return self._fn(v, event)
+        def _on_touch(v, event):
+            try:
+                action = event.getActionMasked()
+                if action == MotionEvent.ACTION_DOWN:
+                    v.animate().scaleX(0.94).scaleY(0.94).setDuration(100).start()
+                elif action in (MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL):
+                    v.animate().scaleX(1.0).scaleY(1.0).setDuration(200).start()
+            except Exception:
+                pass
+            return False
+        view.setOnTouchListener(_TouchListener(_on_touch))
+    except Exception:
+        pass
 
 
 def _show_beta_dialog():
@@ -116,6 +139,7 @@ def _show_beta_dialog():
             sheet.dismiss()
 
         ok_btn.setOnClickListener(OnClickListener(on_ok))
+        _apply_press_scale(ok_btn)
         root.addView(ok_btn, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8))
 
         sheet.setCustomView(root)

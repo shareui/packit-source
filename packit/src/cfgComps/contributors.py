@@ -404,7 +404,7 @@ class ContributorsSettings:
 
         items += [
             Text(
-                text="Support with Stars",
+                text=strings.support_with_stars,
                 icon="menu_feature_reactions",
                 accent=True,
                 link_alias="support_stars_v",

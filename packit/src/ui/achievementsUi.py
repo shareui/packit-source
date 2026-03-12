@@ -37,6 +37,23 @@ def _add_actionbar_glow(fv):
         log(f"_add_actionbar_glow: {e}")
 
 
+def _add_bottom_glow(fv):
+    # fv must be the fragmentView already created; adds gradient overlay at bottom
+    try:
+        from android.graphics import Color
+        from android.graphics.drawable import GradientDrawable as GD
+        from org.telegram.ui.Components import LayoutHelper
+        bg = Theme.getColor(Theme.key_windowBackgroundGray)
+        transparent = Color.argb(0, (bg >> 16) & 0xFF, (bg >> 8) & 0xFF, bg & 0xFF)
+        glow = GD(GD.Orientation.BOTTOM_TOP, [bg, transparent])
+        overlay = FrameLayout(fv.getContext())
+        overlay.setBackground(glow)
+        overlay.setClickable(False)
+        fv.addView(overlay, LayoutHelper.createFrame(-1, 24, 0x50, 0, 0, 0, 0))
+    except Exception as e:
+        log(f"_add_bottom_glow: {e}")
+
+
 def _resolve_icon(name: str) -> int:
     try:
         return getattr(R_tg.drawable, name)
@@ -430,6 +447,7 @@ class _AchievementListFragment(dynamic_proxy(UniversalFragment.UniversalFragment
             from ..other.achievements import register_bulletin_container
             register_bulletin_container(root)
             _add_actionbar_glow(root)
+            _add_bottom_glow(root)
             return root
         except Exception as e:
             log(f"achiev: _AchievementListFragment.beforeCreateView error: {e}")
@@ -438,6 +456,7 @@ class _AchievementListFragment(dynamic_proxy(UniversalFragment.UniversalFragment
     def afterCreateView(self, view):
         if view is not None:
             _add_actionbar_glow(view)
+            _add_bottom_glow(view)
         return view
 
     def getTitle(self):
@@ -561,6 +580,7 @@ class _CategoryFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegat
             from ..other.achievements import register_bulletin_container
             register_bulletin_container(root)
             _add_actionbar_glow(root)
+            _add_bottom_glow(root)
             return root
         except Exception as e:
             log(f"achiev: _CategoryFragment.beforeCreateView error: {e}")
@@ -569,6 +589,7 @@ class _CategoryFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegat
     def afterCreateView(self, view):
         if view is not None:
             _add_actionbar_glow(view)
+            _add_bottom_glow(view)
         return view
 
     def getTitle(self):
