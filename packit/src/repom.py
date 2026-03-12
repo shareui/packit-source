@@ -14,6 +14,8 @@ except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
     from .other.importFailed import showImportFailedAlert as _sifa; _sifa()
 
+_HEADERS = {"User-Agent": "PackIt/1.0 (Android; github.com/shareui/packit)"}
+
 OFFICIAL_REPO_URL = "https://raw.githubusercontent.com/shareui/packit/refs/heads/main/configs/repomap.json"
 
 
@@ -48,7 +50,7 @@ class RepositoryManager:
     def _fetch_and_save_repomap(self, url: str) -> dict | None:
         """Fetch repomap.json from url, save to packitCache/{rm_rid}.json, return repometa dict."""
         try:
-            r = requests.get(url, timeout=15)
+            r = requests.get(url, timeout=15, headers=_HEADERS)
             if r.status_code != 200:
                 log(f"repom: failed to fetch repomap from '{url}': HTTP {r.status_code}")
                 return None
@@ -76,7 +78,7 @@ class RepositoryManager:
         # fetch, validate rm_rid + rm_name, save cache, append repo
         # returns (repometa, error_reason) — error_reason is None on success
         try:
-            r = requests.get(url, timeout=15)
+            r = requests.get(url, timeout=15, headers=_HEADERS)
             status = r.status_code
             if status != 200:
                 reasons = {
@@ -275,7 +277,7 @@ class RepositoryManager:
                     if not url:
                         continue
                     try:
-                        r = requests.get(url, timeout=10)
+                        r = requests.get(url, timeout=10, headers=_HEADERS)
                         if r.status_code != 200:
                             log(f"updateAllCaches: HTTP {r.status_code} for {url}")
                             continue

@@ -122,7 +122,7 @@ class BadgeManager:
     
     def _load_config_from_url(self):
         try:
-            with urllib.request.urlopen(self.config_url, timeout=10) as response:
+            with urllib.request.urlopen(urllib.request.Request(self.config_url, headers={"User-Agent": "PackIt/1.0 (Android; github.com/shareui/packit)"}), timeout=10) as response:
                 raw_data = response.read().decode('utf-8')
                 config = json.loads(raw_data)
                 badges = config.get('badges', [])

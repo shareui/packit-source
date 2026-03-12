@@ -697,22 +697,33 @@ class InstallIconsUI:
                 content_wrapper = FrameLayout(act)
                 content_wrapper.setLayoutParams(ScrollView.LayoutParams(-1, -2))
 
-                loading_tv = TextView(act)
-                loading_tv.setText(strings["total_plugins_unknown"])
-                loading_tv.setGravity(Gravity.CENTER)
-                loading_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
+                loading_container = None
                 try:
-                    loading_tv.setTextColor(self.secondary_text_color)
-                except Exception:
-                    pass
-                loading_tv_lp = FrameLayout.LayoutParams(-2, -2, Gravity.CENTER)
-                loading_tv_lp.topMargin = AndroidUtilities.dp(60)
-                content_wrapper.addView(loading_tv, loading_tv_lp)
+                    from org.telegram.ui.Components import CircularProgressDrawable
+                    _size = 122
+                    _color = Theme.getColor(Theme.key_dialogLinkSelection)
+                    _d = CircularProgressDrawable(float(_size), float(AndroidUtilities.dp(8)), _color)
+                    _d.setBounds(0, 0, _size, _size)
+                    _spinner = ImageView(act)
+                    _spinner.setImageDrawable(_d)
+                    _spinner.setScaleType(ImageView.ScaleType.FIT_CENTER)
+                    loading_container = FrameLayout(act)
+                    loading_container.setLayoutParams(FrameLayout.LayoutParams(-1, -1))
+                    _lp = FrameLayout.LayoutParams(_size, _size, Gravity.CENTER)
+                    loading_container.addView(_spinner, _lp)
+                    self.content_view.addView(loading_container, FrameLayout.LayoutParams(-1, -1))
+                except Exception as e:
+                    log(f"icons: loading spinner error: {e}")
 
                 # store callback so _update_current_fragment_icons can call it after data arrives
+                _loading_container_ref = loading_container
                 def finish_loading():
                     try:
-                        content_wrapper.removeView(loading_tv)
+                        if _loading_container_ref is not None:
+                            try:
+                                self.content_view.removeView(_loading_container_ref)
+                            except Exception:
+                                pass
                         content_wrapper.addView(self.results_container, FrameLayout.LayoutParams(-1, -2))
                         if self.icons:
                             self.build_list_with_sort("alpha_az")

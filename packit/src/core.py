@@ -1,4 +1,5 @@
 import os
+import hashlib
 import threading
 import requests
 from android_utils import log, run_on_ui_thread
@@ -76,6 +77,60 @@ def install_plugin(plugin_info: dict, icon_view=None, button=None, original_icon
     _do_install(plugin_info, icon_view, button, original_icon_id, loading_view, on_finish, install_ui)
 
 
+def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button, icon_view, original_icon_id, on_finish):
+    try:
+        if loading_view and button and icon_view:
+            def _restore_icon():
+                try:
+                    button.removeView(loading_view)
+                except Exception:
+                    pass
+                icon_view.setImageResource(original_icon_id)
+                lp = LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
+                lp.rightMargin = AndroidUtilities.dp(6)
+                button.addView(icon_view, 0, lp)
+                button.invalidate()
+            run_on_ui_thread(_restore_icon)
+
+        if _is_elyx_plugin(plugin_info):
+            from elyxcore import ElyxEngine
+            from com.exteragram.messenger.plugins.ui.components import InstallPluginBottomSheet
+            install_params = InstallPluginBottomSheet.PluginInstallParams(temp_path, False)
+            ElyxEngine.instance.showInstallDialog(fragment, install_params)
+        else:
+            PluginsController.getInstance().showInstallDialog(fragment, temp_path, True)
+
+        try:
+            if on_finish:
+                on_finish(True)
+        except Exception:
+            pass
+    except Exception as e:
+        BulletinHelper.show_error(f"Failed to open install dialog: {e}")
+        try:
+            if on_finish:
+                on_finish(False)
+        except Exception:
+            pass
+
+
+def _get_plugin_cache_path(pkg: str, filename: str) -> str:
+    cache_dir = f"/data/data/{pkg}/files/packitCache/pluginCache"
+    os.makedirs(cache_dir, exist_ok=True)
+    return os.path.join(cache_dir, filename)
+
+
+def _sha256_file(path: str) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        while True:
+            chunk = f.read(65536)
+            if not chunk:
+                break
+            h.update(chunk)
+    return h.hexdigest()
+
+
 def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id=None, loading_view=None, on_finish=None, install_ui=None):
     plugin_id = plugin_info.get("id")
     url = plugin_info.get("link") or plugin_info.get("raw")
@@ -109,7 +164,48 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
 
     def task():
         try:
-            r = requests.get(url, stream=True, timeout=30)
+            pkg = ApplicationLoader.applicationContext.getPackageName()
+            plugins_dir = f"/data/data/{pkg}/files/plugins"
+            try:
+                os.makedirs(plugins_dir, exist_ok=True)
+            except Exception:
+                pass
+
+            temp_path = os.path.join(plugins_dir, f".temp_{plugin_id}.plugin")
+            expected_hash = plugin_info.get("hash") or ""
+
+            # check local plugin cache
+            filename = url.split("/")[-1] or f"{plugin_id}.plugin"
+            cache_path = _get_plugin_cache_path(pkg, filename)
+            if expected_hash and os.path.exists(cache_path):
+                try:
+                    cached_hash = _sha256_file(cache_path)
+                    if cached_hash == expected_hash:
+                        log(f"core: cache hit for '{plugin_id}', using local file")
+                        try:
+                            os.remove(temp_path)
+                        except Exception:
+                            pass
+                        with open(cache_path, "rb") as src, open(temp_path, "wb") as dst:
+                            while True:
+                                chunk = src.read(65536)
+                                if not chunk:
+                                    break
+                                dst.write(chunk)
+                        os.chmod(temp_path, 0o644)
+                        _set_progress(dlg, 100)
+                        _dismiss_dialog(dlg)
+                        run_on_ui_thread(lambda: _open_install_dialog(
+                            temp_path, plugin_info, fragment,
+                            loading_view, button, icon_view, original_icon_id, on_finish
+                        ))
+                        return
+                    else:
+                        log(f"core: cache miss for '{plugin_id}': hash mismatch, re-downloading")
+                except Exception as e:
+                    log(f"core: cache check error for '{plugin_id}': {e}")
+
+            r = requests.get(url, stream=True, timeout=30, headers={"User-Agent": "PackIt/1.0 (Android; github.com/shareui/packit)"})
             if r.status_code != 200:
                 log(f"core.install_plugin: failed to download '{plugin_id}' from '{url}': HTTP {r.status_code}")
                 _dismiss_dialog(dlg)
@@ -127,15 +223,6 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
                         pass
                     return
                 raise Exception(f"HTTP {r.status_code}")
-
-            pkg = ApplicationLoader.applicationContext.getPackageName()
-            plugins_dir = f"/data/data/{pkg}/files/plugins"
-            try:
-                os.makedirs(plugins_dir, exist_ok=True)
-            except Exception:
-                pass
-
-            temp_path = os.path.join(plugins_dir, f".temp_{plugin_id}.plugin")
 
             content_length = r.headers.get("content-length")
             total = int(content_length) if content_length else 0
@@ -174,46 +261,22 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
                             percent = min(99, int(downloaded * 100 / total))
                             _set_progress(dlg, percent)
 
+            # save to cache if hash provided
+            if expected_hash:
+                try:
+                    import shutil
+                    shutil.copy2(temp_path, cache_path)
+                    os.chmod(cache_path, 0o644)
+                    log(f"core: cached '{plugin_id}' to {cache_path}")
+                except Exception as e:
+                    log(f"core: failed to cache '{plugin_id}': {e}")
+
             _dismiss_dialog(dlg)
 
-            def open_install_dialog():
-                try:
-                    if loading_view and button and icon_view:
-                        def _restore_icon():
-                            try:
-                                button.removeView(loading_view)
-                            except Exception:
-                                pass
-                            icon_view.setImageResource(original_icon_id)
-                            lp = LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
-                            lp.rightMargin = AndroidUtilities.dp(6)
-                            button.addView(icon_view, 0, lp)
-                            button.invalidate()
-
-                        run_on_ui_thread(_restore_icon)
-
-                    if _is_elyx_plugin(plugin_info):
-                        from elyxcore import ElyxEngine
-                        from com.exteragram.messenger.plugins.ui.components import InstallPluginBottomSheet
-                        install_params = InstallPluginBottomSheet.PluginInstallParams(temp_path, False)
-                        ElyxEngine.instance.showInstallDialog(fragment, install_params)
-                    else:
-                        PluginsController.getInstance().showInstallDialog(fragment, temp_path, True)
-
-                    try:
-                        if on_finish:
-                            on_finish(True)
-                    except Exception:
-                        pass
-                except Exception as e:
-                    BulletinHelper.show_error(f"Failed to open install dialog: {e}")
-                    try:
-                        if on_finish:
-                            on_finish(False)
-                    except Exception:
-                        pass
-
-            run_on_ui_thread(open_install_dialog)
+            run_on_ui_thread(lambda: _open_install_dialog(
+                temp_path, plugin_info, fragment,
+                loading_view, button, icon_view, original_icon_id, on_finish
+            ))
         except Exception as e:
             log(f"core.install_plugin: error downloading '{plugin_id}' from '{url}': {e}")
             _dismiss_dialog(dlg)
@@ -252,7 +315,7 @@ def install_icon_pack(icon_info: dict):
 
     def task():
         try:
-            r = requests.get(url, stream=True, timeout=30)
+            r = requests.get(url, stream=True, timeout=30, headers={"User-Agent": "PackIt/1.0 (Android; github.com/shareui/packit)"})
             if r.status_code != 200:
                 log(f"core.install_icon_pack: HTTP {r.status_code} for '{pack_id}'")
                 _dismiss_dialog(dlg)

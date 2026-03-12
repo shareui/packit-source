@@ -89,7 +89,7 @@ def _getFreeSpace(path):
         return "—"
 
 
-def _buildCacheCard(context, cacheDir, on_clear):
+def _buildCacheCard(context, cacheDir, on_clear, title=None):
     # card showing cache size with clear button
     try:
         dp = AndroidUtilities.dp
@@ -104,7 +104,7 @@ def _buildCacheCard(context, cacheDir, on_clear):
         left.setOrientation(LinearLayout.VERTICAL)
 
         titleView = TextView(context)
-        titleView.setText(str(strings.clear_cache))
+        titleView.setText(str(title) if title is not None else str(strings.clear_cache))
         titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
         titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
         left.addView(titleView, LayoutHelper.createLinear(-2, -2))
@@ -306,8 +306,48 @@ def _buildDownloadPathCard(context, currentPath):
 
 
 class OtherSettings:
-    def __init__(self, chat_button=None):
+    def __init__(self, chat_button=None, plugin=None):
         self.chat_button = chat_button
+        self.plugin = plugin
+
+    def on_pill_widget_switch(self, val):
+        try:
+            from ..chatUi.pillWidget import setup_pill_widget, _PILL_ID
+            from hook_utils import find_class
+            from java import jclass
+            if val:
+                if self.plugin:
+                    setup_pill_widget(self.plugin)
+            else:
+                PillStackConfig = find_class("com.exteragram.messenger.pillstack.core.PillStackConfig")
+                if PillStackConfig is not None:
+                    activePills = PillStackConfig.activePills
+                    Integer = jclass("java.lang.Integer")
+                    for i in range(activePills.size()):
+                        if int(activePills.get(i)) == _PILL_ID:
+                            activePills.remove(i)
+                            break
+                    PillStackConfig.savePillsLayout()
+                    from android_utils import run_on_ui_thread
+                    from org.telegram.messenger import NotificationCenter
+                    def _notify():
+                        try:
+                            nc = NotificationCenter.getGlobalInstance()
+                            postMethod = None
+                            for m in nc.getClass().getMethods():
+                                try:
+                                    if m.getName() == "postNotificationName":
+                                        postMethod = m
+                                        break
+                                except Exception:
+                                    continue
+                            if postMethod:
+                                postMethod.invoke(nc, [Integer(int(NotificationCenter.pillStackLayoutChanged)), []])
+                        except Exception as e:
+                            log(f"OtherSettings: pill disable notify error: {e}")
+                    run_on_ui_thread(_notify)
+        except Exception as e:
+            log(f"OtherSettings: on_pill_widget_switch error: {e}")
 
     def _getCacheDir(self) -> str:
         pkg = ApplicationLoader.applicationContext.getPackageName()
@@ -369,6 +409,16 @@ class OtherSettings:
         except Exception as e:
             log(f"clear cache dialog error: {e}")
 
+    def _onClearPluginCacheClick(self, view):
+        try:
+            pkg = ApplicationLoader.applicationContext.getPackageName()
+            plugin_cache_dir = f"/data/data/{pkg}/files/packitCache/pluginCache"
+            if os.path.exists(plugin_cache_dir):
+                shutil.rmtree(plugin_cache_dir)
+                log("other: plugin cache cleared")
+        except Exception as e:
+            log(f"other: clear plugin cache error: {e}")
+
     def _getContext(self):
         frag = get_last_fragment()
         return frag.getParentActivity() if frag else None
@@ -404,6 +454,15 @@ class OtherSettings:
                 icon="msg_addbot",
                 link_alias="show_dialogs_menu_button",
                 on_change=self.chat_button.on_dialogs_menu_switch if self.chat_button else None
+            ),
+            Switch(
+                key="show_pill_widget",
+                text=strings.pill_widget,
+                subtext=strings.pill_widget_desc,
+                default=False,
+                icon="msg_view_file",
+                link_alias="show_pill_widget",
+                on_change=self.on_pill_widget_switch
             ),
         ]
 
@@ -559,11 +618,30 @@ class OtherSettings:
                     on_click=self._onClearCacheClick,
                     red=True
                 ))
+
+            pkg = ApplicationLoader.applicationContext.getPackageName()
+            pluginCacheDir = f"/data/data/{pkg}/files/packitCache/pluginCache"
+            pluginCacheCard = _buildCacheCard(ctx, pluginCacheDir, self._onClearPluginCacheClick, title=strings.clear_plugin_cache)
+            if pluginCacheCard is not None:
+                items.append(Custom(view=pluginCacheCard))
+            else:
+                items.append(Text(
+                    text=strings.clear_plugin_cache,
+                    icon="msg_delete",
+                    on_click=self._onClearPluginCacheClick,
+                    red=True
+                ))
         else:
             items.append(Text(
                 text=strings.clear_cache,
                 icon="msg_delete",
                 on_click=self._onClearCacheClick,
+                red=True
+            ))
+            items.append(Text(
+                text=strings.clear_plugin_cache,
+                icon="msg_delete",
+                on_click=self._onClearPluginCacheClick,
                 red=True
             ))
 

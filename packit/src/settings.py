@@ -67,7 +67,7 @@ class SettingsBuilder:
         self.plugin = plugin
         self.repositoriesSettings = RepositoriesSettings(repoManager)
         self.deeplinksSettings = DeeplinksSettings()
-        self.otherSettings = OtherSettings(plugin.chatUI)
+        self.otherSettings = OtherSettings(plugin.chatUI, plugin)
         self.documentationSettings = DocumentationSettings()
         self.contributorsSettings = ContributorsSettings()
         self.profileSettings = ProfileSettings()
