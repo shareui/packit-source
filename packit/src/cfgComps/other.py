@@ -447,14 +447,6 @@ class OtherSettings:
             Divider(),
             Header(text=strings.navigation_header),
             Switch(
-                key="hide_repo_button",
-                text=strings.hide_repo_button,
-                subtext=strings.hide_repo_button_desc,
-                default=False,
-                icon="msg_close",
-                link_alias="hide_repo_button"
-            ),
-            Switch(
                 key="skip_repository_selection",
                 text=strings.skip_repository_selection,
                 subtext=strings.skip_repository_selection_desc,
