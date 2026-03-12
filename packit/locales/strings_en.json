@@ -568,5 +568,8 @@
   "icons_search_hint": "Search icons...",
   "icons_count": "{0} icons",
   "plugin_tags": "Plugin Tags",
-  "support_with_stars": "Support with Stars"
+  "support_with_stars": "Support with Stars",
+  "deeplinks_install_icon_pack": "Installing the icon pack",
+  "deeplinks_install_icon_pack_desc": "Install a specific icon pack from a repository",
+  "param_icon_id_desc": "Icon pack ID"
 }
