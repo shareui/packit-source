@@ -298,6 +298,38 @@ class InstallUI:
         bg.setColor(color)
         return bg
 
+    def _format_file_size(self, bytes_val):
+        # returns e.g. "123.00 KB" or "1.23 MB"
+        if bytes_val < 1024 * 1024:
+            return f"{bytes_val / 1024:.2f} KB"
+        return f"{bytes_val / (1024 * 1024):.2f} MB"
+
+    def _make_info_chip(self, act, text, color_key):
+        import ctypes
+        try:
+            color = Theme.getColor(getattr(Theme, color_key))
+        except Exception:
+            color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+        r = (color >> 16) & 0xFF
+        g = (color >> 8) & 0xFF
+        b = color & 0xFF
+        fill = ctypes.c_int32((0x33 << 24) | (r << 16) | (g << 8) | b).value
+        text_color = ctypes.c_int32((0xFF << 24) | (r << 16) | (g << 8) | b).value
+        bg = GradientDrawable()
+        bg.setShape(GradientDrawable.RECTANGLE)
+        bg.setCornerRadius(AndroidUtilities.dp(6))
+        bg.setColor(fill)
+        tv = TextView(act)
+        tv.setText(text)
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
+        tv.setTextColor(text_color)
+        tv.setBackground(bg)
+        tv.setPadding(
+            AndroidUtilities.dp(7), AndroidUtilities.dp(2),
+            AndroidUtilities.dp(7), AndroidUtilities.dp(2)
+        )
+        return tv
+
     def _create_pill(self, act, background, pressed, padding_h=14, padding_v=8):
         pill_btn = LinearLayout(act)
         pill_btn.setOrientation(LinearLayout.HORIZONTAL)
@@ -1581,6 +1613,43 @@ class InstallUI:
                 col.addView(tags_row, LayoutHelper.createLinear(-1, -2))
             
             top_row.addView(col, LayoutHelper.createLinear(0, -2, 1.0))
+
+            show_size = settings.get("show_plugin_size", False)
+            show_min_ver = settings.get("show_plugin_min_version", False)
+            show_deps = settings.get("show_plugin_deps_count", False)
+
+            if show_size or show_min_ver or show_deps:
+                chips_col = LinearLayout(act)
+                chips_col.setOrientation(LinearLayout.VERTICAL)
+                chips_col.setGravity(Gravity.TOP | Gravity.RIGHT)
+
+                if show_min_ver:
+                    min_ver = p.get("min_version")
+                    if min_ver:
+                        chip = self.install_ui._make_info_chip(act, str(min_ver), "key_avatar_background2Blue")
+                        chip_lp = LinearLayout.LayoutParams(-2, -2)
+                        chip_lp.bottomMargin = AndroidUtilities.dp(4)
+                        chips_col.addView(chip, chip_lp)
+
+                if show_deps:
+                    deps = p.get("deps") or []
+                    dep_count = len(deps)
+                    if dep_count > 0:
+                        dep_label = "library" if dep_count == 1 else "libraries"
+                        chip = self.install_ui._make_info_chip(act, f"{dep_count} {dep_label}", "key_color_purple")
+                        chip_lp = LinearLayout.LayoutParams(-2, -2)
+                        chip_lp.bottomMargin = AndroidUtilities.dp(4)
+                        chips_col.addView(chip, chip_lp)
+
+                if show_size:
+                    size_str = p.get("size")
+                    if size_str:
+                        chip = self.install_ui._make_info_chip(act, str(size_str), "key_color_cyan")
+                        chips_col.addView(chip, LinearLayout.LayoutParams(-2, -2))
+
+                chips_lp = LinearLayout.LayoutParams(-2, -2)
+                chips_lp.leftMargin = AndroidUtilities.dp(8)
+                top_row.addView(chips_col, chips_lp)
 
             desc_tv = TextView(act)
             desc_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)

@@ -51,7 +51,11 @@ class PackItPlugin(BasePlugin):
             self._check_identity_achievement()
         except Exception as e:
             log(f"PackIt: identity achievement check error: {e}")
-        self.repoManager.updateAllCaches()
+        self.repoManager.updateAllCaches(
+            on_complete=self._on_caches_updated if settings.get("show_startup_status", False) else None
+        )
+        if settings.get("show_startup_status", False):
+            self._show_startup_loading()
         self.add_on_send_message_hook()
         self.hook_settings_header_ref = self.settingsBuilder._setup_settings_header_hook()
         self.deeplink_hook_ref = setup_deeplink_hook(self)
@@ -65,6 +69,34 @@ class PackItPlugin(BasePlugin):
         self._init_official_repository()
         self._check_for_update()
         log("PackIt loaded!")
+
+    def _show_startup_loading(self):
+        try:
+            from android_utils import run_on_ui_thread
+            from ui.bulletin import BulletinHelper
+            def show():
+                try:
+                    BulletinHelper.show_info(strings.startup_loading)
+                except Exception as e:
+                    log(f"PackIt: startup loading bulletin error: {e}")
+            # delay to let the UI settle after app start
+            import threading
+            threading.Timer(1.5, lambda: run_on_ui_thread(show)).start()
+        except Exception as e:
+            log(f"PackIt: _show_startup_loading error: {e}")
+
+    def _on_caches_updated(self):
+        try:
+            from android_utils import run_on_ui_thread
+            from ui.bulletin import BulletinHelper
+            def show():
+                try:
+                    BulletinHelper.show_success(strings.startup_done)
+                except Exception as e:
+                    log(f"PackIt: startup done bulletin error: {e}")
+            run_on_ui_thread(show)
+        except Exception as e:
+            log(f"PackIt: _on_caches_updated error: {e}")
 
     def _check_for_update(self):
         try:

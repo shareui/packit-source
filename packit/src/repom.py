@@ -260,7 +260,7 @@ class RepositoryManager:
             if fragment and hasattr(fragment, "rebuildAllItems"):
                 fragment.rebuildAllItems()
 
-    def updateAllCaches(self):
+    def updateAllCaches(self, on_complete=None):
         def task():
             try:
                 repos = self.getRepositories()
@@ -319,5 +319,11 @@ class RepositoryManager:
                 log("updateAllCaches: done")
             except Exception as e:
                 log(f"updateAllCaches: task error: {e}")
+            finally:
+                if on_complete:
+                    try:
+                        on_complete()
+                    except Exception as e:
+                        log(f"updateAllCaches: on_complete error: {e}")
 
         run_on_queue(task)

@@ -444,6 +444,30 @@ class OtherSettings:
                 icon="menu_tag_filter",
                 link_alias="show_plugin_tags"
             ),
+            Switch(
+                key="show_plugin_size",
+                text=strings.show_plugin_size,
+                subtext=strings.show_plugin_size_desc,
+                default=False,
+                icon="msg_fave",
+                link_alias="show_plugin_size"
+            ),
+            Switch(
+                key="show_plugin_min_version",
+                text=strings.show_plugin_min_version,
+                subtext=strings.show_plugin_min_version_desc,
+                default=False,
+                icon="msg_info",
+                link_alias="show_plugin_min_version"
+            ),
+            Switch(
+                key="show_plugin_deps_count",
+                text=strings.show_plugin_deps_count,
+                subtext=strings.show_plugin_deps_count_desc,
+                default=False,
+                icon="msg_link",
+                link_alias="show_plugin_deps_count"
+            ),
             Divider(),
             Header(text=strings.navigation_header),
             Switch(
@@ -479,6 +503,14 @@ class OtherSettings:
             ),
             Divider(),
             Header(text=strings.misc_header),
+            Switch(
+                key="show_startup_status",
+                text=strings.show_startup_status,
+                subtext=strings.show_startup_status_desc,
+                default=False,
+                icon="msg_info",
+                link_alias="show_startup_status"
+            ),
             Switch(
                 key="fuzzy_search",
                 text=strings.fuzzy_search,
