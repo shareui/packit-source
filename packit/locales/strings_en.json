@@ -551,5 +551,6 @@
   "update_sheet_later": "Later",
   "icons_search_hint": "Search icons...",
   "icons_count": "{0} icons",
-  "plugin_tags": "Plugin Tags"
+  "plugin_tags": "Plugin Tags",
+  "support_with_stars": "Support with Stars"
 }

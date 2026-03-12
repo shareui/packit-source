@@ -353,7 +353,7 @@ class ContributorsSettings:
                 on_click=lambda v: self._open_url("https://t.me/I_am_Vestr")
             ),
             Text(
-                text="Support with Stars",
+                text=strings.support_with_stars,
                 icon="menu_feature_reactions",
                 accent=True,
                 link_alias="support_stars_v",
