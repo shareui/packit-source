@@ -24,6 +24,11 @@ except Exception as e:
     from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
 from android.widget import LinearLayout, TextView, FrameLayout
 from android.view import Gravity
+from android.net import Uri
+try:
+    from org.telegram.messenger.browser import Browser as _Browser
+except Exception:
+    _Browser = None
 from android.util import TypedValue
 import shutil
 import threading
@@ -87,6 +92,64 @@ def _getFreeSpace(path):
             return f"{free / (1024 * 1024 * 1024):.1f} GB"
     except Exception:
         return "—"
+
+
+def _buildTextSubtextCell(context, text, subtext, icon, on_click):
+    # native-looking cell: icon on left, title + subtitle stacked, full-row ripple tap
+    try:
+        from android.widget import ImageView
+        from hook_utils import find_class
+        dp = AndroidUtilities.dp
+        log("other: _buildTextSubtextCell start")
+
+        row = LinearLayout(context)
+        row.setOrientation(LinearLayout.HORIZONTAL)
+        row.setGravity(Gravity.CENTER_VERTICAL)
+        row.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite))
+        row.setMinimumHeight(dp(64))
+        row.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 2))
+        row.setOnClickListener(OnClickListener(on_click))
+        log("other: _buildTextSubtextCell row created")
+
+        icon_id = 0
+        try:
+            R = find_class("org.telegram.messenger.R")
+            icon_id = int(getattr(R.drawable, icon))
+            log(f"other: _buildTextSubtextCell icon_id={icon_id}")
+        except Exception as e:
+            log(f"other: _buildTextSubtextCell icon resolve error: {e}")
+
+        if icon_id:
+            iconView = ImageView(context)
+            iconView.setImageResource(icon_id)
+            iconView.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon))
+            # left=23 matches native TextCheckCell icon indent
+            row.addView(iconView, LayoutHelper.createLinear(24, 24, Gravity.CENTER_VERTICAL, 23, 0, 0, 0))
+            log("other: _buildTextSubtextCell icon added")
+
+        textBlock = LinearLayout(context)
+        textBlock.setOrientation(LinearLayout.VERTICAL)
+
+        titleView = TextView(context)
+        titleView.setText(str(text))
+        titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
+        titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+        textBlock.addView(titleView, LayoutHelper.createLinear(-2, -2))
+
+        subtitleView = TextView(context)
+        subtitleView.setText(str(subtext))
+        subtitleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+        subtitleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+        textBlock.addView(subtitleView, LayoutHelper.createLinear(-2, -2, 0, 2, 0, 0))
+
+        # 23+24+25=72dp total left offset — matches native cell text start
+        row.addView(textBlock, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL, 25, 10, 17, 10))
+
+        log("other: _buildTextSubtextCell done")
+        return row
+    except Exception as e:
+        log(f"other: _buildTextSubtextCell error: {e}")
+        return None
 
 
 def _buildCacheCard(context, cacheDir, on_clear, title=None):
@@ -310,6 +373,37 @@ class OtherSettings:
         self.chat_button = chat_button
         self.plugin = plugin
 
+    def _build_dialogs_btn_item(self, ctx):
+        try:
+            if ctx:
+                view = _buildTextSubtextCell(
+                    ctx,
+                    text=strings.button_in_dialogs_menu,
+                    subtext=strings.button_in_dialogs_menu_desc,
+                    icon="msg_addbot",
+                    on_click=self._open_main_menu_settings
+                )
+                if view is not None:
+                    return Custom(view=view)
+            log("other: _build_dialogs_btn_item falling back to Text")
+        except Exception as e:
+            log(f"other: _build_dialogs_btn_item error: {e}")
+        return Text(
+            text=strings.button_in_dialogs_menu,
+            icon="msg_addbot",
+            on_click=self._open_main_menu_settings
+        )
+
+    def _open_main_menu_settings(self, view):
+        try:
+            frag = get_last_fragment()
+            act = frag.getParentActivity() if frag else None
+            if act and _Browser is not None:
+                uri = Uri.parse("https://t.me/exteraSettings?s=mainMenuSettings")
+                _Browser.openUrl(act, uri, True, True, True, None, None, False, False, False)
+        except Exception as e:
+            log(f"OtherSettings: _open_main_menu_settings error: {e}")
+
     def on_pill_widget_switch(self, val):
         try:
             from ..chatUi.pillWidget import setup_pill_widget, _PILL_ID
@@ -428,6 +522,7 @@ class OtherSettings:
 
         items = [
             Header(text=strings.buttons_header),
+            self._build_dialogs_btn_item(ctx),
             Switch(
                 key="show_chat_menu",
                 text=strings.button_in_chat_menu,
@@ -445,15 +540,6 @@ class OtherSettings:
                 icon="msg_plugins",
                 link_alias="show_chat_plugins_menu",
                 on_change=self.chat_button.on_chat_plugins_switch if self.chat_button else None
-            ),
-            Switch(
-                key="show_dialogs_menu_button",
-                text=strings.button_in_dialogs_menu,
-                subtext=strings.button_in_dialogs_menu_desc,
-                default=False,
-                icon="msg_addbot",
-                link_alias="show_dialogs_menu_button",
-                on_change=self.chat_button.on_dialogs_menu_switch if self.chat_button else None
             ),
             Switch(
                 key="show_pill_widget",

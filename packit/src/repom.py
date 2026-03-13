@@ -74,12 +74,44 @@ class RepositoryManager:
             log(f"repom: _fetch_and_save_repomap error: {e}")
             return None
 
-    def addRepositoryWithUrl(self, url: str):
-        # fetch, validate rm_rid + rm_name, save cache, append repo
-        # returns (repometa, error_reason) — error_reason is None on success
+    def _get_temp_dir(self) -> str:
+        pkg = ApplicationLoader.applicationContext.getPackageName()
+        return f"/data/data/{pkg}/files/packitCache/packitTemp"
+
+    def _cleanup_temp_dir(self):
+        import shutil
+        temp_dir = self._get_temp_dir()
         try:
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
+                log("repom: cleaned up packitTemp")
+        except Exception as e:
+            log(f"repom: _cleanup_temp_dir error: {e}")
+
+    def addRepositoryWithUrl(self, url: str):
+        # download to packitTemp, validate, move to reposCache or discard
+        # returns (repometa, error_reason) — error_reason is None on success
+        import shutil
+
+        temp_dir = self._get_temp_dir()
+        temp_path = os.path.join(temp_dir, "repomap_download.json")
+
+        try:
+            os.makedirs(temp_dir, exist_ok=True)
+            log(f"repom: addRepositoryWithUrl: GET {url}")
+            log(f"repom: addRepositoryWithUrl: sending headers={_HEADERS}")
             r = requests.get(url, timeout=15, headers=_HEADERS)
             status = r.status_code
+            log(f"repom: addRepositoryWithUrl: status={status}")
+            try:
+                resp_headers = dict(r.headers)
+                log(f"repom: addRepositoryWithUrl: resp_headers={resp_headers}")
+            except Exception as ex:
+                log(f"repom: addRepositoryWithUrl: could not read resp headers: {ex}")
+            try:
+                log(f"repom: addRepositoryWithUrl: body[:500]={r.text[:500]}")
+            except Exception as ex:
+                log(f"repom: addRepositoryWithUrl: could not read body: {ex}")
             if status != 200:
                 reasons = {
                     301: "permanently redirected",
@@ -101,32 +133,59 @@ class RepositoryManager:
                     504: "gateway timeout",
                 }
                 reason = reasons.get(status, f"HTTP {status}")
+                self._cleanup_temp_dir()
                 return None, reason
-            data = r.json()
+
+            with open(temp_path, "w", encoding="utf-8") as f:
+                f.write(r.text)
+            log(f"repom: downloaded to {temp_path}")
         except Exception as e:
+            self._cleanup_temp_dir()
             return None, str(e)
 
+        # validate
+        try:
+            with open(temp_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception as e:
+            log(f"repom: addRepositoryWithUrl: json parse error: {e}")
+            self._cleanup_temp_dir()
+            return None, "invalid json"
+
+        log(f"repom: addRepositoryWithUrl: parsed ok, keys={list(data.keys())}")
         repometa = data.get("repometa")
         if not repometa:
+            log("repom: addRepositoryWithUrl: missing repometa")
+            self._cleanup_temp_dir()
             return None, "missing repometa"
 
         rm_rid = repometa.get("rm_rid")
+        log(f"repom: addRepositoryWithUrl: rm_rid={repr(rm_rid)}")
         if not rm_rid:
+            log("repom: addRepositoryWithUrl: missing rm_rid")
+            self._cleanup_temp_dir()
             return None, "missing rm_rid"
 
         rm_name = repometa.get("rm_name")
+        log(f"repom: addRepositoryWithUrl: rm_name={repr(rm_name)}")
         if not rm_name:
+            log("repom: addRepositoryWithUrl: missing rm_name")
+            self._cleanup_temp_dir()
             return None, "missing rm_name"
 
+        # move to reposCache
         try:
             cache_dir = _get_cache_dir()
             os.makedirs(cache_dir, exist_ok=True)
             cache_path = os.path.join(cache_dir, f"{rm_rid}.json")
-            with open(cache_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
-            log(f"repom: saved repomap to {cache_path}")
+            shutil.move(temp_path, cache_path)
+            log(f"repom: moved repomap to {cache_path}")
         except Exception as e:
-            log(f"repom: addRepositoryWithUrl: cache save error: {e}")
+            log(f"repom: addRepositoryWithUrl: move to cache error: {e}")
+            self._cleanup_temp_dir()
+            return None, "cache write failed"
+
+        self._cleanup_temp_dir()
 
         repos = self.getRepositories()
         newRepo = {
