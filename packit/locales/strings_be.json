@@ -353,5 +353,7 @@
     "pill_widget": "PackIt Widget",
     "pill_widget_desc": "Shows a PackIt pill in the pill stack on the main screen. Opens settings on tap.",
     "clear_plugin_cache": "Clear plugin cache",
-    "clear_plugin_cache_desc": "Removes locally cached plugin files."
+    "clear_plugin_cache_desc": "Removes locally cached plugin files.",
+    "packit_channel_handle": "@packitapp",
+    "packit_forum_handle": "@packitGround"
 }

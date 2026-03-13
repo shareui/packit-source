@@ -583,5 +583,17 @@
     "show_settings_button": "PackIt button in Telegram settings",
     "show_settings_button_desc": "Shows a PackIt Settings button under the exteraGram settings row.",
     "restart_required_title": "Restart required",
-    "restart_required_message": "This setting takes effect after a restart."
+    "restart_required_message": "This setting takes effect after a restart.",
+    "packit_channel_handle": "@packitappen",
+    "packit_forum_handle": "@packitGround",
+    "pp_unknown_plugin": "Plugin",
+    "pp_unknown_name": "Unknown",
+    "pp_required_version": "{} required",
+    "pp_section_description": "Description",
+    "pp_section_dependencies": "Dependencies",
+    "pp_section_more_from": "More from {}",
+    "pp_dep_library_one": "1 library",
+    "pp_dep_library_other": "{} libraries",
+    "pp_other_plugin_one": "1 plugin",
+    "pp_other_plugin_other": "{} plugins"
 }

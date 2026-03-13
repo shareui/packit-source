@@ -171,7 +171,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             log(f"pluginProfile: onFragmentDestroy removeView error: {e}")
 
     def getTitle(self):
-        return str(self.plugin.get("name") or self.plugin.get("id") or "Plugin")
+        return str(self.plugin.get("name") or self.plugin.get("id") or strings.pp_unknown_plugin)
 
     def onBackPressed(self):
         log(f"pluginProfile: onBackPressed plugin={self.plugin.get('id')}")
@@ -204,7 +204,14 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             except Exception as e:
                 log(f"pluginProfile: beforeCreateView stale cleanup error: {e}")
             self.content_view = None
-        act = get_last_fragment().getContext()
+        frag = get_last_fragment()
+        if not frag:
+            log("pluginProfile: beforeCreateView no fragment, aborting")
+            return None
+        act = frag.getParentActivity()
+        if not act:
+            log("pluginProfile: beforeCreateView no activity, aborting")
+            return None
         p = self.plugin
 
         bg_color = Theme.getColor(Theme.key_windowBackgroundGray)
@@ -257,7 +264,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 _schedule_sticker_retry(iv, icon_str, sticker_size, self._alive)
 
         name_tv = TextView(act)
-        name_tv.setText(str(p.get("name") or p.get("id") or "Unknown"))
+        name_tv.setText(str(p.get("name") or p.get("id") or strings.pp_unknown_name))
         name_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 24)
         name_tv.setTextColor(text_color)
         name_tv.setGravity(Gravity.CENTER_HORIZONTAL)
@@ -365,7 +372,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 install_btn.setEnabled(False)
 
             install_label = TextView(act)
-            install_label.setText(strings["install_plugin"] if is_available else (str(plugin_min_ver) + " required"))
+            install_label.setText(strings["install_plugin"] if is_available else str(strings.pp_required_version).format(plugin_min_ver))
             install_label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
             install_label.setTextColor(btn_text_color)
             try:
@@ -440,7 +447,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 desc_card.setBackground(bg2)
 
             desc_card.addView(
-                _make_section_header(act, "Description"),
+                _make_section_header(act, str(strings.pp_section_description)),
                 LayoutHelper.createLinear(-2, -2, 0, 0, 0, 0, 8)
             )
 
@@ -522,11 +529,11 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             deps_header_row.setOrientation(LinearLayout.HORIZONTAL)
             deps_header_row.setGravity(Gravity.CENTER_VERTICAL)
             deps_header_row.addView(
-                _make_section_header(act, "Dependencies"),
+                _make_section_header(act, str(strings.pp_section_dependencies)),
                 LayoutHelper.createLinear(0, -2, 1.0)
             )
-            dep_label = "library" if len(deps) == 1 else "libraries"
-            count_chip = _make_chip(act, f"{len(deps)} {dep_label}", "key_color_purple")
+            dep_count_str = str(strings.pp_dep_library_one) if len(deps) == 1 else str(strings.pp_dep_library_other).format(len(deps))
+            count_chip = _make_chip(act, dep_count_str, "key_color_purple")
             deps_header_row.addView(count_chip, LinearLayout.LayoutParams(-2, -2))
             deps_card.addView(deps_header_row, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
 
@@ -669,12 +676,28 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             others_header_row = LinearLayout(act)
             others_header_row.setOrientation(LinearLayout.HORIZONTAL)
             others_header_row.setGravity(Gravity.CENTER_VERTICAL)
-            others_header_row.addView(
-                _make_section_header(act, f"More from {author}"),
-                LayoutHelper.createLinear(0, -2, 1.0)
-            )
-            others_count_label = "plugin" if len(others) == 1 else "plugins"
-            others_chip = _make_chip(act, f"{len(others)} {others_count_label}", "key_color_green")
+
+            more_from_raw = str(strings.pp_section_more_from).format(author)
+            more_from_tv = TextView(act)
+            more_from_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
+            more_from_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+            more_from_tv.setLetterSpacing(0.08)
+            try:
+                more_from_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+            except Exception:
+                more_from_tv.setTypeface(AndroidUtilities.bold())
+            try:
+                from com.exteragram.messenger.utils.text import LocaleUtils
+                from android.text.method import LinkMovementMethod
+                more_from_tv.setText(LocaleUtils.fullyFormatText(more_from_raw.upper()))
+                more_from_tv.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
+                more_from_tv.setMovementMethod(LinkMovementMethod.getInstance())
+            except Exception:
+                more_from_tv.setText(more_from_raw.upper())
+            others_header_row.addView(more_from_tv, LayoutHelper.createLinear(0, -2, 1.0))
+
+            others_count_str = str(strings.pp_other_plugin_one) if len(others) == 1 else str(strings.pp_other_plugin_other).format(len(others))
+            others_chip = _make_chip(act, others_count_str, "key_color_green")
             others_header_row.addView(others_chip, LinearLayout.LayoutParams(-2, -2))
             others_card.addView(others_header_row, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
 
@@ -786,7 +809,7 @@ def show_plugin_profile(plugin: dict, install_ui, all_plugins: list = None):
         fragment.presentFragment(new_fragment)
         log(f"pluginProfile: presentFragment done")
         try:
-            new_fragment.setTitle(str(plugin.get("name") or plugin.get("id") or "Plugin"), False, 0)
+            new_fragment.setTitle(str(plugin.get("name") or plugin.get("id") or strings.pp_unknown_plugin), False, 0)
             action_bar = new_fragment.getActionBar()
             if action_bar:
                 action_bar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))

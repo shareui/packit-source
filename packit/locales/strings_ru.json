@@ -575,5 +575,17 @@
     "pill_widget": "PackIt Widget",
     "pill_widget_desc": "Shows a PackIt pill in the pill stack on the main screen. Opens settings on tap.",
     "clear_plugin_cache": "Clear plugin cache",
-    "clear_plugin_cache_desc": "Removes locally cached plugin files."
+    "clear_plugin_cache_desc": "Removes locally cached plugin files.",
+    "packit_channel_handle": "@packitapp",
+    "packit_forum_handle": "@packitGround",
+    "pp_unknown_plugin": "Плагин",
+    "pp_unknown_name": "Неизвестно",
+    "pp_required_version": "Требуется {}",
+    "pp_section_description": "Описание",
+    "pp_section_dependencies": "Зависимости",
+    "pp_section_more_from": "Ещё от {}",
+    "pp_dep_library_one": "1 библиотека",
+    "pp_dep_library_other": "{} библиотек",
+    "pp_other_plugin_one": "1 плагин",
+    "pp_other_plugin_other": "{} плагинов"
 }
