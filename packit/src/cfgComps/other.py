@@ -517,6 +517,32 @@ class OtherSettings:
         frag = get_last_fragment()
         return frag.getParentActivity() if frag else None
 
+    def _onRestartRequiredSwitch(self, val):
+        def show():
+            try:
+                frag = get_last_fragment()
+                act = frag.getParentActivity() if frag else None
+                if not act:
+                    return
+                builder = AlertDialogBuilder(act)
+                builder.set_title(strings.restart_required_title)
+                builder.set_message(strings.restart_required_message)
+
+                def onRestart(b, w):
+                    b.dismiss()
+                    thread = threading.Thread(target=self._killProcess)
+                    thread.daemon = True
+                    thread.start()
+
+                builder.set_positive_button(strings.restart_now, onRestart)
+                builder.set_negative_button(strings.restart_later, lambda b, w: b.dismiss())
+                builder.show()
+            except Exception as e:
+                log(f"other: _onRestartRequiredSwitch error: {e}")
+
+        from android_utils import run_on_ui_thread
+        run_on_ui_thread(show)
+
     def build(self):
         ctx = self._getContext()
 
@@ -550,10 +576,19 @@ class OtherSettings:
                 link_alias="show_pill_widget",
                 on_change=self.on_pill_widget_switch
             ),
+            Switch(
+                key="show_settings_button",
+                text=strings.show_settings_button,
+                subtext=strings.show_settings_button_desc,
+                default=True,
+                icon="msg_settings",
+                link_alias="show_settings_button",
+                on_change=self._onRestartRequiredSwitch
+            ),
         ]
 
         items += [
-            Divider(),
+            Divider(text=strings.buttons_header_desc),
             Header(text=strings.interface_header),
             Switch(
                 key="hide_unavailable_plugins",
@@ -623,7 +658,7 @@ class OtherSettings:
                 icon="msg_leave",
                 link_alias="skip_repository_selection"
             ),
-            Divider(),
+            Divider(text=strings.navigation_header_desc),
             Header(text=strings.sfx_header),
             ExpandableSwitch(
                 key="sfx_enabled",
@@ -638,7 +673,7 @@ class OtherSettings:
                 ],
                 link_alias="sfx_enabled"
             ),
-            Divider(),
+            Divider(text=strings.sfx_header_desc),
             Header(text=strings.misc_header),
             Switch(
                 key="show_startup_status",
@@ -731,6 +766,6 @@ class OtherSettings:
                 red=True
             ))
 
-        items.append(Divider())
+        items.append(Divider(text=strings.cache_header_desc))
 
         return items

@@ -238,8 +238,26 @@ class SettingsBuilder:
                 Browser.openUrl(act, uri, True, True, True, None, None, False, False, False)
         except Exception:
             pass
+
+    def _build_link_row(self, icon, label, handle, on_click):
+        try:
+            from cfgComps.contributors import _make_link_row
+            from ui.settings import Custom
+            frag = get_last_fragment()
+            ctx = frag.getParentActivity() if frag else None
+            if not ctx:
+                return None
+            view = _make_link_row(ctx, icon, label, handle, on_click)
+            if view is not None:
+                return Custom(view=view)
+        except Exception as e:
+            android_utils.log(f"settings: _build_link_row error: {e}")
+        return None
     
     def buildMainSettings(self):
+        channel_row = self._build_link_row("msg_channel", str(strings.packit_channel), str(strings.packit_channel_handle), self._openPackitChannel)
+        forum_row = self._build_link_row("msg_groups", str(strings.packit_forum), str(strings.packit_forum_handle), self._openPackitForum)
+
         return [
             Header(text=strings.plugins_header),
             
@@ -293,14 +311,14 @@ class SettingsBuilder:
             
             Divider(),
             Header(text=strings.community_header),
-            
-            Text(
+
+            channel_row or Text(
                 text=strings.packit_channel,
                 icon="msg_channel",
                 on_click=self._openPackitChannel
             ),
-            
-            Text(
+
+            forum_row or Text(
                 text=strings.packit_forum,
                 icon="msg_groups",
                 on_click=self._openPackitForum

@@ -34,9 +34,9 @@ import os
 
 BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
 
-# repo=add: required: name, link — optional: icon
-_REPO_ADD_REQUIRED = {"name", "link"}
-_REPO_ADD_OPTIONAL = {"icon"}
+# repo=add: required: link — optional: name, icon
+_REPO_ADD_REQUIRED = {"link"}
+_REPO_ADD_OPTIONAL = {"name", "icon"}
 _REPO_ADD_ALL = _REPO_ADD_REQUIRED | _REPO_ADD_OPTIONAL
 
 
@@ -66,7 +66,7 @@ def handle(url, repoManager):
         link = query.get("link", [""])[0].strip()
         icon = query.get("icon", [""])[0].strip()
 
-        if not name or not link:
+        if not link:
             BulletinHelper.show_error(strings.repo_add_invalid)
             return
 
