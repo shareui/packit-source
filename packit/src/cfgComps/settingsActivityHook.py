@@ -1,0 +1,169 @@
+from android_utils import log, run_on_ui_thread
+from hook_utils import find_class
+from base_plugin import MethodHook
+from client_utils import get_last_fragment
+try:
+    from elyx import strings
+except Exception as e:
+    log(f"settingsActivityHook: import strings failed: {e}")
+try:
+    from com.exteragram.messenger.plugins import PluginsController
+    from com.exteragram.messenger.plugins.ui import PluginSettingsActivity
+except Exception as e:
+    log(f"settingsActivityHook: import PluginsController/PSA failed: {e}")
+try:
+    from org.telegram.messenger import R as R_tg
+    from org.telegram.ui.Components import UItem
+except Exception as e:
+    log(f"settingsActivityHook: import tg classes failed: {e}")
+
+# must not collide with existing ids (-1..19 used by SettingsActivity)
+_PACKIT_SETTINGS_ID = 880099
+
+
+def setup_settings_activity_hook(plugin):
+    hooks = []
+    try:
+        SA = find_class("org.telegram.ui.SettingsActivity")
+        if SA is None:
+            log("settingsActivityHook: SettingsActivity not found")
+            return hooks
+
+        ArrayList = find_class("java.util.ArrayList")
+        UniversalAdapter = find_class("org.telegram.ui.Components.UniversalAdapter")
+
+        if ArrayList is None or UniversalAdapter is None:
+            log("settingsActivityHook: ArrayList or UniversalAdapter not found")
+            return hooks
+
+        class FillItemsHook(MethodHook):
+            def after_hooked_method(self, param):
+                try:
+                    from elyx import settings as elyx_settings
+                    if not elyx_settings.get("show_settings_button", True):
+                        return
+
+                    items = param.args[0]
+                    if items is None or items.size() == 0:
+                        return
+
+                    # guard: skip if already inserted
+                    for i in range(items.size()):
+                        item = items.get(i)
+                        try:
+                            if item is not None and int(item.id) == _PACKIT_SETTINGS_ID:
+                                return
+                        except Exception:
+                            pass
+
+                    # find exteraGram settings item (id == -1)
+                    extera_idx = -1
+                    for i in range(items.size()):
+                        item = items.get(i)
+                        try:
+                            if item is not None and int(item.id) == -1:
+                                extera_idx = i
+                                break
+                        except Exception:
+                            pass
+
+                    if extera_idx < 0:
+                        log("settingsActivityHook: extera item (id=-1) not found")
+                        return
+
+                    SettingCellFactory = find_class("org.telegram.ui.SettingsActivity$SettingCell$Factory")
+                    if SettingCellFactory is None:
+                        log("settingsActivityHook: SettingCell$Factory not found")
+                        return
+
+                    icon_id = 0
+                    try:
+                        icon_id = int(R_tg.drawable.msg_settings)
+                    except Exception as e:
+                        log(f"settingsActivityHook: icon resolve error: {e}")
+
+                    label = str(strings.packit_settings) if hasattr(strings, "packit_settings") else "PackIt Settings"
+
+                    # find of(int, int, int, int, CharSequence) — 5 args
+                    of_method = None
+                    for m in SettingCellFactory.getClass().getDeclaredMethods():
+                        try:
+                            if m.getName() == "of" and len(m.getParameterTypes()) == 5:
+                                of_method = m
+                                break
+                        except Exception:
+                            pass
+
+                    if of_method is None:
+                        log("settingsActivityHook: SettingCell.Factory.of(5) not found")
+                        return
+
+                    of_method.setAccessible(True)
+                    from java import jint
+                    packit_item = of_method.invoke(None, [jint(_PACKIT_SETTINGS_ID), jint(0), jint(0), jint(icon_id), label])
+                    if packit_item is None:
+                        log("settingsActivityHook: packit_item is None")
+                        return
+
+                    items.add(extera_idx + 1, packit_item)
+                    log(f"settingsActivityHook: inserted PackIt button at {extera_idx + 1}")
+                except Exception as e:
+                    log(f"settingsActivityHook: FillItemsHook error: {e}")
+
+        class OnClickHook(MethodHook):
+            def before_hooked_method(self, param):
+                try:
+                    uItem = param.args[0]
+                    if uItem is None:
+                        return
+                    if int(uItem.id) != _PACKIT_SETTINGS_ID:
+                        return
+
+                    param.setResult(None)
+
+                    def open():
+                        try:
+                            frag = get_last_fragment()
+                            plugin_obj = PluginsController.getInstance().plugins.get(plugin.id)
+                            if plugin_obj and frag:
+                                frag.presentFragment(PluginSettingsActivity(plugin_obj))
+                            else:
+                                log(f"settingsActivityHook: plugin_obj={plugin_obj} frag={frag}")
+                        except Exception as e:
+                            log(f"settingsActivityHook: open settings error: {e}")
+
+                    run_on_ui_thread(open)
+                except Exception as e:
+                    log(f"settingsActivityHook: OnClickHook error: {e}")
+
+        try:
+            fill_method = SA.getClass().getDeclaredMethod("fillItems", ArrayList, UniversalAdapter)
+            fill_method.setAccessible(True)
+            hooks.append(plugin.hook_method(fill_method, FillItemsHook()))
+            log("settingsActivityHook: fillItems hooked")
+        except Exception as e:
+            log(f"settingsActivityHook: fillItems hook error: {e}")
+
+        try:
+            View = find_class("android.view.View")
+            click_method = None
+            for m in SA.getClass().getDeclaredMethods():
+                try:
+                    if m.getName() == "onClick" and len(m.getParameterTypes()) == 5:
+                        click_method = m
+                        break
+                except Exception:
+                    pass
+            if click_method:
+                click_method.setAccessible(True)
+                hooks.append(plugin.hook_method(click_method, OnClickHook()))
+                log("settingsActivityHook: onClick hooked")
+            else:
+                log("settingsActivityHook: onClick(5) not found")
+        except Exception as e:
+            log(f"settingsActivityHook: onClick hook error: {e}")
+
+    except Exception as e:
+        log(f"settingsActivityHook: setup error: {e}")
+
+    return hooks

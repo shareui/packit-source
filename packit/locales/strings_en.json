@@ -575,5 +575,13 @@
     "pill_widget": "PackIt Widget",
     "pill_widget_desc": "Shows a PackIt pill in the pill stack on the main screen. Opens settings on tap.",
     "clear_plugin_cache": "Clear plugin cache",
-    "clear_plugin_cache_desc": "Removes locally cached plugin files."
+    "clear_plugin_cache_desc": "Removes locally cached plugin files.",
+    "buttons_header_desc": "Configure entry points to open PackIt from different places in the app.",
+    "navigation_header_desc": "Control how the plugin browser opens and behaves.",
+    "sfx_header_desc": "Play sounds on specific plugin actions.",
+    "cache_header_desc": "Manage locally cached plugin data and repository files.",
+    "show_settings_button": "PackIt button in Telegram settings",
+    "show_settings_button_desc": "Shows a PackIt Settings button under the exteraGram settings row.",
+    "restart_required_title": "Restart required",
+    "restart_required_message": "This setting takes effect after a restart."
 }
