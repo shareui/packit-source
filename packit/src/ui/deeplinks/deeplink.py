@@ -48,7 +48,7 @@ DEEPLINKS_DATA = {
         "link": "tg://packit?repo=add",
         "description": strings.deeplinks_add_repository_desc,
         "params": [
-            {"name": "name", "required": True, "desc": strings.param_name_desc},
+            {"name": "name", "required": False, "desc": strings.param_name_desc},
             {"name": "link", "required": True, "desc": strings.param_link_desc},
             {"name": "icon", "required": False, "desc": strings.param_icon_desc}
         ]

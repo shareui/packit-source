@@ -396,52 +396,46 @@ class OtherSettings:
 
     def _open_main_menu_settings(self, view):
         try:
+            from hook_utils import find_class
             frag = get_last_fragment()
-            act = frag.getParentActivity() if frag else None
-            if act and _Browser is not None:
-                uri = Uri.parse("https://t.me/exteraSettings?s=mainMenuSettings")
-                _Browser.openUrl(act, uri, True, True, True, None, None, False, False, False)
+            if frag:
+                MainMenuPreferencesActivity = find_class("com.exteragram.messenger.preferences.appearance.MainMenuPreferencesActivity")
+                frag.presentFragment(MainMenuPreferencesActivity())
         except Exception as e:
             log(f"OtherSettings: _open_main_menu_settings error: {e}")
 
-    def on_pill_widget_switch(self, val):
+    def _build_pill_stack_item(self, ctx):
         try:
-            from ..chatUi.pillWidget import setup_pill_widget, _PILL_ID
-            from hook_utils import find_class
-            from java import jclass
-            if val:
-                if self.plugin:
-                    setup_pill_widget(self.plugin)
-            else:
-                PillStackConfig = find_class("com.exteragram.messenger.pillstack.core.PillStackConfig")
-                if PillStackConfig is not None:
-                    activePills = PillStackConfig.activePills
-                    Integer = jclass("java.lang.Integer")
-                    for i in range(activePills.size()):
-                        if int(activePills.get(i)) == _PILL_ID:
-                            activePills.remove(i)
-                            break
-                    PillStackConfig.savePillsLayout()
-                    from android_utils import run_on_ui_thread
-                    from org.telegram.messenger import NotificationCenter
-                    def _notify():
-                        try:
-                            nc = NotificationCenter.getGlobalInstance()
-                            postMethod = None
-                            for m in nc.getClass().getMethods():
-                                try:
-                                    if m.getName() == "postNotificationName":
-                                        postMethod = m
-                                        break
-                                except Exception:
-                                    continue
-                            if postMethod:
-                                postMethod.invoke(nc, [Integer(int(NotificationCenter.pillStackLayoutChanged)), []])
-                        except Exception as e:
-                            log(f"OtherSettings: pill disable notify error: {e}")
-                    run_on_ui_thread(_notify)
+            if ctx:
+                view = _buildTextSubtextCell(
+                    ctx,
+                    text=strings.pill_stack_settings,
+                    subtext=strings.pill_stack_settings_desc,
+                    icon="msg_view_file",
+                    on_click=self._open_pill_stack_settings
+                )
+                if view is not None:
+                    return Custom(view=view)
+            log("other: _build_pill_stack_item falling back to Text")
         except Exception as e:
-            log(f"OtherSettings: on_pill_widget_switch error: {e}")
+            log(f"other: _build_pill_stack_item error: {e}")
+        return Text(
+            text=strings.pill_stack_settings,
+            icon="msg_view_file",
+            on_click=self._open_pill_stack_settings
+        )
+
+    def _open_pill_stack_settings(self, view):
+        try:
+            from hook_utils import find_class
+            PillStackPreferencesActivity = find_class("com.exteragram.messenger.pillstack.ui.PillStackPreferencesActivity")
+            if PillStackPreferencesActivity is None:
+                return
+            frag = get_last_fragment()
+            if frag:
+                frag.presentFragment(PillStackPreferencesActivity())
+        except Exception as e:
+            log(f"OtherSettings: _open_pill_stack_settings error: {e}")
 
     def _getCacheDir(self) -> str:
         pkg = ApplicationLoader.applicationContext.getPackageName()
@@ -549,6 +543,7 @@ class OtherSettings:
         items = [
             Header(text=strings.buttons_header),
             self._build_dialogs_btn_item(ctx),
+            self._build_pill_stack_item(ctx),
             Switch(
                 key="show_chat_menu",
                 text=strings.button_in_chat_menu,
@@ -567,15 +562,7 @@ class OtherSettings:
                 link_alias="show_chat_plugins_menu",
                 on_change=self.chat_button.on_chat_plugins_switch if self.chat_button else None
             ),
-            Switch(
-                key="show_pill_widget",
-                text=strings.pill_widget,
-                subtext=strings.pill_widget_desc,
-                default=False,
-                icon="msg_view_file",
-                link_alias="show_pill_widget",
-                on_change=self.on_pill_widget_switch
-            ),
+
             Switch(
                 key="show_settings_button",
                 text=strings.show_settings_button,
@@ -693,6 +680,20 @@ class OtherSettings:
             ),
         ]
 
+        items.append(Switch(
+            key="disable_achievements_notify",
+            text=strings.disable_achievements_notify,
+            subtext=strings.disable_achievements_notify_desc,
+            default=False,
+            icon="msg_gift_premium",
+            link_alias="disable_achievements_notify"
+        ))
+
+        items.append(Divider())
+
+        # filesystem section should always be at the bottom of the page
+        items.append(Header(text=strings.filesystem_header))
+
         pathCardBuilt = False
         if ctx:
             currentPath = settings.get("download_path", "/storage/emulated/0/Download")
@@ -712,20 +713,6 @@ class OtherSettings:
                     icon="msg_download"
                 )
             )
-
-        items.append(Switch(
-            key="disable_achievements_notify",
-            text=strings.disable_achievements_notify,
-            subtext=strings.disable_achievements_notify_desc,
-            default=False,
-            icon="msg_gift_premium",
-            link_alias="disable_achievements_notify"
-        ))
-
-        items.append(Divider())
-
-        # cache should always be at the bottom of the page
-        items.append(Header(text=strings.cache_header))
 
         if ctx:
             cacheDir = self._getCacheDir()
