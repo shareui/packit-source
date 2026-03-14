@@ -70,8 +70,7 @@ class PackItPlugin(BasePlugin):
         self.install_dismiss_hook_ref = setup_install_dismiss_hook(self)
         setup_packit_file_hook(self)
         self.settings_activity_hook_refs = setup_settings_activity_hook(self)
-        if settings.get("show_pill_widget", False):
-            self.pill_widget_hook_ref = setup_pill_widget(self)
+        setup_pill_widget(self)
         self.dialogs_menu_hook_ref = self.chatUI.setup_dialogs_menu_hook()
         self._init_official_repository()
         self._check_for_update()
