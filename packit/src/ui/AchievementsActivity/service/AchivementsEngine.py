@@ -5,7 +5,7 @@ try:
     from org.telegram.messenger import ApplicationLoader, UserConfig
 except Exception as e:
     import android_utils as _au; _au.log(f"achievements: import failed: {e}")
-    from ..utils.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ....utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 _achievement_pending = False
 _bulletin_container = None  # FrameLayout registered by active UI fragments
@@ -197,7 +197,7 @@ def sync_completed(data: dict) -> tuple:
         data[aid] = current_level
 
     try:
-        from ..utils.localConfig import days_since_install
+        from ....utils.localConfig import days_since_install
         days = days_since_install()
     except Exception:
         days = 0
@@ -287,7 +287,7 @@ def _show_achievement_bulletin(achievement: dict, on_hide=None):
                 return
 
             def _open():
-                from ..ui.AchievementsActivity.fragment import show_hint_sheet
+                from ....ui.AchievementsActivity.fragment import show_hint_sheet
                 show_hint_sheet(achievement)
 
             ctx = fragment.getContext()
@@ -323,7 +323,7 @@ def _show_achievement_bulletin(achievement: dict, on_hide=None):
 
 def _play_achievement_sound():
     try:
-        from ..utils.media import playSound
+        from ....utils.media import playSound
         sound_path = os.path.join(os.path.dirname(__file__), "../../../../res/sounds/received-achievement.mp3")
         playSound(sound_path, "sfx_achievement", check_pending=False, default=True)
     except Exception as e:

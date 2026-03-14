@@ -76,7 +76,7 @@ def _merge_achievements(payload: str, account_id: str):
         # flat format — the whole dict is one account's data
         account_data = incoming
 
-    from ..achievements import load_account_data_for_import
+    from ....ui.AchievementsActivity.service.AchivementsEngine import load_account_data_for_import
     load_account_data_for_import(account_id, account_data)
     log(f"exportBin.reader: merged achievements for account {account_id}")
 
