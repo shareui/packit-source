@@ -7,7 +7,7 @@ class _DismissHook(MethodHook):
 
     def after_hooked_method(self, param):
         try:
-            from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
+            from ....ui.AchievementsActivity.service.AchivementsEngine import increment_category
             increment_category("Installing plugins")
         except Exception as e:
             log(f"installDismissHook: achievements increment error: {e}")

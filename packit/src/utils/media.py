@@ -17,7 +17,7 @@ def playSound(soundPath: str, soundKey: str = None, check_pending: bool = True, 
 
     if check_pending:
         try:
-            from .achievements import is_achievement_pending
+            from ..ui.AchievementsActivity.service.AchivementsEngine import is_achievement_pending
             if is_achievement_pending():
                 return
         except Exception:

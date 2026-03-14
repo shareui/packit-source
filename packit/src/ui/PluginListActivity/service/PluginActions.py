@@ -2,17 +2,17 @@ from android_utils import log
 from client_utils import get_last_fragment
 from hook_utils import find_class
 from .ReportService import report_plugin
-from .translation import translate_plugin
+from ..translation import translate_plugin
 try:
     from org.telegram.messenger import AndroidUtilities, R as R_tg
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities, R as R_tg failed: {e}")
-    from ..utils.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ....utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from elyx import strings
 except Exception as e:
     import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
-    from ..utils.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ....utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 from android.net import Uri
 try:
     from org.telegram.messenger.browser import Browser
@@ -25,7 +25,7 @@ BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
 def copy_plugin_link(plugin_info: dict, repo_title: str, sound_path: str = None):
     try:
         if sound_path:
-            from ...utils.media import playSound
+            from ....utils.media import playSound
             playSound(sound_path, "sfx_copy_link")
     except Exception:
         pass
@@ -50,7 +50,7 @@ def copy_plugin_link(plugin_info: dict, repo_title: str, sound_path: str = None)
 
 def share_plugin_file(plugin_info: dict, display_name: str, activity):
     try:
-        from ...utils.share import share_plugin_file as _share_plugin_file
+        from ....utils.share import share_plugin_file as _share_plugin_file
         _share_plugin_file(plugin_info, display_name, activity)
     except Exception as e:
         log(f"Error sharing plugin: {e}")
