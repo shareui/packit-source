@@ -11,17 +11,17 @@ try:
     from org.telegram.messenger import ApplicationLoader, AndroidUtilities
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
-    from .other.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from .utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from com.exteragram.messenger.plugins import PluginsController
 except Exception as e:
     import android_utils as _au; _au.log(f"import com.exteragram.messenger.plugins import PluginsController failed: {e}")
-    from .other.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from .utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.messenger import NotificationCenter
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.messenger import NotificationCenter failed: {e}")
-    from .other.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from .utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 import time
 import signal
 
@@ -69,7 +69,7 @@ def _is_elyx_plugin(plugin_info: dict) -> bool:
 def install_plugin(plugin_info: dict, icon_view=None, button=None, original_icon_id=None, loading_view=None, on_finish=None, install_ui=None, all_plugins: list = None):
     deps = plugin_info.get("deps") or []
     if deps:
-        from .ui.installUi.depsSheet import show_deps_sheet
+        from .ui.PluginListActivity.depsSheet import show_deps_sheet
         def on_confirmed():
             _do_install(plugin_info, icon_view, button, original_icon_id, loading_view, on_finish, install_ui)
         show_deps_sheet(install_ui, plugin_info, on_confirmed, all_plugins=all_plugins, on_cancel=on_finish)

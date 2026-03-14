@@ -6,7 +6,7 @@ try:
     from org.telegram.messenger import ApplicationLoader
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
-    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 
 def handle(url):
@@ -14,7 +14,7 @@ def handle(url):
         return
     try:
         _playMaxVolume()
-        from ...other.achievements import unlock_secret
+        from ...ui.AchievementsActivity.service.AchivementsEngine import unlock_secret
         unlock_secret("premium")
     except Exception as e:
         log(f"deeplinks.premium: error: {e}")

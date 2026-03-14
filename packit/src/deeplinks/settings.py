@@ -4,12 +4,12 @@ try:
     from com.exteragram.messenger.plugins import PluginsController
 except Exception as e:
     import android_utils as _au; _au.log(f"import com.exteragram.messenger.plugins import PluginsController failed: {e}")
-    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ..utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from com.exteragram.messenger.plugins.ui import PluginSettingsActivity
 except Exception as e:
     import android_utils as _au; _au.log(f"import com.exteragram.messenger.plugins.ui import PluginSettingsActivity failed: {e}")
-    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ..utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 
 def handle(url, plugin):

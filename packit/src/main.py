@@ -4,21 +4,20 @@ try:
     from elyx import settings, strings
 except Exception as e:
     import android_utils as _au; _au.log(f"import elyx import settings, strings failed: {e}")
-    from .other.importFailed import showImportFailedAlert as _sifa; _sifa()
-from .repom import RepositoryManager
+    from .utils.importFailed import showImportFailedAlert as _sifa; _sifa()
+from .RepositoryManager import RepositoryManager
 from .core import PackItCore
-from .settings import SettingsBuilder
-from .packlog import packlog
-from .chatUi import ChatButton
+from .MainActivity import SettingsBuilder
+from .ChatActivity import ChatButton
 from .deeplinks import setup_deeplink_hook
 from .other.badges import BadgeManager
-from .other.localConfig import LocalConfig
+from .utils.localConfig import LocalConfig
 from .other import isBeta
-from .chatUi.securityUi import setup_policy_button_hook, setup_hash_button_hook
-from .cfgComps.settingsActivityHook import setup_settings_activity_hook
-from .chatUi.pillWidget import setup_pill_widget
-from .ui.installUi.installDismissHook import setup_install_dismiss_hook
-from .chatUi.packitFileUi.decryptorUi import setup_packit_file_hook
+from .ChatActivity.SecurityBottomSheets import setup_policy_button_hook, setup_hash_button_hook
+from .SettingsActivity.service.settingsActivityHook import setup_settings_activity_hook
+from .DialogsActivity.pillWidget import setup_pill_widget
+from .ui.PluginListActivity.service.InstallDismissHook import setup_install_dismiss_hook
+from .ChatActivity.export.DecryptorBottomSheet import setup_packit_file_hook
 from android_utils import log
 
 
@@ -45,7 +44,7 @@ class PackItPlugin(BasePlugin):
         LocalConfig.init()
         isBeta.init()
         try:
-            from .other.achievements import sync_accounts, sync_completed, _load_account, _save_account
+            from .ui.AchievementsActivity.service.AchivementsEngine import sync_accounts, sync_completed, _load_account, _save_account
             sync_accounts()
             data, _ = sync_completed(_load_account())
             _save_account(data)
@@ -106,7 +105,7 @@ class PackItPlugin(BasePlugin):
 
     def _check_for_update(self):
         try:
-            from .ui.updateSheet import check_and_show
+            from .DialogsActivity.PackitUpdateSheet import check_and_show
             check_and_show()
         except Exception as e:
             log(f"PackIt: update check error: {e}")
@@ -119,7 +118,7 @@ class PackItPlugin(BasePlugin):
             return
         first_name = str(user.first_name) if user.first_name else ""
         if first_name.lower() in ("shareui", "fuchs"):
-            from .other.achievements import unlock_secret
+            from .ui.AchievementsActivity.service.AchivementsEngine import unlock_secret
             unlock_secret("identity")
 
     def _init_official_repository(self):
@@ -134,25 +133,10 @@ class PackItPlugin(BasePlugin):
         if not isinstance(params.message, str):
             return HookResult()
         
-        if params.message.startswith(".logtest"):
-            packlog.info(f"log tested")
-            params.message = f"Log tested! Check logs"
-            return HookResult(strategy=HookStrategy.MODIFY, params=params)
-        
-        if params.message.startswith(".logspam"):
-            import threading
-            def spamLogs():
-                for i in range(20):
-                    packlog.info(f"spam test {i+1}")
-            threading.Thread(target=spamLogs).start()
-            maxLogs = packlog._getMaxLogs()
-            params.message = f"Spamming 20 logs in background! Max limit: {maxLogs}"
-            return HookResult(strategy=HookStrategy.MODIFY, params=params)
-        
         if params.message.startswith(".deleteachievements"):
             try:
                 import os
-                from .other.achievements import _get_achievements_path
+                from .ui.AchievementsActivity.service.AchivementsEngine import _get_achievements_path
                 path = _get_achievements_path()
                 if os.path.exists(path):
                     os.remove(path)

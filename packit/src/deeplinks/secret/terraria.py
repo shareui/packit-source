@@ -6,7 +6,7 @@ try:
     from org.telegram.messenger import ApplicationLoader
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
-    from ...other.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 
 def handle(url):
@@ -17,7 +17,7 @@ def handle(url):
     try:
         _playMaxVolume()
         log(f"deeplinks.terraria: calling unlock_secret")
-        from ...other.achievements import unlock_secret
+        from ...ui.AchievementsActivity.service.AchivementsEngine import unlock_secret
         unlock_secret("terraria")
         log(f"deeplinks.terraria: unlock_secret returned")
     except Exception as e:
