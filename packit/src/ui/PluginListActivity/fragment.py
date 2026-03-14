@@ -630,7 +630,8 @@ class InstallUI:
         try:
             delegate = self.PluginListFragment(self, repo_name, plugins, show_loading_initial=True, repo_id=repo_id)
             new_fragment = UniversalFragment(delegate)
-            fragment.presentFragment(new_fragment)
+            remove_last = "PluginSettingsActivity" in str(type(fragment))
+            fragment.presentFragment(new_fragment, remove_last)
             try:
                 new_fragment.setTitle(repo_name, False, 0)
                 actionBar = new_fragment.getActionBar()
@@ -669,12 +670,30 @@ class InstallUI:
         def onFragmentDestroy(self, *_):
             log(f"InstallUI: PluginListFragment destroyed id={id(self)} title='{getattr(self, 'title', '?')}' repo_id='{getattr(self, 'repo_id', '?')}'")
             try:
+                if hasattr(self, 'results_container') and self.results_container is not None:
+                    rc_parent = self.results_container.getParent()
+                    if rc_parent is not None:
+                        rc_parent.removeView(self.results_container)
+                    self.results_container = None
+            except Exception:
+                pass
+            try:
+                if hasattr(self, 'loading_container') and self.loading_container is not None:
+                    lc_parent = self.loading_container.getParent()
+                    if lc_parent is not None:
+                        lc_parent.removeView(self.loading_container)
+                    self.loading_container = None
+                    self.loading_video = None
+            except Exception:
+                pass
+            try:
                 if hasattr(self, 'content_view') and self.content_view is not None:
                     from ...ui.AchievementsActivity.service.AchivementsEngine import unregister_bulletin_container
                     unregister_bulletin_container(self.content_view)
                     parent = self.content_view.getParent()
                     if parent is not None:
                         parent.removeView(self.content_view)
+                    self.content_view = None
             except Exception:
                 pass
             try:
@@ -1288,6 +1307,8 @@ class InstallUI:
 
         def _finish_loading_and_show_plugins(self, content_wrapper):
             try:
+                if self.content_view is None:
+                    return
                 if hasattr(self, 'subtitle'):
                     self.subtitle.setText(_build_plugin_count_label(len(self.plugins)))
 
