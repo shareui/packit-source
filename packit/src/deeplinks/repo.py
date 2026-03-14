@@ -11,7 +11,7 @@ try:
     from elyx import strings
 except Exception as e:
     import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
-    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ..utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 from hook_utils import find_class
 try:
     from org.telegram.messenger import R as R_tg, ApplicationLoader
@@ -21,12 +21,12 @@ try:
     from org.telegram.ui.Stories.recorder import ButtonWithCounterView
 except Exception as e:
     import android_utils as _au; _au.log(f"repo deeplink: import tg classes failed: {e}")
-    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ..utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from com.exteragram.messenger.utils.text import LocaleUtils
 except Exception as e:
     import android_utils as _au; _au.log(f"repo deeplink: import LocaleUtils failed: {e}")
-    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ..utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 from urllib.parse import urlparse, parse_qs
 import requests
 import json
@@ -225,7 +225,7 @@ def _show_confirm_sheet(repometa, pluginCount, name, link, icon, repoManager):
                     repoManager.setRepositories(currentRepos)
                     BulletinHelper.show_success(strings.repo_add_success)
                     try:
-                        from ..other.achievements import increment_category
+                        from ..ui.AchievementsActivity.service.AchivementsEngine import increment_category
                         increment_category("Repositories")
                     except Exception as e:
                         log(f"repo deeplink: achievements increment error: {e}")

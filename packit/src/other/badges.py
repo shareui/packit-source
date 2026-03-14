@@ -4,7 +4,7 @@ try:
     from org.telegram.messenger import MessagesController
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.messenger import MessagesController failed: {e}")
-    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ..utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.messenger import ApplicationLoader
 except:

@@ -14,8 +14,8 @@ try:
     from elyx import strings
 except Exception as e:
     import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
-    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
-from .localConfig import LocalConfig
+    from ..utils.importFailed import showImportFailedAlert as _sifa; _sifa()
+from ..utils.localConfig import LocalConfig
 
 BETA = True
 _COUNTDOWN_SEC = 5

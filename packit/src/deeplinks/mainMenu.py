@@ -4,7 +4,7 @@ try:
     from elyx import strings
 except Exception as e:
     import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
-    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ..utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 
 def handle(url):

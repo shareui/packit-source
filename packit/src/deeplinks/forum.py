@@ -4,7 +4,7 @@ try:
     from org.telegram.messenger.browser import Browser
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.messenger.browser import Browser failed: {e}")
-    from ..other.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ..utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 
 def handle(url):
