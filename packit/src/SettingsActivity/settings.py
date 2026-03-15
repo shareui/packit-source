@@ -678,6 +678,14 @@ class OtherSettings:
                 icon="msg_search",
                 link_alias="fuzzy_search"
             ),
+            Switch(
+                key="static_online_status",
+                text=strings.static_online_status,
+                subtext=strings.static_online_status_desc,
+                default=False,
+                icon="msg_online",
+                link_alias="static_online_status"
+            ),
         ]
 
         items.append(Switch(

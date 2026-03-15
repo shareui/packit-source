@@ -6,9 +6,9 @@ from ..ui.AchievementsActivity.fragment import show_achievements
 import threading
 import time
 try:
-    from elyx import strings
+    from elyx import strings, settings
 except Exception as e:
-    import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
+    import android_utils as _au; _au.log(f"import elyx import strings, settings failed: {e}")
     from ..utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 from ..ui.AchievementsActivity.service.AchivementsEngine import get_all_with_progress, get_stats
 
@@ -112,7 +112,10 @@ def _make_profile_header(context):
         subtitle = TextView(context)
         subtitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
         subtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
-        subtitle.setText(_get_greeting(first_name))
+        if settings.get("static_online_status", False):
+            subtitle.setText(str(strings["static_online_label"]))
+        else:
+            subtitle.setText(_get_greeting(first_name))
         subtitle.setGravity(Gravity.CENTER)
         content.addView(subtitle, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_HORIZONTAL, 24, 0, 24, 24))
 
