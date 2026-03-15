@@ -187,7 +187,14 @@ def _show_translate_sheet(act, plugin_info, lang, translated_text):
         translated_tv = TextView(act)
         translated_tv.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
         translated_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
-        translated_tv.setText(translated_text)
+        try:
+            from com.exteragram.messenger.utils.text import LocaleUtils
+            from android.text.method import LinkMovementMethod
+            translated_tv.setText(LocaleUtils.fullyFormatText(translated_text))
+            translated_tv.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
+            translated_tv.setMovementMethod(LinkMovementMethod.getInstance())
+        except Exception:
+            translated_tv.setText(translated_text)
         translated_container.addView(translated_tv, FrameLayout.LayoutParams(-1, -1))
         root.addView(translated_container, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 16))
 

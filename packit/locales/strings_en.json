@@ -595,6 +595,7 @@
   "pp_required_version": "{} required",
   "pp_section_description": "Description",
   "pp_section_dependencies": "Dependencies",
+  "pp_section_tags": "Tags",
   "pp_section_more_from": "More from {}",
   "pp_dep_library_one": "1 library",
   "pp_dep_library_other": "{} libraries",
