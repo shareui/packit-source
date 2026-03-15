@@ -874,6 +874,9 @@ class SetCustomViewHook(MethodHook):
 
     def after_hooked_method(self, param):
         try:
+            from elyx import settings
+            if not settings.get("install_sheet_hash", True):
+                return
             sheet = param.thisObject
             className = str(sheet.getClass().getName())
             if "InstallPluginBottomSheet" not in className:

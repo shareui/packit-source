@@ -20,18 +20,12 @@ class DocumentationSettings:
 
     def _openUrl(self, url):
         try:
-            if url.startswith("https://t.me/"):
-                frag = get_last_fragment()
-                act = frag.getParentActivity() if frag else None
-                if act:
-                    uri = Uri.parse(url)
-                    Browser.openUrl(act, uri, True, True, True, None, None, False, False, False)
+            frag = get_last_fragment()
+            act = frag.getParentActivity() if frag else None
+            if act:
+                Browser.openUrl(act, Uri.parse(url), True, True, True, None, None, False, False, False)
             else:
-                context = ApplicationLoader.applicationContext
-                intent = Intent(Intent.ACTION_VIEW)
-                intent.setData(Uri.parse(url))
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                context.startActivity(intent)
+                raise Exception("no activity")
         except Exception:
             BulletinHelper.show_error(strings.failed_to_open_link)
 
@@ -46,6 +40,9 @@ class DocumentationSettings:
 
     def _openDeeplinks(self, view):
         self._openUrl("https://github.com/shareui/packit/blob/main/docs/deeplinks.md")
+
+    def _openMetainfoDocs(self, view):
+        self._openUrl("https://github.com/shareui/packit/blob/main/docs/devdocs.md")
 
     def _openPublishPlugin(self, view):
         self._openUrl("https://t.me/packitGround/13/351")
@@ -118,6 +115,12 @@ class DocumentationSettings:
               icon="msg_link",
               on_click=self._openDeeplinks,
               link_alias="deeplinks"
+          ),
+          Text(
+              text=strings.devdocs,
+              icon="msg_info",
+              on_click=self._openMetainfoDocs,
+              link_alias="devdocs"
           ),
   
           Divider()
