@@ -592,6 +592,7 @@
   "pp_required_version": "Требуется {}",
   "pp_section_description": "Описание",
   "pp_section_dependencies": "Зависимости",
+  "pp_section_tags": "Теги",
   "pp_section_more_from": "Ещё от {}",
   "pp_dep_library_one": "1 библиотека",
   "pp_dep_library_other": "{} библиотек",

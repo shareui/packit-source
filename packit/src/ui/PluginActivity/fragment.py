@@ -29,7 +29,44 @@ try:
 except Exception as e:
     import android_utils as _au; _au.log(f"pluginProfile: import UniversalFragment failed: {e}")
 
-_STICKER_RETRY_DELAY = 1.5
+try:
+    from org.telegram.messenger.browser import Browser
+    from android.net import Uri
+except Exception as e:
+    import android_utils as _au; _au.log(f"pluginProfile: import Browser failed: {e}")
+    Browser = None
+    Uri = None
+
+try:
+    from org.telegram.ui.ActionBar import ActionBarPopupWindow
+except Exception as e:
+    import android_utils as _au; _au.log(f"pluginProfile: import ActionBarPopupWindow failed: {e}")
+    ActionBarPopupWindow = None
+
+try:
+    from androidx.core.content import ContextCompat
+except Exception as e:
+    import android_utils as _au; _au.log(f"pluginProfile: import ContextCompat failed: {e}")
+    ContextCompat = None
+
+try:
+    from android.graphics.drawable import RippleDrawable
+except Exception:
+    RippleDrawable = None
+
+try:
+    from android.graphics import Color as AColor, PorterDuff
+except Exception as e:
+    import android_utils as _au; _au.log(f"pluginProfile: import AColor failed: {e}")
+    AColor = None
+    PorterDuff = None
+
+try:
+    from android.content.res import ColorStateList as AColorStateList
+except Exception:
+    AColorStateList = None
+
+
 
 
 def _resolve_icon(name):
@@ -143,7 +180,141 @@ def _make_card_bg(act, corner=14):
         return None
 
 
+def _show_plugin_menu(act, p, anchor_view):
+    try:
+        from ..PluginListActivity.service.PluginActions import copy_plugin_link, share_plugin_file, view_plugin_code, download_plugin_file, translate_plugin
+        from ..PluginListActivity.service.ReportService import report_plugin
+        from org.telegram.messenger import R as R_tg
+
+        popup_layout = ActionBarPopupWindow.ActionBarPopupWindowLayout(act)
+        popup_layout.setBackgroundColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuBackground))
+        popup_layout.setFitItems(True)
+        popup_window_ref = [None]
+
+        def create_menu_item(icon_res, title, action, is_red=False):
+            item_frame = FrameLayout(act)
+            item_frame.setMinimumWidth(AndroidUtilities.dp(160))
+            item_frame.setClickable(True)
+            item_frame.setFocusable(True)
+            try:
+                try:
+                    bg_color = Theme.getColor(Theme.key_dialogBackgroundGray) & 0x20FFFFFF | 0x10000000
+                except Exception:
+                    bg_color = Theme.getColor(Theme.key_windowBackgroundGray) & 0x20FFFFFF | 0x10000000
+                try:
+                    pressed_color = Theme.getColor(Theme.key_listSelector) & 0x40FFFFFF | 0x30000000
+                except Exception:
+                    pressed_color = AColor.parseColor("#D0D0D0") if AColor else 0x30000000
+                btn_bg = GradientDrawable()
+                btn_bg.setCornerRadius(AndroidUtilities.dp(10))
+                btn_bg.setColor(bg_color)
+                try:
+                    ripple_color = AColorStateList.valueOf(AColor.parseColor("#40000000"))
+                    pressed_bg = GradientDrawable()
+                    pressed_bg.setCornerRadius(AndroidUtilities.dp(10))
+                    pressed_bg.setColor(pressed_color)
+                    item_frame.setBackground(RippleDrawable(ripple_color, btn_bg, pressed_bg))
+                except Exception:
+                    item_frame.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                        AndroidUtilities.dp(10), bg_color, pressed_color
+                    ))
+            except Exception:
+                item_frame.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 2))
+
+            item_content = LinearLayout(act)
+            item_content.setOrientation(LinearLayout.HORIZONTAL)
+            item_content.setGravity(Gravity.CENTER_VERTICAL)
+            item_content.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12))
+
+            icon = ImageView(act)
+            icon.setScaleType(ImageView.ScaleType.CENTER)
+            try:
+                icon_drawable = ContextCompat.getDrawable(act, icon_res)
+                if is_red:
+                    try:
+                        red_color = Theme.getColor(Theme.key_text_RedRegular)
+                    except Exception:
+                        red_color = AColor.parseColor("#FF3B30")
+                    icon_drawable.setColorFilter(red_color, PorterDuff.Mode.SRC_IN)
+                else:
+                    try:
+                        gray_color = Theme.getColor(Theme.key_dialogTextGray)
+                    except Exception:
+                        gray_color = AColor.parseColor("#808080")
+                    icon_drawable.setColorFilter(gray_color, PorterDuff.Mode.SRC_IN)
+                icon.setImageDrawable(icon_drawable)
+            except Exception:
+                icon.setImageResource(icon_res)
+            item_content.addView(icon, LayoutHelper.createLinear(24, 24, Gravity.CENTER_VERTICAL, 0, 0, 12, 0))
+
+            title_tv = TextView(act)
+            title_tv.setText(title)
+            title_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            try:
+                if is_red:
+                    try:
+                        red_color = Theme.getColor(Theme.key_text_RedRegular)
+                    except Exception:
+                        red_color = AColor.parseColor("#FF3B30")
+                    title_tv.setTextColor(red_color)
+                else:
+                    title_tv.setTextColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuItem))
+            except Exception:
+                pass
+            item_content.addView(title_tv, LayoutHelper.createLinear(-1, -2, 1.0, Gravity.CENTER_VERTICAL))
+            item_frame.addView(item_content)
+
+            def _on_click(*_):
+                try:
+                    if popup_window_ref[0]:
+                        popup_window_ref[0].dismiss()
+                except Exception:
+                    pass
+                try:
+                    action()
+                except Exception:
+                    pass
+
+            item_frame.setOnClickListener(OnClickListener(_on_click))
+            popup_layout.addView(item_frame, LayoutHelper.createLinear(-1, -2))
+
+        icon_copy      = getattr(R_tg.drawable, 'msg_copy',      getattr(R_tg.drawable, 'msg_copy_filled', 0))
+        icon_share     = getattr(R_tg.drawable, 'msg_share',     0)
+        icon_code      = getattr(R_tg.drawable, 'msg_view_file', 0)
+        icon_download  = getattr(R_tg.drawable, 'msg_download',  0)
+        icon_translate = getattr(R_tg.drawable, 'msg_replace',   0)
+        icon_report    = getattr(R_tg.drawable, 'msg_report',    0)
+
+        create_menu_item(icon_copy,      str(strings["copy_link"]), lambda: copy_plugin_link(p, str(p.get("id") or ""), None))
+        create_menu_item(icon_share,     str(strings["share"]),     lambda: share_plugin_file(p, str(p.get("name") or p.get("id") or ""), act))
+        create_menu_item(icon_code,      str(strings["code"]),      lambda: view_plugin_code(p, act))
+        create_menu_item(icon_download,  str(strings["download"]),  lambda: download_plugin_file(p))
+        create_menu_item(icon_report,    str(strings["report"]),    lambda: report_plugin(p, act), is_red=True)
+
+        popup_window = ActionBarPopupWindow(popup_layout, -2, -2)
+        popup_window_ref[0] = popup_window
+        popup_window.setOutsideTouchable(True)
+        popup_window.setClippingEnabled(True)
+        popup_window.setAnimationStyle(R_tg.style.PopupContextAnimation)
+        popup_window.setFocusable(True)
+        popup_layout.measure(
+            View.MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(1000), View.MeasureSpec.AT_MOST),
+            View.MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(1000), View.MeasureSpec.AT_MOST)
+        )
+        location = [0, 0]
+        anchor_view.getLocationInWindow(location)
+        popup_x = location[0] + anchor_view.getWidth() - popup_layout.getMeasuredWidth()
+        popup_y = location[1] - popup_layout.getMeasuredHeight()
+        popup_window.showAtLocation(anchor_view, Gravity.TOP | Gravity.LEFT, popup_x, popup_y)
+        popup_window.dimBehind()
+        log("pluginProfile: _show_plugin_menu shown")
+    except Exception as e:
+        log(f"pluginProfile: _show_plugin_menu error: {e}")
+
+
 class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
+    _MENU_ID = 1001
+
     def __init__(self, plugin: dict, install_ui, all_plugins: list):
         super().__init__()
         self.plugin = plugin
@@ -151,6 +322,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         self.all_plugins = all_plugins or []
         self.content_view = None
         self._alive = [True]  # shared ref for sticker retry timers
+        self._fragment_ref = [None]  # filled after presentFragment
+        self._anchor_ref = [None]   # filled after menu button is created
         log(f"pluginProfile: init plugin={plugin.get('id')}")
 
     def onFragmentCreate(self, *_):
@@ -191,7 +364,19 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         return False
 
     def onMenuItemClick(self, mid):
-        pass
+        log(f"pluginProfile: onMenuItemClick mid={mid} MENU_ID={self._MENU_ID}")
+        if mid != self._MENU_ID:
+            return
+        try:
+            frag = self._fragment_ref[0]
+            anchor = self._anchor_ref[0]
+            if not frag or not anchor:
+                log("pluginProfile: onMenuItemClick missing frag or anchor")
+                return
+            act = frag.getParentActivity()
+            _show_plugin_menu(act, self.plugin, anchor)
+        except Exception as e:
+            log(f"pluginProfile: onMenuItemClick error: {e}")
 
     def beforeCreateView(self):
         log(f"pluginProfile: beforeCreateView plugin={self.plugin.get('id')}")
@@ -294,16 +479,20 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 meta_tv.setText("  ·  ".join(meta_parts))
             hero.addView(meta_tv, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 12))
 
-        # chips: tags + size + min_version + deps
+        # chips: state + size + min_version (tags moved to separate card below)
         chips_row = LinearLayout(act)
         chips_row.setOrientation(LinearLayout.HORIZONTAL)
         chips_row.setGravity(Gravity.CENTER_HORIZONTAL)
 
-        tags = p.get("tags") or []
-        for tag in tags:
-            if not isinstance(tag, (list, tuple)) or len(tag) < 2:
-                continue
-            chip = _make_chip(act, str(tag[0]), str(tag[1]))
+        state = str(p.get("state") or "").strip().lower()
+        if state:
+            _STATE_COLOR_KEYS = {
+                "release": "key_color_green",
+                "beta":    "key_color_orange",
+                "alpha":   "key_color_red",
+            }
+            state_color_key = _STATE_COLOR_KEYS.get(state, "key_windowBackgroundWhiteGrayText")
+            chip = _make_chip(act, state, state_color_key)
             chip_lp = LinearLayout.LayoutParams(-2, -2)
             chip_lp.rightMargin = AndroidUtilities.dp(5)
             chips_row.addView(chip, chip_lp)
@@ -431,7 +620,40 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
 
             hero.addView(install_btn, install_margin_lp)
 
-        root.addView(hero, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 12))
+        root.addView(hero, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
+
+        # tags card
+        tags = p.get("tags") or []
+        if tags:
+            tags_card = LinearLayout(act)
+            tags_card.setOrientation(LinearLayout.VERTICAL)
+            tags_card.setPadding(
+                AndroidUtilities.dp(16), AndroidUtilities.dp(14),
+                AndroidUtilities.dp(16), AndroidUtilities.dp(14)
+            )
+            bg_tags = _make_card_bg(act)
+            if bg_tags:
+                tags_card.setBackground(bg_tags)
+
+            tags_card.addView(
+                _make_section_header(act, str(strings.pp_section_tags)),
+                LayoutHelper.createLinear(-2, -2, 0, 0, 0, 0, 8)
+            )
+
+            chips_row_tags = LinearLayout(act)
+            chips_row_tags.setOrientation(LinearLayout.HORIZONTAL)
+
+            for tag in tags:
+                if not isinstance(tag, (list, tuple)) or len(tag) < 2:
+                    continue
+                chip = _make_chip(act, str(tag[0]), str(tag[1]))
+                chip_lp = LinearLayout.LayoutParams(-2, -2)
+                chip_lp.rightMargin = AndroidUtilities.dp(5)
+                chips_row_tags.addView(chip, chip_lp)
+
+            if chips_row_tags.getChildCount() > 0:
+                tags_card.addView(chips_row_tags, LayoutHelper.createLinear(-2, -2))
+                root.addView(tags_card, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
 
         # description
         desc = self._get_localized_description(p)
@@ -446,21 +668,103 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             if bg2:
                 desc_card.setBackground(bg2)
 
-            desc_card.addView(
+            # header row: "DESCRIPTION" label + action buttons on the right
+            desc_header_row = LinearLayout(act)
+            desc_header_row.setOrientation(LinearLayout.HORIZONTAL)
+            desc_header_row.setGravity(Gravity.CENTER_VERTICAL)
+            desc_header_row.addView(
                 _make_section_header(act, str(strings.pp_section_description)),
-                LayoutHelper.createLinear(-2, -2, 0, 0, 0, 0, 8)
+                LayoutHelper.createLinear(0, -2, 1.0)
             )
 
-            # FrameLayout: desc_tv full width with paddingEnd so text wraps before button,
-            # translate_btn overlays top-right corner
-            btn_size = AndroidUtilities.dp(32)  # 18dp icon + 7dp padding * 2
-            desc_frame = FrameLayout(act)
+            def _make_icon_btn(icon_name):
+                btn = FrameLayout(act)
+                btn.setClickable(True)
+                btn.setFocusable(True)
+                try:
+                    ic_color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+                    r = (ic_color >> 16) & 0xFF
+                    g = (ic_color >> 8) & 0xFF
+                    b = ic_color & 0xFF
+                    ic_fill    = ctypes.c_int32((0x22 << 24) | (r << 16) | (g << 8) | b).value
+                    ic_pressed = ctypes.c_int32((0x44 << 24) | (r << 16) | (g << 8) | b).value
+                    btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                        AndroidUtilities.dp(8), ic_fill, ic_pressed
+                    ))
+                except Exception:
+                    pass
+                btn.setPadding(
+                    AndroidUtilities.dp(6), AndroidUtilities.dp(4),
+                    AndroidUtilities.dp(6), AndroidUtilities.dp(4)
+                )
+                iv = ImageView(act)
+                iv.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+                try:
+                    iv.setImageResource(_resolve_icon(icon_name))
+                    iv.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+                except Exception:
+                    pass
+                btn.addView(iv, FrameLayout.LayoutParams(
+                    AndroidUtilities.dp(16), AndroidUtilities.dp(16)
+                ))
+                return btn
+
+            translate_btn = _make_icon_btn("msg_replace")
+
+            def onTranslateClick(v, _p=p):
+                from ..PluginListActivity.translation import translate_plugin
+                translate_plugin(_p)
+            translate_btn.setOnClickListener(OnClickListener(onTranslateClick))
+
+            btn_lp = LinearLayout.LayoutParams(-2, -2)
+            btn_lp.leftMargin = AndroidUtilities.dp(6)
+            desc_header_row.addView(translate_btn, btn_lp)
+
+            readme_url = str(p.get("readme") or "").strip()
+            if readme_url:
+                extended_btn = _make_icon_btn("msg_info")
+
+                def _raw_to_github(url):
+                    # https://raw.githubusercontent.com/user/repo/refs/heads/branch/path
+                    # → https://github.com/user/repo/blob/branch/path
+                    try:
+                        prefix = "https://raw.githubusercontent.com/"
+                        if not url.startswith(prefix):
+                            return url
+                        rest = url[len(prefix):]
+                        parts = rest.split("/")
+                        # parts: [user, repo, "refs", "heads", branch, ...path]
+                        if len(parts) >= 6 and parts[2] == "refs" and parts[3] == "heads":
+                            user, repo, _, _, branch = parts[:5]
+                            path = "/".join(parts[5:])
+                            return f"https://github.com/{user}/{repo}/blob/{branch}/{path}"
+                        # fallback: user/repo/branch/path (no refs/heads)
+                        if len(parts) >= 4:
+                            user, repo, branch = parts[:3]
+                            path = "/".join(parts[3:])
+                            return f"https://github.com/{user}/{repo}/blob/{branch}/{path}"
+                    except Exception:
+                        pass
+                    return url
+
+                def onExtendedClick(v, _url=readme_url, _act=act):
+                    try:
+                        if Browser and Uri:
+                            Browser.openUrl(_act, Uri.parse(_raw_to_github(_url)), True, True, True, None, None, False, False, False)
+                    except Exception as ex:
+                        log(f"pluginProfile: extended_btn openUrl error: {ex}")
+                extended_btn.setOnClickListener(OnClickListener(onExtendedClick))
+
+                btn_lp2 = LinearLayout.LayoutParams(-2, -2)
+                btn_lp2.leftMargin = AndroidUtilities.dp(6)
+                desc_header_row.addView(extended_btn, btn_lp2)
+
+            desc_card.addView(desc_header_row, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 8))
 
             desc_tv = TextView(act)
             desc_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
             desc_tv.setTextColor(text_color)
             desc_tv.setLineSpacing(AndroidUtilities.dp(3), 1.0)
-            desc_tv.setPadding(0, 0, btn_size + AndroidUtilities.dp(4), 0)
             try:
                 from com.exteragram.messenger.utils.text import LocaleUtils
                 from android.text.method import LinkMovementMethod
@@ -469,47 +773,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 desc_tv.setMovementMethod(LinkMovementMethod.getInstance())
             except Exception:
                 desc_tv.setText(desc)
-            desc_frame.addView(desc_tv, FrameLayout.LayoutParams(-1, -2))
+            desc_card.addView(desc_tv, LayoutHelper.createLinear(-1, -2))
 
-            translate_btn = FrameLayout(act)
-            translate_btn.setClickable(True)
-            translate_btn.setFocusable(True)
-            try:
-                tr_color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
-                r = (tr_color >> 16) & 0xFF
-                g = (tr_color >> 8) & 0xFF
-                b = tr_color & 0xFF
-                tr_fill = ctypes.c_int32((0x22 << 24) | (r << 16) | (g << 8) | b).value
-                tr_pressed = ctypes.c_int32((0x44 << 24) | (r << 16) | (g << 8) | b).value
-                translate_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                    AndroidUtilities.dp(8), tr_fill, tr_pressed
-                ))
-            except Exception:
-                pass
-            translate_btn.setPadding(
-                AndroidUtilities.dp(7), AndroidUtilities.dp(5),
-                AndroidUtilities.dp(7), AndroidUtilities.dp(5)
-            )
-            tr_icon = ImageView(act)
-            tr_icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
-            try:
-                tr_icon.setImageResource(_resolve_icon("msg_replace"))
-                tr_icon.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
-            except Exception:
-                pass
-            translate_btn.addView(tr_icon, FrameLayout.LayoutParams(
-                AndroidUtilities.dp(18), AndroidUtilities.dp(18)
-            ))
-
-            def onTranslateClick(v, _p=p):
-                from ..PluginListActivity.translation import translate_plugin
-                translate_plugin(_p)
-            translate_btn.setOnClickListener(OnClickListener(onTranslateClick))
-
-            tr_lp = FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.END)
-            desc_frame.addView(translate_btn, tr_lp)
-
-            desc_card.addView(desc_frame, LayoutHelper.createLinear(-1, -2))
             root.addView(desc_card, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
 
         # dependencies
@@ -813,6 +1078,27 @@ def show_plugin_profile(plugin: dict, install_ui, all_plugins: list = None):
             action_bar = new_fragment.getActionBar()
             if action_bar:
                 action_bar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))
+
+                R_tg = find_class("org.telegram.messenger.R")
+                icon_id = int(getattr(R_tg.drawable, "ic_ab_other", 0))
+                menu = action_bar.createMenu()
+                menu_btn = menu.addItem(PluginProfileFragment._MENU_ID, icon_id)
+                delegate._fragment_ref[0] = new_fragment
+                delegate._anchor_ref[0] = menu_btn
+                log(f"pluginProfile: menu_btn={menu_btn}")
+
+                # dynamic_proxy doesn't support abstract classes — set OnClickListener directly on menu_btn
+                try:
+                    _delegate_ref = delegate
+
+                    def _on_menu_btn_click(v):
+                        log("pluginProfile: menu_btn clicked")
+                        _delegate_ref.onMenuItemClick(PluginProfileFragment._MENU_ID)
+
+                    menu_btn.setOnClickListener(OnClickListener(_on_menu_btn_click))
+                    log("pluginProfile: menu_btn OnClickListener set ok")
+                except Exception as cb_e:
+                    log(f"pluginProfile: callback setup error: {cb_e}")
         except Exception as e:
             log(f"pluginProfile: actionBar setup error: {e}")
     except Exception as e:
