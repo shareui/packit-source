@@ -14,6 +14,7 @@ from .other.badges import BadgeManager
 from .utils.localConfig import LocalConfig
 from .other import isBeta
 from .ChatActivity.SecurityBottomSheets import setup_policy_button_hook, setup_hash_button_hook
+from .ChatActivity.LinksIcons import setup_links_buttons_hook
 from .SettingsActivity.service.settingsActivityHook import setup_settings_activity_hook
 from .DialogsActivity.pillWidget import setup_pill_widget
 from .ui.PluginListActivity.service.InstallDismissHook import setup_install_dismiss_hook
@@ -34,6 +35,7 @@ class PackItPlugin(BasePlugin):
         self.deeplink_hook_ref = None
         self.policy_button_hook_ref = None
         self.hash_button_hook_ref = None
+        self.links_button_hook_ref = None
         self.dialogs_menu_hook_ref = None
         self.install_dismiss_hook_ref = None
         self.pill_widget_hook_ref = None
@@ -66,6 +68,7 @@ class PackItPlugin(BasePlugin):
         self.badgeManager.setup_hooks()
         self.policy_button_hook_ref = setup_policy_button_hook(self)
         self.hash_button_hook_ref = setup_hash_button_hook(self, self.repoManager)
+        self.links_button_hook_ref = setup_links_buttons_hook(self)
         self.install_dismiss_hook_ref = setup_install_dismiss_hook(self)
         setup_packit_file_hook(self)
         self.settings_activity_hook_refs = setup_settings_activity_hook(self)

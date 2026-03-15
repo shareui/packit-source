@@ -478,6 +478,9 @@ class SetCustomViewHook(MethodHook):
 
     def after_hooked_method(self, param):
         try:
+            from elyx import settings
+            if not settings.get("install_sheet_signatures", True):
+                return
             sheet = param.thisObject
             if "InstallPluginBottomSheet" not in str(sheet.getClass().getName()):
                 return
