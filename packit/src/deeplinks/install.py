@@ -19,9 +19,9 @@ except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
     from ..utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 
-# install&repo=<rm_id>: required: repo — optional: plugin, icon
+# install&repo=<rm_id>: required: repo — optional: plugin, icon, version
 _INSTALL_REQUIRED = {"repo"}
-_INSTALL_OPTIONAL = {"plugin", "icon"}
+_INSTALL_OPTIONAL = {"plugin", "icon", "version"}
 _INSTALL_ALL = _INSTALL_REQUIRED | _INSTALL_OPTIONAL
 
 
@@ -79,6 +79,7 @@ def handle(url, repoManager):
         repoId = query.get("repo", [""])[0].strip()
         pluginId = query.get("plugin", [""])[0].strip()
         iconId = query.get("icon", [""])[0].strip()
+        versionId = query.get("version", [""])[0].strip()
 
         if not repoId:
             BulletinHelper.show_error(strings.deeplink_too_few_args)
@@ -98,7 +99,7 @@ def handle(url, repoManager):
             installUI._open_repo_plugins(repo)
             return
 
-        _handleInstallPlugin(repo, pluginId)
+        _handleInstallPlugin(repo, pluginId, versionId)
     except Exception as e:
         log(f"deeplinks.install: error: {e}")
 
@@ -114,7 +115,155 @@ def _handleOpenInstall(repoManager):
         log(f"deeplinks.install: open error: {e}")
 
 
-def _handleInstallPlugin(repo: dict, pluginId: str):
+def _is_version_ok(min_ver: str) -> bool:
+    if not min_ver:
+        return True
+    try:
+        from ..ui.PluginListActivity.fragment import _is_min_version_satisfied
+        return _is_min_version_satisfied(min_ver)
+    except Exception:
+        return True
+
+
+def _find_best_compatible(plugin: dict) -> dict | None:
+    # returns a plugin dict with link/min_version set to best available compatible version
+    # checks root version first (newest), then versions dict descending
+    from ..ui.PluginActivity.versionPicker import _build_version_entries
+    entries = _build_version_entries(plugin)
+    for e in entries:
+        if _is_version_ok(e["min_version"]):
+            result = dict(plugin)
+            result["link"] = e["link"]
+            if e["min_version"]:
+                result["min_version"] = e["min_version"]
+            return result
+    return None
+
+
+def _show_incompatible_sheet(requested_version: str, compatible_plugin: dict, all_plugins: list):
+    try:
+        from client_utils import get_last_fragment
+        from android_utils import OnClickListener
+        from android.view import Gravity
+        from android.widget import LinearLayout, TextView, FrameLayout
+        from android.util import TypedValue
+        from android.graphics.drawable import GradientDrawable
+        from org.telegram.ui.ActionBar import BottomSheet, Theme
+        from org.telegram.ui.Components import LayoutHelper
+        from org.telegram.messenger import AndroidUtilities
+        from ..core import install_plugin
+
+        fragment = get_last_fragment()
+        if not fragment:
+            return
+        act = fragment.getParentActivity()
+        if not act:
+            return
+
+        sheet = BottomSheet(act, False, fragment.getResourceProvider())
+
+        bg_color = Theme.getColor(Theme.key_dialogBackground)
+        text_color = Theme.getColor(Theme.key_dialogTextBlack)
+        gray_color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+        accent = Theme.getColor(Theme.key_featuredStickers_addButton)
+        accent_pressed = Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
+
+        root = LinearLayout(act)
+        root.setOrientation(LinearLayout.VERTICAL)
+        root.setPadding(
+            AndroidUtilities.dp(20), AndroidUtilities.dp(20),
+            AndroidUtilities.dp(20), AndroidUtilities.dp(16)
+        )
+        try:
+            bg = GradientDrawable()
+            bg.setShape(GradientDrawable.RECTANGLE)
+            bg.setColor(bg_color)
+            root.setBackground(bg)
+        except Exception:
+            root.setBackgroundColor(bg_color)
+
+        title_tv = TextView(act)
+        title_tv.setText(str(strings["dl_install_incompatible_sheet_title"]))
+        title_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20)
+        try:
+            title_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+        except Exception:
+            title_tv.setTypeface(AndroidUtilities.bold())
+        title_tv.setTextColor(text_color)
+        title_tv.setGravity(Gravity.CENTER)
+        root.addView(title_tv, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 12))
+
+        desc_tv = TextView(act)
+        desc_tv.setText(str(strings["dl_install_incompatible_sheet_desc"]).format(requested_version))
+        desc_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+        desc_tv.setTextColor(gray_color)
+        desc_tv.setGravity(Gravity.CENTER)
+        root.addView(desc_tv, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 20))
+
+        install_btn = FrameLayout(act)
+        install_btn.setClickable(True)
+        install_btn.setFocusable(True)
+        install_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+            AndroidUtilities.dp(28), accent, accent_pressed
+        ))
+        install_btn.setPadding(0, AndroidUtilities.dp(14), 0, AndroidUtilities.dp(14))
+
+        install_tv = TextView(act)
+        install_tv.setText(str(strings["dl_install_incompatible_sheet_btn"]))
+        install_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+        install_tv.setGravity(Gravity.CENTER)
+        try:
+            install_tv.setTypeface(AndroidUtilities.bold())
+        except Exception:
+            pass
+        install_tv.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
+        install_btn.addView(install_tv, FrameLayout.LayoutParams(-1, -2))
+
+        def _on_install(v, _p=compatible_plugin, _all=all_plugins, _sheet=sheet):
+            try:
+                _sheet.dismiss()
+            except Exception:
+                pass
+            install_plugin(_p, all_plugins=_all)
+
+        install_btn.setOnClickListener(OnClickListener(_on_install))
+        root.addView(install_btn, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8))
+
+        cancel_btn = FrameLayout(act)
+        cancel_btn.setClickable(True)
+        cancel_btn.setFocusable(True)
+        try:
+            import ctypes
+            base = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+            r2 = (base >> 16) & 0xFF
+            g2 = (base >> 8) & 0xFF
+            b2 = base & 0xFF
+            bg_cancel = ctypes.c_int32((0x22 << 24) | (r2 << 16) | (g2 << 8) | b2).value
+            bg_cancel_p = ctypes.c_int32((0x44 << 24) | (r2 << 16) | (g2 << 8) | b2).value
+            cancel_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                AndroidUtilities.dp(28), bg_cancel, bg_cancel_p
+            ))
+        except Exception:
+            pass
+        cancel_btn.setPadding(0, AndroidUtilities.dp(14), 0, AndroidUtilities.dp(14))
+
+        cancel_tv = TextView(act)
+        cancel_tv.setText(str(strings["dl_install_incompatible_sheet_cancel"]))
+        cancel_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+        cancel_tv.setGravity(Gravity.CENTER)
+        cancel_tv.setTextColor(gray_color)
+        cancel_btn.addView(cancel_tv, FrameLayout.LayoutParams(-1, -2))
+
+        cancel_btn.setOnClickListener(OnClickListener(lambda v: sheet.dismiss()))
+        root.addView(cancel_btn, LayoutHelper.createLinear(-1, -2))
+
+        sheet.setCustomView(root)
+        sheet.show()
+    except Exception as e:
+        log(f"deeplinks.install: incompatible sheet error: {e}")
+
+
+def _handleInstallPlugin(repo: dict, pluginId: str, versionId: str = ""):
     def task():
         try:
             pluginsUrl = _resolvePluginsUrl(repo)
@@ -153,6 +302,40 @@ def _handleInstallPlugin(repo: dict, pluginId: str):
             if not plugin:
                 run_on_ui_thread(lambda: BulletinHelper.show_error(f"Plugin '{pluginId}' not found"))
                 return
+
+            # resolve specific version if requested
+            if versionId:
+                original_plugin = plugin
+                versions = plugin.get("versions") or {}
+                if versionId == plugin.get("version"):
+                    pass  # already the latest, use plugin as-is
+                elif versionId in versions:
+                    meta = versions[versionId]
+                    link = meta.get("link") or meta.get("raw") or ""
+                    if not link:
+                        run_on_ui_thread(lambda: BulletinHelper.show_error(f"Version '{versionId}' has no link"))
+                        return
+                    original_plugin = plugin  # keep original for compatibility search
+                    plugin = dict(plugin)
+                    plugin["link"] = link
+                    if meta.get("min_version"):
+                        plugin["min_version"] = meta["min_version"]
+                else:
+                    run_on_ui_thread(lambda: BulletinHelper.show_error(f"Version '{versionId}' not found"))
+                    return
+
+                # check compatibility of resolved version
+                min_ver = plugin.get("min_version") or ""
+                if not _is_version_ok(min_ver):
+                    compatible = _find_best_compatible(original_plugin)
+                    if compatible:
+                        _v = versionId
+                        _c = compatible
+                        _all = all_plugins
+                        run_on_ui_thread(lambda: _show_incompatible_sheet(_v, _c, _all))
+                    else:
+                        run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings["dl_install_incompatible_all"])))
+                    return
 
             run_on_ui_thread(lambda: install_plugin(plugin, all_plugins=all_plugins))
         except Exception as e:

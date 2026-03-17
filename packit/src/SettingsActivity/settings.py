@@ -671,6 +671,14 @@ class OtherSettings:
                 icon="msg_leave",
                 link_alias="skip_repository_selection"
             ),
+            Switch(
+                key="version_picker_auto_expand",
+                text=strings.version_picker_auto_expand,
+                subtext=strings.version_picker_auto_expand_desc,
+                default=False,
+                icon="msg_list",
+                link_alias="version_picker_auto_expand"
+            ),
             Divider(text=strings.navigation_header_desc),
             Header(text=strings.sfx_header),
             ExpandableSwitch(

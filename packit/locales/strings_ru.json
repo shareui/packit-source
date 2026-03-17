@@ -601,5 +601,18 @@
   "pill_stack_settings": "Настройки Pill Stack",
   "pill_stack_settings_desc": "Настройте видимые виджеты и их порядок.",
   "pill_action_settings": "Открыть настройки",
-  "pill_action_change": "Изменить действие"
+  "pill_action_change": "Изменить действие",
+  "pp_version_picker_title": "Выберите версию",
+  "pp_version_selected": "Версия: {}",
+  "pp_install": "Установить",
+  "pp_version_requires": "Требуется клиент версии {} или выше.",
+  "version_picker_auto_expand": "Автоматически раскрывать список версий",
+  "version_picker_auto_expand_desc": "Раскрывать список версий при открытии пикера",
+  "pp_select_version_first": "Сначала выберите версию",
+  "param_version_desc": "Версия плагина (необязательно, установит последнюю если не указано)",
+  "dl_install_incompatible_all": "К сожалению, плагин несовместим с вашей версией клиента.",
+  "dl_install_incompatible_sheet_title": "Версия недоступна",
+  "dl_install_incompatible_sheet_desc": "Версия {} требует более новый клиент. Установить последнюю совместимую версию?",
+  "dl_install_incompatible_sheet_btn": "Установить совместимую",
+  "dl_install_incompatible_sheet_cancel": "Отмена"
 }

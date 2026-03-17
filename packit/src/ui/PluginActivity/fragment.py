@@ -180,7 +180,11 @@ def _make_card_bg(act, corner=14):
         return None
 
 
-def _show_plugin_menu(act, p, anchor_view):
+
+from .versionPicker import _show_version_picker
+
+
+def _show_plugin_menu(act, p, anchor_view, repo_id: str = ""):
     try:
         from ..PluginListActivity.service.PluginActions import copy_plugin_link, share_plugin_file, view_plugin_code, download_plugin_file, translate_plugin
         from ..PluginListActivity.service.ReportService import report_plugin
@@ -285,7 +289,7 @@ def _show_plugin_menu(act, p, anchor_view):
         icon_translate = getattr(R_tg.drawable, 'msg_replace',   0)
         icon_report    = getattr(R_tg.drawable, 'msg_report',    0)
 
-        create_menu_item(icon_copy,      str(strings["copy_link"]), lambda: copy_plugin_link(p, str(p.get("id") or ""), None))
+        create_menu_item(icon_copy,      str(strings["copy_link"]), lambda: copy_plugin_link(p, repo_id or str(p.get("id") or ""), None))
         create_menu_item(icon_share,     str(strings["share"]),     lambda: share_plugin_file(p, str(p.get("name") or p.get("id") or ""), act))
         create_menu_item(icon_code,      str(strings["code"]),      lambda: view_plugin_code(p, act))
         create_menu_item(icon_download,  str(strings["download"]),  lambda: download_plugin_file(p))
@@ -315,11 +319,12 @@ def _show_plugin_menu(act, p, anchor_view):
 class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
     _MENU_ID = 1001
 
-    def __init__(self, plugin: dict, install_ui, all_plugins: list):
+    def __init__(self, plugin: dict, install_ui, all_plugins: list, repo_id: str = ""):
         super().__init__()
         self.plugin = plugin
         self.install_ui = install_ui
         self.all_plugins = all_plugins or []
+        self.repo_id = repo_id
         self.content_view = None
         self._alive = [True]  # shared ref for sticker retry timers
         self._fragment_ref = [None]  # filled after presentFragment
@@ -374,7 +379,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 log("pluginProfile: onMenuItemClick missing frag or anchor")
                 return
             act = frag.getParentActivity()
-            _show_plugin_menu(act, self.plugin, anchor)
+            _show_plugin_menu(act, self.plugin, anchor, repo_id=self.repo_id)
         except Exception as e:
             log(f"pluginProfile: onMenuItemClick error: {e}")
 
@@ -605,16 +610,100 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     except Exception as e:
                         log(f"pluginProfile: _set_loading error: {e}")
 
+                def _do_install(_p, _install_ui, _all, _btn, _label, _btn_text_color, _act,
+                               on_finish_override=None):
+                    from ...core import install_plugin
+                    if not on_finish_override:
+                        _set_loading(_btn, _label, _btn_text_color, _act, True)
+
+                    def _finish(ok):
+                        if on_finish_override:
+                            run_on_ui_thread(lambda: on_finish_override(ok))
+                        else:
+                            run_on_ui_thread(lambda: _set_loading(_btn, _label, _btn_text_color, _act, False))
+
+                    install_plugin(_p, on_finish=_finish, install_ui=_install_ui, all_plugins=_all)
+
+                _unavail_hint_ref = [None]
+
+                def _show_all_unavail_hint(_btn, _act):
+                    try:
+                        from org.telegram.ui.Stories.recorder import HintView2
+                        from android.text import Layout
+                        prev = _unavail_hint_ref[0]
+                        if prev is not None:
+                            try:
+                                prev.hide()
+                                prev.getParent().removeView(prev)
+                            except Exception:
+                                pass
+                            _unavail_hint_ref[0] = None
+                        dv = _act.getWindow().getDecorView()
+                        hint = (
+                            HintView2(_btn.getContext(), 3)
+                            .setMultilineText(True)
+                            .setBgColor(Theme.getColor(Theme.key_undo_background))
+                            .setTextColor(Theme.getColor(Theme.key_undo_infoColor))
+                            .setText(str(strings["plugin_version_below_min"]))
+                            .setTextAlign(Layout.Alignment.ALIGN_CENTER)
+                            .allowBlur(True)
+                            .setRounding(AndroidUtilities.dp(12))
+                        )
+                        try:
+                            hint.setMaxWidthPx(HintView2.cutInFancyHalf(hint.getText(), hint.getTextPaint()))
+                        except Exception:
+                            pass
+                        dv.addView(hint, LayoutHelper.createFrame(-1, 100, 55, 32, 0, 32, 0))
+                        _unavail_hint_ref[0] = hint
+                        def _position():
+                            try:
+                                btn_loc = [0, 0]
+                                _btn.getLocationInWindow(btn_loc)
+                                dv_loc = [0, 0]
+                                dv.getLocationInWindow(dv_loc)
+                                cell_y = btn_loc[1] - dv_loc[1]
+                                center_x = float(btn_loc[0] - dv_loc[0]) + float(_btn.getMeasuredWidth()) / 2.0
+                                hint.setTranslationY(float(cell_y - AndroidUtilities.dp(100) - AndroidUtilities.dp(6)))
+                                hint.setJointPx(0.0, float(-AndroidUtilities.dp(32)) + center_x)
+                                hint.setDuration(3500)
+                                hint.show()
+                            except Exception as e:
+                                log(f"pluginProfile: unavail hint position error: {e}")
+                        run_on_ui_thread(_position)
+                    except Exception as e:
+                        log(f"pluginProfile: unavail hint error: {e}")
+
                 def onInstallClick(v, _p=p, _install_ui=_install_ui_ref, _all=_all_plugins_ref,
                                    _btn=install_btn, _label=install_label,
                                    _btn_text_color=btn_text_color, _act=act):
-                    from ...core import install_plugin
-                    _set_loading(_btn, _label, _btn_text_color, _act, True)
-
-                    def _finish(ok):
-                        run_on_ui_thread(lambda: _set_loading(_btn, _label, _btn_text_color, _act, False))
-
-                    install_plugin(_p, on_finish=_finish, install_ui=_install_ui, all_plugins=_all)
+                    versions = _p.get("versions") or {}
+                    if not versions:
+                        _do_install(_p, _install_ui, _all, _btn, _label, _btn_text_color, _act)
+                        return
+                    from ..PluginListActivity.fragment import _is_min_version_satisfied
+                    from .versionPicker import _build_version_entries
+                    all_entries = _build_version_entries(_p)
+                    # filter unavailable versions if setting is on
+                    hide_unavail = False
+                    try:
+                        from elyx import settings as _s
+                        hide_unavail = _s.get("hide_unavailable_plugins", False)
+                    except Exception:
+                        pass
+                    avail = [e for e in all_entries if not e["min_version"] or _is_min_version_satisfied(e["min_version"])]
+                    if hide_unavail and not avail:
+                        _show_all_unavail_hint(_btn, _act)
+                        return
+                    if len(avail) == 1 and (hide_unavail or len(all_entries) == 1):
+                        # only one installable version — skip picker
+                        e = avail[0]
+                        versioned = dict(_p)
+                        versioned["link"] = e["link"]
+                        if e["min_version"]:
+                            versioned["min_version"] = e["min_version"]
+                        _do_install(versioned, _install_ui, _all, _btn, _label, _btn_text_color, _act)
+                        return
+                    _show_version_picker(_act, _p, _install_ui, _all, _btn, _label, _btn_text_color, _do_install)
 
                 install_btn.setOnClickListener(OnClickListener(onInstallClick))
 
@@ -1062,14 +1151,14 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         return row
 
 
-def show_plugin_profile(plugin: dict, install_ui, all_plugins: list = None):
+def show_plugin_profile(plugin: dict, install_ui, all_plugins: list = None, repo_id: str = ""):
     try:
         fragment = get_last_fragment()
         if not fragment:
             log("pluginProfile: no fragment")
             return
         log(f"pluginProfile: show_plugin_profile plugin={plugin.get('id')}")
-        delegate = PluginProfileFragment(plugin, install_ui, all_plugins or [])
+        delegate = PluginProfileFragment(plugin, install_ui, all_plugins or [], repo_id=repo_id)
         new_fragment = UniversalFragment(delegate)
         fragment.presentFragment(new_fragment)
         log(f"pluginProfile: presentFragment done")
