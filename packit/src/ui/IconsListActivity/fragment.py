@@ -1,5 +1,6 @@
 import json
 import threading
+import re
 from collections import deque
 from android.animation import ObjectAnimator
 from android.view import View, MotionEvent, Gravity
@@ -81,6 +82,25 @@ class InstallIconsUI:
             view.setOnTouchListener(_TouchListener(_on_touch))
         except Exception:
             pass
+
+    def _parse_github_url(self, url):
+        try:
+            if not url:
+                return None, None
+            patterns = [
+                r'github\.com/([^/]+)/([^/]+?)(?:\.git)?/?$',
+                r'raw\.githubusercontent\.com/([^/]+)/([^/]+)/',
+                r'api\.github\.com/repos/([^/]+)/([^/]+)',
+            ]
+            for pattern in patterns:
+                match = re.search(pattern, url)
+                if match:
+                    owner = match.group(1)
+                    repo = match.group(2).replace('.git', '')
+                    return owner, repo
+            return None, None
+        except Exception:
+            return None, None
 
     def _create_close_button(self, act):
         close_btn = FrameLayout(act)
