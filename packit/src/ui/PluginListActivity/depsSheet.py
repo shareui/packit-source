@@ -532,20 +532,67 @@ def _make_dep_card(act, dep_id, dep_name, dep_version, dep_author, dep_min_versi
         if expanded[0]:
             extra.setAlpha(0.0)
             extra.setVisibility(View.VISIBLE)
+            extra.measure(
+                View.MeasureSpec.makeMeasureSpec(outer.getWidth(), View.MeasureSpec.AT_MOST),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            )
+            target_h = extra.getMeasuredHeight()
+            extra.getLayoutParams().height = 0
+            extra.requestLayout()
             try:
-                extra.animate().alpha(1.0).setDuration(250).start()
+                from android.animation import ValueAnimator, Animator
+                from java import dynamic_proxy
+
+                class _UpdateExpand(dynamic_proxy(ValueAnimator.AnimatorUpdateListener)):
+                    def onAnimationUpdate(self, a):
+                        extra.getLayoutParams().height = int(a.getAnimatedValue())
+                        extra.requestLayout()
+
+                class _EndExpand(dynamic_proxy(Animator.AnimatorListener)):
+                    def onAnimationEnd(self, a, *args):
+                        extra.getLayoutParams().height = -2
+                        extra.requestLayout()
+                    def onAnimationStart(self, a, *args): pass
+                    def onAnimationCancel(self, a, *args): pass
+                    def onAnimationRepeat(self, a, *args): pass
+
+                anim = ValueAnimator.ofInt(0, target_h)
+                anim.setDuration(220)
+                anim.addUpdateListener(_UpdateExpand())
+                anim.addListener(_EndExpand())
+                anim.start()
+                extra.animate().alpha(1.0).setDuration(220).start()
             except Exception:
+                extra.getLayoutParams().height = -2
                 extra.setAlpha(1.0)
+                extra.requestLayout()
         else:
             try:
-                from android.animation import AnimatorListenerAdapter
+                from android.animation import ValueAnimator, Animator
+                from java import dynamic_proxy
+                start_h = extra.getMeasuredHeight()
 
-                class HideOnEnd(AnimatorListenerAdapter):
-                    def onAnimationEnd(self, anim):
+                class _UpdateCollapse(dynamic_proxy(ValueAnimator.AnimatorUpdateListener)):
+                    def onAnimationUpdate(self, a):
+                        extra.getLayoutParams().height = int(a.getAnimatedValue())
+                        extra.requestLayout()
+
+                class _EndCollapse(dynamic_proxy(Animator.AnimatorListener)):
+                    def onAnimationEnd(self, a, *args):
                         extra.setVisibility(View.GONE)
+                        extra.getLayoutParams().height = -2
                         extra.setAlpha(1.0)
+                        extra.requestLayout()
+                    def onAnimationStart(self, a, *args): pass
+                    def onAnimationCancel(self, a, *args): pass
+                    def onAnimationRepeat(self, a, *args): pass
 
-                extra.animate().alpha(0.0).setDuration(180).setListener(HideOnEnd()).start()
+                anim = ValueAnimator.ofInt(start_h, 0)
+                anim.setDuration(180)
+                anim.addUpdateListener(_UpdateCollapse())
+                anim.addListener(_EndCollapse())
+                anim.start()
+                extra.animate().alpha(0.0).setDuration(180).start()
             except Exception:
                 extra.setVisibility(View.GONE)
 

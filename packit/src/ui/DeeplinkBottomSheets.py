@@ -67,7 +67,8 @@ DEEPLINKS_DATA = {
         "description": strings.deeplinks_install_plugin_desc,
         "params": [
             {"name": "rm_id", "required": True, "desc": strings.param_rm_id_desc},
-            {"name": "plugin_id", "required": True, "desc": strings.param_plugin_id_desc}
+            {"name": "plugin_id", "required": True, "desc": strings.param_plugin_id_desc},
+            {"name": "version", "required": False, "desc": strings.param_version_desc}
         ]
     },
     "dl_specific_icon_pack": {
@@ -129,7 +130,8 @@ DEEPLINKS_DATA = {
         "description": strings.deeplinks_install_plugin_desc,
         "params": [
             {"name": "rm_id", "required": True, "desc": strings.param_rm_id_desc},
-            {"name": "plugin_id", "required": True, "desc": strings.param_plugin_id_desc}
+            {"name": "plugin_id", "required": True, "desc": strings.param_plugin_id_desc},
+            {"name": "version", "required": False, "desc": strings.param_version_desc}
         ]
     },
     "dl_check_updates": {

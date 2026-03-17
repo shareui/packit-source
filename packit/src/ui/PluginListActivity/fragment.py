@@ -1456,7 +1456,7 @@ class InstallUI:
                     def onIconClick(v, plugin=p):
                         try:
                             from ..PluginActivity.fragment import show_plugin_profile
-                            show_plugin_profile(plugin, self.install_ui, self.plugins)
+                            show_plugin_profile(plugin, self.install_ui, self.plugins, repo_id=self.repo_id)
                         except Exception as e:
                             log(f"pluginProfile: open error: {e}")
 
@@ -1668,94 +1668,26 @@ class InstallUI:
 
             install_btn = self.install_ui._create_pill(act, base_color, pressed_color)
             install_icon = ImageView(act)
-            if is_available:
-                icon_id = self.install_ui._resolve_icon("msg_view_file")
-                install_icon.setImageResource(icon_id)
-                try:
-                    install_icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_buttonText))
-                except Exception:
-                    pass
-                icon_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
-                icon_lp.rightMargin = AndroidUtilities.dp(6)
-                install_btn.addView(install_icon, icon_lp)
-                install_text = TextView(act)
-                install_text.setText(strings["plugin_view_button"])
-                install_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
-                install_text.setTypeface(AndroidUtilities.bold())
-                install_text.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
-                install_btn.addView(install_text)
-                soundPath = os.path.join(os.path.dirname(__file__), "../../../res/sounds/install.mp3")
+            icon_id = self.install_ui._resolve_icon("msg_view_file")
+            install_icon.setImageResource(icon_id)
+            try:
+                install_icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_buttonText))
+            except Exception:
+                pass
+            icon_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
+            icon_lp.rightMargin = AndroidUtilities.dp(6)
+            install_btn.addView(install_icon, icon_lp)
+            install_text = TextView(act)
+            install_text.setText(strings["plugin_view_button"])
+            install_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            install_text.setTypeface(AndroidUtilities.bold())
+            install_text.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
+            install_btn.addView(install_text)
 
-                def onInstallClick(v, plugin=p, path=soundPath, install_icon=install_icon, install_btn=install_btn, icon_id=icon_id, act=act):
-                    try:
-                        playSound(path, "sfx_install")
-                    except Exception:
-                        pass
-                    install_btn.setEnabled(False)
-                    loading_view = None
-                    try:
-                        loading_view = self.install_ui._create_circular_loading(act, size_dp=20)
-                    except Exception:
-                        loading_view = ProgressBar(act)
-                        try:
-                            loading_view.setIndeterminate(True)
-                        except Exception:
-                            pass
+            current_hint_ref = [None]
 
-                    icon_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
-                    icon_lp.rightMargin = AndroidUtilities.dp(6)
-                    install_btn.removeView(install_icon)
-                    install_btn.addView(loading_view, 0, icon_lp)
-
-                    def _finish(_ok):
-                        def _restore():
-                            try:
-                                install_btn.setEnabled(True)
-                                install_btn.removeView(loading_view)
-                            except Exception:
-                                pass
-                            try:
-                                install_icon.setImageResource(icon_id)
-                                install_btn.addView(install_icon, 0, icon_lp)
-                                install_btn.invalidate()
-                            except Exception:
-                                pass
-                        threading.Timer(1.0, lambda: run_on_ui_thread(_restore)).start()
-
-                    install_plugin(plugin, on_finish=_finish, install_ui=self.install_ui, all_plugins=self.plugins)
-
-                install_btn.setOnClickListener(OnClickListener(onInstallClick))
-                self.install_ui._apply_press_scale(install_btn)
-            else:
-                try:
-                    red_color = Theme.getColor(Theme.key_fill_RedDark)
-                except Exception:
-                    from android.graphics import Color
-                    red_color = Color.parseColor("#C62828")
-                import ctypes
-                bg_red = ctypes.c_int32((0x33 << 24) | (red_color & 0x00FFFFFF)).value
-                install_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                    AndroidUtilities.dp(18), bg_red, bg_red
-                ))
-                unavail_icon = ImageView(act)
-                unavail_icon.setImageResource(self.install_ui._resolve_icon("msg_block"))
-                try:
-                    unavail_icon.setColorFilter(red_color)
-                except Exception:
-                    pass
-                unavail_icon_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
-                unavail_icon_lp.rightMargin = AndroidUtilities.dp(6)
-                install_btn.addView(unavail_icon, unavail_icon_lp)
-                unavail_text = TextView(act)
-                unavail_text.setText(strings["plugin_unavailable"])
-                unavail_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
-                unavail_text.setTypeface(AndroidUtilities.bold())
-                unavail_text.setTextColor(red_color)
-                install_btn.addView(unavail_text)
-
-                current_hint_ref = [None]
-
-                def onUnavailableClick(v, btn=install_btn, row_ref=row, hint_ref=current_hint_ref):
+            def onViewClick(v, plugin=p, btn=install_btn, row_ref=row, hint_ref=current_hint_ref, available=is_available):
+                if not available:
                     try:
                         from org.telegram.ui.Stories.recorder import HintView2
                         from android.text import Layout
@@ -1806,7 +1738,14 @@ class InstallUI:
                     except Exception as e:
                         log(f"unavailable hint error: {e}")
 
-                install_btn.setOnClickListener(OnClickListener(onUnavailableClick))
+                try:
+                    from ..PluginActivity.fragment import show_plugin_profile
+                    show_plugin_profile(plugin, self.install_ui, self.plugins, repo_id=self.repo_id)
+                except Exception as e:
+                    log(f"pluginProfile: open error: {e}")
+
+            install_btn.setOnClickListener(OnClickListener(onViewClick))
+            self.install_ui._apply_press_scale(install_btn)
 
             buttons.addView(install_btn, LayoutHelper.createLinear(-2, -2, 0, 0, 8, 0))
             spacer = View(act)
@@ -1992,7 +1931,7 @@ class InstallUI:
                     def do_more(_p=p):
                         try:
                             from ..PluginActivity.fragment import show_plugin_profile
-                            show_plugin_profile(_p, self.install_ui, self.plugins)
+                            show_plugin_profile(_p, self.install_ui, self.plugins, repo_id=self.repo_id)
                         except Exception as e:
                             log(f"uiMain: do_more error: {e}")
 
