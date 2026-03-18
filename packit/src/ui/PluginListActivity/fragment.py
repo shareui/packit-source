@@ -1495,6 +1495,32 @@ class InstallUI:
             except Exception:
                 pass
             
+            def create_icon_pill(icon_name, handler):
+                try:
+                    surface_color = self.card_bg_color
+                    pressed_color = self.card_pressed_color
+                except Exception:
+                    surface_color = self.card_bg_color
+                    pressed_color = self.card_pressed_color
+                pill = self.install_ui._create_pill(
+                    act,
+                    surface_color,
+                    pressed_color,
+                    padding_h=8,
+                    padding_v=8
+                )
+                icon = ImageView(act)
+                icon_id = self.install_ui._resolve_icon(icon_name)
+                icon.setImageResource(icon_id)
+                try:
+                    icon.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+                except Exception:
+                    pass
+                pill.addView(icon, LinearLayout.LayoutParams(AndroidUtilities.dp(23), AndroidUtilities.dp(23)))
+                pill.setOnClickListener(OnClickListener(lambda v: handler()))
+                self.install_ui._apply_press_scale(pill)
+                return pill
+            
             icon_str = p.get("icon")
             show_default_sticker = settings.get("show_default_sticker", False)
             show_icon = icon_str and icon_str != "Unknown"
@@ -1821,8 +1847,6 @@ class InstallUI:
             self.install_ui._apply_press_scale(install_btn)
 
             buttons.addView(install_btn, LayoutHelper.createLinear(-2, -2, 0, 0, 8, 0))
-            spacer = View(act)
-            buttons.addView(spacer, LayoutHelper.createLinear(0, 0, 1.0))
 
             def create_icon_pill(icon_name, handler):
                 try:
@@ -1850,6 +1874,65 @@ class InstallUI:
                 self.install_ui._apply_press_scale(pill)
                 return pill
 
+            def do_download_relocated():
+                download_plugin_file(p)
+                try:
+                    from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
+                    increment_category("Downloading")
+                except Exception as e:
+                    log(f"uiMain: achievements increment error: {e}")
+
+            def do_copy_relocated():
+                copy_plugin_link(p, self.repo_id or self.title, copyLinkSoundPath)
+                try:
+                    from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
+                    increment_category("Copying links")
+                except Exception as e:
+                    log(f"uiMain: achievements increment error: {e}")
+
+            def do_share_relocated():
+                share_plugin_file(p, str(display_name), act_for_share)
+                try:
+                    from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
+                    increment_category("Sharing")
+                except Exception as e:
+                    log(f"uiMain: achievements increment error: {e}")
+
+            def do_code_relocated():
+                view_plugin_code(p, act)
+                try:
+                    from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
+                    increment_category("Viewing code")
+                except Exception as e:
+                    log(f"uiMain: achievements increment error: {e}")
+
+            def do_translate_relocated():
+                translate_plugin(p)
+
+            def do_report_relocated():
+                report_plugin(p, act)
+                try:
+                    from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
+                    increment_category("Reporting")
+                except Exception as e:
+                    log(f"uiMain: achievements increment error: {e}")
+
+            spacer = View(act)
+            buttons.addView(spacer, LayoutHelper.createLinear(0, 0, 1.0))
+
+            relocate_actions = [
+                ("relocate_copy_link", "msg_copy", do_copy_relocated),
+                ("relocate_share", "msg_share", do_share_relocated),
+                ("relocate_code", "msg_view_file", do_code_relocated),
+                ("relocate_download", "msg_download", do_download_relocated),
+                ("relocate_translate", "msg_replace", do_translate_relocated),
+                ("relocate_report", "msg_report", do_report_relocated),
+            ]
+            for setting_key, icon_name, action in relocate_actions:
+                if settings.get(setting_key, False):
+                    relocated_btn = create_icon_pill(icon_name, action)
+                    buttons.addView(relocated_btn, LayoutHelper.createLinear(-2, -2, 0, 0, 4, 0))
+
             act_for_share = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
 
             copyLinkSoundPath = os.path.join(os.path.dirname(__file__), "../../../res/sounds/copy-link.mp3")
@@ -1867,13 +1950,7 @@ class InstallUI:
                         item_frame.setClickable(True)
                         item_frame.setFocusable(True)
                         try:
-                            try:
-                                bg_color = Theme.getColor(Theme.key_dialogBackgroundGray) & 0x20FFFFFF | 0x10000000
-                            except Exception:
-                                try:
-                                    bg_color = Theme.getColor(Theme.key_windowBackgroundGray) & 0x20FFFFFF | 0x10000000
-                                except Exception:
-                                    bg_color = AColor.parseColor("#F0F0F0")
+                            bg_color = Theme.getColor(Theme.key_dialogBackgroundGray) & 0x20FFFFFF | 0x10000000
                             try:
                                 pressed_color = Theme.getColor(Theme.key_listSelector) & 0x40FFFFFF | 0x30000000
                             except Exception:
@@ -2008,12 +2085,19 @@ class InstallUI:
                     icon_report = getattr(R_tg.drawable, 'msg_report', 0)
                     icon_translate = getattr(R_tg.drawable, 'msg_replace', 0)
                     
-                    create_menu_item(icon_copy, strings["copy_link"], do_copy, False)
-                    create_menu_item(icon_share, strings["share"], do_share, False)
-                    create_menu_item(icon_code, strings["code"], do_code, False)
-                    create_menu_item(icon_download, strings["download"], do_download, False)
-                    create_menu_item(icon_translate, strings["translate"], do_translate, False)
-                    create_menu_item(icon_report, strings["report"], do_report, True)
+
+                    menu_items = [
+                        (icon_copy, strings["copy_link"], do_copy, False, "relocate_copy_link"),
+                        (icon_share, strings["share"], do_share, False, "relocate_share"),
+                        (icon_code, strings["code"], do_code, False, "relocate_code"),
+                        (icon_download, strings["download"], do_download, False, "relocate_download"),
+                        (icon_translate, strings["translate"], do_translate, False, "relocate_translate"),
+                        (icon_report, strings["report"], do_report, True, "relocate_report"),
+                    ]
+                    
+                    for icon_res, title, action, is_red, setting_key in menu_items:
+                        if not settings.get(setting_key, False):
+                            create_menu_item(icon_res, title, action, is_red)
                     
                     popup_window = ActionBarPopupWindow(popup_layout, -2, -2)
                     popup_window_ref[0] = popup_window
