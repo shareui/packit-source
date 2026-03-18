@@ -58,6 +58,7 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
         from android_utils import OnClickListener
         from ..PluginListActivity.fragment import _is_min_version_satisfied
         import ctypes
+        from java import dynamic_proxy
 
         entries = _build_version_entries(plugin)
         if not entries:
@@ -94,12 +95,7 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
         divider_color = Theme.getColor(Theme.key_divider)
 
         def _row_normal_bg():
-            # slightly lighter than card bg, distinct from picker bg
-            try:
-                base = Theme.getColor(Theme.key_windowBackgroundGray)
-            except Exception:
-                base = 0xFF303030
-            return base
+            return bg_color
 
         def _row_accent_bg():
             return accent
@@ -188,7 +184,6 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
         def _dismiss():
             try:
                 from android.animation import AnimatorSet, ObjectAnimator, Animator
-                from java import dynamic_proxy
 
                 fade_overlay = ObjectAnimator.ofFloat(overlay_ref[0], "alpha", overlay_ref[0].getAlpha(), 0.0)
                 fade_overlay.setDuration(ANIM_DURATION)
@@ -314,9 +309,20 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
         list_wrap = LinearLayout(act)
         list_wrap.setOrientation(LinearLayout.VERTICAL)
         list_wrap.setPadding(
-            AndroidUtilities.dp(8), AndroidUtilities.dp(6),
-            AndroidUtilities.dp(8), 0
+            AndroidUtilities.dp(12), AndroidUtilities.dp(8),
+            AndroidUtilities.dp(12), AndroidUtilities.dp(8)
         )
+
+        try:
+            dark_field_color = Theme.getColor(Theme.key_windowBackgroundGray)
+        except Exception:
+            dark_field_color = 0xFF2C2C2C
+        list_wrap_bg = GradientDrawable()
+        list_wrap_bg.setShape(GradientDrawable.RECTANGLE)
+        list_wrap_bg.setCornerRadius(AndroidUtilities.dp(18))
+        list_wrap_bg.setColor(dark_field_color)
+        list_wrap.setBackground(list_wrap_bg)
+        
         list_wrap.setVisibility(View.GONE)
         list_container_ref[0] = list_wrap
 
@@ -327,16 +333,68 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
         )
         card.addView(list_wrap, list_margin_lp)
 
+        def _make_fade_overlay(orientation, colors):
+            d = GradientDrawable()
+            d.setShape(GradientDrawable.RECTANGLE)
+            d.setOrientation(orientation)
+            d.setColors(colors)
+            return d
+
         scroll = ScrollView(act)
         scroll.setVerticalScrollBarEnabled(False)
+        scroll_container = FrameLayout(act)
+        
         inner_list = LinearLayout(act)
         inner_list.setOrientation(LinearLayout.VERTICAL)
         scroll.addView(inner_list)
+        scroll_container.addView(scroll, FrameLayout.LayoutParams(-1, -2))
+        top_fade = View(act)
+        top_fade.setBackground(_make_fade_overlay(
+            GradientDrawable.Orientation.TOP_BOTTOM,
+            [dark_field_color, ctypes.c_int32(0x00000000).value]
+        ))
+        top_fade_lp = FrameLayout.LayoutParams(-1, AndroidUtilities.dp(16))
+        top_fade_lp.gravity = Gravity.TOP
+        top_fade.setAlpha(0.0)
+        scroll_container.addView(top_fade, top_fade_lp)
+        
+        bottom_fade = View(act)
+        bottom_fade.setBackground(_make_fade_overlay(
+            GradientDrawable.Orientation.BOTTOM_TOP,
+            [dark_field_color, ctypes.c_int32(0x00000000).value]
+        ))
+        bottom_fade_lp = FrameLayout.LayoutParams(-1, AndroidUtilities.dp(16))
+        bottom_fade_lp.gravity = Gravity.BOTTOM
+        bottom_fade.setAlpha(0.0)
+        scroll_container.addView(bottom_fade, bottom_fade_lp)
 
-        max_scroll_height = AndroidUtilities.dp(240)
+        max_scroll_height = AndroidUtilities.dp(190)
         scroll_lp = LinearLayout.LayoutParams(-1, -2)
         scroll_lp.height = -2  # wrap initially, capped by maxHeight logic
-        list_wrap.addView(scroll, scroll_lp)
+        list_wrap.addView(scroll_container, scroll_lp)
+
+        def _update_fade_opacity():
+            try:
+                scroll_y = scroll.getScrollY()
+                max_scroll = inner_list.getMeasuredHeight() - scroll.getHeight()
+                
+                if max_scroll <= 0:
+                    top_fade.setAlpha(0.0)
+                    bottom_fade.setAlpha(0.0)
+                    return
+                
+                top_alpha = min(1.0, float(scroll_y) / 50.0)
+                bottom_alpha = min(1.0, float(max_scroll - scroll_y) / 50.0)
+                top_fade.setAlpha(top_alpha)
+                bottom_fade.setAlpha(bottom_alpha)
+            except Exception as e:
+                log(f"version_picker: fade update error: {e}")
+
+        class _ScrollListener(dynamic_proxy(View.OnScrollChangeListener)):
+            def onScrollChange(self, v, scrollX, scrollY, oldScrollX, oldScrollY):
+                _update_fade_opacity()
+        
+        scroll.setOnScrollChangeListener(_ScrollListener())
 
         def _update_dl_btn():
             if dl_btn_ref[0] is None:
@@ -351,13 +409,14 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
         def _expand_list():
             try:
                 from android.animation import ValueAnimator, Animator
-                from java import dynamic_proxy
                 list_wrap.setVisibility(View.VISIBLE)
                 list_wrap.measure(
                     View.MeasureSpec.makeMeasureSpec(card.getWidth(), View.MeasureSpec.AT_MOST),
                     View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
                 )
                 target_h = list_wrap.getMeasuredHeight()
+                if target_h > max_scroll_height:
+                    target_h = max_scroll_height
                 list_wrap.getLayoutParams().height = 0
                 list_wrap.requestLayout()
                 anim = ValueAnimator.ofInt(0, target_h)
@@ -370,8 +429,10 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
 
                 class _EndExpand(dynamic_proxy(Animator.AnimatorListener)):
                     def onAnimationEnd(self, a, *args):
-                        list_wrap.getLayoutParams().height = -2
+                        final_h = max_scroll_height if target_h == max_scroll_height else -2
+                        list_wrap.getLayoutParams().height = final_h
                         list_wrap.requestLayout()
+                        _update_fade_opacity()
                     def onAnimationStart(self, a, *args): pass
                     def onAnimationCancel(self, a, *args): pass
                     def onAnimationRepeat(self, a, *args): pass
@@ -390,7 +451,6 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
         def _collapse_list():
             try:
                 from android.animation import ValueAnimator, Animator
-                from java import dynamic_proxy
                 start_h = list_wrap.getMeasuredHeight()
                 anim = ValueAnimator.ofInt(start_h, 0)
                 anim.setDuration(180)

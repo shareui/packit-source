@@ -616,7 +616,7 @@ class OtherSettings:
                 text=strings.show_plugin_size,
                 subtext=strings.show_plugin_size_desc,
                 default=False,
-                icon="files_internal",
+                icon="msg2_data",
                 link_alias="show_plugin_size"
             ),
             Switch(
