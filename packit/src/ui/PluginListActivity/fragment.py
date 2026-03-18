@@ -1588,7 +1588,6 @@ class InstallUI:
             name_tv.setText(str(display_name))
             name_tv.setTextColor(self.text_color)
             name_tv.setSingleLine(True)
-            name_tv.setEllipsize(TextUtils.TruncateAt.END)
             name_tv.setHorizontalFadingEdgeEnabled(True)
             name_tv.setFadingEdgeLength(AndroidUtilities.dp(24))
             id_tv = TextView(act)
@@ -1611,7 +1610,6 @@ class InstallUI:
             except Exception:
                 pass
             id_tv.setSingleLine(True)
-            id_tv.setEllipsize(TextUtils.TruncateAt.END)
             id_tv.setHorizontalFadingEdgeEnabled(True)
             id_tv.setFadingEdgeLength(AndroidUtilities.dp(24))
             col.addView(name_tv, LayoutHelper.createLinear(-1, -2))
