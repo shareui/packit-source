@@ -635,6 +635,15 @@ class OtherSettings:
                 icon="msg_link",
                 link_alias="show_plugin_deps_count"
             ),
+            Divider(),
+            Header(text=strings.plugin_profile_header),
+            Switch(
+                key="show_extended_desc",
+                text=strings.show_extended_desc,
+                subtext=strings.show_extended_desc_desc,
+                default=False,
+            ),
+            Divider(text=strings.show_extended_desc_hint),
             Header(text=strings.button_relocation),
             ExpandableSwitch(
                 key="button_relocation_enabled",

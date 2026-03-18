@@ -69,6 +69,9 @@ except Exception:
 
 
 
+_STICKER_RETRY_DELAY = 1.5
+
+
 def _resolve_icon(name):
     try:
         R_tg = find_class("org.telegram.messenger.R")
@@ -434,23 +437,27 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         )
         scroll.addView(root)
 
-        # hero card: sticker centered + name + meta────────────────────────
+        # hero card: [icon | name + meta] / [release_date | install_btn | menu_btn]
         hero = LinearLayout(act)
         hero.setOrientation(LinearLayout.VERTICAL)
-        hero.setGravity(Gravity.CENTER_HORIZONTAL)
         hero.setPadding(
-            AndroidUtilities.dp(20), AndroidUtilities.dp(24),
-            AndroidUtilities.dp(20), AndroidUtilities.dp(20)
+            AndroidUtilities.dp(16), AndroidUtilities.dp(16),
+            AndroidUtilities.dp(16), AndroidUtilities.dp(16)
         )
         bg = _make_card_bg(act, 18)
         if bg:
             hero.setBackground(bg)
 
+        # top row: icon + name/meta
+        top_row = LinearLayout(act)
+        top_row.setOrientation(LinearLayout.HORIZONTAL)
+        top_row.setGravity(Gravity.CENTER_VERTICAL)
+
         icon_str = p.get("icon")
-        sticker_size = 96
+        sticker_size = 72
         if icon_str and "/" in str(icon_str):
             iv = BackupImageView(act)
-            iv.setRoundRadius(AndroidUtilities.dp(20))
+            iv.setRoundRadius(AndroidUtilities.dp(16))
             try:
                 iv.getImageReceiver().setCrossfadeWithOldImage(True)
             except Exception:
@@ -458,21 +465,27 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             iv_lp = LinearLayout.LayoutParams(
                 AndroidUtilities.dp(sticker_size), AndroidUtilities.dp(sticker_size)
             )
-            iv_lp.bottomMargin = AndroidUtilities.dp(14)
-            hero.addView(iv, iv_lp)
+            iv_lp.rightMargin = AndroidUtilities.dp(14)
+            top_row.addView(iv, iv_lp)
             if not _try_load_sticker(iv, icon_str, sticker_size):
                 _schedule_sticker_retry(iv, icon_str, sticker_size, self._alive)
 
+        info_col = LinearLayout(act)
+        info_col.setOrientation(LinearLayout.VERTICAL)
+        info_col.setGravity(Gravity.TOP)
+
         name_tv = TextView(act)
         name_tv.setText(str(p.get("name") or p.get("id") or strings.pp_unknown_name))
-        name_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 24)
+        name_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20)
         name_tv.setTextColor(text_color)
-        name_tv.setGravity(Gravity.CENTER_HORIZONTAL)
+        name_tv.setSingleLine(True)
+        name_tv.setHorizontalFadingEdgeEnabled(True)
+        name_tv.setFadingEdgeLength(AndroidUtilities.dp(24))
         try:
             name_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
         except Exception:
             name_tv.setTypeface(AndroidUtilities.bold())
-        hero.addView(name_tv, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 4))
+        info_col.addView(name_tv, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 3))
 
         meta_parts = []
         if p.get("author"):
@@ -483,7 +496,9 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             meta_tv = TextView(act)
             meta_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
             meta_tv.setTextColor(gray_color)
-            meta_tv.setGravity(Gravity.CENTER_HORIZONTAL)
+            meta_tv.setSingleLine(True)
+            meta_tv.setHorizontalFadingEdgeEnabled(True)
+            meta_tv.setFadingEdgeLength(AndroidUtilities.dp(24))
             try:
                 from com.exteragram.messenger.utils.text import LocaleUtils
                 from android.text.method import LinkMovementMethod
@@ -492,47 +507,133 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 meta_tv.setMovementMethod(LinkMovementMethod.getInstance())
             except Exception:
                 meta_tv.setText("  ·  ".join(meta_parts))
-            hero.addView(meta_tv, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 12))
+            info_col.addView(meta_tv, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 6))
 
-        # chips: state + size + min_version (tags moved to separate card below)
+        # chips: state + size + min_version
         chips_row = LinearLayout(act)
         chips_row.setOrientation(LinearLayout.HORIZONTAL)
-        chips_row.setGravity(Gravity.CENTER_HORIZONTAL)
+        chips_row.setGravity(Gravity.CENTER_VERTICAL)
 
+        _STATE_COLOR_KEYS = {
+            "release": "key_color_green",
+            "beta":    "key_color_orange",
+            "alpha":   "key_color_red",
+        }
         state = str(p.get("state") or "").strip().lower()
         if state:
-            _STATE_COLOR_KEYS = {
-                "release": "key_color_green",
-                "beta":    "key_color_orange",
-                "alpha":   "key_color_red",
-            }
-            state_color_key = _STATE_COLOR_KEYS.get(state, "key_windowBackgroundWhiteGrayText")
-            chip = _make_chip(act, state, state_color_key)
+            color_key = _STATE_COLOR_KEYS.get(state, "key_windowBackgroundWhiteGrayText")
+            chip = _make_chip(act, state, color_key)
             chip_lp = LinearLayout.LayoutParams(-2, -2)
-            chip_lp.rightMargin = AndroidUtilities.dp(5)
+            chip_lp.rightMargin = AndroidUtilities.dp(4)
             chips_row.addView(chip, chip_lp)
 
         if p.get("size"):
             chip = _make_chip(act, str(p["size"]), "key_color_cyan")
             chip_lp = LinearLayout.LayoutParams(-2, -2)
-            chip_lp.rightMargin = AndroidUtilities.dp(5)
+            chip_lp.rightMargin = AndroidUtilities.dp(4)
             chips_row.addView(chip, chip_lp)
 
         if p.get("min_version"):
             chip = _make_chip(act, str(p["min_version"]), "key_avatar_background2Blue")
-            chip_lp = LinearLayout.LayoutParams(-2, -2)
-            chip_lp.rightMargin = AndroidUtilities.dp(5)
-            chips_row.addView(chip, chip_lp)
-
-        deps = p.get("deps") or []
+            chips_row.addView(chip, LinearLayout.LayoutParams(-2, -2))
 
         if chips_row.getChildCount() > 0:
-            hero.addView(chips_row, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_HORIZONTAL))
+            info_col.addView(chips_row, LayoutHelper.createLinear(-2, -2))
 
-        # install button
+        top_row.addView(info_col, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+        hero.addView(top_row, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 14))
+
+        # bottom row: release_date chip | spacer | install circle btn | menu circle btn
+        bottom_row = LinearLayout(act)
+        bottom_row.setOrientation(LinearLayout.HORIZONTAL)
+        bottom_row.setGravity(Gravity.TOP)
+
+        # dates column (left) — release date + last updated
+        release_date = str(p.get("release_date") or "").strip()
+        update_date = str(p.get("update_date") or "").strip()
+
+        def _format_date(raw, prefix):
+            # parses DD.MM.YY or DD.MM.YYYY, returns "Prefix: N ago"
+            try:
+                parts = raw.split(".")
+                if len(parts) != 3:
+                    return f"{prefix}: {raw}"
+                day, month, year_raw = int(parts[0]), int(parts[1]), int(parts[2])
+                year = (2000 + year_raw) if year_raw < 100 else year_raw
+                from java.util import Calendar
+                rel = Calendar.getInstance()
+                rel.set(year, month - 1, day, 0, 0, 0)
+                rel.set(Calendar.MILLISECOND, 0)
+                now = Calendar.getInstance()
+                now.set(Calendar.HOUR_OF_DAY, 0)
+                now.set(Calendar.MINUTE, 0)
+                now.set(Calendar.SECOND, 0)
+                now.set(Calendar.MILLISECOND, 0)
+                diff_ms = now.getTimeInMillis() - rel.getTimeInMillis()
+                diff_days = int(diff_ms // (1000 * 60 * 60 * 24))
+                if diff_days < 0:
+                    return f"{prefix}: {raw}"
+                if diff_days == 0:
+                    ago = "Today"
+                elif diff_days == 1:
+                    ago = "Yesterday"
+                elif diff_days < 30:
+                    ago = f"{diff_days} days ago"
+                elif diff_days < 365:
+                    months = diff_days // 30
+                    ago = f"{months} month ago" if months == 1 else f"{months} months ago"
+                else:
+                    years = diff_days // 365
+                    ago = f"{years} year ago" if years == 1 else f"{years} years ago"
+                return f"{prefix}: {ago}"
+            except Exception:
+                return f"{prefix}: {raw}"
+
+        if release_date or update_date:
+            dates_col = LinearLayout(act)
+            dates_col.setOrientation(LinearLayout.VERTICAL)
+            dates_col.setGravity(Gravity.TOP)
+
+            if release_date:
+                date_tv = TextView(act)
+                date_tv.setText(_format_date(release_date, "Release date"))
+                date_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+                date_tv.setTextColor(text_color)
+                date_tv.setSingleLine(True)
+                date_tv.setHorizontalFadingEdgeEnabled(True)
+                date_tv.setFadingEdgeLength(AndroidUtilities.dp(24))
+                try:
+                    date_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+                except Exception:
+                    date_tv.setTypeface(AndroidUtilities.bold())
+                dates_col.addView(date_tv, LayoutHelper.createLinear(-2, -2, 0, 0, 0, 2))
+
+            effective_update = update_date if update_date else release_date
+            if effective_update:
+                update_tv = TextView(act)
+                update_tv.setText(_format_date(effective_update, "Last updated"))
+                update_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+                update_tv.setTextColor(text_color)
+                update_tv.setSingleLine(True)
+                update_tv.setHorizontalFadingEdgeEnabled(True)
+                update_tv.setFadingEdgeLength(AndroidUtilities.dp(24))
+                try:
+                    update_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+                except Exception:
+                    update_tv.setTypeface(AndroidUtilities.bold())
+                dates_col.addView(update_tv, LayoutHelper.createLinear(-2, -2))
+
+            bottom_row.addView(dates_col, LayoutHelper.createLinear(-2, -2, Gravity.TOP))
+
+        # spacer
+        spacer = View(act)
+        bottom_row.addView(spacer, LayoutHelper.createLinear(0, 1, 1.0))
+
+        # install circle button
         has_link = bool(p.get("link") or p.get("raw"))
+        deps = p.get("deps") or []
+
         if has_link:
-            install_margin_lp = LayoutHelper.createLinear(-1, -2, Gravity.CENTER_HORIZONTAL, 0, 16, 0, 0)
             from ..PluginListActivity.fragment import _is_min_version_satisfied
             plugin_min_ver = p.get("min_version")
             is_available = (not plugin_min_ver) or _is_min_version_satisfied(plugin_min_ver)
@@ -545,48 +646,42 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 btn_base = Color.parseColor("#2196F3")
                 btn_pressed = Color.parseColor("#1976D2")
 
-            install_btn = LinearLayout(act)
-            install_btn.setOrientation(LinearLayout.HORIZONTAL)
-            install_btn.setGravity(Gravity.CENTER)
-            install_btn.setPadding(
-                AndroidUtilities.dp(20), AndroidUtilities.dp(13),
-                AndroidUtilities.dp(20), AndroidUtilities.dp(13)
-            )
+            circle_size = AndroidUtilities.dp(44)
+
+            install_btn = FrameLayout(act)
             install_btn.setClickable(True)
             install_btn.setFocusable(True)
 
             if is_available:
-                install_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                    AndroidUtilities.dp(30), btn_base, btn_pressed
-                ))
                 btn_text_color = Theme.getColor(Theme.key_featuredStickers_buttonText)
+                try:
+                    from android.graphics.drawable import GradientDrawable as _GD
+                    circle_bg = _GD()
+                    circle_bg.setShape(_GD.OVAL)
+                    circle_bg.setColor(btn_base)
+                    install_btn.setBackground(circle_bg)
+                except Exception:
+                    pass
             else:
-                import ctypes as _ct
                 gray = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
                 r = (gray >> 16) & 0xFF
                 g = (gray >> 8) & 0xFF
                 b = gray & 0xFF
-                bg_gray = _ct.c_int32((0x44 << 24) | (r << 16) | (g << 8) | b).value
-                bg_gray_d = GradientDrawable()
-                bg_gray_d.setShape(GradientDrawable.RECTANGLE)
-                bg_gray_d.setCornerRadius(AndroidUtilities.dp(30))
-                bg_gray_d.setColor(bg_gray)
-                install_btn.setBackground(bg_gray_d)
+                bg_gray = ctypes.c_int32((0x44 << 24) | (r << 16) | (g << 8) | b).value
+                try:
+                    from android.graphics.drawable import GradientDrawable as _GD
+                    circle_bg = _GD()
+                    circle_bg.setShape(_GD.OVAL)
+                    circle_bg.setColor(bg_gray)
+                    install_btn.setBackground(circle_bg)
+                except Exception:
+                    pass
                 btn_text_color = gray
                 install_btn.setEnabled(False)
 
             install_label_container = LinearLayout(act)
             install_label_container.setOrientation(LinearLayout.HORIZONTAL)
             install_label_container.setGravity(Gravity.CENTER)
-            install_label = TextView(act)
-            install_label.setText(strings["install_plugin"] if is_available else str(strings.pp_required_version).format(plugin_min_ver))
-            install_label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
-            install_label.setTextColor(btn_text_color)
-            try:
-                install_label.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
-            except Exception:
-                install_label.setTypeface(AndroidUtilities.bold())
-            install_label_container.addView(install_label)
             install_icon = ImageView(act)
             install_icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
             try:
@@ -594,9 +689,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 install_icon.setColorFilter(btn_text_color)
             except Exception:
                 pass
-            install_label_container.addView(install_icon, LayoutHelper.createLinear(20, 20, Gravity.CENTER_VERTICAL, 6, 0, 0, 0))
-            
-            install_btn.addView(install_label_container)
+            install_label_container.addView(install_icon, LayoutHelper.createLinear(22, 22, Gravity.CENTER))
+            install_btn.addView(install_label_container, FrameLayout.LayoutParams(circle_size, circle_size))
 
             if is_available:
                 _install_ui_ref = self.install_ui
@@ -618,7 +712,9 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                                 spinner = ImageView(_act)
                                 spinner.setImageDrawable(d)
                                 spinner.setScaleType(ImageView.ScaleType.CENTER)
-                                _btn.addView(spinner, LayoutHelper.createLinear(20, 20, Gravity.CENTER))
+                                spin_lp = FrameLayout.LayoutParams(circle_size, circle_size)
+                                spin_lp.gravity = Gravity.CENTER
+                                _btn.addView(spinner, spin_lp)
                             except Exception:
                                 pb = ProgressBar(_act)
                                 try:
@@ -627,9 +723,11 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                                     pb.setIndeterminateTintList(ColorStateList.valueOf(_btn_text_color))
                                 except Exception:
                                     pass
-                                _btn.addView(pb, LayoutHelper.createLinear(20, 20, Gravity.CENTER))
+                                pb_lp = FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
+                                pb_lp.gravity = Gravity.CENTER
+                                _btn.addView(pb, pb_lp)
                         else:
-                            _btn.addView(_label, LayoutHelper.createLinear(-2, -2, Gravity.CENTER))
+                            _btn.addView(_label, FrameLayout.LayoutParams(circle_size, circle_size))
                     except Exception as e:
                         log(f"pluginProfile: _set_loading error: {e}")
 
@@ -639,11 +737,34 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     if not on_finish_override:
                         _set_loading(_btn, _label, _btn_text_color, _act, True)
 
+                    # check if cached so we can delay the spinner removal
+                    cached = False
+                    try:
+                        from org.telegram.messenger import ApplicationLoader as _AL
+                        import os as _os
+                        from ...core import _get_plugin_cache_path, _sha256_file
+                        _pkg = _AL.applicationContext.getPackageName()
+                        _url = _p.get("link") or _p.get("raw") or ""
+                        _fname = _url.split("/")[-1] or f"{_p.get('id')}.plugin"
+                        _cp = _get_plugin_cache_path(_pkg, _fname)
+                        _eh = _p.get("hash") or ""
+                        if _eh and _os.path.exists(_cp):
+                            cached = _eh == _sha256_file(_cp)
+                    except Exception:
+                        pass
+
                     def _finish(ok):
                         if on_finish_override:
                             run_on_ui_thread(lambda: on_finish_override(ok))
                         else:
-                            run_on_ui_thread(lambda: _set_loading(_btn, _label, _btn_text_color, _act, False))
+                            delay = 1.0 if cached else 0.0
+                            if delay:
+                                import threading as _t
+                                _t.Timer(delay, lambda: run_on_ui_thread(
+                                    lambda: _set_loading(_btn, _label, _btn_text_color, _act, False)
+                                )).start()
+                            else:
+                                run_on_ui_thread(lambda: _set_loading(_btn, _label, _btn_text_color, _act, False))
 
                     install_plugin(_p, on_finish=_finish, install_ui=_install_ui, all_plugins=_all)
 
@@ -706,7 +827,6 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     from ..PluginListActivity.fragment import _is_min_version_satisfied
                     from .versionPicker import _build_version_entries
                     all_entries = _build_version_entries(_p)
-                    # filter unavailable versions if setting is on
                     hide_unavail = False
                     try:
                         from elyx import settings as _s
@@ -718,7 +838,6 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                         _show_all_unavail_hint(_btn, _act)
                         return
                     if len(avail) == 1 and (hide_unavail or len(all_entries) == 1):
-                        # only one installable version — skip picker
                         e = avail[0]
                         versioned = dict(_p)
                         versioned["link"] = e["link"]
@@ -730,7 +849,289 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
 
                 install_btn.setOnClickListener(OnClickListener(onInstallClick))
 
-            hero.addView(install_btn, install_margin_lp)
+            install_lp = LinearLayout.LayoutParams(circle_size, circle_size)
+            install_lp.rightMargin = AndroidUtilities.dp(8)
+            bottom_row.addView(install_btn, install_lp)
+
+        # save circle button (msg_saved icon, yellow when active)
+        _save_size = AndroidUtilities.dp(44)
+        save_btn_hero = FrameLayout(act)
+        save_btn_hero.setClickable(True)
+        save_btn_hero.setFocusable(True)
+
+        _plugin_id = str(p.get("id") or "")
+        _repo_id_save = self.repo_id or ""
+
+        def _is_saved():
+            try:
+                from ...utils.localConfig import LocalConfig
+                saved = LocalConfig.get("saved_plugins", {})
+                return isinstance(saved, dict) and _plugin_id in saved
+            except Exception:
+                return False
+
+        def _make_circle_bg(color):
+            try:
+                from android.graphics.drawable import GradientDrawable as _GD3
+                bg = _GD3()
+                bg.setShape(_GD3.OVAL)
+                bg.setColor(color)
+                return bg
+            except Exception:
+                return None
+
+        def _gray_fill():
+            ic_color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+            r = (ic_color >> 16) & 0xFF
+            g = (ic_color >> 8) & 0xFF
+            b = ic_color & 0xFF
+            return ctypes.c_int32((0x22 << 24) | (r << 16) | (g << 8) | b).value
+
+        def _yellow_fill():
+            try:
+                yc = Theme.getColor(Theme.key_avatar_nameInMessagePink)
+                r = (yc >> 16) & 0xFF
+                g = (yc >> 8) & 0xFF
+                b = yc & 0xFF
+                return ctypes.c_int32((0x33 << 24) | (r << 16) | (g << 8) | b).value
+            except Exception:
+                return ctypes.c_int32((0x33 << 24) | (0xFF << 16) | (0xCC << 8) | 0x00).value
+
+        def _apply_save_state(active):
+            try:
+                fill = _yellow_fill() if active else _gray_fill()
+                bg = _make_circle_bg(fill)
+                if bg:
+                    save_btn_hero.setBackground(bg)
+            except Exception as e:
+                log(f"pluginProfile: _apply_save_state error: {e}")
+
+        # use RLottieImageView for msg_stories_saved animation
+        save_iv_ref = [None]
+        try:
+            from org.telegram.ui.Components import RLottieImageView
+            from hook_utils import find_class
+            R_tg = find_class("org.telegram.messenger.R")
+            anim_id = int(getattr(R_tg.raw, "msg_stories_saved", 0))
+            if anim_id:
+                lottie_iv = RLottieImageView(act)
+                lottie_iv.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+                lottie_iv.setAnimation(anim_id, 28, 28)
+                lottie_iv.setAutoRepeat(False)
+                save_iv_ref[0] = lottie_iv
+                save_btn_hero.addView(lottie_iv, FrameLayout.LayoutParams(_save_size, _save_size))
+            else:
+                raise Exception("anim not found")
+        except Exception:
+            # fallback to static icon
+            save_iv = ImageView(act)
+            save_iv.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+            try:
+                save_iv.setImageResource(_resolve_icon("msg_saved"))
+            except Exception:
+                pass
+            save_iv_ref[0] = save_iv
+            save_btn_hero.addView(save_iv, FrameLayout.LayoutParams(_save_size, _save_size))
+
+        def _apply_save_color(active):
+            try:
+                color = Theme.getColor(Theme.key_avatar_nameInMessagePink) if active else Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+                iv = save_iv_ref[0]
+                if iv is not None:
+                    iv.setColorFilter(color)
+            except Exception:
+                pass
+
+        _apply_save_state(_is_saved())
+        _apply_save_color(_is_saved())
+
+        def onSaveClick(v):
+            try:
+                from ...utils.localConfig import LocalConfig
+                saved = LocalConfig.get("saved_plugins", {})
+                if not isinstance(saved, dict):
+                    saved = {}
+                if _plugin_id in saved:
+                    del saved[_plugin_id]
+                    active = False
+                else:
+                    saved[_plugin_id] = _repo_id_save
+                    active = True
+                LocalConfig.set("saved_plugins", saved)
+                _apply_save_state(active)
+                _apply_save_color(active)
+                if active:
+                    try:
+                        iv = save_iv_ref[0]
+                        iv.setProgress(0)
+                        iv.playAnimation()
+                    except Exception:
+                        pass
+            except Exception as e:
+                log(f"pluginProfile: onSaveClick error: {e}")
+        save_btn_hero.setOnClickListener(OnClickListener(onSaveClick))
+
+        save_lp = LinearLayout.LayoutParams(_save_size, _save_size)
+        save_lp.rightMargin = AndroidUtilities.dp(8)
+        bottom_row.addView(save_btn_hero, save_lp)
+
+        # menu circle button (three dots)
+        menu_size = AndroidUtilities.dp(44)
+        menu_btn_hero = FrameLayout(act)
+        menu_btn_hero.setClickable(True)
+        menu_btn_hero.setFocusable(True)
+        try:
+            ic_color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+            r = (ic_color >> 16) & 0xFF
+            g = (ic_color >> 8) & 0xFF
+            b = ic_color & 0xFF
+            ic_fill    = ctypes.c_int32((0x22 << 24) | (r << 16) | (g << 8) | b).value
+            ic_pressed = ctypes.c_int32((0x44 << 24) | (r << 16) | (g << 8) | b).value
+            try:
+                from android.graphics.drawable import GradientDrawable as _GD2
+                circle_menu_bg = _GD2()
+                circle_menu_bg.setShape(_GD2.OVAL)
+                circle_menu_bg.setColor(ic_fill)
+                menu_btn_hero.setBackground(circle_menu_bg)
+            except Exception:
+                menu_btn_hero.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                    AndroidUtilities.dp(22), ic_fill, ic_pressed
+                ))
+        except Exception:
+            pass
+        menu_iv = ImageView(act)
+        menu_iv.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+        try:
+            menu_iv.setImageResource(_resolve_icon("ic_ab_other"))
+            menu_iv.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+        except Exception:
+            pass
+        menu_btn_hero.addView(menu_iv, FrameLayout.LayoutParams(menu_size, menu_size))
+
+        def onHeroMenuClick(v):
+            _show_plugin_menu(act, p, menu_btn_hero, repo_id=self.repo_id)
+        menu_btn_hero.setOnClickListener(OnClickListener(onHeroMenuClick))
+        bottom_row.addView(menu_btn_hero, LinearLayout.LayoutParams(menu_size, menu_size))
+
+        hero.addView(bottom_row, LayoutHelper.createLinear(-1, -2))
+
+        # archived banner
+        archived_raw = str(p.get("archived") or "").strip()
+        if archived_raw:
+            def _parse_archived_date(raw):
+                try:
+                    parts = raw.split(".")
+                    if len(parts) != 3:
+                        return raw
+                    day, month, year_raw = int(parts[0]), int(parts[1]), int(parts[2])
+                    year = (2000 + year_raw) if year_raw < 100 else year_raw
+                    month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+                    return f"{month_names[month - 1]} {day}, {year}"
+                except Exception:
+                    return raw
+
+            try:
+                archived_color = Theme.getColor(Theme.key_color_yellow)
+            except Exception:
+                archived_color = 0xFFFFAA00
+
+            ar = (archived_color >> 16) & 0xFF
+            ag = (archived_color >> 8) & 0xFF
+            ab = archived_color & 0xFF
+            archived_bg_color = ctypes.c_int32((0x22 << 24) | (ar << 16) | (ag << 8) | ab).value
+
+            archived_banner = LinearLayout(act)
+            archived_banner.setOrientation(LinearLayout.HORIZONTAL)
+            archived_banner.setGravity(Gravity.CENTER_VERTICAL)
+            archived_banner.setPadding(
+                AndroidUtilities.dp(12), AndroidUtilities.dp(10),
+                AndroidUtilities.dp(12), AndroidUtilities.dp(10)
+            )
+            try:
+                from android.graphics.drawable import GradientDrawable as _GDA
+                arc_bg = _GDA()
+                arc_bg.setShape(_GDA.RECTANGLE)
+                arc_bg.setCornerRadius(AndroidUtilities.dp(10))
+                arc_bg.setColor(archived_bg_color)
+                archived_banner.setBackground(arc_bg)
+            except Exception:
+                pass
+
+            arc_icon = ImageView(act)
+            arc_icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+            try:
+                arc_icon.setImageResource(_resolve_icon("msg_archive"))
+                arc_icon.setColorFilter(archived_color)
+            except Exception:
+                pass
+            archived_banner.addView(arc_icon, LayoutHelper.createLinear(20, 20, Gravity.CENTER_VERTICAL, 0, 0, 10, 0))
+
+            arc_tv = TextView(act)
+            arc_tv.setText(f"This plugin was archived by the owner on {_parse_archived_date(archived_raw)}. The plugin will no longer be updated.")
+            arc_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            arc_tv.setTextColor(archived_color)
+            try:
+                arc_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+            except Exception:
+                arc_tv.setTypeface(AndroidUtilities.bold())
+            arc_tv.setLineSpacing(AndroidUtilities.dp(2), 1.0)
+            archived_banner.addView(arc_tv, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+
+            _unavail_archived_hint_ref = [None]
+
+            def onArchivedClick(v):
+                try:
+                    from org.telegram.ui.Stories.recorder import HintView2
+                    from android.text import Layout
+                    prev = _unavail_archived_hint_ref[0]
+                    if prev is not None:
+                        try:
+                            prev.hide()
+                            prev.getParent().removeView(prev)
+                        except Exception:
+                            pass
+                        _unavail_archived_hint_ref[0] = None
+                    dv = act.getWindow().getDecorView()
+                    hint = (
+                        HintView2(v.getContext(), 3)
+                        .setMultilineText(True)
+                        .setBgColor(Theme.getColor(Theme.key_undo_background))
+                        .setTextColor(Theme.getColor(Theme.key_undo_infoColor))
+                        .setText("The plugin will no longer be updated. But it might still work.")
+                        .setTextAlign(Layout.Alignment.ALIGN_CENTER)
+                        .allowBlur(True)
+                        .setRounding(AndroidUtilities.dp(12))
+                    )
+                    try:
+                        hint.setMaxWidthPx(HintView2.cutInFancyHalf(hint.getText(), hint.getTextPaint()))
+                    except Exception:
+                        pass
+                    dv.addView(hint, LayoutHelper.createFrame(-1, 100, 55, 32, 0, 32, 0))
+                    _unavail_archived_hint_ref[0] = hint
+                    def _position():
+                        try:
+                            loc = [0, 0]
+                            v.getLocationInWindow(loc)
+                            dv_loc = [0, 0]
+                            dv.getLocationInWindow(dv_loc)
+                            cell_y = loc[1] - dv_loc[1]
+                            center_x = float(loc[0] - dv_loc[0]) + float(v.getMeasuredWidth()) / 2.0
+                            hint.setTranslationY(float(cell_y - AndroidUtilities.dp(100) - AndroidUtilities.dp(6)))
+                            hint.setJointPx(0.0, float(-AndroidUtilities.dp(32)) + center_x)
+                            hint.setDuration(3500)
+                            hint.show()
+                        except Exception as e:
+                            log(f"pluginProfile: archived hint position error: {e}")
+                    run_on_ui_thread(_position)
+                except Exception as e:
+                    log(f"pluginProfile: archived hint error: {e}")
+
+            archived_banner.setClickable(True)
+            archived_banner.setFocusable(True)
+            archived_banner.setOnClickListener(OnClickListener(onArchivedClick))
+
+            hero.addView(archived_banner, LayoutHelper.createLinear(-1, -2, 0, 12, 0, 0))
 
         root.addView(hero, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
 
@@ -834,16 +1235,191 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             wrap = LinearLayout(act)
             wrap.setOrientation(LinearLayout.VERTICAL)
 
+            show_extended = False
+            try:
+                from elyx import settings as _s
+                show_extended = _s.get("show_extended_desc", False)
+            except Exception:
+                pass
+
+            use_extended = show_extended and bool(readme_url)
+
             desc_header_row = LinearLayout(act)
             desc_header_row.setOrientation(LinearLayout.HORIZONTAL)
             desc_header_row.setGravity(Gravity.CENTER_VERTICAL)
+            header_label = str(strings.pp_section_extended_description) if use_extended else str(strings.pp_section_description)
             desc_header_row.addView(
-                _make_section_header(act, str(strings.pp_section_description)),
+                _make_section_header(act, header_label),
                 LayoutHelper.createLinear(0, -2, 1.0)
             )
 
             wrap.addView(desc_header_row, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 8))
 
+            if use_extended:
+                # show spinner + async loaded readme content
+                spinner_frame = FrameLayout(act)
+                try:
+                    from org.telegram.ui.Components import CircularProgressDrawable
+                    spin_color = Theme.getColor(Theme.key_featuredStickers_addButton)
+                    d = CircularProgressDrawable(spin_color)
+                    try:
+                        d.size = float(AndroidUtilities.dp(24))
+                        d.thickness = float(AndroidUtilities.dp(2))
+                    except Exception:
+                        pass
+                    self._changelog_spinner = d
+                    spin_iv = ImageView(act)
+                    spin_iv.setImageDrawable(d)
+                    spin_iv.setScaleType(ImageView.ScaleType.CENTER)
+                    spinner_frame.addView(spin_iv, LayoutHelper.createFrame(32, 32, Gravity.CENTER, 0, 8, 0, 8))
+                except Exception:
+                    pass
+                wrap.addView(spinner_frame, LayoutHelper.createLinear(-1, -2))
+
+                content_tv = TextView(act)
+                content_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+                content_tv.setVisibility(View.GONE)
+                wrap.addView(content_tv, LayoutHelper.createLinear(-1, -2))
+
+                # shared ref: filled after fetch completes, used by translate button
+                fetched_readme = [""]
+
+                def _show_readme_text(text, centered=False):
+                    spinner_frame.setVisibility(View.GONE)
+                    content_tv.setVisibility(View.VISIBLE)
+                    if centered:
+                        content_tv.setGravity(Gravity.CENTER_HORIZONTAL)
+                        content_tv.setTextColor(gray_color)
+                        content_tv.setPadding(0, AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8))
+                        content_tv.setText(text)
+                    else:
+                        fetched_readme[0] = text
+                        content_tv.setGravity(Gravity.LEFT)
+                        content_tv.setTextColor(text_color)
+                        content_tv.setLineSpacing(AndroidUtilities.dp(3), 1.0)
+                        try:
+                            from com.exteragram.messenger.utils.text import LocaleUtils
+                            from android.text.method import LinkMovementMethod
+                            content_tv.setText(LocaleUtils.fullyFormatText(text))
+                            content_tv.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
+                            content_tv.setMovementMethod(LinkMovementMethod.getInstance())
+                        except Exception:
+                            content_tv.setText(text)
+
+                import threading as _threading
+                import requests as _req
+
+                def _fetch_readme():
+                    try:
+                        r = _req.get(readme_url, timeout=10)
+                        if r.status_code != 200:
+                            # readme not available — fall back to standard desc
+                            def _fallback():
+                                spinner_frame.setVisibility(View.GONE)
+                                content_tv.setVisibility(View.VISIBLE)
+                                content_tv.setGravity(Gravity.LEFT)
+                                content_tv.setTextColor(text_color)
+                                content_tv.setLineSpacing(AndroidUtilities.dp(3), 1.0)
+                                if desc:
+                                    try:
+                                        from com.exteragram.messenger.utils.text import LocaleUtils
+                                        from android.text.method import LinkMovementMethod
+                                        content_tv.setText(LocaleUtils.fullyFormatText(desc))
+                                        content_tv.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
+                                        content_tv.setMovementMethod(LinkMovementMethod.getInstance())
+                                    except Exception:
+                                        content_tv.setText(desc)
+                                else:
+                                    _show_readme_text(str(strings.pp_changelog_empty), centered=True)
+                            run_on_ui_thread(_fallback)
+                            return
+                        md = r.text
+                        run_on_ui_thread(lambda t=md: _show_readme_text(t))
+                    except Exception as e:
+                        log(f"pluginProfile: readme fetch error: {e}")
+                        run_on_ui_thread(lambda: _show_readme_text(desc if desc else str(strings.pp_changelog_empty), centered=not bool(desc)))
+
+                _threading.Thread(target=_fetch_readme, daemon=True).start()
+
+                buttons_row_ext = LinearLayout(act)
+                buttons_row_ext.setOrientation(LinearLayout.HORIZONTAL)
+                buttons_row_ext.setGravity(Gravity.CENTER_VERTICAL | Gravity.FILL_HORIZONTAL)
+
+                def _make_text_btn_ext(icon_name, text):
+                    btn = LinearLayout(act)
+                    btn.setOrientation(LinearLayout.HORIZONTAL)
+                    btn.setGravity(Gravity.CENTER)
+                    btn.setClickable(True)
+                    btn.setFocusable(True)
+                    try:
+                        ic_color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+                        r = (ic_color >> 16) & 0xFF
+                        g = (ic_color >> 8) & 0xFF
+                        b = ic_color & 0xFF
+                        ic_fill    = ctypes.c_int32((0x22 << 24) | (r << 16) | (g << 8) | b).value
+                        ic_pressed = ctypes.c_int32((0x44 << 24) | (r << 16) | (g << 8) | b).value
+                        btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                            AndroidUtilities.dp(16), ic_fill, ic_pressed
+                        ))
+                    except Exception:
+                        pass
+                    btn.setPadding(
+                        AndroidUtilities.dp(10), AndroidUtilities.dp(8),
+                        AndroidUtilities.dp(10), AndroidUtilities.dp(8)
+                    )
+                    iv = ImageView(act)
+                    iv.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+                    try:
+                        iv.setImageResource(_resolve_icon(icon_name))
+                        iv.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+                    except Exception:
+                        pass
+                    btn.addView(iv, LayoutHelper.createLinear(16, 16, Gravity.CENTER_VERTICAL, 0, 0, 4, 0))
+                    tv = TextView(act)
+                    tv.setText(text)
+                    tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+                    tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+                    try:
+                        tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+                    except Exception:
+                        tv.setTypeface(AndroidUtilities.bold())
+                    btn.addView(tv, LayoutHelper.createLinear(-2, -2))
+                    return btn
+
+                translate_btn_ext = _make_text_btn_ext("msg_replace", str(strings["translate"]))
+
+                def onTranslateClickExt(v, _p=p, _readme=fetched_readme):
+                    from ..PluginListActivity.translation import translate_plugin
+                    text = _readme[0] if _readme[0] else None
+                    translate_plugin(_p, text_override=text)
+                translate_btn_ext.setOnClickListener(OnClickListener(onTranslateClickExt))
+
+                copy_btn_ext = _make_text_btn_ext("msg_copy", str(strings["copy"]))
+
+                def onCopyClickExt(v, _desc=desc):
+                    try:
+                        from android.content import ClipData
+                        clipboard_manager = act.getSystemService(act.CLIPBOARD_SERVICE)
+                        clip = ClipData.newPlainText("Plugin description", _desc)
+                        clipboard_manager.setPrimaryClip(clip)
+                        from ui.bulletin import BulletinHelper
+                        BulletinHelper.show_success(strings.get("copied_to_clipboard", "Скопировано в буфер обмена"))
+                    except Exception as e:
+                        log(f"pluginProfile: copy description error: {e}")
+                copy_btn_ext.setOnClickListener(OnClickListener(onCopyClickExt))
+
+                ext_btns = [translate_btn_ext, copy_btn_ext]
+                gap_ext = AndroidUtilities.dp(6)
+                for i, btn in enumerate(ext_btns):
+                    lp = LinearLayout.LayoutParams(0, -2, 1.0)
+                    if i < len(ext_btns) - 1:
+                        lp.rightMargin = gap_ext
+                    buttons_row_ext.addView(btn, lp)
+
+                wrap.addView(buttons_row_ext, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 0))
+                return wrap
+
+            # standard description
             desc_tv = TextView(act)
             desc_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
             desc_tv.setTextColor(text_color)
@@ -859,18 +1435,42 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     desc_tv.setText(desc)
             wrap.addView(desc_tv, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 12))
 
-            buttons_scroll = HorizontalScrollView(act)
-            buttons_scroll.setHorizontalScrollBarEnabled(False)
-            buttons_scroll.setFillViewport(True)
-            
             buttons_row = LinearLayout(act)
             buttons_row.setOrientation(LinearLayout.HORIZONTAL)
             buttons_row.setGravity(Gravity.CENTER_VERTICAL)
 
+            def _make_icon_only_btn(icon_name):
+                # square icon-only button
+                btn = FrameLayout(act)
+                btn.setClickable(True)
+                btn.setFocusable(True)
+                size = AndroidUtilities.dp(36)
+                try:
+                    ic_color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+                    r = (ic_color >> 16) & 0xFF
+                    g = (ic_color >> 8) & 0xFF
+                    b = ic_color & 0xFF
+                    ic_fill    = ctypes.c_int32((0x22 << 24) | (r << 16) | (g << 8) | b).value
+                    ic_pressed = ctypes.c_int32((0x44 << 24) | (r << 16) | (g << 8) | b).value
+                    btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                        AndroidUtilities.dp(12), ic_fill, ic_pressed
+                    ))
+                except Exception:
+                    pass
+                iv = ImageView(act)
+                iv.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+                try:
+                    iv.setImageResource(_resolve_icon(icon_name))
+                    iv.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+                except Exception:
+                    pass
+                btn.addView(iv, FrameLayout.LayoutParams(size, size))
+                return btn
+
             def _make_text_btn(icon_name, text):
                 btn = LinearLayout(act)
                 btn.setOrientation(LinearLayout.HORIZONTAL)
-                btn.setGravity(Gravity.CENTER_VERTICAL)
+                btn.setGravity(Gravity.CENTER)
                 btn.setClickable(True)
                 btn.setFocusable(True)
                 try:
@@ -889,7 +1489,6 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     AndroidUtilities.dp(10), AndroidUtilities.dp(8),
                     AndroidUtilities.dp(10), AndroidUtilities.dp(8)
                 )
-
                 iv = ImageView(act)
                 iv.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
                 try:
@@ -909,17 +1508,16 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 btn.addView(tv, LayoutHelper.createLinear(-2, -2))
                 return btn
 
-            translate_btn = _make_text_btn("msg_replace", str(strings["translate"]))
+            gap = AndroidUtilities.dp(6)
+
+            translate_btn = _make_icon_only_btn("msg_replace")
 
             def onTranslateClick(v, _p=p):
                 from ..PluginListActivity.translation import translate_plugin
                 translate_plugin(_p)
             translate_btn.setOnClickListener(OnClickListener(onTranslateClick))
 
-            btn_lp = LinearLayout.LayoutParams(-2, -2)
-            btn_lp.rightMargin = AndroidUtilities.dp(8)
-            buttons_row.addView(translate_btn, btn_lp)
-            copy_btn = _make_text_btn("msg_copy", str(strings["copy"]))
+            copy_btn = _make_icon_only_btn("msg_copy")
 
             def onCopyClick(v, _desc=desc):
                 try:
@@ -927,16 +1525,19 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     clipboard_manager = act.getSystemService(act.CLIPBOARD_SERVICE)
                     clip = ClipData.newPlainText("Plugin description", _desc)
                     clipboard_manager.setPrimaryClip(clip)
-
                     from ui.bulletin import BulletinHelper
                     BulletinHelper.show_success(strings.get("copied_to_clipboard", "Скопировано в буфер обмена"))
                 except Exception as e:
                     log(f"pluginProfile: copy description error: {e}")
             copy_btn.setOnClickListener(OnClickListener(onCopyClick))
 
-            btn_lp2 = LinearLayout.LayoutParams(-2, -2)
-            btn_lp2.rightMargin = AndroidUtilities.dp(8)
-            buttons_row.addView(copy_btn, btn_lp2)
+            tr_lp = LinearLayout.LayoutParams(-2, -2)
+            tr_lp.rightMargin = gap
+            buttons_row.addView(translate_btn, tr_lp)
+
+            cp_lp = LinearLayout.LayoutParams(-2, -2)
+            cp_lp.rightMargin = gap
+            buttons_row.addView(copy_btn, cp_lp)
 
             if readme_url:
                 extended_btn = _make_text_btn("msg_info", str(strings["plugin_view_button"]))
@@ -971,14 +1572,9 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     except Exception as ex:
                         log(f"pluginProfile: extended_btn openUrl error: {ex}")
                 extended_btn.setOnClickListener(OnClickListener(onExtendedClick))
+                buttons_row.addView(extended_btn, LinearLayout.LayoutParams(0, -2, 1.0))
 
-                buttons_row.addView(extended_btn, LayoutHelper.createLinear(-2, -2))
-
-            buttons_scroll.addView(buttons_row, FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT
-            ))
-            wrap.addView(buttons_scroll, LayoutHelper.createLinear(-1, -2))
+            wrap.addView(buttons_row, LayoutHelper.createLinear(-1, -2))
             return wrap
 
         def _build_stub_content():
@@ -1668,27 +2264,7 @@ def show_plugin_profile(plugin: dict, install_ui, all_plugins: list = None, repo
             action_bar = new_fragment.getActionBar()
             if action_bar:
                 action_bar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))
-
-                R_tg = find_class("org.telegram.messenger.R")
-                icon_id = int(getattr(R_tg.drawable, "ic_ab_other", 0))
-                menu = action_bar.createMenu()
-                menu_btn = menu.addItem(PluginProfileFragment._MENU_ID, icon_id)
                 delegate._fragment_ref[0] = new_fragment
-                delegate._anchor_ref[0] = menu_btn
-                log(f"pluginProfile: menu_btn={menu_btn}")
-
-                # dynamic_proxy doesn't support abstract classes — set OnClickListener directly on menu_btn
-                try:
-                    _delegate_ref = delegate
-
-                    def _on_menu_btn_click(v):
-                        log("pluginProfile: menu_btn clicked")
-                        _delegate_ref.onMenuItemClick(PluginProfileFragment._MENU_ID)
-
-                    menu_btn.setOnClickListener(OnClickListener(_on_menu_btn_click))
-                    log("pluginProfile: menu_btn OnClickListener set ok")
-                except Exception as cb_e:
-                    log(f"pluginProfile: callback setup error: {cb_e}")
         except Exception as e:
             log(f"pluginProfile: actionBar setup error: {e}")
     except Exception as e:

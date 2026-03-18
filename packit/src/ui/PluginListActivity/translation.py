@@ -68,14 +68,44 @@ def _get_localized_description(plugin):
     return str(plugin.get("description") or "")
 
 
-def translate_plugin(plugin_info: dict):
+_TRANSLATE_CHUNK_SIZE = 4000
+
+
+def _translate_text(text: str, target_lang: str) -> str:
+    # splits text into chunks and translates each, preserving newlines between them
+    chunks = []
+    while text:
+        chunks.append(text[:_TRANSLATE_CHUNK_SIZE])
+        text = text[_TRANSLATE_CHUNK_SIZE:]
+
+    translated_parts = []
+    for chunk in chunks:
+        try:
+            url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={target_lang}&dt=t&q={requests.utils.quote(chunk)}"
+            response = requests.get(url, timeout=15)
+            if response.status_code == 200:
+                data = response.json()
+                part = "".join(
+                    item[0] for item in data[0] if item and item[0]
+                ) if data and data[0] else chunk
+            else:
+                part = chunk
+        except Exception as e:
+            log(f"translate: chunk error: {e}")
+            part = chunk
+        translated_parts.append(part)
+
+    return "".join(translated_parts)
+
+
+def translate_plugin(plugin_info: dict, text_override: str = None):
     def _do_translate():
         try:
             target_lang = Locale.getDefault().getLanguage()
             if not target_lang:
                 target_lang = "en"
 
-            description = _get_localized_description(plugin_info)
+            description = text_override if text_override is not None else _get_localized_description(plugin_info)
             if not description.strip():
                 run_on_ui_thread(lambda: BulletinFactory.of(get_last_fragment().getParentActivity().getWindow().getDecorView(), None).createErrorBulletin(strings["no_description_to_translate"]).show())
                 return
@@ -106,19 +136,7 @@ def translate_plugin(plugin_info: dict):
 
             run_on_ui_thread(show_spinner)
 
-            try:
-                url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={target_lang}&dt=t&q={requests.utils.quote(description)}"
-                response = requests.get(url, timeout=10)
-                if response.status_code == 200:
-                    data = response.json()
-                    translated = "".join(
-                        chunk[0] for chunk in data[0] if chunk and chunk[0]
-                    ) if data and data[0] else description
-                else:
-                    translated = description
-            except Exception as e:
-                log(f"translate: API error: {e}")
-                translated = description
+            translated = _translate_text(description, target_lang)
 
             run_on_ui_thread(dismiss_spinner)
             run_on_ui_thread(lambda: _show_translate_sheet(act, plugin_info, target_lang, translated))
