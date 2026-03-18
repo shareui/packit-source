@@ -557,7 +557,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
 
             if is_available:
                 install_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                    AndroidUtilities.dp(14), btn_base, btn_pressed
+                    AndroidUtilities.dp(30), btn_base, btn_pressed
                 ))
                 btn_text_color = Theme.getColor(Theme.key_featuredStickers_buttonText)
             else:
@@ -569,12 +569,15 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 bg_gray = _ct.c_int32((0x44 << 24) | (r << 16) | (g << 8) | b).value
                 bg_gray_d = GradientDrawable()
                 bg_gray_d.setShape(GradientDrawable.RECTANGLE)
-                bg_gray_d.setCornerRadius(AndroidUtilities.dp(14))
+                bg_gray_d.setCornerRadius(AndroidUtilities.dp(30))
                 bg_gray_d.setColor(bg_gray)
                 install_btn.setBackground(bg_gray_d)
                 btn_text_color = gray
                 install_btn.setEnabled(False)
 
+            install_label_container = LinearLayout(act)
+            install_label_container.setOrientation(LinearLayout.HORIZONTAL)
+            install_label_container.setGravity(Gravity.CENTER)
             install_label = TextView(act)
             install_label.setText(strings["install_plugin"] if is_available else str(strings.pp_required_version).format(plugin_min_ver))
             install_label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
@@ -583,7 +586,17 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 install_label.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
             except Exception:
                 install_label.setTypeface(AndroidUtilities.bold())
-            install_btn.addView(install_label)
+            install_label_container.addView(install_label)
+            install_icon = ImageView(act)
+            install_icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+            try:
+                install_icon.setImageResource(_resolve_icon("msg_download_remix"))
+                install_icon.setColorFilter(btn_text_color)
+            except Exception:
+                pass
+            install_label_container.addView(install_icon, LayoutHelper.createLinear(20, 20, Gravity.CENTER_VERTICAL, 6, 0, 0, 0))
+            
+            install_btn.addView(install_label_container)
 
             if is_available:
                 _install_ui_ref = self.install_ui
@@ -684,7 +697,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                         log(f"pluginProfile: unavail hint error: {e}")
 
                 def onInstallClick(v, _p=p, _install_ui=_install_ui_ref, _all=_all_plugins_ref,
-                                   _btn=install_btn, _label=install_label,
+                                   _btn=install_btn, _label=install_label_container,
                                    _btn_text_color=btn_text_color, _act=act):
                     versions = _p.get("versions") or {}
                     if not versions:
