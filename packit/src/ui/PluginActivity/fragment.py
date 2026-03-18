@@ -1515,7 +1515,12 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
 
         icon_str = plugin.get("icon")
         size_dp = 42
-        if icon_str and "/" in str(icon_str):
+        show_default_sticker = settings.get("show_default_sticker", False)
+        show_icon = icon_str and icon_str != "Unknown"
+        if not show_icon and show_default_sticker:
+            icon_str = "Plugins_Stickers/0"
+            show_icon = True
+        if show_icon:
             iv = BackupImageView(act)
             iv.setRoundRadius(AndroidUtilities.dp(10))
             iv_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(size_dp), AndroidUtilities.dp(size_dp))
@@ -1523,17 +1528,6 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             row.addView(iv, iv_lp)
             if not _try_load_sticker(iv, icon_str, size_dp):
                 _schedule_sticker_retry(iv, icon_str, size_dp, self._alive)
-        else:
-            # placeholder when no icon
-            placeholder = FrameLayout(act)
-            ph_bg = GradientDrawable()
-            ph_bg.setShape(GradientDrawable.RECTANGLE)
-            ph_bg.setCornerRadius(AndroidUtilities.dp(10))
-            ph_bg.setColor(Theme.getColor(Theme.key_windowBackgroundGray))
-            placeholder.setBackground(ph_bg)
-            ph_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(size_dp), AndroidUtilities.dp(size_dp))
-            ph_lp.rightMargin = AndroidUtilities.dp(12)
-            row.addView(placeholder, ph_lp)
 
         info = LinearLayout(act)
         info.setOrientation(LinearLayout.VERTICAL)
