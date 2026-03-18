@@ -635,5 +635,10 @@
   "dl_install_incompatible_sheet_title": "Version unavailable",
   "dl_install_incompatible_sheet_desc": "Version {} requires a newer client. Install the latest compatible version instead?",
   "dl_install_incompatible_sheet_btn": "Install latest compatible",
-  "dl_install_incompatible_sheet_cancel": "Cancel"
+  "dl_install_incompatible_sheet_cancel": "Cancel",
+  "plugin_profile_header": "Plugin Profile",
+  "show_extended_desc": "Show extended description",
+  "show_extended_desc_desc": "Load and display the readme instead of the standard description.",
+  "show_extended_desc_hint": "This is the screen when you click on \"View\"",
+  "pp_section_extended_description": "Extended Description"
 }

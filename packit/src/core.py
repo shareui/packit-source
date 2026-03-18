@@ -40,6 +40,8 @@ def _is_showing(dlg):
         return False
 
 def _set_progress(dlg, value: int):
+    if dlg is None:
+        return
     def action():
         try:
             if _is_showing(dlg):
@@ -49,6 +51,8 @@ def _set_progress(dlg, value: int):
     run_on_ui_thread(action)
 
 def _dismiss_dialog(dlg):
+    if dlg is None:
+        return
     def action():
         try:
             real = _get_real_dialog(dlg)
@@ -153,14 +157,29 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
             pass
         return
 
-    # called from UI thread (onClick), so we create dialog synchronously here
+    # check cache before showing the heavy loading dialog
+    pkg_pre = ApplicationLoader.applicationContext.getPackageName()
+    url_pre = plugin_info.get("link") or plugin_info.get("raw") or ""
+    filename_pre = url_pre.split("/")[-1] or f"{plugin_id}.plugin"
+    cache_path_pre = _get_plugin_cache_path(pkg_pre, filename_pre)
+    expected_hash_pre = plugin_info.get("hash") or ""
+    has_cache = False
+    if expected_hash_pre and os.path.exists(cache_path_pre):
+        try:
+            has_cache = _sha256_file(cache_path_pre) == expected_hash_pre
+        except Exception:
+            pass
+
     from ui.alert import AlertDialogBuilder
     ctx = fragment.getContext()
-    builder = AlertDialogBuilder(ctx, AlertDialogBuilder.ALERT_TYPE_LOADING)
-    builder.set_title("Downloading...")
-    builder.set_cancelable(False)
-    dlg = builder.show()
-    dlg.set_progress(0)
+    if has_cache:
+        dlg = None
+    else:
+        builder = AlertDialogBuilder(ctx, AlertDialogBuilder.ALERT_TYPE_LOADING)
+        builder.set_title("Downloading...")
+        builder.set_cancelable(False)
+        dlg = builder.show()
+        dlg.set_progress(0)
 
     def task():
         try:
