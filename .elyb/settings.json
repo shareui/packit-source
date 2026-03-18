@@ -1,0 +1,10 @@
+{
+  "pluginRoot": "packit",
+  "refmap": "refmap.yml",
+  "outputDir": "builds",
+  "zipFormat": "eaf",
+  "optionalAssets": [
+    "packit/res/sounds/pocxalko.mp3",
+    "packit/res/sounds/terraria.mp3"
+  ]
+}
