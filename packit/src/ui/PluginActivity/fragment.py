@@ -1639,6 +1639,9 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             sub_tv.setText("  ·  ".join(sub_parts))
             sub_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
             sub_tv.setTextColor(gray_color)
+            sub_tv.setSingleLine(True)
+            sub_tv.setHorizontalFadingEdgeEnabled(True)
+            sub_tv.setFadingEdgeLength(AndroidUtilities.dp(24))
             info.addView(sub_tv, LayoutHelper.createLinear(-2, -2, 0, 2, 0, 0))
 
         row.addView(info, LayoutHelper.createLinear(0, -2, 1.0))
