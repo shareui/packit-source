@@ -61,6 +61,15 @@ DEEPLINKS_DATA = {
             {"name": "rm_id", "required": True, "desc": strings.param_rm_id_desc}
         ]
     },
+    "dl_plugin_profile": {
+        "title": strings.get("deeplinks_plugin_profile", "Open plugin profile"),
+        "link": "tg://packit?plugin=<plugin_id>&repo=<rm_rid>",
+        "description": strings.get("deeplinks_plugin_profile_desc", "Opens the profile page of a specific plugin"),
+        "params": [
+            {"name": "plugin_id", "required": True, "desc": strings.param_plugin_id_desc},
+            {"name": "rm_rid", "required": True, "desc": strings.param_rm_id_desc}
+        ]
+    },
     "dl_specific_plugin": {
         "title": strings.deeplinks_install_plugin,
         "link": "tg://packit?install&repo=<rm_id>&plugin=<plugin_id>",

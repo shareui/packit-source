@@ -338,6 +338,16 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         log(f"pluginProfile: onFragmentDestroy plugin={self.plugin.get('id')}")
         self._alive[0] = False
         try:
+            spinner = getattr(self, '_changelog_spinner', None)
+            if spinner:
+                try:
+                    spinner.stop()
+                except Exception:
+                    pass
+                self._changelog_spinner = None
+        except Exception:
+            pass
+        try:
             if self.content_view is not None:
                 parent = self.content_view.getParent()
                 log(f"pluginProfile: removeView parent={parent}")
@@ -711,53 +721,106 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
 
         root.addView(hero, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
 
-        # tags card
-        tags = p.get("tags") or []
-        if tags:
-            tags_card = LinearLayout(act)
-            tags_card.setOrientation(LinearLayout.VERTICAL)
-            tags_card.setPadding(
-                AndroidUtilities.dp(16), AndroidUtilities.dp(14),
-                AndroidUtilities.dp(16), AndroidUtilities.dp(14)
-            )
-            bg_tags = _make_card_bg(act)
-            if bg_tags:
-                tags_card.setBackground(bg_tags)
+        # tab bar + tab content
+        tab_names = [
+            str(strings.pp_tab_description),
+            str(strings.pp_tab_gallery),
+            str(strings.pp_tab_changes),
+        ]
+        selected_tab = [0]
 
-            tags_card.addView(
-                _make_section_header(act, str(strings.pp_section_tags)),
-                LayoutHelper.createLinear(-2, -2, 0, 0, 0, 0, 8)
-            )
+        # tab bar: FrameLayout with sliding indicator behind tab text
+        tab_bar_frame = FrameLayout(act)
+        tab_bar_bg = GradientDrawable()
+        tab_bar_bg.setShape(GradientDrawable.RECTANGLE)
+        tab_bar_bg.setCornerRadius(AndroidUtilities.dp(20))
+        try:
+            base = Theme.getColor(Theme.key_windowBackgroundWhite)
+            r_c = (base >> 16) & 0xFF
+            g_c = (base >> 8) & 0xFF
+            b_c = base & 0xFF
+            tab_bar_fill = ctypes.c_int32((0xDD << 24) | (r_c << 16) | (g_c << 8) | b_c).value
+        except Exception:
+            tab_bar_fill = 0xDD2A2A2A
+        tab_bar_bg.setColor(tab_bar_fill)
+        tab_bar_frame.setBackground(tab_bar_bg)
+        tab_bar_frame.setPadding(
+            AndroidUtilities.dp(4), AndroidUtilities.dp(4),
+            AndroidUtilities.dp(4), AndroidUtilities.dp(4)
+        )
 
-            chips_row_tags = LinearLayout(act)
-            chips_row_tags.setOrientation(LinearLayout.HORIZONTAL)
+        # sliding indicator
+        accent_c = Theme.getColor(Theme.key_featuredStickers_addButton)
+        r_a = (accent_c >> 16) & 0xFF
+        g_a = (accent_c >> 8) & 0xFF
+        b_a = accent_c & 0xFF
+        ind_fill = ctypes.c_int32((0x33 << 24) | (r_a << 16) | (g_a << 8) | b_a).value
+        ind_bg = GradientDrawable()
+        ind_bg.setShape(GradientDrawable.RECTANGLE)
+        ind_bg.setCornerRadius(AndroidUtilities.dp(16))
+        ind_bg.setColor(ind_fill)
+        indicator = View(act)
+        indicator.setBackground(ind_bg)
+        # height = tab text height: padding top+bottom + ~14sp text
+        _ind_h = AndroidUtilities.dp(8 + 8) + AndroidUtilities.dp(14) + AndroidUtilities.dp(4)
+        indicator_lp = FrameLayout.LayoutParams(0, _ind_h)
+        indicator_lp.gravity = Gravity.CENTER_VERTICAL
+        tab_bar_frame.addView(indicator, indicator_lp)
 
-            for tag in tags:
-                if not isinstance(tag, (list, tuple)) or len(tag) < 2:
-                    continue
-                chip = _make_chip(act, str(tag[0]), str(tag[1]))
-                chip_lp = LinearLayout.LayoutParams(-2, -2)
-                chip_lp.rightMargin = AndroidUtilities.dp(5)
-                chips_row_tags.addView(chip, chip_lp)
+        tab_bar = LinearLayout(act)
+        tab_bar.setOrientation(LinearLayout.HORIZONTAL)
+        tab_bar_frame.addView(tab_bar, FrameLayout.LayoutParams(-1, -2))
 
-            if chips_row_tags.getChildCount() > 0:
-                tags_card.addView(chips_row_tags, LayoutHelper.createLinear(-2, -2))
-                root.addView(tags_card, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
+        # tab content card (swapped on tab click)
+        tab_content = LinearLayout(act)
+        tab_content.setOrientation(LinearLayout.VERTICAL)
+        tab_content_bg = _make_card_bg(act)
+        if tab_content_bg:
+            tab_content.setBackground(tab_content_bg)
+        tab_content.setPadding(
+            AndroidUtilities.dp(16), AndroidUtilities.dp(14),
+            AndroidUtilities.dp(16), AndroidUtilities.dp(14)
+        )
 
-        # description
         desc = self._get_localized_description(p)
-        if desc:
-            desc_card = LinearLayout(act)
-            desc_card.setOrientation(LinearLayout.VERTICAL)
-            desc_card.setPadding(
-                AndroidUtilities.dp(16), AndroidUtilities.dp(14),
-                AndroidUtilities.dp(16), AndroidUtilities.dp(14)
-            )
-            bg2 = _make_card_bg(act)
-            if bg2:
-                desc_card.setBackground(bg2)
+        readme_url = str(p.get("readme") or "").strip()
 
-            # header row: "DESCRIPTION" label + action buttons on the right
+        def _make_icon_btn(icon_name):
+            btn = FrameLayout(act)
+            btn.setClickable(True)
+            btn.setFocusable(True)
+            try:
+                ic_color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+                r = (ic_color >> 16) & 0xFF
+                g = (ic_color >> 8) & 0xFF
+                b = ic_color & 0xFF
+                ic_fill    = ctypes.c_int32((0x22 << 24) | (r << 16) | (g << 8) | b).value
+                ic_pressed = ctypes.c_int32((0x44 << 24) | (r << 16) | (g << 8) | b).value
+                btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                    AndroidUtilities.dp(8), ic_fill, ic_pressed
+                ))
+            except Exception:
+                pass
+            btn.setPadding(
+                AndroidUtilities.dp(6), AndroidUtilities.dp(4),
+                AndroidUtilities.dp(6), AndroidUtilities.dp(4)
+            )
+            iv = ImageView(act)
+            iv.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+            try:
+                iv.setImageResource(_resolve_icon(icon_name))
+                iv.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+            except Exception:
+                pass
+            btn.addView(iv, FrameLayout.LayoutParams(
+                AndroidUtilities.dp(16), AndroidUtilities.dp(16)
+            ))
+            return btn
+
+        def _build_desc_content():
+            wrap = LinearLayout(act)
+            wrap.setOrientation(LinearLayout.VERTICAL)
+
             desc_header_row = LinearLayout(act)
             desc_header_row.setOrientation(LinearLayout.HORIZONTAL)
             desc_header_row.setGravity(Gravity.CENTER_VERTICAL)
@@ -765,38 +828,6 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 _make_section_header(act, str(strings.pp_section_description)),
                 LayoutHelper.createLinear(0, -2, 1.0)
             )
-
-            def _make_icon_btn(icon_name):
-                btn = FrameLayout(act)
-                btn.setClickable(True)
-                btn.setFocusable(True)
-                try:
-                    ic_color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
-                    r = (ic_color >> 16) & 0xFF
-                    g = (ic_color >> 8) & 0xFF
-                    b = ic_color & 0xFF
-                    ic_fill    = ctypes.c_int32((0x22 << 24) | (r << 16) | (g << 8) | b).value
-                    ic_pressed = ctypes.c_int32((0x44 << 24) | (r << 16) | (g << 8) | b).value
-                    btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                        AndroidUtilities.dp(8), ic_fill, ic_pressed
-                    ))
-                except Exception:
-                    pass
-                btn.setPadding(
-                    AndroidUtilities.dp(6), AndroidUtilities.dp(4),
-                    AndroidUtilities.dp(6), AndroidUtilities.dp(4)
-                )
-                iv = ImageView(act)
-                iv.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
-                try:
-                    iv.setImageResource(_resolve_icon(icon_name))
-                    iv.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
-                except Exception:
-                    pass
-                btn.addView(iv, FrameLayout.LayoutParams(
-                    AndroidUtilities.dp(16), AndroidUtilities.dp(16)
-                ))
-                return btn
 
             translate_btn = _make_icon_btn("msg_replace")
 
@@ -809,7 +840,6 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             btn_lp.leftMargin = AndroidUtilities.dp(6)
             desc_header_row.addView(translate_btn, btn_lp)
 
-            readme_url = str(p.get("readme") or "").strip()
             if readme_url:
                 extended_btn = _make_icon_btn("msg_info")
 
@@ -848,23 +878,410 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 btn_lp2.leftMargin = AndroidUtilities.dp(6)
                 desc_header_row.addView(extended_btn, btn_lp2)
 
-            desc_card.addView(desc_header_row, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 8))
+            wrap.addView(desc_header_row, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 8))
 
             desc_tv = TextView(act)
             desc_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
             desc_tv.setTextColor(text_color)
             desc_tv.setLineSpacing(AndroidUtilities.dp(3), 1.0)
-            try:
-                from com.exteragram.messenger.utils.text import LocaleUtils
-                from android.text.method import LinkMovementMethod
-                desc_tv.setText(LocaleUtils.fullyFormatText(desc))
-                desc_tv.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
-                desc_tv.setMovementMethod(LinkMovementMethod.getInstance())
-            except Exception:
-                desc_tv.setText(desc)
-            desc_card.addView(desc_tv, LayoutHelper.createLinear(-1, -2))
+            if desc:
+                try:
+                    from com.exteragram.messenger.utils.text import LocaleUtils
+                    from android.text.method import LinkMovementMethod
+                    desc_tv.setText(LocaleUtils.fullyFormatText(desc))
+                    desc_tv.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
+                    desc_tv.setMovementMethod(LinkMovementMethod.getInstance())
+                except Exception:
+                    desc_tv.setText(desc)
+            wrap.addView(desc_tv, LayoutHelper.createLinear(-1, -2))
+            return wrap
 
-            root.addView(desc_card, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
+        def _build_stub_content():
+            tv = TextView(act)
+            tv.setText("It's not ready yet.")
+            tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            tv.setTextColor(gray_color)
+            tv.setGravity(Gravity.CENTER_HORIZONTAL)
+            tv.setPadding(0, AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8))
+            return tv
+
+        changelog_url = str(p.get("changelog") or "").strip()
+
+        fetched_changelog = [""]  # shared ref for translate button
+
+        def _build_changelog_content():
+            wrap = LinearLayout(act)
+            wrap.setOrientation(LinearLayout.VERTICAL)
+
+            spinner_frame = FrameLayout(act)
+            try:
+                from org.telegram.ui.Components import CircularProgressDrawable
+                spin_color = Theme.getColor(Theme.key_featuredStickers_addButton)
+                d = CircularProgressDrawable(spin_color)
+                try:
+                    d.size = float(AndroidUtilities.dp(24))
+                    d.thickness = float(AndroidUtilities.dp(2))
+                except Exception:
+                    pass
+                self._changelog_spinner = d
+                spin_iv = ImageView(act)
+                spin_iv.setImageDrawable(d)
+                spin_iv.setScaleType(ImageView.ScaleType.CENTER)
+                spinner_frame.addView(spin_iv, LayoutHelper.createFrame(32, 32, Gravity.CENTER, 0, 8, 0, 8))
+            except Exception:
+                pass
+            wrap.addView(spinner_frame, LayoutHelper.createLinear(-1, -2))
+
+            content_tv = TextView(act)
+            content_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            content_tv.setVisibility(View.GONE)
+            wrap.addView(content_tv, LayoutHelper.createLinear(-1, -2))
+
+            def _show_text(text, centered=True):
+                spinner_frame.setVisibility(View.GONE)
+                content_tv.setVisibility(View.VISIBLE)
+                if centered:
+                    content_tv.setGravity(Gravity.CENTER_HORIZONTAL)
+                    content_tv.setTextColor(gray_color)
+                    content_tv.setPadding(0, AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8))
+                content_tv.setText(text)
+
+            if not changelog_url:
+                _show_text(str(strings.pp_changelog_empty))
+                return wrap
+
+            import threading
+            import requests as _req
+
+            def _fetch():
+                try:
+                    r = _req.get(changelog_url, timeout=10)
+                    if r.status_code != 200:
+                        run_on_ui_thread(lambda: _show_text(str(strings.pp_changelog_empty)))
+                        return
+                    md = r.text
+                    fetched_changelog[0] = md
+                    def _apply(t=md):
+                        try:
+                            spinner_frame.setVisibility(View.GONE)
+                            content_tv.setVisibility(View.VISIBLE)
+                            content_tv.setGravity(Gravity.LEFT)
+                            content_tv.setTextColor(text_color)
+                            content_tv.setLineSpacing(AndroidUtilities.dp(3), 1.0)
+                            from com.exteragram.messenger.utils.text import LocaleUtils
+                            from android.text.method import LinkMovementMethod
+                            content_tv.setText(LocaleUtils.fullyFormatText(t))
+                            content_tv.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
+                            content_tv.setMovementMethod(LinkMovementMethod.getInstance())
+                        except Exception:
+                            _show_text(t, centered=False)
+                    run_on_ui_thread(_apply)
+                except Exception as e:
+                    log(f"pluginProfile: changelog fetch error: {e}")
+                    run_on_ui_thread(lambda: _show_text(str(strings.pp_changelog_empty)))
+
+            threading.Thread(target=_fetch, daemon=True).start()
+            return wrap
+
+        _tab_builders = [_build_desc_content, _build_stub_content, _build_changelog_content]
+
+        def _move_indicator(tb, animate):
+            try:
+                w = tb.getWidth()
+                x = float(tb.getLeft())
+                pad = AndroidUtilities.dp(4)
+                lp = indicator.getLayoutParams()
+                lp.width = w
+                indicator.setLayoutParams(lp)
+                if animate:
+                    indicator.animate().translationX(x).setDuration(200).start()
+                else:
+                    indicator.setTranslationX(x)
+            except Exception as e:
+                log(f"pluginProfile: _move_indicator error: {e}")
+
+        def _switch_tab(idx, tab_btns):
+            selected_tab[0] = idx
+            accent = Theme.getColor(Theme.key_featuredStickers_addButton)
+            for i, tb in enumerate(tab_btns):
+                if i == idx:
+                    tb.setTextColor(accent)
+                    try:
+                        tb.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+                    except Exception:
+                        tb.setTypeface(AndroidUtilities.bold())
+                else:
+                    tb.setTextColor(gray_color)
+                    try:
+                        tb.setTypeface(AndroidUtilities.getTypeface("fonts/r.ttf"))
+                    except Exception:
+                        pass
+            # move indicator to selected tab
+            _move_indicator(tab_btns[idx], animate=True)
+            # rebuild content
+            tab_content.removeAllViews()
+            try:
+                tab_content.addView(_tab_builders[idx](), LayoutHelper.createLinear(-1, -2))
+            except Exception as e:
+                log(f"pluginProfile: tab content build error: {e}")
+
+        tab_btns = []
+        for i, name in enumerate(tab_names):
+            tb = TextView(act)
+            tb.setText(name)
+            tb.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            tb.setGravity(Gravity.CENTER)
+            tb.setClickable(True)
+            tb.setFocusable(True)
+            tb.setPadding(
+                AndroidUtilities.dp(14), AndroidUtilities.dp(8),
+                AndroidUtilities.dp(14), AndroidUtilities.dp(8)
+            )
+            tab_btns.append(tb)
+            tab_bar.addView(tb, LayoutHelper.createLinear(0, -2, 1.0))
+
+        _switch_tab(0, tab_btns)
+
+        # reposition indicator after first layout pass (sizes are 0 before)
+        def _init_indicator_on_layout():
+            try:
+                from android.view import ViewTreeObserver
+                vto = tab_bar.getViewTreeObserver()
+
+                class _LayoutListener(dynamic_proxy(ViewTreeObserver.OnGlobalLayoutListener)):
+                    def onGlobalLayout(self):
+                        try:
+                            _move_indicator(tab_btns[selected_tab[0]], animate=False)
+                            tab_bar.getViewTreeObserver().removeOnGlobalLayoutListener(self)
+                        except Exception:
+                            pass
+                vto.addOnGlobalLayoutListener(_LayoutListener())
+            except Exception as e:
+                log(f"pluginProfile: layout listener error: {e}")
+        _init_indicator_on_layout()
+
+        desc_extra = LinearLayout(act)
+        desc_extra.setOrientation(LinearLayout.VERTICAL)
+
+        _orig_switch_tab = _switch_tab
+
+        def _switch_tab(idx, tab_btns):
+            _orig_switch_tab(idx, tab_btns)
+            desc_extra.setVisibility(View.VISIBLE if idx == 0 else View.GONE)
+            translate_bar.setVisibility(View.VISIBLE if idx == 2 and changelog_url else View.GONE)
+
+        for i, tb in enumerate(tab_btns):
+            def _on_tab_click(v, _i=i, _btns=tab_btns):
+                _switch_tab(_i, _btns)
+            tb.setOnClickListener(OnClickListener(_on_tab_click))
+
+        root.addView(tab_bar_frame, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 8))
+        root.addView(tab_content, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 8))
+
+        # translate button shown only on changelog tab
+        translate_bar = LinearLayout(act)
+        translate_bar.setOrientation(LinearLayout.HORIZONTAL)
+        translate_bar.setGravity(Gravity.CENTER)
+        translate_bar.setVisibility(View.GONE)
+
+        try:
+            btn_base = Theme.getColor(Theme.key_featuredStickers_addButton)
+            btn_pressed = Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
+        except Exception:
+            from android.graphics import Color as _C
+            btn_base = _C.parseColor("#2196F3")
+            btn_pressed = _C.parseColor("#1976D2")
+
+        translate_bar_btn = LinearLayout(act)
+        translate_bar_btn.setOrientation(LinearLayout.HORIZONTAL)
+        translate_bar_btn.setGravity(Gravity.CENTER)
+        translate_bar_btn.setPadding(
+            AndroidUtilities.dp(20), AndroidUtilities.dp(12),
+            AndroidUtilities.dp(20), AndroidUtilities.dp(12)
+        )
+        translate_bar_btn.setClickable(True)
+        translate_bar_btn.setFocusable(True)
+        translate_bar_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+            AndroidUtilities.dp(14), btn_base, btn_pressed
+        ))
+
+        translate_bar_label = TextView(act)
+        translate_bar_label.setText(str(strings["translate"]))
+        translate_bar_label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+        try:
+            translate_bar_label.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
+        except Exception:
+            translate_bar_label.setTextColor(0xFFFFFFFF)
+        try:
+            translate_bar_label.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+        except Exception:
+            translate_bar_label.setTypeface(AndroidUtilities.bold())
+        translate_bar_btn.addView(translate_bar_label)
+
+        def onTranslateBarClick(v, _p=p):
+            text = fetched_changelog[0]
+            if not text.strip():
+                return
+            import threading
+            import requests as _req
+            from ..PluginListActivity.translation import _show_translate_sheet
+            from java.util import Locale
+
+            def _set_loading(loading):
+                try:
+                    translate_bar_btn.setEnabled(not loading)
+                    translate_bar_btn.removeAllViews()
+                    if loading:
+                        try:
+                            from org.telegram.ui.Components import CircularProgressDrawable
+                            spin_color = Theme.getColor(Theme.key_featuredStickers_buttonText)
+                            d = CircularProgressDrawable(spin_color)
+                            try:
+                                d.size = float(AndroidUtilities.dp(20))
+                                d.thickness = float(AndroidUtilities.dp(2))
+                            except Exception:
+                                pass
+                            spin_iv = ImageView(act)
+                            spin_iv.setImageDrawable(d)
+                            spin_iv.setScaleType(ImageView.ScaleType.CENTER)
+                            translate_bar_btn.addView(spin_iv, LayoutHelper.createLinear(20, 20, Gravity.CENTER))
+                        except Exception:
+                            translate_bar_btn.addView(translate_bar_label)
+                    else:
+                        translate_bar_btn.addView(translate_bar_label)
+                except Exception as e:
+                    log(f"pluginProfile: translate _set_loading error: {e}")
+
+            def _do_translate():
+                try:
+                    target_lang = Locale.getDefault().getLanguage() or "en"
+                    url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={target_lang}&dt=t&q={_req.utils.quote(text)}"
+                    response = _req.get(url, timeout=10)
+                    if response.status_code == 200:
+                        data = response.json()
+                        # collect all translation chunks
+                        translated = "".join(
+                            chunk[0] for chunk in data[0] if chunk and chunk[0]
+                        ) if data and data[0] else text
+                    else:
+                        translated = text
+                    def _done():
+                        _show_translate_sheet(act, _p, target_lang, translated)
+                        threading.Timer(1.0, lambda: run_on_ui_thread(lambda: _set_loading(False))).start()
+                    run_on_ui_thread(_done)
+                except Exception as e:
+                    log(f"pluginProfile: changelog translate error: {e}")
+                    run_on_ui_thread(lambda: _set_loading(False))
+
+            run_on_ui_thread(lambda: _set_loading(True))
+            threading.Thread(target=_do_translate, daemon=True).start()
+        translate_bar_btn.setOnClickListener(OnClickListener(onTranslateBarClick))
+
+        translate_bar.addView(translate_bar_btn, LayoutHelper.createLinear(-1, -2))
+        root.addView(translate_bar, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
+
+        # social links card
+        social = p.get("social") or []
+        if social:
+            social_card = LinearLayout(act)
+            social_card.setOrientation(LinearLayout.VERTICAL)
+            social_card.setPadding(
+                AndroidUtilities.dp(16), AndroidUtilities.dp(14),
+                AndroidUtilities.dp(16), AndroidUtilities.dp(14)
+            )
+            bg_social = _make_card_bg(act)
+            if bg_social:
+                social_card.setBackground(bg_social)
+
+            social_card.addView(
+                _make_section_header(act, str(strings.pp_section_social)),
+                LayoutHelper.createLinear(-2, -2, 0, 0, 0, 0, 10)
+            )
+
+            for i, entry in enumerate(social):
+                if not isinstance(entry, (list, tuple)) or len(entry) < 3:
+                    continue
+                icon_name = str(entry[0])
+                link_label = str(entry[1])
+                link_url = str(entry[2])
+
+                row = LinearLayout(act)
+                row.setOrientation(LinearLayout.HORIZONTAL)
+                row.setGravity(Gravity.CENTER_VERTICAL)
+                row.setPadding(0, AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8))
+                row.setClickable(True)
+                row.setFocusable(True)
+                row.setBackground(Theme.createSelectorDrawable(
+                    Theme.getColor(Theme.key_listSelector), 2
+                ))
+
+                icon_iv = ImageView(act)
+                icon_iv.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+                try:
+                    icon_iv.setImageResource(_resolve_icon(icon_name))
+                    icon_iv.setColorFilter(gray_color)
+                except Exception:
+                    pass
+                row.addView(icon_iv, LayoutHelper.createLinear(20, 20, Gravity.CENTER_VERTICAL, 0, 0, 12, 0))
+
+                label_tv = TextView(act)
+                label_tv.setText(link_label)
+                label_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+                label_tv.setTextColor(text_color)
+                row.addView(label_tv, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+
+                if link_url:
+                    def _on_social_click(v, _url=link_url):
+                        try:
+                            if Browser and Uri:
+                                Browser.openUrl(act, Uri.parse(_url), True, True, True, None, None, False, False, False)
+                        except Exception as e:
+                            log(f"pluginProfile: social link error: {e}")
+                    row.setOnClickListener(OnClickListener(_on_social_click))
+
+                social_card.addView(row, LayoutHelper.createLinear(-1, -2))
+
+                if i < len(social) - 1:
+                    dv = View(act)
+                    dv.setBackgroundColor(Theme.getColor(Theme.key_divider))
+                    dv_lp = LinearLayout.LayoutParams(-1, AndroidUtilities.dp(1))
+                    dv_lp.leftMargin = AndroidUtilities.dp(32)
+                    social_card.addView(dv, dv_lp)
+
+            desc_extra.addView(social_card, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
+
+        # tags card
+        tags = p.get("tags") or []
+        if tags:
+            tags_card = LinearLayout(act)
+            tags_card.setOrientation(LinearLayout.VERTICAL)
+            tags_card.setPadding(
+                AndroidUtilities.dp(16), AndroidUtilities.dp(14),
+                AndroidUtilities.dp(16), AndroidUtilities.dp(14)
+            )
+            bg_tags = _make_card_bg(act)
+            if bg_tags:
+                tags_card.setBackground(bg_tags)
+
+            tags_card.addView(
+                _make_section_header(act, str(strings.pp_section_tags)),
+                LayoutHelper.createLinear(-2, -2, 0, 0, 0, 0, 8)
+            )
+
+            chips_row_tags = LinearLayout(act)
+            chips_row_tags.setOrientation(LinearLayout.HORIZONTAL)
+
+            for tag in tags:
+                if not isinstance(tag, (list, tuple)) or len(tag) < 2:
+                    continue
+                chip = _make_chip(act, str(tag[0]), str(tag[1]))
+                chip_lp = LinearLayout.LayoutParams(-2, -2)
+                chip_lp.rightMargin = AndroidUtilities.dp(5)
+                chips_row_tags.addView(chip, chip_lp)
+
+            if chips_row_tags.getChildCount() > 0:
+                tags_card.addView(chips_row_tags, LayoutHelper.createLinear(-2, -2))
+                desc_extra.addView(tags_card, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
 
         # dependencies
         if deps:
@@ -1004,7 +1421,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     dv_lp.leftMargin = AndroidUtilities.dp(46)
                     deps_card.addView(dv, dv_lp)
 
-            root.addView(deps_card, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
+            desc_extra.addView(deps_card, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
 
         # other plugins by author
         author = str(p.get("author") or "").strip()
@@ -1065,7 +1482,9 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     dv_lp.leftMargin = AndroidUtilities.dp(58)
                     others_card.addView(dv, dv_lp)
 
-            root.addView(others_card, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
+            desc_extra.addView(others_card, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
+
+        root.addView(desc_extra, LayoutHelper.createLinear(-1, -2))
 
         log(f"pluginProfile: beforeCreateView done, content_view={self.content_view}")
         return self.content_view

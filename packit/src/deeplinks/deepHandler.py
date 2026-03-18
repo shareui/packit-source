@@ -17,6 +17,7 @@ from . import install
 from . import update
 from . import problems
 from . import pkill
+from . import plugin
 from .secret import premium
 from .secret import terraria
 
@@ -65,6 +66,7 @@ class PackItDeeplinkHook(MethodHook):
             update.handle(url, self.plugin.repoManager)
             problems.handle(url)
             pkill.handle(url)
+            plugin.handle(url, self.plugin.repoManager)
             premium.handle(url)
             terraria.handle(url)
         except Exception as e:
