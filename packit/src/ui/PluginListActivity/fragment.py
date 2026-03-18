@@ -7,7 +7,7 @@ from android.animation import ObjectAnimator
 from android.view import View, MotionEvent, Gravity
 from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView, VideoView, ProgressBar
 from android.util import TypedValue
-from android.text import TextWatcher, InputType
+from android.text import TextWatcher, InputType, TextUtils
 from android.view.inputmethod import EditorInfo
 from android.graphics.drawable import GradientDrawable
 from android.media import MediaPlayer
@@ -1587,6 +1587,10 @@ class InstallUI:
             display_name = p.get("name") or p.get("id") or "Unknown"
             name_tv.setText(str(display_name))
             name_tv.setTextColor(self.text_color)
+            name_tv.setSingleLine(True)
+            name_tv.setEllipsize(TextUtils.TruncateAt.END)
+            name_tv.setHorizontalFadingEdgeEnabled(True)
+            name_tv.setFadingEdgeLength(AndroidUtilities.dp(24))
             id_tv = TextView(act)
             id_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
             version_text = str(p.get("version") or "").strip()
@@ -1606,6 +1610,10 @@ class InstallUI:
                 id_tv.setMovementMethod(LinkMovementMethod.getInstance())
             except Exception:
                 pass
+            id_tv.setSingleLine(True)
+            id_tv.setEllipsize(TextUtils.TruncateAt.END)
+            id_tv.setHorizontalFadingEdgeEnabled(True)
+            id_tv.setFadingEdgeLength(AndroidUtilities.dp(24))
             col.addView(name_tv, LayoutHelper.createLinear(-1, -2))
             col.addView(id_tv, LayoutHelper.createLinear(-1, -2, 0, 2, 0, 0))
             
