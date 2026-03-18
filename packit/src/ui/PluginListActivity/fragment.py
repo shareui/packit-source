@@ -600,26 +600,39 @@ class InstallUI:
 
     def _update_current_fragment_plugins(self, plugins):
         try:
-            fragment = get_last_fragment()
-            if not fragment:
+            delegate = getattr(self, '_active_delegate', None)
+            log(f"installUI: _update_current_fragment_plugins plugins={len(plugins)} active_delegate={id(delegate) if delegate else None}")
+            if not delegate or not hasattr(delegate, 'plugins'):
+                # fallback: try via last fragment
+                fragment = get_last_fragment()
+                log(f"installUI: fallback fragment={fragment}")
+                if fragment and hasattr(fragment, 'getDelegate') and fragment.getDelegate():
+                    d = fragment.getDelegate()
+                    if hasattr(d, 'plugins'):
+                        delegate = d
+                        log(f"installUI: fallback delegate found id={id(delegate)}")
+            if not delegate:
+                log("installUI: no delegate found, aborting")
                 return
 
-            if hasattr(fragment, 'getDelegate') and fragment.getDelegate():
-                delegate = fragment.getDelegate()
-                if hasattr(delegate, 'plugins'):
-                    delegate.plugins = _filter_unavailable(plugins)
-                    delegate.filtered_plugins = []
-                    delegate.visible_plugins = []
-                    delegate.search_index = search_mod.build_index(delegate.plugins)
+            delegate.plugins = _filter_unavailable(plugins)
+            delegate.filtered_plugins = []
+            delegate.visible_plugins = []
+            delegate.search_index = search_mod.build_index(delegate.plugins)
 
-                    if hasattr(delegate, 'subtitle'):
-                        repo_count = _count_active_repos(self.plugin.repoManager)
-                        delegate.subtitle.setText(_build_plugin_count_label(len(delegate.plugins)))
+            if hasattr(delegate, 'subtitle'):
+                delegate.subtitle.setText(_build_plugin_count_label(len(delegate.plugins)))
 
-                    if hasattr(delegate, 'results_container') and delegate.results_container:
-                        delegate.build_list_with_sort("alpha_az")
-                    else:
-                        pass
+            cb = getattr(delegate, '_on_data_ready_cb', None)
+            log(f"installUI: _on_data_ready_cb={cb} gate={getattr(delegate, '_load_gate', None)}")
+            # signal gate that data is ready (fires finish if anim also done)
+            if cb:
+                delegate._on_data_ready_cb = None
+                log("installUI: calling _on_data_ready_cb")
+                cb()
+            elif hasattr(delegate, 'results_container') and delegate.results_container:
+                log("installUI: no gate cb, calling build_list_with_sort directly")
+                run_on_ui_thread(lambda: delegate.build_list_with_sort("alpha_az"))
         except Exception as e:
             log(f"Failed to update current fragment plugins: {e}")
 
@@ -629,6 +642,7 @@ class InstallUI:
             return
         try:
             delegate = self.PluginListFragment(self, repo_name, plugins, show_loading_initial=True, repo_id=repo_id)
+            self._active_delegate = delegate
             new_fragment = UniversalFragment(delegate)
             fragment.presentFragment(new_fragment)
             try:
@@ -731,6 +745,14 @@ class InstallUI:
                 self.install_ui._open_repo_plugins(selected)
 
         def beforeCreateView(self):
+            # save scroll position before rebuilding view
+            _saved_scroll_y = 0
+            try:
+                if hasattr(self, '_scroll_view') and self._scroll_view:
+                    _saved_scroll_y = self._scroll_view.getScrollY()
+            except Exception:
+                pass
+
             act = get_last_fragment().getContext()
             colors = self.install_ui._get_theme_colors()
             self.main_bg_color = colors["main_bg_color"]
@@ -1109,6 +1131,7 @@ class InstallUI:
             header_row.addView(sort_btn, sort_btn_lp)
 
             scroll = ScrollView(act)
+            self._scroll_view = scroll
             scroll.setFillViewport(True)
             scroll.setVerticalScrollBarEnabled(False)
             scroll.setBackgroundColor(self.main_bg_color)
@@ -1122,20 +1145,49 @@ class InstallUI:
             if self.show_loading_initial:
                 content_wrapper = FrameLayout(act)
                 content_wrapper.setLayoutParams(ScrollView.LayoutParams(-1, -2))
-                self.loading_container, self.loading_video = self.install_ui._create_center_loading_animation(content_wrapper)
-                if self.loading_container:
-                    # add to content_view (full-screen FrameLayout) for true screen centering
-                    self.content_view.addView(self.loading_container, FrameLayout.LayoutParams(-1, -1))
-                    def load_plugins_after_animation():
-                        try:
-                            self._finish_loading_and_show_plugins(content_wrapper)
-                        except Exception:
-                            self._finish_loading_and_show_plugins(content_wrapper)
-                    threading.Timer(1.0, lambda: run_on_ui_thread(load_plugins_after_animation)).start()
-                else:
-                    self._finish_loading_and_show_plugins(content_wrapper)
 
-                scroll.addView(content_wrapper, ScrollView.LayoutParams(-1, -2))
+                # loading already finished on a previous beforeCreateView call — skip animation
+                if self.loading_container is None and getattr(self, '_load_gate', None) and self._load_gate[0] and self._load_gate[1]:
+                    log(f"installUI: beforeCreateView re-entry after gate done, skipping animation")
+                    try:
+                        p = self.results_container.getParent()
+                        if p is not None:
+                            p.removeView(self.results_container)
+                    except Exception:
+                        pass
+                    scroll.addView(self.results_container, ScrollView.LayoutParams(-1, -2))
+                else:
+                    self.loading_container, self.loading_video = self.install_ui._create_center_loading_animation(content_wrapper)
+                    if self.loading_container:
+                        # add to content_view (full-screen FrameLayout) for true screen centering
+                        self.content_view.addView(self.loading_container, FrameLayout.LayoutParams(-1, -1))
+                        # finish only when both: min animation played AND data arrived
+                        self._load_gate = [False, False]  # [anim_done, data_ready]
+
+                        def _try_finish():
+                            log(f"installUI: _try_finish gate={self._load_gate}")
+                            if self._load_gate[0] and self._load_gate[1]:
+                                log("installUI: gate passed, calling _finish_loading_and_show_plugins")
+                                self._finish_loading_and_show_plugins(content_wrapper)
+
+                        def _on_anim_done():
+                            log("installUI: anim timer done")
+                            self._load_gate[0] = True
+                            _try_finish()
+
+                        def _on_data_ready():
+                            log("installUI: data ready callback fired")
+                            self._load_gate[1] = True
+                            run_on_ui_thread(_try_finish)
+
+                        self._on_data_ready_cb = _on_data_ready
+                        log(f"installUI: gate set up, delegate id={id(self)}, _on_data_ready_cb set")
+                        threading.Timer(1.0, lambda: run_on_ui_thread(_on_anim_done)).start()
+                    else:
+                        self._on_data_ready_cb = None
+                        self._finish_loading_and_show_plugins(content_wrapper)
+
+                    scroll.addView(content_wrapper, ScrollView.LayoutParams(-1, -2))
             else:
                 scroll.addView(self.results_container, ScrollView.LayoutParams(-1, -2))
 
@@ -1161,10 +1213,16 @@ class InstallUI:
                 scroll.setOnScrollChangeListener(ScrollListener(self))
             except Exception:
                 pass
-            self.results_container = LinearLayout(act)
-            self.results_container.setOrientation(LinearLayout.VERTICAL)
-            self.results_container.setPadding(0, 0, 0, AndroidUtilities.dp(10))
+            # only create results_container on first call; reuse on re-entry
+            if not hasattr(self, 'results_container') or self.results_container is None:
+                self.results_container = LinearLayout(act)
+                self.results_container.setOrientation(LinearLayout.VERTICAL)
+                self.results_container.setPadding(0, 0, 0, AndroidUtilities.dp(10))
             main_layout.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1.0))
+
+            if _saved_scroll_y > 0:
+                _y = _saved_scroll_y
+                run_on_ui_thread(lambda: scroll.scrollTo(0, _y))
 
             self.search.addTextChangedListener(SearchTextWatcherWithClear(self, clear_btn))
             return self.content_view
@@ -1288,10 +1346,19 @@ class InstallUI:
 
         def _finish_loading_and_show_plugins(self, content_wrapper):
             try:
+                log(f"installUI: _finish_loading_and_show_plugins plugins={len(self.plugins)} loading_container={self.loading_container}")
                 if hasattr(self, 'subtitle'):
                     self.subtitle.setText(_build_plugin_count_label(len(self.plugins)))
 
                 if self.loading_container:
+                    # stop the spinner drawable before removing to avoid background animation leak
+                    try:
+                        if self.loading_video:
+                            d = self.loading_video.getDrawable()
+                            if d:
+                                d.stop()
+                    except Exception:
+                        pass
                     # loading_container is in content_view, not content_wrapper
                     try:
                         self.content_view.removeView(self.loading_container)

@@ -111,7 +111,9 @@ def translate_plugin(plugin_info: dict):
                 response = requests.get(url, timeout=10)
                 if response.status_code == 200:
                     data = response.json()
-                    translated = data[0][0][0] if data and data[0] and data[0][0] else description
+                    translated = "".join(
+                        chunk[0] for chunk in data[0] if chunk and chunk[0]
+                    ) if data and data[0] else description
                 else:
                     translated = description
             except Exception as e:
