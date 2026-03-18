@@ -460,6 +460,9 @@ class _AchievementListFragment(dynamic_proxy(UniversalFragment.UniversalFragment
         return view
 
     def getTitle(self):
+        if self.achievements:
+            category_key = self.achievements[0].get("category_key", self.category)
+            return str(strings[category_key])
         return str(strings[self.category])
 
     def fillItems(self, items, adapter):
@@ -559,7 +562,11 @@ class _CategoryFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegat
                             cur_frag.presentFragment(new_frag)
                             try:
                                 from hook_utils import find_class as _fc
-                                new_frag.setTitle(str(strings[c]) if c in strings else c, False, 0)
+                                if a:
+                                    category_key = a[0].get("category_key", c)
+                                    new_frag.setTitle(str(strings[category_key]) if category_key in strings else str(strings[c]), False, 0)
+                                else:
+                                    new_frag.setTitle(str(strings[c]) if c in strings else c, False, 0)
                                 new_frag.getActionBar().setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))
                             except Exception as _e:
                                 log(f"achievementsUi: category actionbar setup error: {_e}")
