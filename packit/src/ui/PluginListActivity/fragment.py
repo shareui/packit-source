@@ -5,7 +5,7 @@ from collections import deque
 from time import time
 from android.animation import ObjectAnimator
 from android.view import View, MotionEvent, Gravity
-from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView, VideoView, ProgressBar
+from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView, VideoView, ProgressBar, HorizontalScrollView
 from android.util import TypedValue
 from android.text import TextWatcher, InputType, TextUtils
 from android.view.inputmethod import EditorInfo
@@ -1604,6 +1604,16 @@ class InstallUI:
 
             col = LinearLayout(act)
             col.setOrientation(LinearLayout.VERTICAL)
+            
+            name_scroll = HorizontalScrollView(act)
+            name_scroll.setHorizontalScrollBarEnabled(False)
+            name_scroll.setFillViewport(True)
+            name_scroll.setHorizontalFadingEdgeEnabled(True)
+            name_scroll.setFadingEdgeLength(AndroidUtilities.dp(24))
+            
+            name_container = LinearLayout(act)
+            name_container.setOrientation(LinearLayout.VERTICAL)
+            
             name_tv = TextView(act)
             try:
                 name_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
@@ -1638,8 +1648,15 @@ class InstallUI:
             id_tv.setSingleLine(True)
             id_tv.setHorizontalFadingEdgeEnabled(True)
             id_tv.setFadingEdgeLength(AndroidUtilities.dp(24))
-            col.addView(name_tv, LayoutHelper.createLinear(-1, -2))
-            col.addView(id_tv, LayoutHelper.createLinear(-1, -2, 0, 2, 0, 0))
+            
+            name_container.addView(name_tv, LayoutHelper.createLinear(-1, -2))
+            name_container.addView(id_tv, LayoutHelper.createLinear(-1, -2, 0, 2, 0, 0))
+            
+            name_scroll.addView(name_container, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ))
+            col.addView(name_scroll, LayoutHelper.createLinear(-1, -2))
             
             tags = p.get("tags") or []
             if tags and settings.get("show_plugin_tags", True):
