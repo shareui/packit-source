@@ -1,7 +1,7 @@
 import ctypes
 import threading
 from android.view import Gravity, View
-from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView, ProgressBar
+from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView, ProgressBar, HorizontalScrollView
 from android.util import TypedValue
 from android.graphics.drawable import GradientDrawable
 from android_utils import log, run_on_ui_thread, OnClickListener
@@ -829,7 +829,74 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 LayoutHelper.createLinear(0, -2, 1.0)
             )
 
-            translate_btn = _make_icon_btn("msg_replace")
+            wrap.addView(desc_header_row, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 8))
+
+            desc_tv = TextView(act)
+            desc_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            desc_tv.setTextColor(text_color)
+            desc_tv.setLineSpacing(AndroidUtilities.dp(3), 1.0)
+            if desc:
+                try:
+                    from com.exteragram.messenger.utils.text import LocaleUtils
+                    from android.text.method import LinkMovementMethod
+                    desc_tv.setText(LocaleUtils.fullyFormatText(desc))
+                    desc_tv.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
+                    desc_tv.setMovementMethod(LinkMovementMethod.getInstance())
+                except Exception:
+                    desc_tv.setText(desc)
+            wrap.addView(desc_tv, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 12))
+
+            buttons_scroll = HorizontalScrollView(act)
+            buttons_scroll.setHorizontalScrollBarEnabled(False)
+            buttons_scroll.setFillViewport(True)
+            
+            buttons_row = LinearLayout(act)
+            buttons_row.setOrientation(LinearLayout.HORIZONTAL)
+            buttons_row.setGravity(Gravity.CENTER_VERTICAL)
+
+            def _make_text_btn(icon_name, text):
+                btn = LinearLayout(act)
+                btn.setOrientation(LinearLayout.HORIZONTAL)
+                btn.setGravity(Gravity.CENTER_VERTICAL)
+                btn.setClickable(True)
+                btn.setFocusable(True)
+                try:
+                    ic_color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+                    r = (ic_color >> 16) & 0xFF
+                    g = (ic_color >> 8) & 0xFF
+                    b = ic_color & 0xFF
+                    ic_fill    = ctypes.c_int32((0x22 << 24) | (r << 16) | (g << 8) | b).value
+                    ic_pressed = ctypes.c_int32((0x44 << 24) | (r << 16) | (g << 8) | b).value
+                    btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                        AndroidUtilities.dp(16), ic_fill, ic_pressed
+                    ))
+                except Exception:
+                    pass
+                btn.setPadding(
+                    AndroidUtilities.dp(10), AndroidUtilities.dp(8),
+                    AndroidUtilities.dp(10), AndroidUtilities.dp(8)
+                )
+
+                iv = ImageView(act)
+                iv.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+                try:
+                    iv.setImageResource(_resolve_icon(icon_name))
+                    iv.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+                except Exception:
+                    pass
+                btn.addView(iv, LayoutHelper.createLinear(16, 16, Gravity.CENTER_VERTICAL, 0, 0, 4, 0))
+                tv = TextView(act)
+                tv.setText(text)
+                tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+                tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+                try:
+                    tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+                except Exception:
+                    tv.setTypeface(AndroidUtilities.bold())
+                btn.addView(tv, LayoutHelper.createLinear(-2, -2))
+                return btn
+
+            translate_btn = _make_text_btn("msg_replace", str(strings["translate"]))
 
             def onTranslateClick(v, _p=p):
                 from ..PluginListActivity.translation import translate_plugin
@@ -837,11 +904,29 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             translate_btn.setOnClickListener(OnClickListener(onTranslateClick))
 
             btn_lp = LinearLayout.LayoutParams(-2, -2)
-            btn_lp.leftMargin = AndroidUtilities.dp(6)
-            desc_header_row.addView(translate_btn, btn_lp)
+            btn_lp.rightMargin = AndroidUtilities.dp(8)
+            buttons_row.addView(translate_btn, btn_lp)
+            copy_btn = _make_text_btn("msg_copy", str(strings["copy"]))
+
+            def onCopyClick(v, _desc=desc):
+                try:
+                    from android.content import ClipData
+                    clipboard_manager = act.getSystemService(act.CLIPBOARD_SERVICE)
+                    clip = ClipData.newPlainText("Plugin description", _desc)
+                    clipboard_manager.setPrimaryClip(clip)
+
+                    from ui.bulletin import BulletinHelper
+                    BulletinHelper.show_success(strings.get("copied_to_clipboard", "Скопировано в буфер обмена"))
+                except Exception as e:
+                    log(f"pluginProfile: copy description error: {e}")
+            copy_btn.setOnClickListener(OnClickListener(onCopyClick))
+
+            btn_lp2 = LinearLayout.LayoutParams(-2, -2)
+            btn_lp2.rightMargin = AndroidUtilities.dp(8)
+            buttons_row.addView(copy_btn, btn_lp2)
 
             if readme_url:
-                extended_btn = _make_icon_btn("msg_info")
+                extended_btn = _make_text_btn("msg_info", str(strings["plugin_view_button"]))
 
                 def _raw_to_github(url):
                     # https://raw.githubusercontent.com/user/repo/refs/heads/branch/path
@@ -874,26 +959,13 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                         log(f"pluginProfile: extended_btn openUrl error: {ex}")
                 extended_btn.setOnClickListener(OnClickListener(onExtendedClick))
 
-                btn_lp2 = LinearLayout.LayoutParams(-2, -2)
-                btn_lp2.leftMargin = AndroidUtilities.dp(6)
-                desc_header_row.addView(extended_btn, btn_lp2)
+                buttons_row.addView(extended_btn, LayoutHelper.createLinear(-2, -2))
 
-            wrap.addView(desc_header_row, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 8))
-
-            desc_tv = TextView(act)
-            desc_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
-            desc_tv.setTextColor(text_color)
-            desc_tv.setLineSpacing(AndroidUtilities.dp(3), 1.0)
-            if desc:
-                try:
-                    from com.exteragram.messenger.utils.text import LocaleUtils
-                    from android.text.method import LinkMovementMethod
-                    desc_tv.setText(LocaleUtils.fullyFormatText(desc))
-                    desc_tv.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
-                    desc_tv.setMovementMethod(LinkMovementMethod.getInstance())
-                except Exception:
-                    desc_tv.setText(desc)
-            wrap.addView(desc_tv, LayoutHelper.createLinear(-1, -2))
+            buttons_scroll.addView(buttons_row, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ))
+            wrap.addView(buttons_scroll, LayoutHelper.createLinear(-1, -2))
             return wrap
 
         def _build_stub_content():
