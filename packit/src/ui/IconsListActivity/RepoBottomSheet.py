@@ -234,6 +234,11 @@ def show_icon_repo_sheet(install_ui, repos, on_select=None):
             root.addView(close_btn, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 0))
 
             sheet.setCustomView(root)
+            try:
+                from ...ui.viewUtils import applyFontToTree
+                applyFontToTree(root)
+            except Exception:
+                pass
             sheet.show()
         except Exception as e:
             log(f"icon repo sheet error: {e}")

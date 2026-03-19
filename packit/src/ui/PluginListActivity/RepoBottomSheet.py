@@ -242,6 +242,11 @@ def show_repo_sheet(install_ui, repos, on_select=None):
             install_ui._apply_press_scale(close_btn)
             root.addView(close_btn, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 0))
             sheet.setCustomView(root)
+            try:
+                from ..viewUtils import applyFontToTree
+                applyFontToTree(root)
+            except Exception:
+                pass
             sheet.show()
         except Exception as e:
             log(f"repo: repo sheet error: {e}")

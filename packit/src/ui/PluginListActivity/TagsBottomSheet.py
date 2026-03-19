@@ -143,6 +143,11 @@ def show_tag_filter_menu(install_ui, act, plugins, selected_tags, on_tags_select
         tag_root.addView(save_btn, LayoutHelper.createLinear(-1, -2, 0, 16, 0, 8))
 
         tag_sheet.setCustomView(tag_root)
+        try:
+            from ..viewUtils import applyFontToTree
+            applyFontToTree(tag_root)
+        except Exception:
+            pass
         tag_sheet.show()
     except Exception as e:
         log(f"tag filter menu error: {e}")
