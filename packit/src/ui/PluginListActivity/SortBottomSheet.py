@@ -213,6 +213,11 @@ def show_sort_menu(install_ui, act, current_sort_type, build_list_with_sort):
         sort_root.addView(close_btn, LayoutHelper.createLinear(-1, -2, 0, 16, 0, 8))
 
         sort_sheet.setCustomView(sort_root)
+        try:
+            from ..viewUtils import applyFontToTree
+            applyFontToTree(sort_root)
+        except Exception:
+            pass
         sort_sheet.show()
     except Exception as e:
         log(f"sort: sort menu error: {e}")

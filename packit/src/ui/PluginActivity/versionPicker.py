@@ -733,6 +733,11 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
         card.setAlpha(0.0)
         card.setScaleX(0.92)
         card.setScaleY(0.92)
+        try:
+            from ..viewUtils import applyFontToTree
+            applyFontToTree(card)
+        except Exception:
+            pass
         decor.addView(overlay, ViewGroup.LayoutParams(-1, -1))
 
         def _post_show():

@@ -114,6 +114,11 @@ def show_tg_channel_sheet(activity, resource_provider):
         scroll = ScrollView(activity)
         scroll.addView(frame)
         sheet.setCustomView(scroll)
+        try:
+            from ..viewUtils import applyFontToTree
+            applyFontToTree(scroll)
+        except Exception:
+            pass
         sheet.show()
     except Exception:
         log(f"tgChannelSheet: show error: {traceback.format_exc()}")

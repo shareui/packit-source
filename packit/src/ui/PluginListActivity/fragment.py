@@ -1225,6 +1225,11 @@ class InstallUI:
                 run_on_ui_thread(lambda: scroll.scrollTo(0, _y))
 
             self.search.addTextChangedListener(SearchTextWatcherWithClear(self, clear_btn))
+            try:
+                from ..viewUtils import applyFontToTree
+                applyFontToTree(self.content_view)
+            except Exception:
+                pass
             return self.content_view
 
         def getTitle(self):

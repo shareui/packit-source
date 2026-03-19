@@ -457,6 +457,11 @@ class _AchievementListFragment(dynamic_proxy(UniversalFragment.UniversalFragment
         if view is not None:
             _add_actionbar_glow(view)
             _add_bottom_glow(view)
+            try:
+                from ..viewUtils import applyFontToTree
+                applyFontToTree(view)
+            except Exception:
+                pass
         return view
 
     def getTitle(self):
@@ -597,6 +602,11 @@ class _CategoryFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegat
         if view is not None:
             _add_actionbar_glow(view)
             _add_bottom_glow(view)
+            try:
+                from ..viewUtils import applyFontToTree
+                applyFontToTree(view)
+            except Exception:
+                pass
         return view
 
     def getTitle(self):
@@ -706,6 +716,11 @@ def show_hint_sheet(achievement: dict):
         root.addView(close_btn, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8))
 
         sheet.setCustomView(root)
+        try:
+            from ..viewUtils import applyFontToTree
+            applyFontToTree(root)
+        except Exception:
+            pass
         sheet.show()
     except Exception as e:
         log(f"achievementsUi.show_hint_sheet: {e}")

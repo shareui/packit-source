@@ -253,6 +253,11 @@ def _show_translate_sheet(act, plugin_info, lang, translated_text):
         root.addView(close_btn, LayoutHelper.createLinear(-1, -2, 0, 16, 0, 8))
 
         translate_sheet.setCustomView(root)
+        try:
+            from ..viewUtils import applyFontToTree
+            applyFontToTree(root)
+        except Exception:
+            pass
         translate_sheet.show()
     except Exception as e:
         log(f"translate: show sheet error: {e}")

@@ -787,6 +787,11 @@ class InstallIconsUI:
 
             main_layout.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1.0))
             self.search.addTextChangedListener(SearchTextWatcher(self, clear_btn))
+            try:
+                from ..viewUtils import applyFontToTree
+                applyFontToTree(self.content_view)
+            except Exception:
+                pass
             return self.content_view
 
         def getTitle(self):

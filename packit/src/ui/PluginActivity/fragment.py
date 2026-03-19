@@ -606,7 +606,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     date_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
                 except Exception:
                     date_tv.setTypeface(AndroidUtilities.bold())
-                dates_col.addView(date_tv, LayoutHelper.createLinear(-2, -2, 0, 0, 0, 2))
+                dates_col.addView(date_tv, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 2))
 
             effective_update = update_date if update_date else release_date
             if effective_update:
@@ -621,13 +621,12 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     update_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
                 except Exception:
                     update_tv.setTypeface(AndroidUtilities.bold())
-                dates_col.addView(update_tv, LayoutHelper.createLinear(-2, -2))
+                dates_col.addView(update_tv, LayoutHelper.createLinear(-1, -2))
 
-            bottom_row.addView(dates_col, LayoutHelper.createLinear(-2, -2, Gravity.TOP))
-
-        # spacer
-        spacer = View(act)
-        bottom_row.addView(spacer, LayoutHelper.createLinear(0, 1, 1.0))
+            bottom_row.addView(dates_col, LayoutHelper.createLinear(0, -2, 1.0, Gravity.TOP))
+        else:
+            spacer = View(act)
+            bottom_row.addView(spacer, LayoutHelper.createLinear(0, 1, 1.0))
 
         # install circle button
         has_link = bool(p.get("link") or p.get("raw"))
@@ -2168,6 +2167,11 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         root.addView(desc_extra, LayoutHelper.createLinear(-1, -2))
 
         log(f"pluginProfile: beforeCreateView done, content_view={self.content_view}")
+        try:
+            from ..viewUtils import applyFontToTree
+            applyFontToTree(self.content_view)
+        except Exception:
+            pass
         return self.content_view
 
     def _get_localized_description(self, plugin):

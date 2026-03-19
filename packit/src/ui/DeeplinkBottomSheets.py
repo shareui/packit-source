@@ -459,6 +459,11 @@ def show_deeplink_sheet(link_alias):
             
             root.addView(close_btn, LayoutHelper.createLinear(-1, -2, 0, 16, 0, 8))
             sheet.setCustomView(root)
+            try:
+                from .viewUtils import applyFontToTree
+                applyFontToTree(root)
+            except Exception:
+                pass
             sheet.show()
             
         except Exception as e:

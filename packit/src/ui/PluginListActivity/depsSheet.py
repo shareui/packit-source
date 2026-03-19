@@ -248,6 +248,11 @@ def show_deps_sheet(install_ui, plugin_info: dict, on_confirm, all_plugins: list
             root.addView(cancel_btn, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0))
 
             sheet.setCustomView(root)
+            try:
+                from ..viewUtils import applyFontToTree
+                applyFontToTree(root)
+            except Exception:
+                pass
             sheet.show()
         except Exception as e:
             log(f"deps_sheet: show error: {e}")

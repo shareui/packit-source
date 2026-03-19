@@ -38,6 +38,8 @@ import signal
 
 from typing import List, Any, Callable
 from dataclasses import dataclass, field
+from ..ui.FontPickerBottomSheet import showFontPicker
+from ..ui.FontManager import getSelectedFilename
 
 
 @dataclass
@@ -105,21 +107,22 @@ def _buildTextSubtextCell(context, text, subtext, icon, on_click):
         row = LinearLayout(context)
         row.setOrientation(LinearLayout.HORIZONTAL)
         row.setGravity(Gravity.CENTER_VERTICAL)
-        row.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite))
         row.setMinimumHeight(dp(64))
+        row.setClickable(True)
+        row.setFocusable(True)
         row.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 2))
         row.setOnClickListener(OnClickListener(on_click))
         log("other: _buildTextSubtextCell row created")
 
-        icon_id = 0
+        icon_id = None
         try:
             R = find_class("org.telegram.messenger.R")
-            icon_id = int(getattr(R.drawable, icon))
+            icon_id = getattr(R.drawable, icon)
             log(f"other: _buildTextSubtextCell icon_id={icon_id}")
         except Exception as e:
             log(f"other: _buildTextSubtextCell icon resolve error: {e}")
 
-        if icon_id:
+        if icon_id is not None:
             iconView = ImageView(context)
             iconView.setImageResource(icon_id)
             iconView.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon))
@@ -425,6 +428,45 @@ class OtherSettings:
             on_click=self._open_pill_stack_settings
         )
 
+    def _build_font_picker_item(self, ctx):
+        try:
+            if ctx:
+                selected = getSelectedFilename()
+                subtext = str(strings.font_picker_desc)
+                if selected:
+                    display = selected
+                    if display.lower().endswith(".ttf"):
+                        display = display[:-4]
+                    display = display.replace("-", " ").replace("_", " ")
+                    subtext = display
+                view = _buildTextSubtextCell(
+                    ctx,
+                    text=strings.font_picker,
+                    subtext=subtext,
+                    icon="msg_theme",
+                    on_click=self._open_font_picker
+                )
+                if view is not None:
+                    return Custom(view=view)
+            log("other: _build_font_picker_item falling back to Text")
+        except Exception as e:
+            log(f"other: _build_font_picker_item error: {e}")
+        return Text(
+            text=strings.font_picker,
+            icon="msg_theme",
+            on_click=self._open_font_picker
+        )
+
+    def _open_font_picker(self, view):
+        try:
+            frag = get_last_fragment()
+            act = frag.getParentActivity() if frag else None
+            if not act:
+                return
+            showFontPicker(act)
+        except Exception as e:
+            log(f"OtherSettings: _open_font_picker error: {e}")
+
     def _open_pill_stack_settings(self, view):
         try:
             from hook_utils import find_class
@@ -577,6 +619,7 @@ class OtherSettings:
         items += [
             Divider(text=strings.buttons_header_desc),
             Header(text=strings.interface_header),
+            self._build_font_picker_item(ctx),
             Switch(
                 key="hide_unavailable_plugins",
                 text=strings.hide_unavailable_plugins,
