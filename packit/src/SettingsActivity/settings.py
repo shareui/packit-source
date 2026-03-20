@@ -539,7 +539,7 @@ class OtherSettings:
             from hook_utils import find_class
             frag = get_last_fragment()
             if frag:
-                MainMenuPreferencesActivity = find_class("com.exteragram.messenger.preferences.appearance.MainMenuPreferencesActivity")
+                MainMenuPreferencesActivity = find_class("com.exteragram.messenger.preferences.appearance.AppNavigationPreferencesActivity")
                 frag.presentFragment(MainMenuPreferencesActivity())
         except Exception as e:
             log(f"OtherSettings: _open_main_menu_settings error: {e}")

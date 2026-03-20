@@ -20,7 +20,28 @@ def _get_extera_config():
         return None
 
 
+_MENU_STATE_KEY = "dialogs_install_btn_enabled"
+
+
+def _is_btn_enabled():
+    try:
+        from elyx import settings
+        return settings.get(_MENU_STATE_KEY, True)
+    except Exception:
+        return True
+
+
+def _set_btn_enabled(val):
+    try:
+        from elyx import settings
+        settings.set(_MENU_STATE_KEY, bool(val))
+    except Exception as e:
+        log(f"ChatDialogButton: _set_btn_enabled error: {e}")
+
+
 def _register_menu_id():
+    # sanitize removes our id every launch (unknown to MainMenuItem enum),
+    # so we always re-add it to the correct list based on persisted state
     try:
         cfg = _get_extera_config()
         if cfg is None:
@@ -32,9 +53,13 @@ def _register_menu_id():
             log("ChatDialogButton: mainMenuLayout/mainMenuHiddenItems not found")
             return False
         id_obj = _Integer(_PACKIT_MENU_ID)
-        if layout.contains(id_obj) or hidden.contains(id_obj):
-            return True
-        layout.add(id_obj)
+        enabled = _is_btn_enabled()
+        layout.remove(id_obj)
+        hidden.remove(id_obj)
+        if enabled:
+            layout.add(id_obj)
+        else:
+            hidden.add(0, id_obj)
         try:
             cfg.saveMainMenuLayout()
         except Exception as e:
@@ -157,14 +182,14 @@ class ChatDialogButton:
         # "Main menu" settings screen (initItemDetails, createMenuItem, onClick)
         try:
             activity_cls = find_class(
-                "com.exteragram.messenger.preferences.appearance.MainMenuPreferencesActivity"
+                "com.exteragram.messenger.preferences.appearance.AppNavigationPreferencesActivity"
             )
             if activity_cls is None:
                 log("ChatDialogButton: MainMenuPreferencesActivity not found")
                 return
 
             item_info_cls = find_class(
-                "com.exteragram.messenger.preferences.appearance.MainMenuPreferencesActivity$ItemInfo"
+                "com.exteragram.messenger.preferences.appearance.AppNavigationPreferencesActivity$ItemInfo"
             )
             if item_info_cls is None:
                 log("ChatDialogButton: ItemInfo class not found")
@@ -286,9 +311,11 @@ class ChatDialogButton:
                                 cfg.mainMenuLayout.remove(id_obj)
                                 if not cfg.mainMenuHiddenItems.contains(id_obj):
                                     cfg.mainMenuHiddenItems.add(0, id_obj)
+                                _set_btn_enabled(False)
                             elif cfg.mainMenuHiddenItems.contains(id_obj):
                                 cfg.mainMenuHiddenItems.remove(id_obj)
                                 cfg.mainMenuLayout.add(id_obj)
+                                _set_btn_enabled(True)
                             cfg.saveMainMenuLayout()
                             NotificationCenter.getGlobalInstance().postNotificationName(
                                 NotificationCenter.mainUserInfoChanged
