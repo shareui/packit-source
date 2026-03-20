@@ -1,6 +1,67 @@
+import ctypes
+import json
+import os
 from android_utils import log
 
-# ru->en translit map
+# native loader
+
+_lib = None
+_lib_load_attempted = False
+
+def _load_native() -> bool:
+    global _lib, _lib_load_attempted
+    if _lib_load_attempted:
+        return _lib is not None
+    _lib_load_attempted = True
+
+    # 0 = native, 1 = python only
+    try:
+        from elyx import settings
+        if settings.get("search_engine", 0) == 1:
+            log("search: python engine selected in settings, skipping native load")
+            return False
+    except Exception:
+        pass
+
+    so_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'res', 'native', 'libsearch.so')
+    so_path = os.path.normpath(so_path)
+
+    try:
+        lib = ctypes.CDLL(so_path)
+
+        lib.search_build_index.restype  = ctypes.c_int
+        lib.search_build_index.argtypes = [ctypes.c_char_p]
+
+        lib.search_score.restype  = ctypes.c_char_p
+        lib.search_score.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_char_p,
+                                     ctypes.c_int, ctypes.c_int]
+
+        lib.search_free_index.restype  = None
+        lib.search_free_index.argtypes = [ctypes.c_int]
+
+        lib.search_free_str.restype  = None
+        lib.search_free_str.argtypes = [ctypes.c_char_p]
+
+        _lib = lib
+        log("search: native libsearch.so loaded successfully")
+        return True
+    except Exception as e:
+        log(f"search: failed to load libsearch.so, using python fallback: {e}")
+        return False
+
+# native index wrapper
+
+class _NativeIndex:
+    def __init__(self, handle: int):
+        self.handle = handle
+
+    def free(self):
+        if _lib and self.handle >= 0:
+            _lib.search_free_index(self.handle)
+            self.handle = -1
+
+# python fallback implementation
+
 _RU_TO_EN = {
     'й': 'q', 'ц': 'w', 'у': 'e', 'к': 'r', 'е': 't', 'н': 'y',
     'г': 'u', 'ш': 'i', 'щ': 'o', 'з': 'p', 'х': '[', 'ъ': ']',
@@ -40,7 +101,7 @@ def _edit_distance_1(a: str, b: str) -> bool:
             j += 1
     return True
 
-def build_index(plugins: list) -> dict:
+def _py_build_index(plugins: list) -> dict:
     index = {}
     skipped = 0
     for p in plugins:
@@ -72,7 +133,6 @@ def build_index(plugins: list) -> dict:
         }
     if skipped:
         log(f"search: build_index skipped {skipped} plugins with no id")
-    log(f"search: index built for {len(index)} plugins")
     return index
 
 def _trigram_similarity(queryTrigrams: set, fieldTrigrams: set) -> float:
@@ -90,14 +150,12 @@ def _prefix_word_match(query: str, words: list) -> bool:
 
 _MIN_SIMILARITY = 0.15
 
-
-def score(plugin: dict, query: str, index: dict, isRussian: bool, fuzzy: bool = False) -> tuple:
+def _py_score(plugin: dict, query: str, index: dict, isRussian: bool, fuzzy: bool = False) -> tuple:
     if not query:
         return (0, 0, 0.0)
 
     ql = query.lower().strip()
 
-    # convert ru keyboard layout input to en if applicable
     translitQ = _translit(ql)
     if translitQ != ql and translitQ.replace(' ', '').isalpha():
         ql = translitQ
@@ -118,7 +176,6 @@ def score(plugin: dict, query: str, index: dict, isRussian: bool, fuzzy: bool = 
 
     tokens = _words(ql)
 
-    # exact substring / startswith
     if ql in nameRaw:
         return (1, 0 if nameRaw.startswith(ql) else 1, 0.0)
     if ql in descPrimary:
@@ -130,13 +187,11 @@ def score(plugin: dict, query: str, index: dict, isRussian: bool, fuzzy: bool = 
     if ql in authorRaw:
         return (5, 0 if authorRaw.startswith(ql) else 1, 0.0)
 
-    # prefix match on individual words
     if _prefix_word_match(ql, nameWords):
         return (1, 2, 0.0)
     if _prefix_word_match(ql, idWords):
         return (4, 2, 0.0)
 
-    # multi-token AND match (e.g. "icon dev" -> "DevSettingIcons")
     if len(tokens) > 1:
         if _all_tokens_match(tokens, nameRaw):
             return (1, 3, 0.0)
@@ -149,7 +204,6 @@ def score(plugin: dict, query: str, index: dict, isRussian: bool, fuzzy: bool = 
         if _all_tokens_match(tokens, authorRaw):
             return (5, 3, 0.0)
 
-    # trigram similarity
     queryTri = _trigrams(ql)
     nameSim = _trigram_similarity(queryTri, entry["name"])
     if nameSim >= _MIN_SIMILARITY:
@@ -173,7 +227,6 @@ def score(plugin: dict, query: str, index: dict, isRussian: bool, fuzzy: bool = 
     if authorSim >= _MIN_SIMILARITY:
         return (5, 4, -authorSim)
 
-    # fuzzy: edit distance 1 on words (opt-in, off by default)
     if fuzzy:
         for w in nameWords:
             if _edit_distance_1(ql, w):
@@ -183,3 +236,42 @@ def score(plugin: dict, query: str, index: dict, isRussian: bool, fuzzy: bool = 
                 return (4, 5, 0.0)
 
     return (6, 0, 0.0)
+
+# public API
+
+def build_index(plugins: list):
+    if _load_native():
+        try:
+            raw = json.dumps(plugins, ensure_ascii=False)
+            handle = _lib.search_build_index(raw.encode('utf-8'))
+            if handle >= 0:
+                log(f"search: native index built for {len(plugins)} plugins (handle={handle})")
+                return _NativeIndex(handle)
+            log("search: native build_index returned invalid handle, falling back to python")
+        except Exception as e:
+            log(f"search: native build_index failed, falling back to python: {e}")
+
+    log(f"search: python index built for {len(plugins)} plugins")
+    return _py_build_index(plugins)
+
+
+def score(plugin: dict, query: str, index, isRussian: bool, fuzzy: bool = False) -> tuple:
+    if isinstance(index, _NativeIndex) and index.handle >= 0:
+        try:
+            pid = str(plugin.get("id") or "")
+            raw = _lib.search_score(
+                index.handle,
+                pid.encode('utf-8'),
+                query.encode('utf-8'),
+                int(isRussian),
+                int(fuzzy)
+            )
+            if raw:
+                parsed = json.loads(raw.decode('utf-8'))
+                return (parsed[0], parsed[1], parsed[2])
+            log("search: native score returned null, falling back to python")
+        except Exception as e:
+            log(f"search: native score failed, falling back to python: {e}")
+        return (6, 0, 0.0)
+
+    return _py_score(plugin, query, index, isRussian, fuzzy)

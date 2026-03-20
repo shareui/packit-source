@@ -371,6 +371,118 @@ def _buildDownloadPathCard(context, currentPath):
         return None
 
 
+def _buildSelectorWithSubtext(context, text, subtext, items, key, default, icon, on_change=None, short_items=None):
+    # selector cell: icon + title + subtext on the left, current value on the right
+    # tapping opens native AlertDialog with radio buttons (same as built-in SelectorSetting)
+    try:
+        from android.widget import ImageView
+        from hook_utils import find_class
+        from elyx import settings as _settings
+        dp = AndroidUtilities.dp
+
+        row = LinearLayout(context)
+        row.setOrientation(LinearLayout.HORIZONTAL)
+        row.setGravity(Gravity.CENTER_VERTICAL)
+        row.setMinimumHeight(dp(64))
+        row.setClickable(True)
+        row.setFocusable(True)
+        row.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 2))
+
+        icon_id = None
+        try:
+            R_cls = find_class("org.telegram.messenger.R")
+            icon_id = getattr(R_cls.drawable, icon)
+        except Exception:
+            pass
+
+        if icon_id is not None:
+            iconView = ImageView(context)
+            iconView.setImageResource(icon_id)
+            iconView.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon))
+            row.addView(iconView, LayoutHelper.createLinear(24, 24, Gravity.CENTER_VERTICAL, 23, 0, 0, 0))
+
+        textBlock = LinearLayout(context)
+        textBlock.setOrientation(LinearLayout.VERTICAL)
+
+        titleView = TextView(context)
+        titleView.setText(str(text))
+        titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
+        titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+        textBlock.addView(titleView, LayoutHelper.createLinear(-2, -2))
+
+        subtitleView = TextView(context)
+        subtitleView.setText(str(subtext))
+        subtitleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+        subtitleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+        textBlock.addView(subtitleView, LayoutHelper.createLinear(-2, -2, 0, 2, 0, 0))
+
+        row.addView(textBlock, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL, 25, 10, 8, 10))
+
+        valueView = TextView(context)
+        labels = short_items if short_items else items
+        current = _settings.get(key, default)
+        if isinstance(current, int) and 0 <= current < len(labels):
+            valueView.setText(str(labels[current]))
+        else:
+            valueView.setText(str(labels[default]))
+        valueView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+        valueView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+        row.addView(valueView, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL, 0, 0, 17, 0))
+
+        def onClick(v):
+            try:
+                from org.telegram.ui.ActionBar import AlertDialog
+                from android.widget import RadioButton
+                from java import dynamic_proxy
+
+                frag = get_last_fragment()
+                act = frag.getParentActivity() if frag else None
+                if not act:
+                    return
+
+                current_val = _settings.get(key, default)
+
+                dialog_list = LinearLayout(act)
+                dialog_list.setOrientation(LinearLayout.VERTICAL)
+
+                RadioColorCell = find_class("org.telegram.ui.Cells.RadioColorCell")
+
+                dialog_ref = [None]
+
+                def make_click(idx):
+                    def on_item_click(v2):
+                        _settings.set(key, idx)
+                        valueView.setText(str(labels[idx]))
+                        if on_change:
+                            on_change(idx)
+                        if dialog_ref[0]:
+                            dialog_ref[0].dismiss()
+                    return on_item_click
+
+                for i, item_text in enumerate(items):
+                    cell = RadioColorCell(act)
+                    cell.setTextAndValue(str(item_text), current_val == i)
+                    cell.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 2))
+                    cell.setOnClickListener(OnClickListener(make_click(i)))
+                    dialog_list.addView(cell)
+
+                builder = AlertDialog.Builder(act)
+                builder.setTitle(str(text))
+                builder.setView(dialog_list)
+                builder.setNegativeButton(act.getString(find_class("org.telegram.messenger.R").string.Cancel), None)
+                d = builder.create()
+                dialog_ref[0] = d
+                d.show()
+            except Exception as e:
+                log(f"selector dialog error: {e}")
+
+        row.setOnClickListener(OnClickListener(onClick))
+        return row
+    except Exception as e:
+        log(f"_buildSelectorWithSubtext error: {e}")
+        return None
+
+
 class OtherSettings:
     def __init__(self, chat_button=None, plugin=None):
         self.chat_button = chat_button
@@ -395,6 +507,31 @@ class OtherSettings:
             text=strings.button_in_dialogs_menu,
             icon="msg_addbot",
             on_click=self._open_main_menu_settings
+        )
+
+    def _build_search_engine_item(self, ctx):
+        try:
+            if ctx:
+                items = [strings.search_engine_native, strings.search_engine_python]
+                short_items = [strings.search_engine_native_short, strings.search_engine_python_short]
+                view = _buildSelectorWithSubtext(
+                    ctx,
+                    text=strings.search_engine,
+                    subtext=strings.search_engine_desc,
+                    items=items,
+                    key="search_engine",
+                    default=0,
+                    icon="msg_search",
+                    short_items=short_items,
+                )
+                if view is not None:
+                    return Custom(view=view)
+            log("other: _build_search_engine_item falling back to Text")
+        except Exception as e:
+            log(f"other: _build_search_engine_item error: {e}")
+        return Text(
+            text=strings.search_engine,
+            icon="msg_search",
         )
 
     def _open_main_menu_settings(self, view):
@@ -771,11 +908,12 @@ class OtherSettings:
                 icon="msg_info",
                 link_alias="show_startup_status"
             ),
+            self._build_search_engine_item(ctx),
             Switch(
                 key="fuzzy_search",
                 text=strings.fuzzy_search,
                 subtext=strings.fuzzy_search_desc,
-                default=False,
+                default=True,
                 icon="msg_search",
                 link_alias="fuzzy_search"
             ),

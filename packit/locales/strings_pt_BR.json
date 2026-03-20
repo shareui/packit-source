@@ -1,6 +1,6 @@
 {
   "official_repository": "Oficial",
-  "plugin_title_version": "Packit v{0}",
+  "plugin_title_version": "PackIt v{0}",
   "plugin_subtitle": "Catálogo de recursos para exteraGram",
   "plugins_header": "Categorias",
   "install_plugin": "Instalar plugin",
@@ -360,5 +360,11 @@
   "pill_stack_settings": "Pill Stack Settings",
   "pill_stack_settings_desc": "Configure visible widgets and their order",
   "pill_action_settings": "Open settings",
-  "pill_action_change": "Change action"
+  "pill_action_change": "Change action",
+  "search_engine": "Native search",
+  "search_engine_native": "Native (libsearch.so)",
+  "search_engine_python": "Python (SearchEngine.py)",
+  "search_engine_desc": "Select a method to search for plugins from the list. Select native for faster search.",
+  "search_engine_native_short": "Native",
+  "search_engine_python_short": "Python"
 }
