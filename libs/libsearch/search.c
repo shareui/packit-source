@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
-
+// written full by @shareui
 #ifdef _WIN32
 #define EXPORT __declspec(dllexport)
 #else
