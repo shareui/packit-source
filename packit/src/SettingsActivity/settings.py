@@ -426,7 +426,7 @@ def _buildSelectorWithSubtext(context, text, subtext, items, key, default, icon,
         else:
             valueView.setText(str(labels[default]))
         valueView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
-        valueView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+        valueView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
         row.addView(valueView, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL, 0, 0, 17, 0))
 
         def onClick(v):
@@ -521,7 +521,7 @@ class OtherSettings:
                     items=items,
                     key="search_engine",
                     default=0,
-                    icon="msg_search",
+                    icon="msg_speed",
                     short_items=short_items,
                 )
                 if view is not None:
@@ -531,7 +531,7 @@ class OtherSettings:
             log(f"other: _build_search_engine_item error: {e}")
         return Text(
             text=strings.search_engine,
-            icon="msg_search",
+            icon="msg_speed",
         )
 
     def _open_main_menu_settings(self, view):
@@ -822,6 +822,7 @@ class OtherSettings:
                 text=strings.show_extended_desc,
                 subtext=strings.show_extended_desc_desc,
                 default=False,
+                icon="msg_info",
             ),
             Divider(text=strings.show_extended_desc_hint),
             Header(text=strings.button_relocation),
