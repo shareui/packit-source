@@ -239,6 +239,16 @@ class SettingsBuilder:
         except Exception:
             pass
 
+    def _openSourceCode(self, view):
+        try:
+            frag = get_last_fragment()
+            act = frag.getParentActivity() if frag else None
+            if act:
+                uri = Uri.parse("https://github.com/shareui/packit-source")
+                Browser.openUrl(act, uri, True, True, True, None, None, False, False, False)
+        except Exception:
+            pass
+
     def buildMainSettings(self):
         return [
             Header(text=strings.plugins_header),
@@ -304,6 +314,12 @@ class SettingsBuilder:
                 text=strings.packit_forum,
                 icon="msg_groups",
                 on_click=self._openPackitForum
+            ),
+
+            Text(
+                text=strings.source_code,
+                icon="msg_link",
+                on_click=self._openSourceCode
             ),
             
             Text(

@@ -539,7 +539,7 @@ class OtherSettings:
             from hook_utils import find_class
             frag = get_last_fragment()
             if frag:
-                MainMenuPreferencesActivity = find_class("com.exteragram.messenger.preferences.appearance.MainMenuPreferencesActivity")
+                MainMenuPreferencesActivity = find_class("com.exteragram.messenger.preferences.appearance.AppNavigationPreferencesActivity")
                 frag.presentFragment(MainMenuPreferencesActivity())
         except Exception as e:
             log(f"OtherSettings: _open_main_menu_settings error: {e}")
@@ -716,6 +716,14 @@ class OtherSettings:
         from android_utils import run_on_ui_thread
         run_on_ui_thread(show)
 
+    def _open_card_editor(self):
+        try:
+            from .PluginCardEditor import build_card_editor_page
+            return build_card_editor_page()
+        except Exception as e:
+            log(f"OtherSettings: _open_card_editor error: {e}")
+            return []
+
     def build(self):
         ctx = self._getContext()
 
@@ -757,6 +765,12 @@ class OtherSettings:
             Divider(text=strings.buttons_header_desc),
             Header(text=strings.interface_header),
             self._build_font_picker_item(ctx),
+            Text(
+                text=strings.edit_plugin_card,
+                subtext=strings.edit_plugin_card_desc,
+                icon="msg_edit",
+                create_sub_fragment=self._open_card_editor
+            ),
             Switch(
                 key="hide_unavailable_plugins",
                 text=strings.hide_unavailable_plugins,
@@ -772,48 +786,6 @@ class OtherSettings:
                 default=False,
                 icon="msg_list",
                 link_alias="old_sort_menu_design"
-            ),
-            Switch(
-                key="show_default_sticker",
-                text=strings.show_default_sticker,
-                subtext=strings.show_default_sticker_desc,
-                default=False,
-                icon="msg_sticker",
-                link_alias="show_default_sticker"
-            ),
-            Divider(),
-            Header(text=strings.plugin_card_header),
-            Switch(
-                key="show_plugin_tags",
-                text=strings.show_plugin_tags,
-                subtext=strings.show_plugin_tags_desc,
-                default=True,
-                icon="menu_tag_filter",
-                link_alias="show_plugin_tags"
-            ),
-            Switch(
-                key="show_plugin_size",
-                text=strings.show_plugin_size,
-                subtext=strings.show_plugin_size_desc,
-                default=False,
-                icon="msg2_data",
-                link_alias="show_plugin_size"
-            ),
-            Switch(
-                key="show_plugin_min_version",
-                text=strings.show_plugin_min_version,
-                subtext=strings.show_plugin_min_version_desc,
-                default=False,
-                icon="msg_info",
-                link_alias="show_plugin_min_version"
-            ),
-            Switch(
-                key="show_plugin_deps_count",
-                text=strings.show_plugin_deps_count,
-                subtext=strings.show_plugin_deps_count_desc,
-                default=False,
-                icon="msg_link",
-                link_alias="show_plugin_deps_count"
             ),
             Divider(),
             Header(text=strings.plugin_profile_header),

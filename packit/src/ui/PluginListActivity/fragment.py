@@ -1492,10 +1492,11 @@ class InstallUI:
             container = LinearLayout(act)
             container.setOrientation(LinearLayout.VERTICAL)
             container.setGravity(Gravity.TOP)
-            container.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12))
+            _card_padding = AndroidUtilities.dp(settings.get("card_padding", 12))
+            container.setPadding(_card_padding, _card_padding, _card_padding, _card_padding)
             try:
                 container.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                    AndroidUtilities.dp(18), self.card_bg_color, self.card_bg_color
+                    AndroidUtilities.dp(settings.get("card_radius", 18)), self.card_bg_color, self.card_bg_color
                 ))
             except Exception:
                 pass
@@ -1528,11 +1529,11 @@ class InstallUI:
             
             icon_str = p.get("icon")
             show_default_sticker = settings.get("show_default_sticker", False)
-            show_icon = icon_str and icon_str != "Unknown"
-            if not show_icon and show_default_sticker:
+            show_icon = (icon_str and icon_str != "Unknown") and settings.get("card_show_icon", True)
+            if not show_icon and show_default_sticker and settings.get("card_show_icon", True):
                 icon_str = "Plugins_Stickers/0"
                 show_icon = True
-            icon_size_dp = 67
+            icon_size_dp = settings.get("card_icon_size", 67)
             top_row = LinearLayout(act)
             top_row.setOrientation(LinearLayout.HORIZONTAL)
             top_row.setGravity(Gravity.TOP)
@@ -1624,7 +1625,7 @@ class InstallUI:
                 name_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
             except Exception:
                 name_tv.setTypeface(AndroidUtilities.bold())
-            name_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20)
+            name_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, float(settings.get("card_name_size", 20)))
             display_name = p.get("name") or p.get("id") or "Unknown"
             name_tv.setText(str(display_name))
             name_tv.setTextColor(self.text_color)
@@ -1632,7 +1633,7 @@ class InstallUI:
             name_tv.setHorizontalFadingEdgeEnabled(True)
             name_tv.setFadingEdgeLength(AndroidUtilities.dp(24))
             id_tv = TextView(act)
-            id_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+            id_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, float(settings.get("card_id_size", 13)))
             version_text = str(p.get("version") or "").strip()
             author_text = str(p.get("author") or "").strip()
             if version_text and author_text:
@@ -1643,6 +1644,8 @@ class InstallUI:
             else:
                 formatted_author = LocaleUtils.fullyFormatText(author_text)
                 id_tv.setText(formatted_author)
+            if not settings.get("card_show_id", True):
+                id_tv.setVisibility(View.GONE)
             try:
                 id_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
                 id_tv.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
@@ -1764,7 +1767,7 @@ class InstallUI:
                 top_row.addView(chips_col, chips_lp)
 
             desc_tv = TextView(act)
-            desc_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+            desc_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, float(settings.get("card_desc_size", 15)))
             description_text = self._get_localized_description(p)
             formatted_description = LocaleUtils.fullyFormatText(description_text)
             desc_tv.setText(formatted_description)
@@ -1775,7 +1778,8 @@ class InstallUI:
                 desc_tv.setMovementMethod(LinkMovementMethod.getInstance())
             except Exception:
                 pass
-            container.addView(desc_tv, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 0))
+            if settings.get("card_show_desc", True):
+                container.addView(desc_tv, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 0))
 
             buttons = LinearLayout(act)
             buttons.setOrientation(LinearLayout.HORIZONTAL)
