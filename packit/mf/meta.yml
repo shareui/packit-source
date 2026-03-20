@@ -3,7 +3,7 @@ description: |
   **A resource catalog for exteraGram/AyuGram. Plugins, icons, configs — all in one place, with support for multiple repositories.**
   [All options are available in the plugin settings]
 id: shareui_packit
-version: "1.0.0-dev.595"
+version: "1.0.0-dev.602"
 author: "@packitapp"
 min_version: "12.5.1"
 icon: plugin232/17
