@@ -1,49 +1,19 @@
 import json
 import os
-import struct
+import ctypes
 from android_utils import log
-from .writer import _decipher, _get_configs_dir, _FILE_NAMES, _MAGIC, _FORMAT_VERSION
-
-
-def _parse_user_id(plaintext: bytes) -> int:
-    # user_id is at [9:17], i64 big-endian
-    return struct.unpack(">q", plaintext[9:17])[0]
-
-
-def _parse_blocks(plaintext: bytes) -> dict:
-    if plaintext[:4] != _MAGIC:
-        raise ValueError("invalid magic bytes")
-
-    version = struct.unpack(">B", plaintext[4:5])[0]
-    if version != _FORMAT_VERSION:
-        raise ValueError(f"unsupported format version: {version}")
-
-    num_blocks = struct.unpack(">B", plaintext[17:18])[0]
-
-    offset = 18
-    blocks = {}
-    for _ in range(num_blocks):
-        key_len = struct.unpack(">B", plaintext[offset:offset + 1])[0]
-        offset += 1
-        key = plaintext[offset:offset + key_len].decode("utf-8")
-        offset += key_len
-        data_len = struct.unpack(">I", plaintext[offset:offset + 4])[0]
-        offset += 4
-        payload = plaintext[offset:offset + data_len].decode("utf-8")
-        offset += data_len
-        blocks[key] = payload
-
-    return blocks
+from .writer import _get_configs_dir, _get_lib, _FILE_NAMES
 
 
 def _write_blocks(blocks: dict, account_id: str):
     configs_dir = _get_configs_dir()
     os.makedirs(configs_dir, exist_ok=True)
+    log(f"exportBin: restoring {len(blocks)} blocks for account {account_id[:8]}...")
 
     for key, payload in blocks.items():
         filename = _FILE_NAMES.get(key)
         if not filename:
-            log(f"exportBin.reader: unknown block key '{key}', skipping")
+            log(f"exportBin: unknown block key '{key}', skipping")
             continue
 
         if key == "achievements":
@@ -52,41 +22,67 @@ def _write_blocks(blocks: dict, account_id: str):
             out_path = os.path.join(configs_dir, filename)
             with open(out_path, "w", encoding="utf-8") as f:
                 f.write(payload)
-            log(f"exportBin.reader: restored '{key}' -> {out_path}")
+            log(f"exportBin: restored '{key}' ({len(payload)} bytes)")
 
 
 def _merge_achievements(payload: str, account_id: str):
-    # account_id is already a hashed id (from achievements._hash_account_id)
-    # payload may be flat {achievement: value} (exported before per-account refactor)
-    # or already per-account {hashed_id: {achievement: value}}
     try:
         incoming = json.loads(payload)
     except Exception as e:
-        log(f"exportBin.reader: failed to parse achievements payload: {e}")
+        log(f"exportBin: achievements parse error: {e}")
         return
 
-    # detect per-account format: all keys are 16-char hex strings
     def _is_hashed_id(k: str) -> bool:
         return len(k) == 16 and all(c in "0123456789abcdef" for c in k)
 
     if incoming and all(_is_hashed_id(k) for k in incoming):
-        # per-account format — extract this account's data
         account_data = incoming.get(account_id, {})
+        log(f"exportBin: achievements per-account format, keys={list(incoming.keys())[:3]}")
     else:
-        # flat format — the whole dict is one account's data
         account_data = incoming
+        log("exportBin: achievements flat format")
 
     from ....ui.AchievementsActivity.service.AchivementsEngine import load_account_data_for_import
     load_account_data_for_import(account_id, account_data)
-    log(f"exportBin.reader: merged achievements for account {account_id}")
+    log(f"exportBin: merged achievements for account {account_id}")
 
 
-def restore_from_file(file_path: str):
-    with open(file_path, "rb") as f:
-        raw = f.read()
+def read_file(file_path: str, user_id: int, install_ts: int) -> tuple:
+    log(f"exportBin: read file={os.path.basename(file_path)} user_id={user_id}")
+    lib = _get_lib()
 
-    seed = struct.unpack("<I", raw[:4])[0]
-    plaintext = _decipher(raw[4:], seed)
-    account_id = str(_parse_user_id(plaintext))
-    blocks = _parse_blocks(plaintext)
-    _write_blocks(blocks, account_id)
+    keys_buf     = ctypes.c_char_p()
+    keys_len     = ctypes.c_size_t()
+    payloads_buf = ctypes.c_char_p()
+    payloads_len = ctypes.c_size_t()
+    out_uid      = ctypes.c_int64()
+    out_ts       = ctypes.c_uint32()
+
+    n = lib.packit_read_file(
+        file_path.encode("utf-8"),
+        ctypes.c_int64(user_id),
+        ctypes.c_uint32(install_ts),
+        ctypes.byref(keys_buf),     ctypes.byref(keys_len),
+        ctypes.byref(payloads_buf), ctypes.byref(payloads_len),
+        ctypes.byref(out_uid),      ctypes.byref(out_ts),
+    )
+
+    if n < 0:
+        err = lib.packit_last_error().decode("utf-8", errors="replace")
+        log(f"exportBin: read failed: {err}")
+        raise RuntimeError(f"packit_read_file failed: {err}")
+
+    def _split_buf(buf, length):
+        raw = ctypes.string_at(buf, length)
+        return [s.decode("utf-8") for s in raw.split(b"\x00") if s]
+
+    try:
+        keys     = _split_buf(keys_buf,     keys_len.value)
+        payloads = _split_buf(payloads_buf, payloads_len.value)
+    finally:
+        lib.packit_free_buf(keys_buf)
+        lib.packit_free_buf(payloads_buf)
+
+    blocks = dict(zip(keys, payloads))
+    log(f"exportBin: read ok, {n} blocks={list(blocks.keys())} export_user_id={out_uid.value}")
+    return blocks, int(out_uid.value)

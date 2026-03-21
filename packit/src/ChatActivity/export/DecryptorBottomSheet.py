@@ -1,4 +1,4 @@
-import struct
+import json
 import threading
 import traceback
 from base_plugin import MethodHook
@@ -33,42 +33,35 @@ class _DocumentHandler(MethodHook):
 
     def _prepare_and_show(self, file_path: str):
         try:
-            from ...ChatActivity.export.bin.writer import _decipher, _get_user_id
-            from ...ChatActivity.export.bin.reader import _parse_blocks, _parse_user_id
+            from ...ChatActivity.export.bin.writer import _get_user_id, _get_install_ts
+            from ...ChatActivity.export.bin.reader import read_file
             from elyx import strings
 
-            with open(file_path, "rb") as f:
-                raw = f.read()
-
-            seed = struct.unpack("<I", raw[:4])[0]
-            plaintext = _decipher(raw[4:], seed)
-
-            export_user_id = _parse_user_id(plaintext)
             current_user_id = _get_user_id()
+            install_ts      = _get_install_ts()
+
+            blocks, export_user_id = read_file(file_path, current_user_id, install_ts)
+
             if export_user_id != current_user_id:
-                from ui.bulletin import BulletinHelper
-                run_on_ui_thread(lambda: BulletinHelper.show_error(strings["import_db_wrong_account"]))
+                run_on_ui_thread(lambda: BulletinHelper_show_wrong_account(strings))
                 return
 
-            blocks = _parse_blocks(plaintext)
             import_level = None
-            import_xp = None
+            import_xp    = None
             if "achievements" in blocks:
                 try:
-                    import json
                     from ...ui.AchievementsActivity.service.AchivementsEngine import get_level_info
-                    
                     achievements_data = json.loads(blocks["achievements"])
+
                     def _is_hashed_id(k: str) -> bool:
                         return len(k) == 16 and all(c in "0123456789abcdef" for c in k)
-                    
+
                     if achievements_data and all(_is_hashed_id(k) for k in achievements_data):
                         from ...ui.AchievementsActivity.service.AchivementsEngine import _hash_account_id
-                        account_id = _hash_account_id(export_user_id)
-                        account_data = achievements_data.get(account_id, {})
+                        account_data = achievements_data.get(_hash_account_id(export_user_id), {})
                     else:
                         account_data = achievements_data
-                    
+
                     import_level, import_xp, _ = get_level_info(account_data)
                 except Exception as e:
                     log(f"decryptorUi: failed to extract level info: {e}")
@@ -78,7 +71,8 @@ class _DocumentHandler(MethodHook):
 
             def on_confirm():
                 from ...ui.AchievementsActivity.service.AchivementsEngine import _hash_account_id
-                threading.Thread(target=self._restore, args=(blocks, _hash_account_id(export_user_id)), daemon=True).start()
+                account_id = _hash_account_id(export_user_id)
+                threading.Thread(target=self._restore, args=(blocks, account_id), daemon=True).start()
 
             def show():
                 frag = get_last_fragment()
@@ -119,10 +113,17 @@ class _DocumentHandler(MethodHook):
         try:
             from ui.bulletin import BulletinHelper
             from elyx import strings
-
             run_on_ui_thread(lambda: BulletinHelper.show_error(strings["import_db_error"]))
         except Exception:
             self.lib.log(traceback.format_exc())
+
+
+def BulletinHelper_show_wrong_account(strings):
+    try:
+        from ui.bulletin import BulletinHelper
+        BulletinHelper.show_error(strings["import_db_wrong_account"])
+    except Exception as e:
+        log(f"decryptorUi: show_wrong_account: {e}")
 
 
 def setup_packit_file_hook(plugin) -> list:

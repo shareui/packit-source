@@ -1,37 +1,14 @@
 import os
 import json
-import struct
 import random
 import string
+import time
+import ctypes
 from android_utils import log
 try:
     from org.telegram.messenger import ApplicationLoader, UserConfig
 except Exception as e:
     import android_utils as _au; _au.log(f"exportBin.writer: import failed: {e}")
-
-# packit binary export format (.packit)
-#
-# file layout (after decryption):
-#   [0:4]   magic      b"PCKT"
-#   [4]     version    u8 = 2
-#   [5:9]   ts         u32 big-endian unix timestamp
-#   [9:17]  user_id    i64 big-endian telegram user id
-#   [17]    num_blocks u8
-#
-#   for each block:
-#     [0]          key_len  u8
-#     [1:1+kl]     key      utf-8
-#     [kl+1:kl+5]  data_len u32 big-endian
-#     [kl+5:...]   payload  raw utf-8 json
-#
-# encryption:
-#   the entire plaintext above is encrypted with _cipher()
-#   seed = (ts ^ user_id) & 0xFFFFFFFF
-#   file starts with 4-byte LE seed so reader can decrypt without
-#   knowing user_id upfront (user_id check happens after decryption)
-
-_MAGIC = b"PCKT"
-_FORMAT_VERSION = 2
 
 _BLOCK_KEYS = ["achievements", "installDate", "localConfig"]
 
@@ -40,61 +17,6 @@ _FILE_NAMES = {
     "installDate":  "installDate.json",
     "localConfig":  "localConfig.json",
 }
-
-def _lcg_stream(seed: int, length: int) -> bytearray:
-    # LCG keystream, Knuth MMIX constants
-    # high byte used — better distribution than low byte in LCG
-    a = 6364136223846793005
-    c = 1442695040888963407
-    m = 2 ** 64
-    state = seed & 0xFFFFFFFFFFFFFFFF
-    out = bytearray(length)
-    for i in range(length):
-        state = (a * state + c) % m
-        out[i] = (state >> 56) & 0xFF
-    return out
-
-
-def _shuffle_blocks(data: bytearray, seed: int, reverse: bool) -> bytearray:
-    # permutes 8-byte blocks; tail bytes left untouched
-    bsize = 8
-    n = len(data) // bsize
-    if n < 2:
-        return data
-
-    indices = list(range(n))
-    rng = random.Random(seed ^ 0xDEADBEEF)
-    rng.shuffle(indices)
-
-    if reverse:
-        restored = [0] * n
-        for newPos, origPos in enumerate(indices):
-            restored[origPos] = newPos
-        indices = restored
-
-    result = bytearray(len(data))
-    for i, src in enumerate(indices):
-        result[i * bsize:(i + 1) * bsize] = data[src * bsize:(src + 1) * bsize]
-    tail_start = n * bsize
-    result[tail_start:] = data[tail_start:]
-    return result
-
-
-def _cipher(data: bytes, seed: int) -> bytes:
-    buf = bytearray(data)
-    stream = _lcg_stream(seed, len(buf))
-    for i in range(len(buf)):
-        buf[i] ^= stream[i]
-    return bytes(_shuffle_blocks(buf, seed, reverse=False))
-
-
-def _decipher(data: bytes, seed: int) -> bytes:
-    buf = bytearray(data)
-    buf = _shuffle_blocks(buf, seed, reverse=True)
-    stream = _lcg_stream(seed, len(buf))
-    for i in range(len(buf)):
-        buf[i] ^= stream[i]
-    return bytes(buf)
 
 
 def _get_configs_dir() -> str:
@@ -112,53 +34,104 @@ def _get_user_id() -> int:
         return 0
 
 
-def _read_block(key: str) -> bytes:
+def _get_install_ts() -> int:
+    try:
+        path = os.path.join(_get_configs_dir(), "installDate.json")
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            ts = int(data.get("ts", 0))
+            log(f"exportBin: install_ts={ts}")
+            return ts
+    except Exception as e:
+        log(f"exportBin.writer._get_install_ts: {e}")
+    log("exportBin: install_ts=0 (not found)")
+    return 0
+
+
+def _get_lib():
+    so_path = os.path.join(
+        os.path.dirname(__file__),
+        "../../../../res/native/libexport.so"
+    )
+    so_path = os.path.normpath(so_path)
+    lib = ctypes.CDLL(so_path)
+    lib.packit_write_file.restype  = ctypes.c_int
+    lib.packit_write_file.argtypes = [
+        ctypes.c_int64, ctypes.c_uint32, ctypes.c_uint32,
+        ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p,
+    ]
+    lib.packit_read_file.restype  = ctypes.c_int
+    lib.packit_read_file.argtypes = [
+        ctypes.c_char_p, ctypes.c_int64, ctypes.c_uint32,
+        ctypes.POINTER(ctypes.c_char_p), ctypes.POINTER(ctypes.c_size_t),
+        ctypes.POINTER(ctypes.c_char_p), ctypes.POINTER(ctypes.c_size_t),
+        ctypes.POINTER(ctypes.c_int64),  ctypes.POINTER(ctypes.c_uint32),
+    ]
+    lib.packit_free_buf.restype  = None
+    lib.packit_free_buf.argtypes = [ctypes.c_char_p]
+    lib.packit_last_error.restype  = ctypes.c_char_p
+    lib.packit_last_error.argtypes = []
+    return lib
+
+
+def _read_block(key: str) -> str:
     path = os.path.join(_get_configs_dir(), _FILE_NAMES[key])
     if not os.path.exists(path):
-        return b"{}"
+        log(f"exportBin: block '{key}' not found, using {{}}")
+        return "{}"
     try:
         with open(path, "r", encoding="utf-8") as f:
             content = f.read().strip()
         json.loads(content)
-        return content.encode("utf-8")
+        log(f"exportBin: block '{key}' read ({len(content)} bytes)")
+        return content
     except Exception as e:
-        log(f"exportBin.writer._read_block: error reading '{key}': {e}")
-        return b"{}"
+        log(f"exportBin: block '{key}' read error: {e}")
+        return "{}"
 
 
 def _rand_suffix(n: int = 4) -> str:
     return "".join(random.choices(string.ascii_lowercase, k=n))
 
 
-def _pack_block(key: str, payload: bytes) -> bytes:
-    keyBytes = key.encode("utf-8")
-    if len(keyBytes) > 255:
-        raise ValueError(f"block key too long: {key}")
-    return struct.pack(">B", len(keyBytes)) + keyBytes + struct.pack(">I", len(payload)) + payload
-
-
-# pub api 
-
 def build_binary() -> bytes:
-    import time
-    ts = int(time.time())
-    userId = _get_user_id()
-    seed = (ts ^ userId) & 0xFFFFFFFF
+    user_id    = _get_user_id()
+    install_ts = _get_install_ts()
+    ts         = int(time.time())
+    log(f"exportBin: write user_id={user_id} install_ts={install_ts} ts={ts}")
 
-    blocks = b"".join(_pack_block(k, _read_block(k)) for k in _BLOCK_KEYS)
+    lib = _get_lib()
 
-    plaintext = (
-        _MAGIC
-        + struct.pack(">B", _FORMAT_VERSION)
-        + struct.pack(">I", ts)
-        + struct.pack(">q", userId)
-        + struct.pack(">B", len(_BLOCK_KEYS))
-        + blocks
-    )
+    keys     = json.dumps(_BLOCK_KEYS)
+    payloads = json.dumps([_read_block(k) for k in _BLOCK_KEYS])
 
-    encrypted = _cipher(plaintext, seed)
-    # prepend seed (4 bytes LE) so reader can decrypt
-    return struct.pack("<I", seed) + encrypted
+    import tempfile
+    with tempfile.NamedTemporaryFile(suffix=".packit", delete=False) as f:
+        tmp_path = f.name
+
+    try:
+        rc = lib.packit_write_file(
+            ctypes.c_int64(user_id),
+            ctypes.c_uint32(install_ts),
+            ctypes.c_uint32(ts),
+            keys.encode("utf-8"),
+            payloads.encode("utf-8"),
+            tmp_path.encode("utf-8"),
+        )
+        if rc != 0:
+            err = lib.packit_last_error().decode("utf-8", errors="replace")
+            log(f"exportBin: packit_write_file failed: {err}")
+            raise RuntimeError(f"packit_write_file failed: {err}")
+        size = os.path.getsize(tmp_path)
+        log(f"exportBin: write ok, {size} bytes")
+        with open(tmp_path, "rb") as f:
+            return f.read()
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except Exception:
+            pass
 
 
 def export_to_downloads(download_path: str) -> str:
@@ -168,5 +141,5 @@ def export_to_downloads(download_path: str) -> str:
     data = build_binary()
     with open(out_path, "wb") as f:
         f.write(data)
-    log(f"exportBin.writer: exported {len(data)} bytes to {out_path}")
+    log(f"exportBin: exported to {out_path}")
     return out_path
