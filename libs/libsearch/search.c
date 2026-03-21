@@ -18,6 +18,8 @@
 #define MAX_TRIGRAMS    1024
 #define MIN_SIMILARITY  0.15f
 
+// JSON reader
+
 typedef struct {
     const char *s;
     int pos;
@@ -25,8 +27,8 @@ typedef struct {
 } JsonReader;
 
 static void jr_skip_ws(JsonReader *r) {
-    while (r->pos < r->len && (r->s[r->pos] == ' ' || r->s[r->pos] == '\n' ||
-           r->s[r->pos] == '\r' || r->s[r->pos] == '\t'))
+    while (r->pos < r->len && (r->s[r->pos] == ' '  || r->s[r->pos] == '\n' ||
+                                r->s[r->pos] == '\r' || r->s[r->pos] == '\t'))
         r->pos++;
 }
 
@@ -47,7 +49,35 @@ static int jr_read_string(JsonReader *r, char *buf, int buflen) {
             } else if (c == 't') {
                 if (i < buflen - 1) buf[i++] = '\t';
             } else if (c == 'u') {
-                r->pos += 4;
+                /* decode \uXXXX into UTF-8 */
+                if (r->pos + 4 < r->len) {
+                    unsigned int cp = 0;
+                    for (int k = 1; k <= 4; k++) {
+                        char h = r->s[r->pos + k];
+                        unsigned int digit = 0;
+                        if (h >= '0' && h <= '9') digit = (unsigned int)(h - '0');
+                        else if (h >= 'a' && h <= 'f') digit = (unsigned int)(h - 'a' + 10);
+                        else if (h >= 'A' && h <= 'F') digit = (unsigned int)(h - 'A' + 10);
+                        cp = (cp << 4) | digit;
+                    }
+                    r->pos += 4;
+                    if (cp < 0x80) {
+                        if (i < buflen - 1) buf[i++] = (char)cp;
+                    } else if (cp < 0x800) {
+                        if (i < buflen - 2) {
+                            buf[i++] = (char)(0xC0 | (cp >> 6));
+                            buf[i++] = (char)(0x80 | (cp & 0x3F));
+                        }
+                    } else {
+                        if (i < buflen - 3) {
+                            buf[i++] = (char)(0xE0 | (cp >> 12));
+                            buf[i++] = (char)(0x80 | ((cp >> 6) & 0x3F));
+                            buf[i++] = (char)(0x80 | (cp & 0x3F));
+                        }
+                    }
+                } else {
+                    r->pos += 4;
+                }
             }
         } else {
             if (i < buflen - 1) buf[i++] = r->s[r->pos];
@@ -68,11 +98,7 @@ static void jr_skip_object(JsonReader *r) {
     int depth = 1;
     while (r->pos < r->len && depth > 0) {
         char c = r->s[r->pos];
-        if (c == '"') {
-            char tmp[8];
-            jr_read_string(r, tmp, sizeof(tmp));
-            continue;
-        }
+        if (c == '"') { char tmp[8]; jr_read_string(r, tmp, sizeof(tmp)); continue; }
         if (c == '{') depth++;
         if (c == '}') depth--;
         r->pos++;
@@ -97,22 +123,20 @@ static void jr_skip_value(JsonReader *r) {
     jr_skip_ws(r);
     if (r->pos >= r->len) return;
     char c = r->s[r->pos];
-    if (c == '"') {
-        char tmp[4];
-        jr_read_string(r, tmp, sizeof(tmp));
-    } else if (c == '{') {
-        jr_skip_object(r);
-    } else if (c == '[') {
-        jr_skip_array(r);
-    } else {
+    if (c == '"') { char tmp[4]; jr_read_string(r, tmp, sizeof(tmp)); }
+    else if (c == '{') { jr_skip_object(r); }
+    else if (c == '[') { jr_skip_array(r); }
+    else {
         while (r->pos < r->len) {
             char x = r->s[r->pos];
-            if (x == ',' || x == '}' || x == ']' || x == ' ' || x == '\n' || x == '\r' || x == '\t')
-                break;
+            if (x == ',' || x == '}' || x == ']' ||
+                x == ' ' || x == '\n' || x == '\r' || x == '\t') break;
             r->pos++;
         }
     }
 }
+
+// UTF-8 helpers
 
 static uint32_t utf8_next(const char **p, const char *end) {
     if (*p >= end) return 0;
@@ -122,8 +146,7 @@ static uint32_t utf8_next(const char **p, const char *end) {
     if ((c & 0xE0) == 0xC0) {
         if (*p >= end) return '?';
         uint32_t cp = (c & 0x1F) << 6;
-        cp |= ((unsigned char)**p & 0x3F);
-        (*p)++;
+        cp |= ((unsigned char)**p & 0x3F); (*p)++;
         return cp;
     }
     if ((c & 0xF0) == 0xE0) {
@@ -138,7 +161,7 @@ static uint32_t utf8_next(const char **p, const char *end) {
 }
 
 static int utf8_encode(uint32_t cp, char *buf) {
-    if (cp < 0x80) { buf[0] = (char)cp; return 1; }
+    if (cp < 0x80)  { buf[0] = (char)cp; return 1; }
     if (cp < 0x800) {
         buf[0] = (char)(0xC0 | (cp >> 6));
         buf[1] = (char)(0x80 | (cp & 0x3F));
@@ -151,18 +174,20 @@ static int utf8_encode(uint32_t cp, char *buf) {
 }
 
 static void utf8_lower(const char *src, char *dst, int buflen) {
-    const char *p = src;
+    const char *p   = src;
     const char *end = src + strlen(src);
     int out = 0;
     while (p < end && out < buflen - 4) {
         uint32_t cp = utf8_next(&p, end);
-        if (cp >= 'A' && cp <= 'Z') cp += 32;
+        if (cp >= 'A' && cp <= 'Z')            cp += 32;
         else if (cp >= 0x0410 && cp <= 0x042F) cp += 0x20;
-        else if (cp == 0x0401) cp = 0x0451;
+        else if (cp == 0x0401)                 cp  = 0x0451;
         out += utf8_encode(cp, dst + out);
     }
     dst[out] = '\0';
 }
+
+// Transliteration (RU keyboard -> Latin)
 
 typedef struct { uint32_t ru; const char *en; } TranslitEntry;
 
@@ -175,7 +200,7 @@ static const TranslitEntry TRANSLIT[] = {
     {0x0441, "c"}, {0x043C, "v"}, {0x0438, "b"}, {0x0442, "n"}, {0x044C, "m"},
     {0x0431, ","}, {0x044E, "."},
 };
-#define TRANSLIT_COUNT ((int)(sizeof(TRANSLIT)/sizeof(TRANSLIT[0])))
+#define TRANSLIT_COUNT ((int)(sizeof(TRANSLIT) / sizeof(TRANSLIT[0])))
 
 static char translit_char(uint32_t cp) {
     for (int i = 0; i < TRANSLIT_COUNT; i++) {
@@ -185,19 +210,14 @@ static char translit_char(uint32_t cp) {
 }
 
 static int translit(const char *src, char *dst, int buflen) {
-    const char *p = src;
+    const char *p   = src;
     const char *end = src + strlen(src);
-    int out = 0;
-    int changed = 0;
+    int out = 0, changed = 0;
     while (p < end && out < buflen - 4) {
         uint32_t cp = utf8_next(&p, end);
         char t = translit_char(cp);
-        if (t) {
-            dst[out++] = t;
-            changed = 1;
-        } else {
-            out += utf8_encode(cp, dst + out);
-        }
+        if (t) { dst[out++] = t; changed = 1; }
+        else   { out += utf8_encode(cp, dst + out); }
     }
     dst[out] = '\0';
     return changed;
@@ -210,6 +230,8 @@ static int is_alpha_or_space(const char *s) {
     return 1;
 }
 
+// Trigrams
+
 static uint32_t fnv3(unsigned char a, unsigned char b, unsigned char c) {
     uint32_t h = 2166136261u;
     h ^= a; h *= 16777619u;
@@ -218,9 +240,10 @@ static uint32_t fnv3(unsigned char a, unsigned char b, unsigned char c) {
     return h;
 }
 
+/* local cps array — no static state, stack-safe for typical fields */
 static int make_trigrams(const char *text, uint32_t *out, int maxout) {
-    static uint32_t cps[MAX_FIELD_LEN + 2];
-    const char *p = text;
+    static uint32_t cps[MAX_FIELD_LEN + 2]; /* per-call reuse ok: single-threaded ctypes */
+    const char *p   = text;
     const char *end = text + strlen(text);
     int n = 0;
     cps[n++] = ' ';
@@ -232,9 +255,9 @@ static int make_trigrams(const char *text, uint32_t *out, int maxout) {
     int count = 0;
     for (int i = 0; i < n - 2 && count < maxout; i++) {
         char ba[4], bb[4], bc[4];
-        int la = utf8_encode(cps[i],   ba);
-        int lb = utf8_encode(cps[i+1], bb);
-        int lc = utf8_encode(cps[i+2], bc);
+        int la = utf8_encode(cps[i],     ba);
+        int lb = utf8_encode(cps[i + 1], bb);
+        int lc = utf8_encode(cps[i + 2], bc);
         (void)lb; (void)lc;
         uint32_t ha = 0, hb = 0, hc = 0;
         for (int k = 0; k < la; k++) ha ^= (unsigned char)ba[k] << (k * 5 % 24);
@@ -255,7 +278,7 @@ static int sort_dedup(uint32_t *arr, int n) {
     qsort(arr, n, sizeof(uint32_t), cmp_u32);
     int w = 0;
     for (int i = 0; i < n; i++) {
-        if (i == 0 || arr[i] != arr[i-1]) arr[w++] = arr[i];
+        if (i == 0 || arr[i] != arr[i - 1]) arr[w++] = arr[i];
     }
     return w;
 }
@@ -265,9 +288,9 @@ static void sorted_intersect_union(const uint32_t *a, int na,
                                    int *inter, int *uni) {
     int i = 0, j = 0, isect = 0;
     while (i < na && j < nb) {
-        if (a[i] == b[j]) { isect++; i++; j++; }
-        else if (a[i] < b[j]) i++;
-        else j++;
+        if      (a[i] == b[j]) { isect++; i++; j++; }
+        else if (a[i]  < b[j]) { i++; }
+        else                   { j++; }
     }
     *inter = isect;
     *uni   = na + nb - isect;
@@ -281,28 +304,39 @@ static float trigram_similarity(const uint32_t *a, int na,
     return uni > 0 ? (float)isect / (float)uni : 0.0f;
 }
 
+// Word splitting — no strtok, no global state
+
 typedef struct {
     char w[MAX_WORD_LEN];
 } Word;
 
 static int split_words(const char *text, Word *words, int maxwords) {
-    char buf[MAX_FIELD_LEN];
-    int n = 0;
-    strncpy(buf, text, sizeof(buf) - 1);
-    buf[sizeof(buf) - 1] = '\0';
-    for (int i = 0; buf[i]; i++) { if (buf[i] == '_') buf[i] = ' '; }
-    char *tok = strtok(buf, " \t\n\r");
-    while (tok && n < maxwords) {
-        strncpy(words[n].w, tok, MAX_WORD_LEN - 1);
-        words[n].w[MAX_WORD_LEN - 1] = '\0';
-        n++;
-        tok = strtok(NULL, " \t\n\r");
+    int n  = 0;
+    int wi = 0;
+    char wbuf[MAX_WORD_LEN];
+
+    for (int i = 0; ; i++) {
+        char c = text[i];
+        int sep = (c == '\0' || c == ' ' || c == '\t' ||
+                   c == '\n' || c == '\r' || c == '_');
+        if (!sep) {
+            if (wi < MAX_WORD_LEN - 1) wbuf[wi++] = c;
+        } else {
+            if (wi > 0) {
+                wbuf[wi] = '\0';
+                if (n < maxwords) { memcpy(words[n].w, wbuf, wi + 1); n++; }
+                wi = 0;
+            }
+            if (c == '\0') break;
+        }
     }
     return n;
 }
 
+// Fuzzy match
+
 static int edit_distance_1(const char *a, const char *b) {
-    static uint32_t ca[MAX_WORD_LEN], cb[MAX_WORD_LEN];
+    uint32_t ca[MAX_WORD_LEN], cb[MAX_WORD_LEN];
     const char *p; const char *end;
     int la = 0, lb = 0;
 
@@ -321,10 +355,8 @@ static int edit_distance_1(const char *a, const char *b) {
     uint32_t *shorter = (la < lb) ? ca : cb;
     uint32_t *longer  = (la < lb) ? cb : ca;
     int ls = (la < lb) ? la : lb;
-    int ll = (la < lb) ? lb : la;
-    (void)ll;
     int i = 0, j = 0, diffs = 0;
-    while (i < ls && j < (ls + 1)) {
+    while (i < ls && j < ls + 1) {
         if (shorter[i] != longer[j]) {
             diffs++;
             if (diffs > 1) return 0;
@@ -333,6 +365,8 @@ static int edit_distance_1(const char *a, const char *b) {
     }
     return 1;
 }
+
+// Plugin entry
 
 typedef struct {
     char id_raw[MAX_FIELD_LEN];
@@ -350,31 +384,82 @@ typedef struct {
     Word id_words[MAX_WORDS];   int id_words_n;
 } PluginEntry;
 
+// Hash table — O(1) lookup by id_raw, open addressing, FNV-1a
+
+#define HT_EMPTY (-1)
+#define HT_SIZE  8192  /* must be power of 2; fits MAX_PLUGINS=4096 at load 0.5 */
+
+typedef struct {
+    int slots[HT_SIZE];
+} HashTable;
+
+static uint32_t fnv1a_str(const char *s) {
+    uint32_t h = 2166136261u;
+    for (; *s; s++) { h ^= (unsigned char)*s; h *= 16777619u; }
+    return h;
+}
+
+static void ht_init(HashTable *ht) {
+    for (int i = 0; i < HT_SIZE; i++) ht->slots[i] = HT_EMPTY;
+}
+
+static void ht_insert(HashTable *ht, const char *key, int entry_idx) {
+    uint32_t h = fnv1a_str(key);
+    int slot = (int)(h & (HT_SIZE - 1));
+    for (int i = 0; i < HT_SIZE; i++) {
+        int s = (slot + i) & (HT_SIZE - 1);
+        if (ht->slots[s] == HT_EMPTY) { ht->slots[s] = entry_idx; return; }
+    }
+    /* table full — unreachable with MAX_PLUGINS=4096 and HT_SIZE=8192 */
+}
+
+static int ht_find(const HashTable *ht, const PluginEntry *entries, const char *key) {
+    uint32_t h = fnv1a_str(key);
+    int slot = (int)(h & (HT_SIZE - 1));
+    for (int i = 0; i < HT_SIZE; i++) {
+        int s   = (slot + i) & (HT_SIZE - 1);
+        int idx = ht->slots[s];
+        if (idx == HT_EMPTY) return -1;
+        if (strcmp(entries[idx].id_raw, key) == 0) return idx;
+    }
+    return -1;
+}
+
+// Index
+
 typedef struct {
     PluginEntry *entries;
-    int count;
-    int cap;
-    int in_use;
+    int          count;
+    int          cap;
+    int          in_use;
+    HashTable    ht;
 } Index;
 
 static Index g_indexes[MAX_INDEXES];
 
-static void index_init(void) {
+static void index_global_init(void) {
     static int done = 0;
     if (done) return;
-    memset(g_indexes, 0, sizeof(g_indexes));
+    for (int i = 0; i < MAX_INDEXES; i++) {
+        g_indexes[i].entries = NULL;
+        g_indexes[i].count   = 0;
+        g_indexes[i].cap     = 0;
+        g_indexes[i].in_use  = 0;
+    }
     done = 1;
 }
+
+// Entry builder
 
 static void build_entry(JsonReader *r, PluginEntry *e) {
     memset(e, 0, sizeof(*e));
 
-    char raw_id[MAX_FIELD_LEN]     = "";
-    char raw_name[MAX_FIELD_LEN]   = "";
-    char raw_author[MAX_FIELD_LEN] = "";
-    char raw_about0[MAX_FIELD_LEN] = "";
-    char raw_about1[MAX_FIELD_LEN] = "";
-    char raw_desc[MAX_FIELD_LEN]   = "";
+    static char raw_id[MAX_FIELD_LEN];     raw_id[0]     = '\0';
+    static char raw_name[MAX_FIELD_LEN];   raw_name[0]   = '\0';
+    static char raw_author[MAX_FIELD_LEN]; raw_author[0] = '\0';
+    static char raw_about0[MAX_FIELD_LEN]; raw_about0[0] = '\0';
+    static char raw_about1[MAX_FIELD_LEN]; raw_about1[0] = '\0';
+    static char raw_desc[MAX_FIELD_LEN];   raw_desc[0]   = '\0';
     int  has_about_list = 0;
 
     jr_skip_ws(r);
@@ -425,9 +510,9 @@ static void build_entry(JsonReader *r, PluginEntry *e) {
 
     if (!raw_id[0]) return;
 
-    char low_id[MAX_FIELD_LEN], low_name[MAX_FIELD_LEN];
-    char low_author[MAX_FIELD_LEN];
-    char low_desc_en[MAX_FIELD_LEN], low_desc_ru[MAX_FIELD_LEN];
+    static char low_id[MAX_FIELD_LEN], low_name[MAX_FIELD_LEN];
+    static char low_author[MAX_FIELD_LEN];
+    static char low_desc_en[MAX_FIELD_LEN], low_desc_ru[MAX_FIELD_LEN];
 
     utf8_lower(raw_id,     low_id,     sizeof(low_id));
     utf8_lower(raw_name,   low_name,   sizeof(low_name));
@@ -438,14 +523,16 @@ static void build_entry(JsonReader *r, PluginEntry *e) {
         utf8_lower(raw_about1, low_desc_ru, sizeof(low_desc_ru));
     } else {
         utf8_lower(raw_desc, low_desc_en, sizeof(low_desc_en));
-        strncpy(low_desc_ru, low_desc_en, sizeof(low_desc_ru) - 1);
+        memcpy(low_desc_ru, low_desc_en,
+               strnlen(low_desc_en, sizeof(low_desc_ru) - 1) + 1);
     }
 
-    strncpy(e->id_raw,      low_id,      sizeof(e->id_raw) - 1);
-    strncpy(e->name_raw,    low_name,    sizeof(e->name_raw) - 1);
-    strncpy(e->author_raw,  low_author,  sizeof(e->author_raw) - 1);
-    strncpy(e->desc_en_raw, low_desc_en, sizeof(e->desc_en_raw) - 1);
-    strncpy(e->desc_ru_raw, low_desc_ru, sizeof(e->desc_ru_raw) - 1);
+    size_t sz;
+    sz = strnlen(low_id,      sizeof(e->id_raw)      - 1) + 1; memcpy(e->id_raw,      low_id,      sz);
+    sz = strnlen(low_name,    sizeof(e->name_raw)    - 1) + 1; memcpy(e->name_raw,    low_name,    sz);
+    sz = strnlen(low_author,  sizeof(e->author_raw)  - 1) + 1; memcpy(e->author_raw,  low_author,  sz);
+    sz = strnlen(low_desc_en, sizeof(e->desc_en_raw) - 1) + 1; memcpy(e->desc_en_raw, low_desc_en, sz);
+    sz = strnlen(low_desc_ru, sizeof(e->desc_ru_raw) - 1) + 1; memcpy(e->desc_ru_raw, low_desc_ru, sz);
 
     uint32_t tmp[MAX_TRIGRAMS]; int n;
 
@@ -458,15 +545,10 @@ static void build_entry(JsonReader *r, PluginEntry *e) {
     e->id_words_n   = split_words(low_id,   e->id_words,   MAX_WORDS);
 }
 
-static PluginEntry *find_entry(Index *idx, const char *id_raw) {
-    for (int i = 0; i < idx->count; i++) {
-        if (strcmp(idx->entries[i].id_raw, id_raw) == 0) return &idx->entries[i];
-    }
-    return NULL;
-}
+// Public API
 
 EXPORT int search_build_index(const char *plugins_json) {
-    index_init();
+    index_global_init();
 
     int handle = -1;
     for (int i = 0; i < MAX_INDEXES; i++) {
@@ -474,12 +556,13 @@ EXPORT int search_build_index(const char *plugins_json) {
     }
     if (handle < 0) return -1;
 
-    Index *idx = &g_indexes[handle];
-    idx->cap   = 256;
-    idx->count = 0;
+    Index *idx   = &g_indexes[handle];
+    idx->cap     = 256;
+    idx->count   = 0;
     idx->entries = (PluginEntry *)malloc(idx->cap * sizeof(PluginEntry));
     if (!idx->entries) return -1;
-    idx->in_use = 1;
+    idx->in_use  = 1;
+    ht_init(&idx->ht);
 
     JsonReader r;
     r.s   = plugins_json;
@@ -503,11 +586,11 @@ EXPORT int search_build_index(const char *plugins_json) {
             PluginEntry *tmp = (PluginEntry *)realloc(idx->entries, newcap * sizeof(PluginEntry));
             if (!tmp) break;
             idx->entries = tmp;
-            idx->cap = newcap;
+            idx->cap     = newcap;
         }
 
-        PluginEntry *e = &idx->entries[idx->count];
         int saved_pos = r.pos;
+        PluginEntry *e = &idx->entries[idx->count];
         build_entry(&r, e);
 
         if (!e->id_raw[0]) {
@@ -517,6 +600,8 @@ EXPORT int search_build_index(const char *plugins_json) {
             }
             continue;
         }
+
+        ht_insert(&idx->ht, e->id_raw, idx->count);
         idx->count++;
     }
 
@@ -524,10 +609,12 @@ done:
     return handle;
 }
 
+
 EXPORT char *search_score(int handle, const char *pid, const char *query,
                            int is_russian, int fuzzy) {
     if (handle < 0 || handle >= MAX_INDEXES || !g_indexes[handle].in_use)
         return NULL;
+
     if (!query || !query[0]) {
         char *r = (char *)malloc(16);
         if (r) snprintf(r, 16, "[0,0,0.0]");
@@ -536,32 +623,53 @@ EXPORT char *search_score(int handle, const char *pid, const char *query,
 
     Index *idx = &g_indexes[handle];
 
-    char ql[MAX_FIELD_LEN];
+    /* normalise query: lowercase + trim whitespace */
+    static char ql[MAX_FIELD_LEN];
     utf8_lower(query, ql, sizeof(ql));
     int start = 0, end = (int)strlen(ql);
     while (start < end && ql[start] == ' ') start++;
-    while (end > start && ql[end-1] == ' ') end--;
+    while (end > start && ql[end - 1] == ' ') end--;
     ql[end] = '\0';
-    memmove(ql, ql + start, end - start + 1);
+    if (start) memmove(ql, ql + start, end - start + 1);
 
-    char tq[MAX_FIELD_LEN];
-    if (translit(ql, tq, sizeof(tq)) && strcmp(tq, ql) != 0) {
-        char no_space[MAX_FIELD_LEN];
-        int k = 0;
-        for (int i = 0; tq[i]; i++) if (tq[i] != ' ') no_space[k++] = tq[i];
-        no_space[k] = '\0';
-        if (is_alpha_or_space(no_space)) strncpy(ql, tq, sizeof(ql) - 1);
+    /* transliteration: converts RU-keyboard cyrillic input to latin.
+     * only applied when:
+     *   1. is_russian == 0 (caller expects latin results)
+     *   2. query contains at least one latin character already
+     *      (i.e. user is mid-switch on a mixed keyboard layout)
+     * this prevents "призрак" -> "ghbphfr" mangling a pure-cyrillic
+     * query when is_russian=0, which broke name/desc matching. */
+    if (!is_russian) {
+        int has_latin = 0;
+        for (int i = 0; ql[i]; i++) {
+            unsigned char b = (unsigned char)ql[i];
+            if (b < 0x80 && ((b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z'))) {
+                has_latin = 1; break;
+            }
+        }
+        if (has_latin) {
+            static char tq[MAX_FIELD_LEN];
+            if (translit(ql, tq, sizeof(tq)) && strcmp(tq, ql) != 0) {
+                static char no_space[MAX_FIELD_LEN];
+                int k = 0;
+                for (int i = 0; tq[i]; i++) if (tq[i] != ' ') no_space[k++] = tq[i];
+                no_space[k] = '\0';
+                if (is_alpha_or_space(no_space)) memcpy(ql, tq, strlen(tq) + 1);
+            }
+        }
     }
 
-    char low_id[MAX_FIELD_LEN];
+    /* O(1) lookup via hash table instead of O(n) linear scan */
+    static char low_id[MAX_FIELD_LEN];
     utf8_lower(pid, low_id, sizeof(low_id));
 
-    PluginEntry *e = find_entry(idx, low_id);
-    if (!e) {
+    int entry_idx = ht_find(&idx->ht, idx->entries, low_id);
+    if (entry_idx < 0) {
         char *r = (char *)malloc(16);
         if (r) snprintf(r, 16, "[6,0,0.0]");
         return r;
     }
+    PluginEntry *e = &idx->entries[entry_idx];
 
     const char *nameRaw       = e->name_raw;
     const char *idRaw         = e->id_raw;
@@ -571,48 +679,44 @@ EXPORT char *search_score(int handle, const char *pid, const char *query,
     Word *nameWords = e->name_words; int nameWordsN = e->name_words_n;
     Word *idWords   = e->id_words;   int idWordsN   = e->id_words_n;
 
-    Word tokens[MAX_WORDS]; int tokenN;
-    {
-        char tmp[MAX_FIELD_LEN];
-        strncpy(tmp, ql, sizeof(tmp) - 1);
-        tokenN = split_words(tmp, tokens, MAX_WORDS);
-    }
+    static Word tokens[MAX_WORDS];
+    int  tokenN = split_words(ql, tokens, MAX_WORDS);
 
     int tier, sub; float sim;
 
-    #define RESULT(t,s,m) do { tier=(t); sub=(s); sim=(m); goto emit; } while(0)
+    #define RESULT(t, s, m) do { tier = (t); sub = (s); sim = (m); goto emit; } while (0)
 
-    if (strstr(nameRaw,       ql)) RESULT(1, strncmp(nameRaw,       ql, strlen(ql))==0 ? 0 : 1, 0.0f);
-    if (strstr(descPrimary,   ql)) RESULT(2, strncmp(descPrimary,   ql, strlen(ql))==0 ? 0 : 1, 0.0f);
-    if (strstr(descSecondary, ql)) RESULT(3, strncmp(descSecondary, ql, strlen(ql))==0 ? 0 : 1, 0.0f);
-    if (strstr(idRaw,         ql)) RESULT(4, strncmp(idRaw,         ql, strlen(ql))==0 ? 0 : 1, 0.0f);
-    if (strstr(authorRaw,     ql)) RESULT(5, strncmp(authorRaw,     ql, strlen(ql))==0 ? 0 : 1, 0.0f);
+    if (strstr(nameRaw,       ql)) RESULT(1, strncmp(nameRaw,       ql, strlen(ql)) == 0 ? 0 : 1, 0.0f);
+    if (strstr(descPrimary,   ql)) RESULT(2, strncmp(descPrimary,   ql, strlen(ql)) == 0 ? 0 : 1, 0.0f);
+    if (strstr(descSecondary, ql)) RESULT(3, strncmp(descSecondary, ql, strlen(ql)) == 0 ? 0 : 1, 0.0f);
+    if (strstr(idRaw,         ql)) RESULT(4, strncmp(idRaw,         ql, strlen(ql)) == 0 ? 0 : 1, 0.0f);
+    if (strstr(authorRaw,     ql)) RESULT(5, strncmp(authorRaw,     ql, strlen(ql)) == 0 ? 0 : 1, 0.0f);
 
     for (int i = 0; i < nameWordsN; i++) {
         if (strncmp(nameWords[i].w, ql, strlen(ql)) == 0) RESULT(1, 2, 0.0f);
     }
     for (int i = 0; i < idWordsN; i++) {
-        if (strncmp(idWords[i].w, ql, strlen(ql)) == 0) RESULT(4, 2, 0.0f);
+        if (strncmp(idWords[i].w,   ql, strlen(ql)) == 0) RESULT(4, 2, 0.0f);
     }
 
     if (tokenN > 1) {
         int all;
-        all = 1; for (int i = 0; i < tokenN; i++) if (!strstr(nameRaw,       tokens[i].w)) { all=0; break; }
+        all = 1; for (int i = 0; i < tokenN; i++) if (!strstr(nameRaw,       tokens[i].w)) { all = 0; break; }
         if (all) RESULT(1, 3, 0.0f);
-        all = 1; for (int i = 0; i < tokenN; i++) if (!strstr(descPrimary,   tokens[i].w)) { all=0; break; }
+        all = 1; for (int i = 0; i < tokenN; i++) if (!strstr(descPrimary,   tokens[i].w)) { all = 0; break; }
         if (all) RESULT(2, 3, 0.0f);
-        all = 1; for (int i = 0; i < tokenN; i++) if (!strstr(descSecondary, tokens[i].w)) { all=0; break; }
+        all = 1; for (int i = 0; i < tokenN; i++) if (!strstr(descSecondary, tokens[i].w)) { all = 0; break; }
         if (all) RESULT(3, 3, 0.0f);
-        all = 1; for (int i = 0; i < tokenN; i++) if (!strstr(idRaw,         tokens[i].w)) { all=0; break; }
+        all = 1; for (int i = 0; i < tokenN; i++) if (!strstr(idRaw,         tokens[i].w)) { all = 0; break; }
         if (all) RESULT(4, 3, 0.0f);
-        all = 1; for (int i = 0; i < tokenN; i++) if (!strstr(authorRaw,     tokens[i].w)) { all=0; break; }
+        all = 1; for (int i = 0; i < tokenN; i++) if (!strstr(authorRaw,     tokens[i].w)) { all = 0; break; }
         if (all) RESULT(5, 3, 0.0f);
     }
 
     {
-        uint32_t qtri[MAX_TRIGRAMS]; int qtrin;
+        static uint32_t qtri[MAX_TRIGRAMS]; int qtrin;
         {
-            uint32_t tmp[MAX_TRIGRAMS];
+            static uint32_t tmp[MAX_TRIGRAMS];
             int n = make_trigrams(ql, tmp, MAX_TRIGRAMS);
             qtrin = sort_dedup(tmp, n);
             memcpy(qtri, tmp, qtrin * sizeof(uint32_t));
@@ -626,18 +730,19 @@ EXPORT char *search_score(int handle, const char *pid, const char *query,
         uint32_t *triSecondary  = is_russian ? e->tri_desc_en : e->tri_desc_ru;
         int       triSecondaryN = is_russian ? e->tri_desc_en_n : e->tri_desc_ru_n;
 
-        float descPSim = trigram_similarity(qtri, qtrin, triPrimary, triPrimaryN);
+        float descPSim = trigram_similarity(qtri, qtrin, triPrimary,   triPrimaryN);
         if (descPSim >= MIN_SIMILARITY) RESULT(2, 4, -descPSim);
 
         float descSSim = trigram_similarity(qtri, qtrin, triSecondary, triSecondaryN);
         if (descSSim >= MIN_SIMILARITY) RESULT(3, 4, -descSSim);
 
-        uint32_t idtri[MAX_TRIGRAMS]; int idtrin;
+        /* id trigrams computed on the fly — not stored to save RAM */
+        static uint32_t idtri[MAX_TRIGRAMS]; int idtrin;
         {
-            uint32_t tmp[MAX_TRIGRAMS];
-            int n = make_trigrams(idRaw, tmp, MAX_TRIGRAMS);
-            idtrin = sort_dedup(tmp, n);
-            memcpy(idtri, tmp, idtrin * sizeof(uint32_t));
+            static uint32_t tmp2[MAX_TRIGRAMS];
+            int n = make_trigrams(idRaw, tmp2, MAX_TRIGRAMS);
+            idtrin = sort_dedup(tmp2, n);
+            memcpy(idtri, tmp2, idtrin * sizeof(uint32_t));
         }
         float idSim = trigram_similarity(qtri, qtrin, idtri, idtrin);
         if (idSim >= MIN_SIMILARITY) RESULT(4, 4, -idSim);
@@ -666,15 +771,18 @@ emit:;
     #undef RESULT
 }
 
+
 EXPORT void search_free_index(int handle) {
     if (handle < 0 || handle >= MAX_INDEXES) return;
     Index *idx = &g_indexes[handle];
     if (!idx->in_use) return;
     free(idx->entries);
     idx->entries = NULL;
-    idx->count = idx->cap = 0;
-    idx->in_use = 0;
+    idx->count   = 0;
+    idx->cap     = 0;
+    idx->in_use  = 0;
 }
+
 
 EXPORT void search_free_str(char *ptr) {
     free(ptr);
