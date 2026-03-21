@@ -27,22 +27,7 @@ def _computeSha256(filePath: str) -> str:
 
 
 def _extractPluginVersion(filePath: str) -> str | None:
-    import re, zipfile
-    try:
-        with zipfile.ZipFile(filePath, "r") as zf:
-            for name in zf.namelist():
-                if not name.endswith(".py"):
-                    continue
-                try:
-                    source = zf.read(name).decode("utf-8", errors="replace")
-                    m = re.search(r'__version__\s*=\s*["\'"]([^"\']+)["\']', source)
-                    if m:
-                        return m.group(1)
-                except Exception:
-                    continue
-    except Exception:
-        pass
-
+    import re
     try:
         with open(filePath, "r", encoding="utf-8", errors="replace") as f:
             source = f.read()
@@ -54,7 +39,6 @@ def _extractPluginVersion(filePath: str) -> str | None:
 
     return None
 
-
 def _parseVersion(raw: str) -> list:
     import re
     cleaned = re.sub(r"[^\d.]", "", raw)
@@ -62,22 +46,7 @@ def _parseVersion(raw: str) -> list:
 
 
 def _extractPluginId(filePath: str) -> str | None:
-    import re, zipfile
-    try:
-        with zipfile.ZipFile(filePath, "r") as zf:
-            for name in zf.namelist():
-                if not name.endswith(".py"):
-                    continue
-                try:
-                    source = zf.read(name).decode("utf-8", errors="replace")
-                    m = re.search(r'__id__\s*=\s*["\'"]([^"\']+)["\']', source)
-                    if m:
-                        return m.group(1)
-                except Exception:
-                    continue
-    except Exception:
-        pass
-
+    import re
     try:
         with open(filePath, "r", encoding="utf-8", errors="replace") as f:
             source = f.read()
@@ -88,7 +57,6 @@ def _extractPluginId(filePath: str) -> str | None:
         pass
 
     return None
-
 
 def _loadCachedRepos() -> list:
     import os, json

@@ -64,30 +64,14 @@ def _resolveGravity(value) -> int:
 
 def _parseLinks(filePath: str) -> list:
     # returns list of {"icon", "url", "gravity", "x", "y"}
-    import re, zipfile
+    import re
 
     source = None
     try:
-        with zipfile.ZipFile(filePath, "r") as zf:
-            for name in zf.namelist():
-                if not name.endswith(".py"):
-                    continue
-                try:
-                    content = zf.read(name).decode("utf-8", errors="replace")
-                    if "__links__" in content:
-                        source = content
-                        break
-                except Exception:
-                    continue
+        with open(filePath, "r", encoding="utf-8", errors="replace") as f:
+            source = f.read()
     except Exception:
-        pass
-
-    if source is None:
-        try:
-            with open(filePath, "r", encoding="utf-8", errors="replace") as f:
-                source = f.read()
-        except Exception:
-            return []
+        return []
 
     m = re.search(r"__links__\s*=\s*(\[.*?\])", source, re.DOTALL)
     if not m:
