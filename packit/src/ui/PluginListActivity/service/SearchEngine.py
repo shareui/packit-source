@@ -32,7 +32,8 @@ def _load_native() -> bool:
         lib.search_build_index.restype  = ctypes.c_int
         lib.search_build_index.argtypes = [ctypes.c_char_p]
 
-        lib.search_score.restype  = ctypes.c_char_p
+        # c_void_p keeps the raw pointer so we can pass it to search_free_str
+        lib.search_score.restype  = ctypes.c_void_p
         lib.search_score.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_char_p,
                                      ctypes.c_int, ctypes.c_int]
 
@@ -40,7 +41,7 @@ def _load_native() -> bool:
         lib.search_free_index.argtypes = [ctypes.c_int]
 
         lib.search_free_str.restype  = None
-        lib.search_free_str.argtypes = [ctypes.c_char_p]
+        lib.search_free_str.argtypes = [ctypes.c_void_p]
 
         _lib = lib
         log("search: native libsearch.so loaded successfully")
@@ -259,16 +260,20 @@ def score(plugin: dict, query: str, index, isRussian: bool, fuzzy: bool = False)
     if isinstance(index, _NativeIndex) and index.handle >= 0:
         try:
             pid = str(plugin.get("id") or "")
-            raw = _lib.search_score(
+            ptr = _lib.search_score(
                 index.handle,
                 pid.encode('utf-8'),
                 query.encode('utf-8'),
                 int(isRussian),
                 int(fuzzy)
             )
-            if raw:
-                parsed = json.loads(raw.decode('utf-8'))
-                return (parsed[0], parsed[1], parsed[2])
+            if ptr:
+                try:
+                    raw = ctypes.string_at(ptr).decode('utf-8')
+                    parsed = json.loads(raw)
+                    return (parsed[0], parsed[1], parsed[2])
+                finally:
+                    _lib.search_free_str(ptr)
             log("search: native score returned null, falling back to python")
         except Exception as e:
             log(f"search: native score failed, falling back to python: {e}")
