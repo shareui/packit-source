@@ -700,15 +700,11 @@ class PluginCardPreview:
 
     def _apply_card_style(self):
         try:
-            color  = _card_color()
-            stroke = ctypes.c_int32(
-                (0x55 << 24) | (Theme.getColor(Theme.key_windowBackgroundWhiteGrayText) & 0x00FFFFFF)
-            ).value
+            color = ctypes.c_int32(Theme.getColor(Theme.key_windowBackgroundWhite)).value
             bg = GradientDrawable()
             bg.setShape(GradientDrawable.RECTANGLE)
             bg.setCornerRadius(float(AndroidUtilities.dp(_gs(_KEY_CARD_RADIUS))))
             bg.setColor(color)
-            bg.setStroke(AndroidUtilities.dp(2), stroke)
             card = self.elements['card']
             card.setBackground(bg)
             p = AndroidUtilities.dp(_gs(_KEY_CARD_PADDING))
@@ -859,6 +855,7 @@ class PluginCardEditorPage:
             self.settings_scroll = ScrollView(ctx)
             self.settings_scroll.setFillViewport(True)
             self.settings_scroll.setClipToPadding(False)
+            self.settings_scroll.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))
 
             self.settings_root = LinearLayout(ctx)
             self.settings_root.setOrientation(LinearLayout.VERTICAL)
@@ -867,7 +864,29 @@ class PluginCardEditorPage:
 
             self._show_settings_for(None)
 
-            return [Custom(view=self.preview.view), Custom(view=self.settings_scroll)]
+            settings_bg = GradientDrawable()
+            settings_bg.setShape(GradientDrawable.RECTANGLE)
+            settings_bg.setCornerRadii(jarray(jfloat)([
+                float(AndroidUtilities.dp(14)), float(AndroidUtilities.dp(14)),
+                float(AndroidUtilities.dp(14)), float(AndroidUtilities.dp(14)),
+                0.0, 0.0,
+                0.0, 0.0,
+            ]))
+            settings_bg.setColor(ctypes.c_int32(Theme.getColor(Theme.key_windowBackgroundWhite)).value)
+            self.settings_scroll.setBackground(settings_bg)
+
+            container = LinearLayout(ctx)
+            container.setOrientation(LinearLayout.VERTICAL)
+
+            container.addView(self.preview.view, LayoutHelper.createLinear(-1, -2))
+
+            spacer = View(ctx)
+            spacer.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))
+            container.addView(spacer, LayoutHelper.createLinear(-1, 16))
+
+            container.addView(self.settings_scroll, LayoutHelper.createLinear(-1, -2))
+
+            return [Custom(view=container)]
         except Exception as e:
             log(f"PluginCardEditor: build error: {e}")
             return []
