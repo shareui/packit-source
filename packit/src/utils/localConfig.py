@@ -33,14 +33,31 @@ def _get_install_date_path() -> str:
 
 
 def _ensure_install_date():
+    import time
     path = _get_install_date_path()
     if os.path.exists(path):
+        # migrate: add ts field if missing
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if "ts" not in data:
+                from datetime import datetime
+                try:
+                    data["ts"] = int(datetime.fromisoformat(data["date"]).timestamp())
+                except Exception:
+                    data["ts"] = int(time.time())
+                with open(path, "w", encoding="utf-8") as f:
+                    json.dump(data, f)
+                log(f"localConfig: migrated installDate ts={data['ts']}")
+        except Exception as e:
+            log(f"localConfig._ensure_install_date migrate: {e}")
         return
     try:
         os.makedirs(_get_configs_dir(), exist_ok=True)
+        ts = int(time.time())
         with open(path, "w", encoding="utf-8") as f:
-            json.dump({"date": date.today().isoformat()}, f)
-        log(f"localConfig: install date recorded: {date.today().isoformat()}")
+            json.dump({"date": date.today().isoformat(), "ts": ts}, f)
+        log(f"localConfig: install date recorded ts={ts}")
     except Exception as e:
         log(f"localConfig._ensure_install_date: error: {e}")
 
