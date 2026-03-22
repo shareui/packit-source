@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+// localuse library written entirely by @shareui
 
 #define PACKDB_MAGIC     0x504B4442u
 #define PACKDB_VERSION   2
