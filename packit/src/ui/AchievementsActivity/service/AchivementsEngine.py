@@ -45,11 +45,45 @@ def _get_achievements_path() -> str:
     return f"{_get_configs_dir()}/achievements.json"
 
 
+def _get_snapshot_path() -> str:
+    return f"{_get_configs_dir()}/achievements_snap.json"
+
+
 def _hash_account_id(user_id: int) -> str:
     import hashlib
     # salt prevents external plugins from reversing ids by hashing known values
     raw = f"packit:{user_id}".encode()
     return hashlib.sha256(raw).hexdigest()[:16]
+
+
+import ctypes as _ctypes
+
+def _load_libachiv():
+    try:
+        so_path = os.path.join(os.path.dirname(__file__), "../../../../res/native/libachiv.so")
+        lib = _ctypes.CDLL(so_path)
+        lib.ag_sign.argtypes = [_ctypes.c_char_p, _ctypes.c_size_t, _ctypes.c_char_p, _ctypes.c_char_p]
+        lib.ag_sign.restype = None
+        lib.ag_verify.argtypes = [_ctypes.c_char_p, _ctypes.c_size_t, _ctypes.c_char_p, _ctypes.c_char_p]
+        lib.ag_verify.restype = _ctypes.c_int
+        log("achiev_guard: libachiv loaded ok")
+        return lib
+    except Exception as e:
+        log(f"achiev_guard: libachiv load failed: {e}")
+        return None
+
+_libachiv = _load_libachiv()
+
+
+def _sign(data_bytes: bytes, account_id: str) -> str:
+    buf = _ctypes.create_string_buffer(65)
+    _libachiv.ag_sign(data_bytes, len(data_bytes), account_id.encode(), buf)
+    return buf.value.decode()
+
+
+def _verify(data_bytes: bytes, account_id: str, sig: str) -> bool:
+    r = _libachiv.ag_verify(data_bytes, len(data_bytes), account_id.encode(), sig.encode())
+    return r == 1
 
 
 def _get_current_account_id() -> str:
@@ -62,55 +96,165 @@ def _get_current_account_id() -> str:
         return "0"
 
 
-def _load() -> dict:
-    # returns the full file: {account_id: {achievement data}}
+def _load_raw() -> dict:
+    # returns file as-is: {account_id: {"d": ..., "s": ...}} or legacy formats
     path = _get_achievements_path()
     if not os.path.exists(path):
         return {}
     try:
         with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        # migrate flat format (no account keys) to per-account
-        if data and not any(len(k) == 16 and all(c in "0123456789abcdef" for c in k) for k in data):
-            account_id = _get_current_account_id()
-            log(f"achievements: migrating flat data to account {account_id}")
-            migrated = {account_id: data}
-            _save(migrated)
-            return migrated
-        return data
+            return json.load(f)
     except Exception as e:
-        log(f"achievements._load: error: {e}")
+        log(f"achievements._load_raw: error: {e}")
         return {}
 
 
-def _save(data: dict):
+def _write_raw(signed: dict):
     try:
         os.makedirs(_get_configs_dir(), exist_ok=True)
         with open(_get_achievements_path(), "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+            json.dump(signed, f, indent=2, ensure_ascii=False)
     except Exception as e:
-        log(f"achievements._save: error: {e}")
+        log(f"achievements._write_raw: error: {e}")
+
+
+def _load_snapshot() -> dict:
+    # {account_id: bare_data}
+    path = _get_snapshot_path()
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        log(f"achiev_guard: snapshot load error: {e}")
+        return {}
+
+
+def _save_snapshot(snap: dict):
+    try:
+        os.makedirs(_get_configs_dir(), exist_ok=True)
+        with open(_get_snapshot_path(), "w", encoding="utf-8") as f:
+            json.dump(snap, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        log(f"achiev_guard: snapshot save error: {e}")
+
+
+def _slot_payload(bare_data: dict) -> bytes:
+    return json.dumps(bare_data, separators=(",", ":"), sort_keys=True, ensure_ascii=False).encode("utf-8")
+
+
+def _unwrap_slot(slot, account_id: str):
+    # slot is what is stored per account_id in the file
+    # returns (bare_data, sig_or_None)
+    # handles: {"d": bare, "s": sig}, legacy {"d":{"d":...}} nesting, or plain dict
+    if not isinstance(slot, dict):
+        return {}, None
+    if "s" in slot and "d" in slot:
+        inner = slot["d"]
+        # detect recursive wrapping — keep unwrapping until we hit bare data
+        depth = 0
+        while isinstance(inner, dict) and "s" in inner and "d" in inner and depth < 20:
+            inner = inner["d"]
+            depth += 1
+        return inner, slot["s"]
+    # legacy plain dict (no sig)
+    return slot, None
+
+
+def _load() -> dict:
+    # returns {account_id: bare_data} — used by the rest of the engine
+    raw = _load_raw()
+    if not raw:
+        return {}
+
+    # migrate completely flat format (no account keys at all)
+    if not any(len(k) == 16 and all(c in "0123456789abcdef" for c in k) for k in raw):
+        account_id = _get_current_account_id()
+        log(f"achievements: migrating flat data to account {account_id}")
+        bare = raw
+        _save_account(bare, account_id)
+        return {account_id: bare}
+
+    result = {}
+    for account_id, slot in raw.items():
+        bare, _ = _unwrap_slot(slot, account_id)
+        result[account_id] = bare
+    return result
 
 
 def _load_account(account_id: str = None) -> dict:
     if account_id is None:
         account_id = _get_current_account_id()
-    return _load().get(account_id, {})
+
+    raw = _load_raw()
+    slot = raw.get(account_id)
+
+    if slot is None:
+        return {}
+
+    bare, sig = _unwrap_slot(slot, account_id)
+
+    if sig is None:
+        # legacy, no sig — accept and re-sign on next save
+        log(f"achiev_guard: legacy slot for {account_id}, will re-sign on save")
+        return bare
+
+    if _verify(_slot_payload(bare), account_id, sig):
+        log(f"achiev_guard: verified ok for {account_id}")
+        return bare
+
+    log(f"achiev_guard: INVALID sig for {account_id} — rolling back to snapshot")
+    snap = _load_snapshot().get(account_id)
+    if snap is not None:
+        log(f"achiev_guard: snapshot restored for {account_id}")
+        return snap
+    log(f"achiev_guard: no snapshot for {account_id}, returning empty")
+    return {}
 
 
 def _save_account(account_data: dict, account_id: str = None):
     if account_id is None:
         account_id = _get_current_account_id()
-    all_data = _load()
-    all_data[account_id] = account_data
-    _save(all_data)
+
+    raw = _load_raw()
+
+    # update snapshot from the current valid slot before overwriting
+    slot = raw.get(account_id)
+    if slot is not None:
+        prev_bare, prev_sig = _unwrap_slot(slot, account_id)
+        if prev_sig and _verify(_slot_payload(prev_bare), account_id, prev_sig):
+            snap = _load_snapshot()
+            snap[account_id] = prev_bare
+            _save_snapshot(snap)
+            log(f"achiev_guard: snapshot updated for {account_id}")
+
+    payload = _slot_payload(account_data)
+    sig = _sign(payload, account_id)
+    raw[account_id] = {"d": account_data, "s": sig}
+    _write_raw(raw)
+    log(f"achiev_guard: saved account {account_id}")
+
+
+def _save(data: dict):
+    # data is {account_id: bare_data} — signs each slot and writes file
+    # used only by sync_accounts and migration paths
+    raw = _load_raw()
+    for account_id, bare in data.items():
+        payload = _slot_payload(bare)
+        sig = _sign(payload, account_id)
+        raw[account_id] = {"d": bare, "s": sig}
+    _write_raw(raw)
+    log(f"achiev_guard: saved {len(data)} account(s)")
 
 
 def load_account_data_for_import(account_id: str, account_data: dict):
     # used by decryptorUi to write imported data into the correct account slot
-    all_data = _load()
-    all_data[account_id] = account_data
-    _save(all_data)
+    raw = _load_raw()
+    payload = _slot_payload(account_data)
+    sig = _sign(payload, account_id)
+    raw[account_id] = {"d": account_data, "s": sig}
+    _write_raw(raw)
 
 
 #  XP system
@@ -449,18 +593,23 @@ def sync_accounts():
             if instance.isClientActivated():
                 active_ids.add(_hash_account_id(instance.getClientUserId()))
 
-        all_data = _load()
-        stored_ids = set(all_data.keys())
+        raw = _load_raw()
+        stored_ids = set(raw.keys())
 
+        changed = False
         for removed_id in stored_ids - active_ids:
-            del all_data[removed_id]
+            del raw[removed_id]
             log(f"achievements.sync_accounts: removed slot for account {removed_id}")
+            changed = True
 
         for new_id in active_ids - stored_ids:
-            all_data[new_id] = {}
+            payload = _slot_payload({})
+            sig = _sign(payload, new_id)
+            raw[new_id] = {"d": {}, "s": sig}
             log(f"achievements.sync_accounts: added slot for account {new_id}")
+            changed = True
 
-        if stored_ids != active_ids:
-            _save(all_data)
+        if changed:
+            _write_raw(raw)
     except Exception as e:
         log(f"achievements.sync_accounts: {e}")
