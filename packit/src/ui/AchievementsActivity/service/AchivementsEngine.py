@@ -1,5 +1,7 @@
 import os
 import json
+import zlib
+import ctypes
 from android_utils import log
 try:
     from org.telegram.messenger import ApplicationLoader, UserConfig
@@ -8,7 +10,7 @@ except Exception as e:
     from ....utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 _achievement_pending = False
-_bulletin_container = None  # FrameLayout registered by active UI fragments
+_bulletin_container = None
 
 
 def is_achievement_pending() -> bool:
@@ -22,7 +24,6 @@ def register_bulletin_container(container):
 
 def unregister_bulletin_container(container):
     global _bulletin_container
-    # only clear if it's still the same container (avoid race with fast navigation)
     if _bulletin_container is container:
         _bulletin_container = None
 
@@ -41,49 +42,18 @@ def _get_configs_dir() -> str:
     return f"/data/data/{pkg}/files/packitCache/packitConfigs"
 
 
-def _get_achievements_path() -> str:
-    return f"{_get_configs_dir()}/achievements.json"
+def _get_db_path() -> str:
+    return f"{_get_configs_dir()}/achievements.packdb"
 
 
-def _get_snapshot_path() -> str:
-    return f"{_get_configs_dir()}/achievements_snap.json"
+def _get_snap_path() -> str:
+    return f"{_get_configs_dir()}/achievements_snap.packdb"
 
 
 def _hash_account_id(user_id: int) -> str:
     import hashlib
-    # salt prevents external plugins from reversing ids by hashing known values
     raw = f"packit:{user_id}".encode()
     return hashlib.sha256(raw).hexdigest()[:16]
-
-
-import ctypes as _ctypes
-
-def _load_libachiv():
-    try:
-        so_path = os.path.join(os.path.dirname(__file__), "../../../../res/native/libachiv.so")
-        lib = _ctypes.CDLL(so_path)
-        lib.ag_sign.argtypes = [_ctypes.c_char_p, _ctypes.c_size_t, _ctypes.c_char_p, _ctypes.c_char_p]
-        lib.ag_sign.restype = None
-        lib.ag_verify.argtypes = [_ctypes.c_char_p, _ctypes.c_size_t, _ctypes.c_char_p, _ctypes.c_char_p]
-        lib.ag_verify.restype = _ctypes.c_int
-        log("achiev_guard: libachiv loaded ok")
-        return lib
-    except Exception as e:
-        log(f"achiev_guard: libachiv load failed: {e}")
-        return None
-
-_libachiv = _load_libachiv()
-
-
-def _sign(data_bytes: bytes, account_id: str) -> str:
-    buf = _ctypes.create_string_buffer(65)
-    _libachiv.ag_sign(data_bytes, len(data_bytes), account_id.encode(), buf)
-    return buf.value.decode()
-
-
-def _verify(data_bytes: bytes, account_id: str, sig: str) -> bool:
-    r = _libachiv.ag_verify(data_bytes, len(data_bytes), account_id.encode(), sig.encode())
-    return r == 1
 
 
 def _get_current_account_id() -> str:
@@ -95,169 +65,185 @@ def _get_current_account_id() -> str:
         log(f"achievements._get_current_account_id: {e}")
         return "0"
 
+def _load_lib():
+    try:
+        so_path = os.path.normpath(os.path.join(
+            os.path.dirname(__file__), "../../../../res/native/libpackitdb.so"
+        ))
+        log(f"packitdb: loading from {so_path}, exists={os.path.exists(so_path)}")
+        lib = ctypes.CDLL(so_path)
+        vp  = ctypes.c_void_p
+        cp  = ctypes.c_char_p
+        i64 = ctypes.c_int64
+        u32 = ctypes.c_uint32
+        sz  = ctypes.c_size_t
+        ci  = ctypes.c_int
+        u8p = ctypes.POINTER(ctypes.c_uint8)
+        u32p = ctypes.POINTER(ctypes.c_uint32)
 
-def _load_raw() -> dict:
-    # returns file as-is: {account_id: {"d": ..., "s": ...}} or legacy formats
-    path = _get_achievements_path()
+        lib.packdb_write_raw.restype = ci
+        lib.packdb_write_raw.argtypes = [cp, cp, u8p, u32]
+
+        lib.packdb_read_raw.restype = ci
+        lib.packdb_read_raw.argtypes = [cp, cp, u8p, u32p]
+
+        lib.packdb_open_from_payload.restype = vp
+        lib.packdb_open_from_payload.argtypes = [cp, cp, u8p, u32]
+
+        lib.packdb_serialize_to.restype = ci
+        lib.packdb_serialize_to.argtypes = [vp, u8p, u32p]
+
+        lib.packdb_open.restype = vp
+        lib.packdb_open.argtypes = [cp, cp]
+
+        lib.packdb_close.restype = ci
+        lib.packdb_close.argtypes = [vp]
+
+        lib.packdb_get.restype = i64
+        lib.packdb_get.argtypes = [vp, cp, i64]
+
+        lib.packdb_set.restype = ci
+        lib.packdb_set.argtypes = [vp, cp, i64]
+
+        lib.packdb_increment.restype = i64
+        lib.packdb_increment.argtypes = [vp, cp, i64]
+
+        lib.packdb_award_has.restype = ci
+        lib.packdb_award_has.argtypes = [vp, cp]
+
+        lib.packdb_award_add.restype = ci
+        lib.packdb_award_add.argtypes = [vp, cp]
+
+        lib.packdb_award_list.restype = ci
+        lib.packdb_award_list.argtypes = [vp, cp, sz]
+
+        lib.packdb_award_count.restype = ci
+        lib.packdb_award_count.argtypes = [vp]
+
+        lib.packdb_entry_count.restype = ci
+        lib.packdb_entry_count.argtypes = [vp]
+
+        log("packitdb: libpackitdb loaded ok")
+        return lib
+    except Exception as e:
+        log(f"packitdb: load failed: {e}")
+        return None
+
+_lib = _load_lib()
+
+_BUF_SIZE = 65536
+
+
+def _open_db_from_file(path: str, account_id: str):
     if not os.path.exists(path):
-        return {}
+        return _lib.packdb_open_from_payload(
+            path.encode(), account_id.encode(), None, 0
+        )
+    buf = (ctypes.c_uint8 * _BUF_SIZE)()
+    out_len = ctypes.c_uint32(_BUF_SIZE)
+    rc = _lib.packdb_read_raw(path.encode(), account_id.encode(), buf, ctypes.byref(out_len))
+    if rc == -3:
+        log(f"packitdb: INVALID sig in {os.path.basename(path)} for {account_id}")
+        return None
+    if rc != 0:
+        log(f"packitdb: read_raw error {rc} for {os.path.basename(path)}")
+        return None
+    compressed = bytes(buf[:out_len.value])
     try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
+        raw = zlib.decompress(compressed)
     except Exception as e:
-        log(f"achievements._load_raw: error: {e}")
-        return {}
+        log(f"packitdb: decompress error: {e}")
+        return None
+    raw_buf = (ctypes.c_uint8 * len(raw))(*raw)
+    return _lib.packdb_open_from_payload(
+        path.encode(), account_id.encode(), raw_buf, len(raw)
+    )
 
 
-def _write_raw(signed: dict):
-    try:
-        os.makedirs(_get_configs_dir(), exist_ok=True)
-        with open(_get_achievements_path(), "w", encoding="utf-8") as f:
-            json.dump(signed, f, indent=2, ensure_ascii=False)
-    except Exception as e:
-        log(f"achievements._write_raw: error: {e}")
+def _close_and_write(db, path: str, account_id: str):
+    raw_buf = (ctypes.c_uint8 * _BUF_SIZE)()
+    out_len = ctypes.c_uint32(_BUF_SIZE)
+    rc = _lib.packdb_serialize_to(db, raw_buf, ctypes.byref(out_len))
+    _lib.packdb_close(db)
+    if rc != 0:
+        log(f"packitdb: serialize_to error {rc}")
+        return
+    raw = bytes(raw_buf[:out_len.value])
+    compressed = zlib.compress(raw, 6)
+    cbuf = (ctypes.c_uint8 * len(compressed))(*compressed)
+    rc2 = _lib.packdb_write_raw(path.encode(), account_id.encode(), cbuf, len(compressed))
+    if rc2 != 0:
+        log(f"packitdb: write_raw error {rc2}")
 
 
-def _load_snapshot() -> dict:
-    # {account_id: bare_data}
-    path = _get_snapshot_path()
-    if not os.path.exists(path):
-        return {}
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception as e:
-        log(f"achiev_guard: snapshot load error: {e}")
-        return {}
+def _db_to_dict(db) -> dict:
+    buf = ctypes.create_string_buffer(8192)
+    _lib.packdb_award_list(db, buf, 8192)
+    awarded = [s for s in buf.value.decode("utf-8").splitlines() if s]
+    data = {"_awarded": awarded}
+    for a in ACHIEVEMENTS:
+        aid = a["id"]
+        data[aid] = int(_lib.packdb_get(db, aid.encode(), 0))
+    data["_xp"] = int(_lib.packdb_get(db, b"_xp", 0))
+    return data
 
 
-def _save_snapshot(snap: dict):
-    try:
-        os.makedirs(_get_configs_dir(), exist_ok=True)
-        with open(_get_snapshot_path(), "w", encoding="utf-8") as f:
-            json.dump(snap, f, indent=2, ensure_ascii=False)
-    except Exception as e:
-        log(f"achiev_guard: snapshot save error: {e}")
-
-
-def _slot_payload(bare_data: dict) -> bytes:
-    return json.dumps(bare_data, separators=(",", ":"), sort_keys=True, ensure_ascii=False).encode("utf-8")
-
-
-def _unwrap_slot(slot, account_id: str):
-    # slot is what is stored per account_id in the file
-    # returns (bare_data, sig_or_None)
-    # handles: {"d": bare, "s": sig}, legacy {"d":{"d":...}} nesting, or plain dict
-    if not isinstance(slot, dict):
-        return {}, None
-    if "s" in slot and "d" in slot:
-        inner = slot["d"]
-        # detect recursive wrapping — keep unwrapping until we hit bare data
-        depth = 0
-        while isinstance(inner, dict) and "s" in inner and "d" in inner and depth < 20:
-            inner = inner["d"]
-            depth += 1
-        return inner, slot["s"]
-    # legacy plain dict (no sig)
-    return slot, None
-
-
-def _load() -> dict:
-    # returns {account_id: bare_data} — used by the rest of the engine
-    raw = _load_raw()
-    if not raw:
-        return {}
-
-    # migrate completely flat format (no account keys at all)
-    if not any(len(k) == 16 and all(c in "0123456789abcdef" for c in k) for k in raw):
-        account_id = _get_current_account_id()
-        log(f"achievements: migrating flat data to account {account_id}")
-        bare = raw
-        _save_account(bare, account_id)
-        return {account_id: bare}
-
-    result = {}
-    for account_id, slot in raw.items():
-        bare, _ = _unwrap_slot(slot, account_id)
-        result[account_id] = bare
-    return result
+def _dict_to_db(db, data: dict):
+    for key, val in data.items():
+        if key == "_awarded":
+            continue
+        if isinstance(val, int):
+            _lib.packdb_set(db, key.encode(), val)
+    for aid in data.get("_awarded", []):
+        _lib.packdb_award_add(db, aid.encode())
 
 
 def _load_account(account_id: str = None) -> dict:
     if account_id is None:
         account_id = _get_current_account_id()
-
-    raw = _load_raw()
-    slot = raw.get(account_id)
-
-    if slot is None:
-        return {}
-
-    bare, sig = _unwrap_slot(slot, account_id)
-
-    if sig is None:
-        # legacy, no sig — accept and re-sign on next save
-        log(f"achiev_guard: legacy slot for {account_id}, will re-sign on save")
-        return bare
-
-    if _verify(_slot_payload(bare), account_id, sig):
-        log(f"achiev_guard: verified ok for {account_id}")
-        return bare
-
-    log(f"achiev_guard: INVALID sig for {account_id} — rolling back to snapshot")
-    snap = _load_snapshot().get(account_id)
-    if snap is not None:
-        log(f"achiev_guard: snapshot restored for {account_id}")
-        return snap
-    log(f"achiev_guard: no snapshot for {account_id}, returning empty")
-    return {}
+    os.makedirs(_get_configs_dir(), exist_ok=True)
+    db = _open_db_from_file(_get_db_path(), account_id)
+    if not db:
+        log(f"packitdb: load failed for {account_id}, trying snapshot")
+        db = _open_db_from_file(_get_snap_path(), account_id)
+        if not db:
+            return {}
+    data = _db_to_dict(db)
+    _lib.packdb_close(db)
+    return data
 
 
-def _save_account(account_data: dict, account_id: str = None):
+def _save_account(data: dict, account_id: str = None):
     if account_id is None:
         account_id = _get_current_account_id()
+    os.makedirs(_get_configs_dir(), exist_ok=True)
+    db_path   = _get_db_path()
+    snap_path = _get_snap_path()
 
-    raw = _load_raw()
+    # snapshot current valid state before overwriting
+    existing = _open_db_from_file(db_path, account_id)
+    if existing:
+        _close_and_write(existing, snap_path, account_id)
 
-    # update snapshot from the current valid slot before overwriting
-    slot = raw.get(account_id)
-    if slot is not None:
-        prev_bare, prev_sig = _unwrap_slot(slot, account_id)
-        if prev_sig and _verify(_slot_payload(prev_bare), account_id, prev_sig):
-            snap = _load_snapshot()
-            snap[account_id] = prev_bare
-            _save_snapshot(snap)
-            log(f"achiev_guard: snapshot updated for {account_id}")
-
-    payload = _slot_payload(account_data)
-    sig = _sign(payload, account_id)
-    raw[account_id] = {"d": account_data, "s": sig}
-    _write_raw(raw)
-    log(f"achiev_guard: saved account {account_id}")
-
-
-def _save(data: dict):
-    # data is {account_id: bare_data} — signs each slot and writes file
-    # used only by sync_accounts and migration paths
-    raw = _load_raw()
-    for account_id, bare in data.items():
-        payload = _slot_payload(bare)
-        sig = _sign(payload, account_id)
-        raw[account_id] = {"d": bare, "s": sig}
-    _write_raw(raw)
-    log(f"achiev_guard: saved {len(data)} account(s)")
+    db = _lib.packdb_open(db_path.encode(), account_id.encode())
+    if not db:
+        log("packitdb: packdb_open returned NULL on save")
+        return
+    _dict_to_db(db, data)
+    _close_and_write(db, db_path, account_id)
+    log(f"packitdb: saved account {account_id}")
 
 
 def load_account_data_for_import(account_id: str, account_data: dict):
-    # used by decryptorUi to write imported data into the correct account slot
-    raw = _load_raw()
-    payload = _slot_payload(account_data)
-    sig = _sign(payload, account_id)
-    raw[account_id] = {"d": account_data, "s": sig}
-    _write_raw(raw)
+    os.makedirs(_get_configs_dir(), exist_ok=True)
+    db = _lib.packdb_open(_get_db_path().encode(), account_id.encode())
+    if not db:
+        return
+    _dict_to_db(db, account_data)
+    _close_and_write(db, _get_db_path(), account_id)
 
 
-#  XP system
+# XP system
 
 _XP_REWARDS = {
     "first_plugin": 100,   "plugins_5": 200,    "plugins_10": 400,
@@ -308,19 +294,14 @@ def get_total_xp(data: dict) -> int:
 
 
 def get_level_info(data: dict) -> tuple:
-    # returns (level, xp_into_current_level, xp_needed_for_current_level)
     total_xp = get_total_xp(data)
     level = _level_from_xp(total_xp)
     if level >= 60:
         return 60, total_xp, _xp_for_level(60)
     current_level_xp = _xp_for_level(level)
     next_level_xp = _xp_for_level(level + 1)
-    xp_into = total_xp - current_level_xp
-    xp_needed = next_level_xp - current_level_xp
-    return level, xp_into, xp_needed
+    return level, total_xp - current_level_xp, next_level_xp - current_level_xp
 
-
-#  sync
 
 _LEVEL_ACHIEVEMENTS = {
     "level_1": 1, "level_5": 5, "level_10": 10, "level_25": 25,
@@ -333,9 +314,10 @@ _LOYALTY_ACHIEVEMENTS = {
     "days_2555": 2555, "days_2920": 2920, "days_3285": 3285, "days_3650": 3650,
 }
 
+_SECRET_ACHIEVEMENTS = {"secret_premium", "secret_terraria", "secret_identity", "secret_curiosity", "secret_subscriber"}
+
 
 def sync_completed(data: dict) -> tuple:
-    # data here is account-level dict, not the full file
     current_level = _level_from_xp(data.get("_xp", 0))
     for aid in _LEVEL_ACHIEVEMENTS:
         data[aid] = current_level
@@ -351,8 +333,6 @@ def sync_completed(data: dict) -> tuple:
     awarded = data.get("_awarded", [])
     total_xp = data.get("_xp", 0)
 
-    # backfill: new achievements start at 0 but siblings in the same category
-    # already have an accumulated counter — inherit the highest sibling value
     cat_max = {}
     for a in ACHIEVEMENTS:
         aid = a["id"]
@@ -379,7 +359,6 @@ def sync_completed(data: dict) -> tuple:
             awarded.append(aid)
             newly_completed.append(a)
 
-    # recalculate level with updated XP so level achievements unlocked this round are caught
     new_level = _level_from_xp(total_xp)
     if new_level != current_level:
         log(f"achievements.sync_completed: level changed {current_level} -> {new_level}, re-checking level achievements")
@@ -498,7 +477,7 @@ def _show_achievement_queue(queue: list):
     _show_achievement_bulletin(a, on_hide=lambda: _show_achievement_queue(rest))
 
 
-#  public API
+# public API
 
 def get_progress(achievement_id: str) -> int:
     return _load_account().get(achievement_id, 0)
@@ -528,9 +507,6 @@ def increment_category(category: str, by: int = 1):
     data, newly_completed = sync_completed(data)
     _save_account(data)
     _notify_newly_completed(newly_completed)
-
-
-_SECRET_ACHIEVEMENTS = {"secret_premium", "secret_terraria", "secret_identity", "secret_curiosity", "secret_subscriber"}
 
 
 def unlock_secret(achievement_id: str):
@@ -583,33 +559,13 @@ def get_stats() -> dict:
 
 
 def sync_accounts():
-    # removes slots for accounts no longer logged in, adds empty slots for new ones
     try:
         from org.telegram.messenger import UserConfig as _UC
-
         active_ids = set()
         for i in range(_UC.MAX_ACCOUNT_COUNT):
             instance = _UC.getInstance(i)
             if instance.isClientActivated():
                 active_ids.add(_hash_account_id(instance.getClientUserId()))
-
-        raw = _load_raw()
-        stored_ids = set(raw.keys())
-
-        changed = False
-        for removed_id in stored_ids - active_ids:
-            del raw[removed_id]
-            log(f"achievements.sync_accounts: removed slot for account {removed_id}")
-            changed = True
-
-        for new_id in active_ids - stored_ids:
-            payload = _slot_payload({})
-            sig = _sign(payload, new_id)
-            raw[new_id] = {"d": {}, "s": sig}
-            log(f"achievements.sync_accounts: added slot for account {new_id}")
-            changed = True
-
-        if changed:
-            _write_raw(raw)
+        log(f"achievements.sync_accounts: active accounts={len(active_ids)}")
     except Exception as e:
         log(f"achievements.sync_accounts: {e}")
