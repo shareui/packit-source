@@ -498,7 +498,6 @@ class InstallUI:
                     if not repo_url:
                         continue
                     try:
-                        # Try to resolve plugins URL from cached repomap
                         plugins_url = repo_url
                         if repo_id:
                             try:
@@ -508,18 +507,24 @@ class InstallUI:
                                 from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
                             import os
                             pkg = ApplicationLoader.applicationContext.getPackageName()
-                            cache_path = f"/data/data/{pkg}/files/packitCache/{repo_id}.json"
+                            cache_path = f"/data/data/{pkg}/files/packitCache/reposCache/{repo_id}.json"
+                            log(f"installUI: cache_path={cache_path} exists={os.path.exists(cache_path)}")
                             if os.path.exists(cache_path):
                                 with open(cache_path, "r", encoding="utf-8") as f:
                                     cached = json.load(f)
-                                plugins_url = cached.get("repomap", {}).get("plugins") or repo_url
+                                resolved = cached.get("repomap", {}).get("plugins") or repo_url
+                                log(f"installUI: resolved plugins_url={resolved}")
+                                plugins_url = resolved
 
+                        log(f"installUI: GET {plugins_url}")
                         response = requests.get(plugins_url, timeout=10)
+                        log(f"installUI: HTTP {response.status_code} for {plugins_url}")
                         if response.status_code != 200:
                             log(f"repo '{repo.get('name')}': HTTP {response.status_code}, skipping")
                             continue
                         config = response.json()
                         plugins = config.get("plugins", {})
+                        log(f"installUI: plugins type={type(plugins).__name__} len={len(plugins)}")
                         if isinstance(plugins, dict):
                             for pluginId, info in plugins.items():
                                 if isinstance(info, dict):
@@ -528,6 +533,7 @@ class InstallUI:
                             for item in plugins:
                                 if isinstance(item, dict) and item.get("id"):
                                     all_plugins.append({"id": item.get("id"), "repo_name": repo.get("name", "Unknown"), **item})
+                        log(f"installUI: all_plugins so far={len(all_plugins)}")
                     except Exception as e:
                         log(f"failed to load repo {repo.get('name')}: {e}")
 
@@ -571,13 +577,18 @@ class InstallUI:
                         from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
                     import os
                     pkg = ApplicationLoader.applicationContext.getPackageName()
-                    cache_path = f"/data/data/{pkg}/files/packitCache/{repo_id}.json"
+                    cache_path = f"/data/data/{pkg}/files/packitCache/reposCache/{repo_id}.json"
+                    log(f"installUI: single cache_path={cache_path} exists={os.path.exists(cache_path)}")
                     if os.path.exists(cache_path):
                         with open(cache_path, "r", encoding="utf-8") as f:
                             cached = json.load(f)
-                        plugins_url = cached.get("repomap", {}).get("plugins") or repo_url
+                        resolved = cached.get("repomap", {}).get("plugins") or repo_url
+                        log(f"installUI: single resolved plugins_url={resolved}")
+                        plugins_url = resolved
 
+                log(f"installUI: single GET {plugins_url}")
                 r = requests.get(plugins_url, timeout=20)
+                log(f"installUI: single HTTP {r.status_code}")
                 if r.status_code != 200:
                     raise Exception(f"HTTP {r.status_code}")
                 config = r.json()

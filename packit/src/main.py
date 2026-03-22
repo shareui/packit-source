@@ -143,10 +143,10 @@ class PackItPlugin(BasePlugin):
         if params.message.startswith(".deleteachievements"):
             try:
                 import os
-                from .ui.AchievementsActivity.service.AchivementsEngine import _get_achievements_path
-                path = _get_achievements_path()
-                if os.path.exists(path):
-                    os.remove(path)
+                from .ui.AchievementsActivity.service.AchivementsEngine import _get_db_path, _get_snap_path
+                for path in (_get_db_path(), _get_snap_path()):
+                    if os.path.exists(path):
+                        os.remove(path)
                 params.message = "Achievements deleted!"
             except Exception as e:
                 params.message = f"Failed to delete achievements: {e}"

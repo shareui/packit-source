@@ -75,7 +75,24 @@ def _get_lib():
     return lib
 
 
+def _read_achievements_block() -> str:
+    try:
+        from ....ui.AchievementsActivity.service.AchivementsEngine import (
+            _load_account, _get_current_account_id
+        )
+        account_id = _get_current_account_id()
+        data = _load_account(account_id)
+        content = json.dumps({account_id: data}, ensure_ascii=False)
+        log(f"exportBin: achievements block read ({len(content)} bytes)")
+        return content
+    except Exception as e:
+        log(f"exportBin: achievements block read error: {e}")
+        return "{}"
+
+
 def _read_block(key: str) -> str:
+    if key == "achievements":
+        return _read_achievements_block()
     path = os.path.join(_get_configs_dir(), _FILE_NAMES[key])
     if not os.path.exists(path):
         log(f"exportBin: block '{key}' not found, using {{}}")

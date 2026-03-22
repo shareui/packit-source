@@ -42,6 +42,12 @@ def _merge_achievements(payload: str, account_id: str):
         account_data = incoming
         log("exportBin: achievements flat format")
 
+    # strip sig wrappers from legacy exports
+    depth = 0
+    while isinstance(account_data, dict) and "d" in account_data and "s" in account_data and depth < 20:
+        account_data = account_data["d"]
+        depth += 1
+
     from ....ui.AchievementsActivity.service.AchivementsEngine import load_account_data_for_import
     load_account_data_for_import(account_id, account_data)
     log(f"exportBin: merged achievements for account {account_id}")
