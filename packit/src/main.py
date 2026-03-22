@@ -13,6 +13,7 @@ from .deeplinks import setup_deeplink_hook
 from .other.badges import BadgeManager
 from .utils.localConfig import LocalConfig
 from .other import isBeta
+from .other import everyone as _everyone
 from .ChatActivity.SecurityBottomSheets import setup_policy_button_hook, setup_hash_button_hook
 from .ChatActivity.LinksIcons import setup_links_buttons_hook
 from .SettingsActivity.service.settingsActivityHook import setup_settings_activity_hook
@@ -40,11 +41,13 @@ class PackItPlugin(BasePlugin):
         self.install_dismiss_hook_ref = None
         self.pill_widget_hook_ref = None
         self.settings_activity_hook_refs = []
+        self.everyone_hook_refs = []
         log("PackIt initialized!")
     
     def on_plugin_load(self):
         LocalConfig.init()
         isBeta.init()
+        _everyone.init()
         try:
             from .ui.AchievementsActivity.service.AchivementsEngine import sync_accounts, sync_completed, _load_account, _save_account
             sync_accounts()
@@ -74,6 +77,7 @@ class PackItPlugin(BasePlugin):
         self.settings_activity_hook_refs = setup_settings_activity_hook(self)
         setup_pill_widget(self)
         self.dialogs_menu_hook_ref = self.chatUI.setup_dialogs_menu_hook()
+        self.everyone_hook_refs = _everyone.setup_hook(self)
         self._init_official_repository()
         self._check_for_update()
         log("PackIt loaded!")
