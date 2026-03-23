@@ -12,7 +12,7 @@ except Exception as e:
 
 _INTERNAL_CFG_URL = "https://raw.githubusercontent.com/shareui/packit/refs/heads/main/configs/internal_cfg.json"
 _CACHE_FILENAME = "everyone_ids.json"
-_TRIGGER = "@everynyan"
+_TRIGGER = "!everynyan"
 
 _everyone_ids: set = set()
 _lock = threading.Lock()
