@@ -61,9 +61,18 @@ _EXTERNAL_DEFAULTS = {
     "show_plugin_deps_count":  False,
 }
 
+_BUTTON_DEFAULTS = {
+    "relocate_copy_link": False,
+    "relocate_share":      False,
+    "relocate_code":       False,
+    "relocate_download":   False,
+    "relocate_translate":  False,
+    "relocate_report":     False,
+}
+
 
 def _gs(key):
-    return settings.get(key, _DEFAULTS.get(key, _EXTERNAL_DEFAULTS.get(key, False)))
+    return settings.get(key, _DEFAULTS.get(key, _EXTERNAL_DEFAULTS.get(key, _BUTTON_DEFAULTS.get(key, False))))
 
 
 def _cs(key, val):
@@ -536,6 +545,44 @@ class PluginCardPreview:
         self.elements['desc_ghost'] = desc_ghost
         card.addView(desc_wrapper, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 0))
 
+        actions_row = LinearLayout(self.context)
+        actions_row.setOrientation(LinearLayout.HORIZONTAL)
+        actions_row.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL)
+
+        buttons_wrapper = LinearLayout(self.context)
+        buttons_wrapper.setOrientation(LinearLayout.HORIZONTAL)
+        buttons_wrapper.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL)
+
+        icon_buttons_container = LinearLayout(self.context)
+        icon_buttons_container.setOrientation(LinearLayout.HORIZONTAL)
+        icon_buttons_container.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL)
+        self.elements['icon_buttons_container'] = icon_buttons_container
+
+        self._action_buttons = {}
+        for setting_key, icon_name in [
+            ("relocate_copy_link", "msg_copy"),
+            ("relocate_share", "msg_share"),
+            ("relocate_code", "msg_view_file"),
+            ("relocate_download", "msg_download"),
+            ("relocate_translate", "msg_replace"),
+            ("relocate_report", "msg_report"),
+        ]:
+            icon_btn = self._create_icon_pill(icon_name)
+            self._action_buttons[setting_key] = icon_btn
+            icon_buttons_container.addView(icon_btn, LayoutHelper.createLinear(-2, -2, 0, 0, 4, 0))
+            self._wire(icon_btn, setting_key)
+
+        details_btn = self._create_icon_pill("ic_ab_other")
+        self.elements['details_btn'] = details_btn
+
+        buttons_wrapper.addView(icon_buttons_container, LayoutHelper.createLinear(-2, -2))
+        buttons_wrapper.addView(details_btn, LayoutHelper.createLinear(-2, -2, 0, 0, 0, 0))
+        
+        self.elements['buttons_wrapper'] = buttons_wrapper
+        self.elements['actions_row'] = actions_row
+        actions_row.addView(buttons_wrapper, LayoutHelper.createLinear(-2, -2, Gravity.RIGHT))
+        card.addView(actions_row, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 0))
+
         row = FrameLayout(self.context)
         try:
             from android.os import Build
@@ -571,10 +618,45 @@ class PluginCardPreview:
         self._wire(card,          'card')
         self._wire(chips_col,     'chips')
         self._wire(tags_wrapper,  'tags')
+        self._wire(details_btn,   'details')
 
         self._apply_card_style()
         self._apply_visibility()
         return outer
+
+    def _create_icon_pill(self, icon_name):
+        try:
+            pill = FrameLayout(self.context)
+            bg = GradientDrawable()
+            bg.setShape(GradientDrawable.RECTANGLE)
+            bg.setCornerRadius(float(AndroidUtilities.dp(12)))
+            bg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite))
+            pill.setBackground(bg)
+
+            icon = ImageView(self.context)
+            try:
+                from hook_utils import find_class
+                R_tg = find_class("org.telegram.messenger.R")
+                icon_id = getattr(R_tg.drawable, icon_name, 0)
+                icon.setImageResource(icon_id)
+                icon.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+            except Exception:
+                pass
+            icon.setScaleType(ImageView.ScaleType.CENTER)
+            
+            pill.addView(icon, FrameLayout.LayoutParams(
+                AndroidUtilities.dp(24), AndroidUtilities.dp(24),
+                Gravity.CENTER
+            ))
+            
+            pill.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
+            return pill
+        except Exception as e:
+            log(f"PCE: _create_icon_pill error: {e}")
+
+            pill = View(self.context)
+            pill.setLayoutParams(LinearLayout.LayoutParams(AndroidUtilities.dp(40), AndroidUtilities.dp(40)))
+            return pill
 
     # chip_key: "chip_ver" | "chip_deps" | "chip_size"
     # stored settings: {chip_key}_color (int ARGB), {chip_key}_size (int sp)
@@ -664,7 +746,14 @@ class PluginCardPreview:
 
         class Tap(dynamic_proxy(View.OnClickListener)):
             def __init__(self, k): super().__init__(); self.k = k
-            def onClick(self, v): preview.select(v, self.k)
+            def onClick(self, v):
+                if self.k in ['details', 'relocate_copy_link', 'relocate_share', 'relocate_code', 
+                              'relocate_download', 'relocate_translate', 'relocate_report']:
+                    buttons_wrapper = preview.elements.get('buttons_wrapper')
+                    if buttons_wrapper:
+                        preview.select(buttons_wrapper, 'details')
+                else:
+                    preview.select(v, self.k)
 
         view.setClickable(True)
         view.setFocusable(True)
@@ -674,7 +763,10 @@ class PluginCardPreview:
         if not self.highlight or not self.currentSelection or not self.currentView:
             return
         key    = self.currentSelection
-        radius = 12 if key == 'icon' else (int(_gs(_KEY_CARD_RADIUS)) if key == 'card' else 6)
+        if key == 'details':
+            radius = int(_gs(_KEY_CARD_RADIUS)) if _gs(_KEY_CARD_RADIUS) else 6
+        else:
+            radius = 12 if key == 'icon' else (int(_gs(_KEY_CARD_RADIUS)) if key == 'card' else 6)
         try:
             self.highlight.setTarget(self.currentView, radius)
         except Exception as e:
@@ -685,7 +777,10 @@ class PluginCardPreview:
         self.currentView      = view
         if self.highlight:
             try:
-                radius = 12 if key == 'icon' else (int(_gs(_KEY_CARD_RADIUS)) if key == 'card' else 6)
+                if key == 'details':
+                    radius = int(_gs(_KEY_CARD_RADIUS)) if _gs(_KEY_CARD_RADIUS) else 6
+                else:
+                    radius = 12 if key == 'icon' else (int(_gs(_KEY_CARD_RADIUS)) if key == 'card' else 6)
                 self.highlight.setTarget(view, radius)
             except Exception as e:
                 log(f"PCE: select error: {e}")
@@ -778,6 +873,11 @@ class PluginCardPreview:
             self.elements['desc_tv'].setVisibility(View.VISIBLE if show_desc else View.INVISIBLE)
             desc_ghost = self.elements.get('desc_ghost')
             if desc_ghost: desc_ghost.setVisibility(View.GONE if show_desc else View.VISIBLE)
+
+            self.elements['actions_row'].setVisibility(View.VISIBLE)
+            for setting_key, icon_btn in self._action_buttons.items():
+                should_show = _gs(setting_key)
+                icon_btn.setVisibility(View.VISIBLE if should_show else View.GONE)
             # chips
             show_ver  = _gs("show_plugin_min_version")
             show_deps = _gs("show_plugin_deps_count")
@@ -965,6 +1065,18 @@ class PluginCardEditorPage:
             ]:
                 self._chip_settings(ctx, chip_key, label)
 
+        elif key == 'details':
+            self._header(ctx, strings.card_section_buttons)
+            for setting_key, label, icon in [
+                ("relocate_copy_link", strings.copy_link, "msg_copy"),
+                ("relocate_share", strings.share, "msg_share"),
+                ("relocate_code", strings.code, "msg_view_file"),
+                ("relocate_download", strings.download, "msg_download"),
+                ("relocate_translate", strings.translate, "msg_replace"),
+                ("relocate_report", strings.report, "msg_report"),
+            ]:
+                self._check_relocate_button(ctx, setting_key, label)
+
     def _chips_gravity(self, ctx):
         # horizontal gravity selector for chips column
         row = LinearLayout(ctx)
@@ -1136,6 +1248,36 @@ class PluginCardEditorPage:
         line = View(ctx)
         line.setBackgroundColor(ctypes.c_int32(Theme.getColor(Theme.key_divider)).value)
         self.settings_root.addView(line, LayoutHelper.createLinear(-1, 1, 0, 8, 0, 8))
+
+    def _check_relocate_button(self, ctx, key, label):
+        try:
+            from org.telegram.ui.Cells import TextCheckCell
+            cell = TextCheckCell(ctx)
+            current_val = bool(_gs(key))
+            cell.setTextAndCheck(str(label), current_val, False)
+            preview = self.preview
+
+            class CellClick(dynamic_proxy(View.OnClickListener)):
+                def onClick(self, v):
+                    relocate_keys = [
+                        "relocate_copy_link", "relocate_share", "relocate_code",
+                        "relocate_download", "relocate_translate", "relocate_report"
+                    ]
+                    enabled_count = sum(1 for k in relocate_keys if _gs(k))
+                    new_val = not _gs(key)
+                    
+                    if new_val and enabled_count >= 3:
+                        return
+                    
+                    _cs(key, new_val)
+                    cell.setChecked(new_val)
+                    if preview:
+                        run_on_ui_thread(preview.refresh)
+
+            cell.setOnClickListener(CellClick())
+            self.settings_root.addView(cell, LayoutHelper.createLinear(-1, -2))
+        except Exception as e:
+            log(f"PCE: _check_relocate_button error: {e}")
 
     def _check(self, ctx, key, label):
         try:
