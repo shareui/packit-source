@@ -42,15 +42,6 @@ from ..ui.FontPickerBottomSheet import showFontPicker
 from ..ui.FontManager import getSelectedFilename
 
 
-@dataclass
-class ExpandableSwitch:
-    key: str
-    text: str
-    children: List[Any] = field(default_factory=list)
-    collapsed: bool = True
-    on_switch_click: Callable = field(default=None, compare=False, repr=False)
-    link_alias: str = None
-    type: str = field(default="expandable_switch", init=False)
 
 
 def _getCacheInfo(cacheDir):
@@ -797,22 +788,6 @@ class OtherSettings:
                 icon="msg_info",
             ),
             Divider(text=strings.show_extended_desc_hint),
-            Header(text=strings.button_relocation),
-            ExpandableSwitch(
-                key="button_relocation_enabled",
-                text=strings.button_relocation,
-                collapsed=True,
-                children=[
-                    Switch(key="relocate_copy_link", text=strings["copy_link"], default=False, icon="msg_copy", link_alias="relocate_copy_link"),
-                    Switch(key="relocate_share", text=strings["share"], default=False, icon="msg_share", link_alias="relocate_share"),
-                    Switch(key="relocate_code", text=strings["code"], default=False, icon="msg_view_file", link_alias="relocate_code"),
-                    Switch(key="relocate_download", text=strings["download"], default=False, icon="msg_download", link_alias="relocate_download"),
-                    Switch(key="relocate_translate", text=strings["translate"], default=False, icon="msg_replace", link_alias="relocate_translate"),
-                    Switch(key="relocate_report", text=strings["report"], default=False, icon="msg_report", link_alias="relocate_report"),
-                ],
-                link_alias="button_relocation_enabled"
-            ),
-            Divider(),
             Header(text=strings.install_sheet_header),
             Switch(
                 key="install_sheet_links",
@@ -858,19 +833,11 @@ class OtherSettings:
             ),
             Divider(text=strings.navigation_header_desc),
             Header(text=strings.sfx_header),
-            ExpandableSwitch(
-                key="sfx_enabled",
-                text=strings.sfx_header,
-                collapsed=True,
-                children=[
-                    Switch(key="sfx_install", text=strings.sfx_install, default=False, icon="msg_download", link_alias="sfx_install"),
-                    Switch(key="sfx_copy_link", text=strings.sfx_copy_link, default=False, icon="msg_link", link_alias="sfx_copy_link"),
-                    Switch(key="sfx_search", text=strings.sfx_search, default=False, icon="msg_search", link_alias="sfx_search"),
-                    Switch(key="sfx_clear_search", text=strings.sfx_clear_search, default=False, icon="msg_close", link_alias="sfx_clear_search"),
-                    Switch(key="sfx_achievement", text=strings.sfx_achievement, default=True, icon="msg_gift_premium", link_alias="sfx_achievement"),
-                ],
-                link_alias="sfx_enabled"
-            ),
+            Switch(key="sfx_install", text=strings.sfx_install, default=False, icon="msg_download", link_alias="sfx_install"),
+            Switch(key="sfx_copy_link", text=strings.sfx_copy_link, default=False, icon="msg_link", link_alias="sfx_copy_link"),
+            Switch(key="sfx_search", text=strings.sfx_search, default=False, icon="msg_search", link_alias="sfx_search"),
+            Switch(key="sfx_clear_search", text=strings.sfx_clear_search, default=False, icon="msg_close", link_alias="sfx_clear_search"),
+            Switch(key="sfx_achievement", text=strings.sfx_achievement, default=True, icon="msg_gift_premium", link_alias="sfx_achievement"),
             Divider(text=strings.sfx_header_desc),
             Header(text=strings.misc_header),
             Switch(

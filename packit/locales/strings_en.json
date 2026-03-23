@@ -262,6 +262,7 @@
   "card_section_desc": "Description",
   "card_show_desc": "Show description",
   "card_desc_size": "Description font size",
+  "card_section_buttons": "Card buttons",
   "card_section_shape": "Shape",
   "card_radius": "Corner radius (dp)",
   "card_padding": "Card padding (dp)",
