@@ -5,7 +5,7 @@ from android.util import TypedValue
 from android.graphics.drawable import GradientDrawable
 from android.graphics import Canvas, Paint, RectF
 from android.animation import ValueAnimator
-from android_utils import log, run_on_ui_thread
+from android_utils import OnClickListener, log, run_on_ui_thread
 from client_utils import get_last_fragment
 from java import dynamic_proxy, jarray, jfloat
 
@@ -25,7 +25,11 @@ try:
     from org.telegram.messenger import AndroidUtilities
 except Exception as e:
     import android_utils as _au; _au.log(f"PluginCardEditor: import AndroidUtilities failed: {e}")
-from android_utils import OnClickListener
+try:
+    from org.telegram.ui.Components import BulletinFactory
+except Exception as e:
+    import android_utils as _au; _au.log(f"PluginCardEditor: import BulletinFactory failed: {e}")
+    BulletinFactory = None
 
 _KEY_SHOW_ICON    = "card_show_icon"
 _KEY_ICON_SIZE    = "card_icon_size"
@@ -1267,6 +1271,14 @@ class PluginCardEditorPage:
                     new_val = not _gs(key)
                     
                     if new_val and enabled_count >= 3:
+                        try:
+                            fragment = get_last_fragment()
+                            if fragment and BulletinFactory:
+                                container = fragment.getParentActivity().getWindow().getDecorView()
+                                resource_provider = fragment.getResourceProvider()
+                                BulletinFactory.of(container, resource_provider).createErrorBulletin(strings["max_buttons_allowed"]).show()
+                        except Exception as e:
+                            log(f"PCE: Failed to show button limit popup: {e}")
                         return
                     
                     _cs(key, new_val)
