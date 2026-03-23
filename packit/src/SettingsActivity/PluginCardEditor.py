@@ -5,7 +5,7 @@ from android.util import TypedValue
 from android.graphics.drawable import GradientDrawable
 from android.graphics import Canvas, Paint, RectF
 from android.animation import ValueAnimator
-from android_utils import log, run_on_ui_thread
+from android_utils import OnClickListener, log, run_on_ui_thread
 from client_utils import get_last_fragment
 from java import dynamic_proxy, jarray, jfloat
 
@@ -25,7 +25,11 @@ try:
     from org.telegram.messenger import AndroidUtilities
 except Exception as e:
     import android_utils as _au; _au.log(f"PluginCardEditor: import AndroidUtilities failed: {e}")
-from android_utils import OnClickListener
+try:
+    from org.telegram.ui.Components import BulletinFactory
+except Exception as e:
+    import android_utils as _au; _au.log(f"PluginCardEditor: import BulletinFactory failed: {e}")
+    BulletinFactory = None
 
 _KEY_SHOW_ICON    = "card_show_icon"
 _KEY_ICON_SIZE    = "card_icon_size"
@@ -68,6 +72,7 @@ _BUTTON_DEFAULTS = {
     "relocate_download":   False,
     "relocate_translate":  False,
     "relocate_report":     False,
+    "show_details_button":  True,
 }
 
 
@@ -574,9 +579,13 @@ class PluginCardPreview:
 
         details_btn = self._create_icon_pill("ic_ab_other")
         self.elements['details_btn'] = details_btn
+        more_btn = self._create_icon_pill("msg_addbot")
+        self.elements['more_btn'] = more_btn
+        self._wire(more_btn, 'more')
 
         buttons_wrapper.addView(icon_buttons_container, LayoutHelper.createLinear(-2, -2))
         buttons_wrapper.addView(details_btn, LayoutHelper.createLinear(-2, -2, 0, 0, 0, 0))
+        buttons_wrapper.addView(more_btn, LayoutHelper.createLinear(-2, -2, 0, 0, 0, 0))
         
         self.elements['buttons_wrapper'] = buttons_wrapper
         self.elements['actions_row'] = actions_row
@@ -747,7 +756,7 @@ class PluginCardPreview:
         class Tap(dynamic_proxy(View.OnClickListener)):
             def __init__(self, k): super().__init__(); self.k = k
             def onClick(self, v):
-                if self.k in ['details', 'relocate_copy_link', 'relocate_share', 'relocate_code', 
+                if self.k in ['details', 'more', 'relocate_copy_link', 'relocate_share', 'relocate_code', 
                               'relocate_download', 'relocate_translate', 'relocate_report']:
                     buttons_wrapper = preview.elements.get('buttons_wrapper')
                     if buttons_wrapper:
@@ -759,11 +768,38 @@ class PluginCardPreview:
         view.setFocusable(True)
         view.setOnClickListener(Tap(key))
 
+        if key == 'details':
+            show_details = _gs("show_details_button")
+            if not show_details:
+                try:
+                    details_btn = preview.elements.get('details_btn')
+                    if details_btn:
+                        icon = None
+                        if details_btn.getChildCount() > 0:
+                            icon = details_btn.getChildAt(0)
+                        
+                        if icon:
+                            gray_color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+                            icon.setColorFilter(gray_color)
+                except Exception as e:
+                    log(f"PCE: Error setting gray state for details button: {e}")
+
+        if key == 'more':
+            try:
+                more_btn = preview.elements.get('more_btn')
+                if more_btn and more_btn.getChildCount() > 0:
+                    icon = more_btn.getChildAt(0)
+                    if icon:
+                        normal_color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+                        icon.setColorFilter(normal_color)
+            except Exception as e:
+                log(f"PCE: Error setting more button color: {e}")
+
     def _refreshHighlight(self):
         if not self.highlight or not self.currentSelection or not self.currentView:
             return
         key    = self.currentSelection
-        if key == 'details':
+        if key in ['details', 'more']:
             radius = int(_gs(_KEY_CARD_RADIUS)) if _gs(_KEY_CARD_RADIUS) else 6
         else:
             radius = 12 if key == 'icon' else (int(_gs(_KEY_CARD_RADIUS)) if key == 'card' else 6)
@@ -777,7 +813,7 @@ class PluginCardPreview:
         self.currentView      = view
         if self.highlight:
             try:
-                if key == 'details':
+                if key in ['details', 'more']:
                     radius = int(_gs(_KEY_CARD_RADIUS)) if _gs(_KEY_CARD_RADIUS) else 6
                 else:
                     radius = 12 if key == 'icon' else (int(_gs(_KEY_CARD_RADIUS)) if key == 'card' else 6)
@@ -878,6 +914,22 @@ class PluginCardPreview:
             for setting_key, icon_btn in self._action_buttons.items():
                 should_show = _gs(setting_key)
                 icon_btn.setVisibility(View.VISIBLE if should_show else View.GONE)
+
+            show_details = _gs("show_details_button")
+            details_btn = self.elements.get('details_btn')
+            if details_btn:
+                details_btn.setVisibility(View.VISIBLE if show_details else View.GONE)
+
+            relocate_keys = [
+                "relocate_copy_link", "relocate_share", "relocate_code",
+                "relocate_download", "relocate_translate", "relocate_report"
+            ]
+            enabled_relocate_count = sum(1 for key in relocate_keys if _gs(key))
+            
+            show_more_button = not show_details and enabled_relocate_count == 0
+            more_btn = self.elements.get('more_btn')
+            if more_btn:
+                more_btn.setVisibility(View.VISIBLE if show_more_button else View.GONE)
             # chips
             show_ver  = _gs("show_plugin_min_version")
             show_deps = _gs("show_plugin_deps_count")
@@ -916,6 +968,48 @@ class PluginCardPreview:
             self._apply_visibility(animated=True)
             for ck in ("chip_ver", "chip_deps", "chip_size"):
                 self._refresh_chip(ck)
+            show_details = _gs("show_details_button")
+            details_btn = self.elements.get('details_btn')
+            if details_btn:
+                try:
+                    icon = None
+                    if details_btn.getChildCount() > 0:
+                        icon = details_btn.getChildAt(0)
+                    
+                    if icon:
+                        if show_details:
+                            normal_color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+                            icon.setColorFilter(normal_color)
+                        else:
+                            gray_color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+                            icon.setColorFilter(gray_color)
+                except Exception as e:
+                    log(f"PCE: Error updating details button color: {e}")
+
+            relocate_keys = [
+                "relocate_copy_link", "relocate_share", "relocate_code",
+                "relocate_download", "relocate_translate", "relocate_report"
+            ]
+            enabled_relocate_count = sum(1 for key in relocate_keys if _gs(key))
+            show_more_button = not show_details and enabled_relocate_count == 0
+            
+            more_btn = self.elements.get('more_btn')
+            if more_btn:
+                try:
+                    icon = None
+                    if more_btn.getChildCount() > 0:
+                        icon = more_btn.getChildAt(0)
+                    
+                    if icon:
+                        if show_more_button:
+                            more_btn.setVisibility(View.VISIBLE)
+                            normal_color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+                            icon.setColorFilter(normal_color)
+                        else:
+                            more_btn.setVisibility(View.GONE)
+                except Exception as e:
+                    log(f"PCE: Error updating more button: {e}")
+            
             # recalculate highlight after transition (220ms) settles
             try:
                 from android_utils import R as _R
@@ -1067,6 +1161,8 @@ class PluginCardEditorPage:
 
         elif key == 'details':
             self._header(ctx, strings.card_section_buttons)
+            self._check(ctx, "show_details_button", strings.show_details_button)
+            self._divider(ctx)
             for setting_key, label, icon in [
                 ("relocate_copy_link", strings.copy_link, "msg_copy"),
                 ("relocate_share", strings.share, "msg_share"),
@@ -1267,6 +1363,14 @@ class PluginCardEditorPage:
                     new_val = not _gs(key)
                     
                     if new_val and enabled_count >= 3:
+                        try:
+                            fragment = get_last_fragment()
+                            if fragment and BulletinFactory:
+                                container = fragment.getParentActivity().getWindow().getDecorView()
+                                resource_provider = fragment.getResourceProvider()
+                                BulletinFactory.of(container, resource_provider).createErrorBulletin(strings["max_buttons_allowed"]).show()
+                        except Exception as e:
+                            log(f"PCE: Failed to show button limit popup: {e}")
                         return
                     
                     _cs(key, new_val)

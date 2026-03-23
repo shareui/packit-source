@@ -2155,8 +2155,10 @@ class InstallUI:
                 except Exception as e:
                     log(f"Error showing plugin actions menu: {e}")
 
-            menu_btn = create_icon_pill("ic_ab_other", lambda: show_plugin_actions_menu(menu_btn))
-            buttons.addView(menu_btn, LayoutHelper.createLinear(-2, -2))
+            show_details_button = settings.get("show_details_button", True)
+            if show_details_button:
+                menu_btn = create_icon_pill("ic_ab_other", lambda: show_plugin_actions_menu(menu_btn))
+                buttons.addView(menu_btn, LayoutHelper.createLinear(-2, -2))
             container.addView(buttons, LayoutHelper.createLinear(-1, -2))
 
             row.addView(container)
