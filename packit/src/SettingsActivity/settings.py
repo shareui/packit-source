@@ -41,11 +41,8 @@ from dataclasses import dataclass, field
 from ..ui.FontPickerBottomSheet import showFontPicker
 from ..ui.FontManager import getSelectedFilename
 
-
-
-
 def _getCacheInfo(cacheDir):
-    # returns (human-readable size string, file count)
+    # returns (human readb size str, file count)
     try:
         total = 0
         count = 0
@@ -73,7 +70,7 @@ def _getCacheSize(cacheDir):
 
 
 def _getFreeSpace(path):
-    # returns human-readable free space for the given path
+    # returns free space for the given path
     try:
         stat = os.statvfs(path)
         free = stat.f_bavail * stat.f_frsize
@@ -136,7 +133,7 @@ def _buildTextSubtextCell(context, text, subtext, icon, on_click):
         subtitleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
         textBlock.addView(subtitleView, LayoutHelper.createLinear(-2, -2, 0, 2, 0, 0))
 
-        # 23+24+25=72dp total left offset — matches native cell text start
+        # 23+24+25=72dp total left offset
         row.addView(textBlock, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL, 25, 10, 17, 10))
 
         log("other: _buildTextSubtextCell done")
@@ -362,115 +359,244 @@ def _buildDownloadPathCard(context, currentPath):
         return None
 
 
-def _buildSelectorWithSubtext(context, text, subtext, items, key, default, icon, on_change=None, short_items=None):
-    # selector cell: icon + title + subtext on the left, current value on the right
-    # tapping opens native AlertDialog with radio buttons (same as built-in SelectorSetting)
+def _buildSearchEngineCards(context, key, default, on_change=None):
     try:
-        from android.widget import ImageView
-        from hook_utils import find_class
         from elyx import settings as _settings
+        from android.graphics.drawable import GradientDrawable
+        from android.graphics import Color
+        from android.animation import ValueAnimator
+        from android.view.animation import DecelerateInterpolator
+        from java import dynamic_proxy
         dp = AndroidUtilities.dp
+
+        wrapper = LinearLayout(context)
+        wrapper.setOrientation(LinearLayout.VERTICAL)
+        wrapper.setPadding(dp(16), dp(8), dp(16), dp(8))
+
+        headerView = TextView(context)
+        headerView.setText(str(strings.search_engine))
+        headerView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+        headerView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+        headerView.setGravity(Gravity.CENTER_HORIZONTAL)
+        wrapper.addView(headerView, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 6))
 
         row = LinearLayout(context)
         row.setOrientation(LinearLayout.HORIZONTAL)
-        row.setGravity(Gravity.CENTER_VERTICAL)
-        row.setMinimumHeight(dp(64))
-        row.setClickable(True)
-        row.setFocusable(True)
-        row.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 2))
+        wrapper.addView(row, LayoutHelper.createLinear(-1, -2))
 
-        icon_id = None
-        try:
-            R_cls = find_class("org.telegram.messenger.R")
-            icon_id = getattr(R_cls.drawable, icon)
-        except Exception:
-            pass
+        accentColor = Theme.getColor(Theme.key_featuredStickers_addButton)
+        surfaceColor = Theme.getColor(Theme.key_windowBackgroundWhite)
+        grayColor = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+        blackText = Theme.getColor(Theme.key_windowBackgroundWhiteBlackText)
 
-        if icon_id is not None:
-            iconView = ImageView(context)
-            iconView.setImageResource(icon_id)
-            iconView.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon))
-            row.addView(iconView, LayoutHelper.createLinear(24, 24, Gravity.CENTER_VERTICAL, 23, 0, 0, 0))
+        accentR = (accentColor >> 16) & 0xFF
+        accentG = (accentColor >> 8) & 0xFF
+        accentB = accentColor & 0xFF
+        activeFill = Color.argb(30, accentR, accentG, accentB)
+        inactiveFill = surfaceColor
+        activeStroke = accentColor
+        inactiveStroke = Color.argb(40, 128, 128, 128)
 
-        textBlock = LinearLayout(context)
-        textBlock.setOrientation(LinearLayout.VERTICAL)
+        labels = [str(strings.search_engine_native_short), str(strings.search_engine_python_short)]
+        subtexts = [str(strings.search_engine_native), str(strings.search_engine_python)]
 
-        titleView = TextView(context)
-        titleView.setText(str(text))
-        titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
-        titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
-        textBlock.addView(titleView, LayoutHelper.createLinear(-2, -2))
+        current_ref = [_settings.get(key, default)]
+        card_refs = [None, None]
+        bg_refs = [None, None]
 
-        subtitleView = TextView(context)
-        subtitleView.setText(str(subtext))
-        subtitleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
-        subtitleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
-        textBlock.addView(subtitleView, LayoutHelper.createLinear(-2, -2, 0, 2, 0, 0))
+        def lerpColor(c1, c2, t):
+            # linear interpolation between two ARGB ints, avoids ArgbEvaluator Long cast issue
+            a = int(((c1 >> 24) & 0xFF) + t * (((c2 >> 24) & 0xFF) - ((c1 >> 24) & 0xFF)))
+            r = int(((c1 >> 16) & 0xFF) + t * (((c2 >> 16) & 0xFF) - ((c1 >> 16) & 0xFF)))
+            g = int(((c1 >> 8) & 0xFF) + t * (((c2 >> 8) & 0xFF) - ((c1 >> 8) & 0xFF)))
+            b = int((c1 & 0xFF) + t * ((c2 & 0xFF) - (c1 & 0xFF)))
+            return Color.argb(a, r, g, b)
 
-        row.addView(textBlock, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL, 25, 10, 8, 10))
+        def animateCard(card, bg, toActive):
+            fromFill = inactiveFill if toActive else activeFill
+            toFill = activeFill if toActive else inactiveFill
+            fromStroke = inactiveStroke if toActive else activeStroke
+            toStroke = activeStroke if toActive else inactiveStroke
+            strokeFrom = dp(1) if toActive else dp(2)
+            strokeTo = dp(2) if toActive else dp(1)
 
-        valueView = TextView(context)
-        labels = short_items if short_items else items
-        current = _settings.get(key, default)
-        if isinstance(current, int) and 0 <= current < len(labels):
-            valueView.setText(str(labels[current]))
-        else:
-            valueView.setText(str(labels[default]))
-        valueView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
-        valueView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
-        row.addView(valueView, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL, 0, 0, 17, 0))
+            class _Listener(dynamic_proxy(ValueAnimator.AnimatorUpdateListener)):
+                def onAnimationUpdate(self, anim):
+                    t = float(anim.getAnimatedFraction())
+                    bg.setColor(lerpColor(fromFill, toFill, t))
+                    bg.setStroke(int(strokeFrom + t * (strokeTo - strokeFrom)), lerpColor(fromStroke, toStroke, t))
+                    card.setBackground(bg)
 
-        def onClick(v):
-            try:
-                from org.telegram.ui.ActionBar import AlertDialog
-                from android.widget import RadioButton
-                from java import dynamic_proxy
+            anim = ValueAnimator.ofFloat(0.0, 1.0)
+            anim.setDuration(350)
+            anim.setInterpolator(DecelerateInterpolator(2.0))
+            anim.addUpdateListener(_Listener())
+            anim.start()
 
-                frag = get_last_fragment()
-                act = frag.getParentActivity() if frag else None
-                if not act:
+        def makeCardBg(active):
+            bg = GradientDrawable()
+            bg.setCornerRadius(dp(12))
+            bg.setColor(activeFill if active else inactiveFill)
+            bg.setStroke(dp(2) if active else dp(1), activeStroke if active else inactiveStroke)
+            return bg
+
+        def refreshCards(prev):
+            cur = current_ref[0]
+            for i, card in enumerate(card_refs):
+                if card is not None and bg_refs[i] is not None:
+                    if i == cur and i != prev:
+                        animateCard(card, bg_refs[i], True)
+                    elif i == prev and i != cur:
+                        animateCard(card, bg_refs[i], False)
+
+        def makeCardClick(idx):
+            def onClick(v):
+                prev = current_ref[0]
+                if prev == idx:
                     return
+                _settings.set(key, idx)
+                current_ref[0] = idx
+                refreshCards(prev)
+                if on_change:
+                    on_change(idx)
+            return onClick
 
-                current_val = _settings.get(key, default)
+        for i in range(2):
+            card = LinearLayout(context)
+            card.setOrientation(LinearLayout.VERTICAL)
+            card.setGravity(Gravity.CENTER)
+            card.setClickable(True)
+            card.setFocusable(True)
+            card.setPadding(dp(12), dp(14), dp(12), dp(14))
+            cardBg = makeCardBg(current_ref[0] == i)
+            card.setBackground(cardBg)
+            bg_refs[i] = cardBg
+            card.setOnClickListener(OnClickListener(makeCardClick(i)))
+            card_refs[i] = card
 
-                dialog_list = LinearLayout(act)
-                dialog_list.setOrientation(LinearLayout.VERTICAL)
+            nameView = TextView(context)
+            nameView.setText(labels[i])
+            nameView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+            nameView.setTextColor(blackText)
+            nameView.setGravity(Gravity.CENTER)
+            try:
+                nameView.setTypeface(AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_MEDIUM))
+            except Exception:
+                pass
+            card.addView(nameView, LayoutHelper.createLinear(-1, -2))
 
-                RadioColorCell = find_class("org.telegram.ui.Cells.RadioColorCell")
+            subView = TextView(context)
+            subView.setText(subtexts[i])
+            subView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
+            subView.setTextColor(grayColor)
+            subView.setGravity(Gravity.CENTER)
+            card.addView(subView, LayoutHelper.createLinear(-1, -2, 0, 3, 0, 0))
 
-                dialog_ref = [None]
+            lp = LayoutHelper.createLinear(0, -2, 1.0, Gravity.TOP)
+            if i == 0:
+                row.addView(card, LayoutHelper.createLinear(0, -2, 1.0, Gravity.TOP, 0, 0, 6, 0))
+            else:
+                row.addView(card, LayoutHelper.createLinear(0, -2, 1.0, Gravity.TOP, 0, 0, 0, 0))
 
-                def make_click(idx):
-                    def on_item_click(v2):
-                        _settings.set(key, idx)
-                        valueView.setText(str(labels[idx]))
-                        if on_change:
-                            on_change(idx)
-                        if dialog_ref[0]:
-                            dialog_ref[0].dismiss()
-                    return on_item_click
+        hintView = TextView(context)
+        hintView.setText(str(strings.search_engine_desc))
+        hintView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
+        hintView.setTextColor(grayColor)
+        wrapper.addView(hintView, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 0))
 
-                for i, item_text in enumerate(items):
-                    cell = RadioColorCell(act)
-                    cell.setTextAndValue(str(item_text), current_val == i)
-                    cell.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 2))
-                    cell.setOnClickListener(OnClickListener(make_click(i)))
-                    dialog_list.addView(cell)
-
-                builder = AlertDialog.Builder(act)
-                builder.setTitle(str(text))
-                builder.setView(dialog_list)
-                builder.setNegativeButton(act.getString(find_class("org.telegram.messenger.R").string.Cancel), None)
-                d = builder.create()
-                dialog_ref[0] = d
-                d.show()
-            except Exception as e:
-                log(f"selector dialog error: {e}")
-
-        row.setOnClickListener(OnClickListener(onClick))
-        return row
+        return wrapper
     except Exception as e:
-        log(f"_buildSelectorWithSubtext error: {e}")
+        log(f"_buildSearchEngineCards error: {e}")
+        return None
+
+
+def _buildSearchEngineToggle(context, key, default, on_change=None):
+    try:
+        from elyx import settings as _settings
+        from android.graphics.drawable import GradientDrawable
+        from android.graphics import Color
+        dp = AndroidUtilities.dp
+
+        wrapper = LinearLayout(context)
+        wrapper.setOrientation(LinearLayout.VERTICAL)
+        wrapper.setPadding(dp(16), dp(8), dp(16), dp(8))
+
+        headerRow = LinearLayout(context)
+        headerRow.setOrientation(LinearLayout.HORIZONTAL)
+        headerRow.setGravity(Gravity.CENTER_VERTICAL)
+        wrapper.addView(headerRow, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8))
+
+        labelView = TextView(context)
+        labelView.setText(str(strings.search_engine))
+        labelView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
+        labelView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+        headerRow.addView(labelView, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+
+        accentColor = Theme.getColor(Theme.key_featuredStickers_addButton)
+        grayColor = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+        surfaceColor = Theme.getColor(Theme.key_windowBackgroundWhite)
+        blackText = Theme.getColor(Theme.key_windowBackgroundWhiteBlackText)
+
+        labels = [str(strings.search_engine_native_short), str(strings.search_engine_python_short)]
+        current_ref = [_settings.get(key, default)]
+
+        trackBg = GradientDrawable()
+        trackBg.setCornerRadius(dp(10))
+        trackBg.setColor(Theme.getColor(Theme.key_switchTrack))
+
+        track = LinearLayout(context)
+        track.setOrientation(LinearLayout.HORIZONTAL)
+        track.setBackground(trackBg)
+        track.setPadding(dp(2), dp(2), dp(2), dp(2))
+        headerRow.addView(track, LayoutHelper.createLinear(-2, 36, Gravity.CENTER_VERTICAL))
+
+        btn_views = [None, None]
+
+        def makeThumbBg(active):
+            bg = GradientDrawable()
+            bg.setCornerRadius(dp(8))
+            bg.setColor(accentColor if active else 0x00000000)
+            return bg
+
+        def refreshToggle():
+            cur = current_ref[0]
+            for i, btn in enumerate(btn_views):
+                if btn is not None:
+                    btn.setBackground(makeThumbBg(cur == i))
+                    btn.setTextColor(blackText if cur == i else grayColor)
+
+        def makeToggleClick(idx):
+            def onClick(v):
+                _settings.set(key, idx)
+                current_ref[0] = idx
+                refreshToggle()
+                if on_change:
+                    on_change(idx)
+            return onClick
+
+        for i, label in enumerate(labels):
+            btn = TextView(context)
+            btn.setText(label)
+            btn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            btn.setGravity(Gravity.CENTER)
+            btn.setClickable(True)
+            btn.setFocusable(True)
+            btn.setPadding(dp(14), dp(4), dp(14), dp(4))
+            btn.setBackground(makeThumbBg(current_ref[0] == i))
+            btn.setTextColor(blackText if current_ref[0] == i else grayColor)
+            btn.setOnClickListener(OnClickListener(makeToggleClick(i)))
+            btn_views[i] = btn
+            track.addView(btn, LayoutHelper.createLinear(-2, -1))
+
+        hintView = TextView(context)
+        hintView.setText(str(strings.search_engine_desc))
+        hintView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
+        hintView.setTextColor(grayColor)
+        wrapper.addView(hintView, LayoutHelper.createLinear(-1, -2))
+
+        return wrapper
+    except Exception as e:
+        log(f"_buildSearchEngineToggle error: {e}")
         return None
 
 
@@ -503,23 +629,26 @@ class OtherSettings:
     def _build_search_engine_item(self, ctx):
         try:
             if ctx:
-                items = [strings.search_engine_native, strings.search_engine_python]
-                short_items = [strings.search_engine_native_short, strings.search_engine_python_short]
-                view = _buildSelectorWithSubtext(
-                    ctx,
-                    text=strings.search_engine,
-                    subtext=strings.search_engine_desc,
-                    items=items,
-                    key="search_engine",
-                    default=0,
-                    icon="msg_speed",
-                    short_items=short_items,
-                )
+                view = _buildSearchEngineCards(ctx, key="search_engine", default=0)
                 if view is not None:
                     return Custom(view=view)
             log("other: _build_search_engine_item falling back to Text")
         except Exception as e:
             log(f"other: _build_search_engine_item error: {e}")
+        return Text(
+            text=strings.search_engine,
+            icon="msg_speed",
+        )
+
+    def _build_search_engine_item_v3(self, ctx):
+        try:
+            if ctx:
+                view = _buildSearchEngineToggle(ctx, key="search_engine", default=0)
+                if view is not None:
+                    return Custom(view=view)
+            log("other: _build_search_engine_item_v3 falling back to Text")
+        except Exception as e:
+            log(f"other: _build_search_engine_item_v3 error: {e}")
         return Text(
             text=strings.search_engine,
             icon="msg_speed",
@@ -839,6 +968,10 @@ class OtherSettings:
             Switch(key="sfx_clear_search", text=strings.sfx_clear_search, default=False, icon="msg_close", link_alias="sfx_clear_search"),
             Switch(key="sfx_achievement", text=strings.sfx_achievement, default=True, icon="msg_gift_premium", link_alias="sfx_achievement"),
             Divider(text=strings.sfx_header_desc),
+            Header(text=strings.components_header),
+            self._build_search_engine_item(ctx),    # variant 1: two cards side-by-side
+            # self._build_search_engine_item_v3(ctx), # variant 3: inline toggle
+            Divider(),
             Header(text=strings.misc_header),
             Switch(
                 key="show_startup_status",
@@ -848,7 +981,6 @@ class OtherSettings:
                 icon="msg_info",
                 link_alias="show_startup_status"
             ),
-            self._build_search_engine_item(ctx),
             Switch(
                 key="fuzzy_search",
                 text=strings.fuzzy_search,
