@@ -40,6 +40,7 @@ _KEY_SHOW_DESC    = "card_show_desc"
 _KEY_DESC_SIZE    = "card_desc_size"
 _KEY_CARD_RADIUS  = "card_radius"
 _KEY_CARD_PADDING = "card_padding"
+_KEY_STICKER_RADIUS = "sticker_radius"
 
 _DEFAULTS = {
     _KEY_SHOW_ICON:    True,
@@ -51,6 +52,7 @@ _DEFAULTS = {
     _KEY_DESC_SIZE:    15,
     _KEY_CARD_RADIUS:  18,
     _KEY_CARD_PADDING: 12,
+    _KEY_STICKER_RADIUS: 18,
     "chip_gravity":    5,
     "chip_ver_size":   11,
     "chip_deps_size":  11,
@@ -73,6 +75,7 @@ _BUTTON_DEFAULTS = {
     "relocate_translate":  False,
     "relocate_report":     False,
     "show_details_button":  True,
+    "show_view_button":     True,
 }
 
 
@@ -579,6 +582,11 @@ class PluginCardPreview:
 
         details_btn = self._create_icon_pill("ic_ab_other")
         self.elements['details_btn'] = details_btn
+        
+        view_btn = self._create_pill_button(strings["plugin_view_button"], "msg_view_file")
+        self.elements['view_btn'] = view_btn
+        self._wire(view_btn, 'view_btn')
+
         more_btn = self._create_icon_pill("msg_addbot")
         self.elements['more_btn'] = more_btn
         self._wire(more_btn, 'more')
@@ -589,6 +597,9 @@ class PluginCardPreview:
         
         self.elements['buttons_wrapper'] = buttons_wrapper
         self.elements['actions_row'] = actions_row
+        actions_row.addView(view_btn, LayoutHelper.createLinear(-2, -2, Gravity.LEFT))
+        spacer = View(self.context)
+        actions_row.addView(spacer, LayoutHelper.createLinear(0, 0, 1.0))
         actions_row.addView(buttons_wrapper, LayoutHelper.createLinear(-2, -2, Gravity.RIGHT))
         card.addView(actions_row, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 0))
 
@@ -627,11 +638,53 @@ class PluginCardPreview:
         self._wire(card,          'card')
         self._wire(chips_col,     'chips')
         self._wire(tags_wrapper,  'tags')
+        self._wire(view_btn,      'view_btn')
         self._wire(details_btn,   'details')
 
         self._apply_card_style()
+        self._apply_icon_style()
         self._apply_visibility()
         return outer
+
+    def _create_pill_button(self, text, icon_name):
+        try:
+            accent = Theme.getColor(Theme.key_featuredStickers_addButton)
+            pill = FrameLayout(self.context)
+            bg = GradientDrawable()
+            bg.setShape(GradientDrawable.RECTANGLE)
+            bg.setCornerRadius(float(AndroidUtilities.dp(18)))
+            bg.setColor(accent)
+            pill.setBackground(bg)
+            
+            content = LinearLayout(self.context)
+            content.setOrientation(LinearLayout.HORIZONTAL)
+            content.setGravity(Gravity.CENTER_VERTICAL)
+            content.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(7), AndroidUtilities.dp(12), AndroidUtilities.dp(7))
+            
+            icon = ImageView(self.context)
+            try:
+                from hook_utils import find_class
+                R_tg = find_class("org.telegram.messenger.R")
+                icon_id = getattr(R_tg.drawable, icon_name, 0)
+                icon.setImageResource(icon_id)
+                icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_buttonText))
+            except Exception:
+                pass
+            
+            content.addView(icon, LayoutHelper.createLinear(18, 18, 0, 0, 5, 0))
+            
+            tv = TextView(self.context)
+            tv.setText(text)
+            tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+            tv.setTypeface(AndroidUtilities.bold())
+            tv.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
+            content.addView(tv)
+            
+            pill.addView(content, FrameLayout.LayoutParams(-2, -2))
+            return pill
+        except Exception as e:
+            log(f"PCE: _create_pill_button error: {e}")
+            return View(self.context)
 
     def _create_icon_pill(self, icon_name):
         try:
@@ -658,7 +711,8 @@ class PluginCardPreview:
                 Gravity.CENTER
             ))
             
-            pill.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
+            pill.setPadding(AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6))
+            pill.setLayoutParams(LinearLayout.LayoutParams(AndroidUtilities.dp(36), AndroidUtilities.dp(36)))
             return pill
         except Exception as e:
             log(f"PCE: _create_icon_pill error: {e}")
@@ -843,6 +897,16 @@ class PluginCardPreview:
         except Exception as e:
             log(f"PCE: _apply_card_style error: {e}")
 
+    def _apply_icon_style(self):
+        try:
+            icon_frame = self.elements['icon_frame']
+            if icon_frame:
+                bg = icon_frame.getBackground()
+                if bg and hasattr(bg, 'setCornerRadius'):
+                    bg.setCornerRadius(float(AndroidUtilities.dp(_gs(_KEY_STICKER_RADIUS))))
+        except Exception as e:
+            log(f"PCE: _apply_icon_style error: {e}")
+
     def _apply_visibility(self, animated=False):
         try:
             if animated:
@@ -920,6 +984,16 @@ class PluginCardPreview:
             if details_btn:
                 details_btn.setVisibility(View.VISIBLE if show_details else View.GONE)
 
+            show_view = _gs("show_view_button")
+            view_btn = self.elements.get('view_btn')
+            if view_btn:
+                if show_view:
+                    view_btn.setVisibility(View.VISIBLE)
+                    view_btn.setAlpha(1.0)
+                else:
+                    view_btn.setVisibility(View.VISIBLE)
+                    view_btn.setAlpha(0.5)
+
             relocate_keys = [
                 "relocate_copy_link", "relocate_share", "relocate_code",
                 "relocate_download", "relocate_translate", "relocate_report"
@@ -965,6 +1039,7 @@ class PluginCardPreview:
                 lp.rightMargin = AndroidUtilities.dp(12)
                 target.setLayoutParams(lp)
             self._apply_card_style()
+            self._apply_icon_style()
             self._apply_visibility(animated=True)
             for ck in ("chip_ver", "chip_deps", "chip_size"):
                 self._refresh_chip(ck)
@@ -1119,6 +1194,7 @@ class PluginCardEditorPage:
             self._header(ctx, strings.card_section_icon)
             self._check(ctx, _KEY_SHOW_ICON, strings.card_show_icon)
             self._slider(ctx, strings.card_icon_size, _KEY_ICON_SIZE, 40, 100, 67)
+            self._slider(ctx, "Sticker Radius", _KEY_STICKER_RADIUS, 0, 50, 18)
             self._check(ctx, "show_default_sticker", strings.show_default_sticker)
 
         elif key == 'name':
@@ -1159,9 +1235,13 @@ class PluginCardEditorPage:
             ]:
                 self._chip_settings(ctx, chip_key, label)
 
+        elif key == 'view_btn':
+            self._header(ctx, strings["plugin_view_button"])
+            self._check(ctx, "show_view_button", strings.show_view_button)
+
         elif key == 'details':
             self._header(ctx, strings.card_section_buttons)
-            self._check(ctx, "show_details_button", strings.show_details_button)
+            self._check_details_button(ctx, "show_details_button", strings.show_details_button)
             self._divider(ctx)
             for setting_key, label, icon in [
                 ("relocate_copy_link", strings.copy_link, "msg_copy"),
@@ -1360,9 +1440,21 @@ class PluginCardEditorPage:
                         "relocate_download", "relocate_translate", "relocate_report"
                     ]
                     enabled_count = sum(1 for k in relocate_keys if _gs(k))
+                    details_enabled = _gs("show_details_button")
                     new_val = not _gs(key)
                     
-                    if new_val and enabled_count >= 3:
+                    if new_val and enabled_count + (1 if details_enabled else 0) >= 4:
+                        try:
+                            fragment = get_last_fragment()
+                            if fragment and BulletinFactory:
+                                container = fragment.getParentActivity().getWindow().getDecorView()
+                                resource_provider = fragment.getResourceProvider()
+                                BulletinFactory.of(container, resource_provider).createErrorBulletin(strings["max_buttons_allowed"]).show()
+                        except Exception as e:
+                            log(f"PCE: Failed to show button limit popup: {e}")
+                        return
+                        
+                    if new_val and details_enabled and enabled_count >= 3:
                         try:
                             fragment = get_last_fragment()
                             if fragment and BulletinFactory:
@@ -1382,6 +1474,44 @@ class PluginCardEditorPage:
             self.settings_root.addView(cell, LayoutHelper.createLinear(-1, -2))
         except Exception as e:
             log(f"PCE: _check_relocate_button error: {e}")
+
+    def _check_details_button(self, ctx, key, label):
+        try:
+            from org.telegram.ui.Cells import TextCheckCell
+            cell = TextCheckCell(ctx)
+            current_val = bool(_gs(key))
+            cell.setTextAndCheck(str(label), current_val, False)
+            preview = self.preview
+
+            class CellClick(dynamic_proxy(View.OnClickListener)):
+                def onClick(self, v):
+                    relocate_keys = [
+                        "relocate_copy_link", "relocate_share", "relocate_code",
+                        "relocate_download", "relocate_translate", "relocate_report"
+                    ]
+                    enabled_count = sum(1 for k in relocate_keys if _gs(k))
+                    new_val = not _gs(key)
+                    
+                    if new_val and enabled_count > 3:
+                        try:
+                            fragment = get_last_fragment()
+                            if fragment and BulletinFactory:
+                                container = fragment.getParentActivity().getWindow().getDecorView()
+                                resource_provider = fragment.getResourceProvider()
+                                BulletinFactory.of(container, resource_provider).createErrorBulletin(strings["max_buttons_allowed"]).show()
+                        except Exception as e:
+                            log(f"PCE: Failed to show button limit popup: {e}")
+                        return
+                    
+                    _cs(key, new_val)
+                    cell.setChecked(new_val)
+                    if preview:
+                        run_on_ui_thread(preview.refresh)
+
+            cell.setOnClickListener(CellClick())
+            self.settings_root.addView(cell, LayoutHelper.createLinear(-1, -2))
+        except Exception as e:
+            log(f"PCE: _check_details_button error: {e}")
 
     def _check(self, ctx, key, label):
         try:

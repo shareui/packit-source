@@ -1552,7 +1552,7 @@ class InstallUI:
             if show_icon:
                 try:
                     icon_view = BackupImageView(act)
-                    icon_view.setRoundRadius(AndroidUtilities.dp(12))
+                    icon_view.setRoundRadius(AndroidUtilities.dp(settings.get("sticker_radius", 18)))
                     try:
                         icon_view.getImageReceiver().setCrossfadeWithOldImage(True)
                     except Exception:
@@ -1880,10 +1880,26 @@ class InstallUI:
                 except Exception as e:
                     log(f"pluginProfile: open error: {e}")
 
+            def onCardClick(v, plugin=p, row_ref=row, hint_ref=current_hint_ref, available=is_available):
+                show_view_button = settings.get("show_view_button", True)
+                if not show_view_button:
+                    try:
+                        from ..PluginActivity.fragment import show_plugin_profile
+                        show_plugin_profile(plugin, self.install_ui, self.plugins, repo_id=self.repo_id)
+                    except Exception as e:
+                        log(f"pluginProfile: open error: {e}")
+
             install_btn.setOnClickListener(OnClickListener(onViewClick))
             self.install_ui._apply_press_scale(install_btn)
 
-            buttons.addView(install_btn, LayoutHelper.createLinear(-2, -2, 0, 0, 8, 0))
+            show_view_button = settings.get("show_view_button", True)
+            if not show_view_button:
+                row.setOnClickListener(OnClickListener(onCardClick))
+                self.install_ui._apply_press_scale(row)
+
+            show_view_button = settings.get("show_view_button", True)
+            if show_view_button:
+                buttons.addView(install_btn, LayoutHelper.createLinear(-2, -2, 0, 0, 8, 0))
 
             def create_icon_pill(icon_name, handler):
                 try:
