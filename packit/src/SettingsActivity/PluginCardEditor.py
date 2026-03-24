@@ -73,6 +73,7 @@ _BUTTON_DEFAULTS = {
     "relocate_translate":  False,
     "relocate_report":     False,
     "show_details_button":  True,
+    "show_view_button":     True,
 }
 
 
@@ -579,6 +580,11 @@ class PluginCardPreview:
 
         details_btn = self._create_icon_pill("ic_ab_other")
         self.elements['details_btn'] = details_btn
+        
+        view_btn = self._create_pill_button(strings["plugin_view_button"], "msg_view_file")
+        self.elements['view_btn'] = view_btn
+        self._wire(view_btn, 'view_btn')
+
         more_btn = self._create_icon_pill("msg_addbot")
         self.elements['more_btn'] = more_btn
         self._wire(more_btn, 'more')
@@ -589,6 +595,9 @@ class PluginCardPreview:
         
         self.elements['buttons_wrapper'] = buttons_wrapper
         self.elements['actions_row'] = actions_row
+        actions_row.addView(view_btn, LayoutHelper.createLinear(-2, -2, Gravity.LEFT))
+        spacer = View(self.context)
+        actions_row.addView(spacer, LayoutHelper.createLinear(0, 0, 1.0))
         actions_row.addView(buttons_wrapper, LayoutHelper.createLinear(-2, -2, Gravity.RIGHT))
         card.addView(actions_row, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 0))
 
@@ -627,11 +636,52 @@ class PluginCardPreview:
         self._wire(card,          'card')
         self._wire(chips_col,     'chips')
         self._wire(tags_wrapper,  'tags')
+        self._wire(view_btn,      'view_btn')
         self._wire(details_btn,   'details')
 
         self._apply_card_style()
         self._apply_visibility()
         return outer
+
+    def _create_pill_button(self, text, icon_name):
+        try:
+            accent = Theme.getColor(Theme.key_featuredStickers_addButton)
+            pill = FrameLayout(self.context)
+            bg = GradientDrawable()
+            bg.setShape(GradientDrawable.RECTANGLE)
+            bg.setCornerRadius(float(AndroidUtilities.dp(18)))
+            bg.setColor(accent)
+            pill.setBackground(bg)
+            
+            content = LinearLayout(self.context)
+            content.setOrientation(LinearLayout.HORIZONTAL)
+            content.setGravity(Gravity.CENTER_VERTICAL)
+            content.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(7), AndroidUtilities.dp(12), AndroidUtilities.dp(7))
+            
+            icon = ImageView(self.context)
+            try:
+                from hook_utils import find_class
+                R_tg = find_class("org.telegram.messenger.R")
+                icon_id = getattr(R_tg.drawable, icon_name, 0)
+                icon.setImageResource(icon_id)
+                icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_buttonText))
+            except Exception:
+                pass
+            
+            content.addView(icon, LayoutHelper.createLinear(18, 18, 0, 0, 5, 0))
+            
+            tv = TextView(self.context)
+            tv.setText(text)
+            tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+            tv.setTypeface(AndroidUtilities.bold())
+            tv.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
+            content.addView(tv)
+            
+            pill.addView(content, FrameLayout.LayoutParams(-2, -2))
+            return pill
+        except Exception as e:
+            log(f"PCE: _create_pill_button error: {e}")
+            return View(self.context)
 
     def _create_icon_pill(self, icon_name):
         try:
@@ -658,7 +708,8 @@ class PluginCardPreview:
                 Gravity.CENTER
             ))
             
-            pill.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
+            pill.setPadding(AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6))
+            pill.setLayoutParams(LinearLayout.LayoutParams(AndroidUtilities.dp(36), AndroidUtilities.dp(36)))
             return pill
         except Exception as e:
             log(f"PCE: _create_icon_pill error: {e}")
@@ -920,6 +971,16 @@ class PluginCardPreview:
             if details_btn:
                 details_btn.setVisibility(View.VISIBLE if show_details else View.GONE)
 
+            show_view = _gs("show_view_button")
+            view_btn = self.elements.get('view_btn')
+            if view_btn:
+                if show_view:
+                    view_btn.setVisibility(View.VISIBLE)
+                    view_btn.setAlpha(1.0)
+                else:
+                    view_btn.setVisibility(View.VISIBLE)
+                    view_btn.setAlpha(0.5)
+
             relocate_keys = [
                 "relocate_copy_link", "relocate_share", "relocate_code",
                 "relocate_download", "relocate_translate", "relocate_report"
@@ -1158,6 +1219,10 @@ class PluginCardEditorPage:
                 ("chip_deps", strings.show_plugin_deps_count),
             ]:
                 self._chip_settings(ctx, chip_key, label)
+
+        elif key == 'view_btn':
+            self._header(ctx, strings["plugin_view_button"])
+            self._check(ctx, "show_view_button", strings.show_view_button)
 
         elif key == 'details':
             self._header(ctx, strings.card_section_buttons)

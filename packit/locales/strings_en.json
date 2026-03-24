@@ -265,6 +265,7 @@
   "card_desc_size": "Description font size",
   "card_section_buttons": "Card buttons",
   "show_details_button": "Show popup menu button",
+  "show_view_button": "Show \"View\" button",
   "card_section_shape": "Shape",
   "card_radius": "Corner radius (dp)",
   "card_padding": "Card padding (dp)",
