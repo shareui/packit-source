@@ -29,6 +29,36 @@ try:
 except Exception as e:
     import android_utils as _au; _au.log(f"pluginProfile: import UniversalFragment failed: {e}")
 
+
+def _add_actionbar_glow(fv):
+    try:
+        from android.graphics import Color
+        from android.graphics.drawable import GradientDrawable as GD
+        bg = Theme.getColor(Theme.key_windowBackgroundGray)
+        transparent = Color.argb(0, (bg >> 16) & 0xFF, (bg >> 8) & 0xFF, bg & 0xFF)
+        glow = GD(GD.Orientation.TOP_BOTTOM, [bg, transparent])
+        overlay = FrameLayout(fv.getContext())
+        overlay.setBackground(glow)
+        overlay.setClickable(False)
+        fv.addView(overlay, LayoutHelper.createFrame(-1, 24, 0x30, 0, 0, 0, 0))
+    except Exception as e:
+        log(f"pluginProfile: _add_actionbar_glow: {e}")
+
+
+def _add_bottom_glow(fv):
+    try:
+        from android.graphics import Color
+        from android.graphics.drawable import GradientDrawable as GD
+        bg = Theme.getColor(Theme.key_windowBackgroundGray)
+        transparent = Color.argb(0, (bg >> 16) & 0xFF, (bg >> 8) & 0xFF, bg & 0xFF)
+        glow = GD(GD.Orientation.BOTTOM_TOP, [bg, transparent])
+        overlay = FrameLayout(fv.getContext())
+        overlay.setBackground(glow)
+        overlay.setClickable(False)
+        fv.addView(overlay, LayoutHelper.createFrame(-1, 24, 0x50, 0, 0, 0, 0))
+    except Exception as e:
+        log(f"pluginProfile: _add_bottom_glow: {e}")
+
 try:
     from org.telegram.messenger.browser import Browser
     from android.net import Uri
@@ -370,6 +400,9 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
 
     def afterCreateView(self, v):
         log(f"pluginProfile: afterCreateView v={v}")
+        if v is not None:
+            _add_actionbar_glow(v)
+            _add_bottom_glow(v)
         return None
 
     def fillItems(self, items, adapter):
@@ -2172,6 +2205,11 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             applyFontToTree(self.content_view)
         except Exception:
             pass
+        
+        if self.content_view is not None:
+            _add_actionbar_glow(self.content_view)
+            _add_bottom_glow(self.content_view)
+        
         return self.content_view
 
     def _get_localized_description(self, plugin):
