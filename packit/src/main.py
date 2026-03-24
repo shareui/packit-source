@@ -8,7 +8,7 @@ except Exception as e:
 from .RepositoryManager import RepositoryManager
 from .core import PackItCore
 from .MainActivity import SettingsBuilder
-from .ChatActivity import ChatButton
+from .DialogsActivity.button import ChatButton
 from .deeplinks import setup_deeplink_hook
 from .other.badges import BadgeManager
 from .utils.localConfig import LocalConfig
