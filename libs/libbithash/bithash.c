@@ -2,7 +2,7 @@
 
 #include <string.h>
 #include <stdio.h>
-
+// written in full by shareui
 #if defined(__GNUC__) || defined(__clang__)
 #   define BH_INLINE   static inline __attribute__((always_inline))
 #   define BH_LIKELY(x)   __builtin_expect(!!(x), 1)
