@@ -1,5 +1,4 @@
 import os
-import hashlib
 import threading
 import requests
 from android_utils import log, run_on_ui_thread
@@ -118,21 +117,33 @@ def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button,
             pass
 
 
+from ._hashutil import hashFile, getHashMethod, METHOD_SHA256, METHOD_BITHASH
+
+
 def _get_plugin_cache_path(pkg: str, filename: str) -> str:
-    cache_dir = f"/data/data/{pkg}/files/packitCache/pluginCache"
+    # cache is isolated per hash method
+    method = getHashMethod()
+    subdir = "BitHash" if method == METHOD_BITHASH else "sha256"
+    cache_dir = f"/data/data/{pkg}/files/packitCache/pluginCache/{subdir}"
     os.makedirs(cache_dir, exist_ok=True)
     return os.path.join(cache_dir, filename)
 
 
+def _get_expected_hash(plugin_info: dict) -> str:
+    # returns the hash value matching the selected method,
+    # falls back to sha256 with a warning if bithash is selected but missing
+    method = getHashMethod()
+    if method == METHOD_BITHASH:
+        bh = plugin_info.get("bithash") or ""
+        if bh:
+            return bh
+        log(f"core: bithash not found for '{plugin_info.get('id')}', falling back to sha256")
+    return plugin_info.get("hash") or ""
+
+
+# keep old name as alias so fragment.py import stays valid
 def _sha256_file(path: str) -> str:
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        while True:
-            chunk = f.read(65536)
-            if not chunk:
-                break
-            h.update(chunk)
-    return h.hexdigest()
+    return hashFile(path)
 
 
 def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id=None, loading_view=None, on_finish=None, install_ui=None):
@@ -162,11 +173,11 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
     url_pre = plugin_info.get("link") or plugin_info.get("raw") or ""
     filename_pre = url_pre.split("/")[-1] or f"{plugin_id}.plugin"
     cache_path_pre = _get_plugin_cache_path(pkg_pre, filename_pre)
-    expected_hash_pre = plugin_info.get("hash") or ""
+    expected_hash_pre = _get_expected_hash(plugin_info)
     has_cache = False
     if expected_hash_pre and os.path.exists(cache_path_pre):
         try:
-            has_cache = _sha256_file(cache_path_pre) == expected_hash_pre
+            has_cache = hashFile(cache_path_pre) == expected_hash_pre
         except Exception:
             pass
 
@@ -191,14 +202,14 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
                 pass
 
             temp_path = os.path.join(plugins_dir, f".temp_{plugin_id}.plugin")
-            expected_hash = plugin_info.get("hash") or ""
+            expected_hash = _get_expected_hash(plugin_info)
 
             # check local plugin cache
             filename = url.split("/")[-1] or f"{plugin_id}.plugin"
             cache_path = _get_plugin_cache_path(pkg, filename)
             if expected_hash and os.path.exists(cache_path):
                 try:
-                    cached_hash = _sha256_file(cache_path)
+                    cached_hash = hashFile(cache_path)
                     if cached_hash == expected_hash:
                         log(f"core: cache hit for '{plugin_id}', using local file")
                         try:

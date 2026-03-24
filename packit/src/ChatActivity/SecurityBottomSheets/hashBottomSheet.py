@@ -17,13 +17,7 @@ except Exception as e:
     log(f"hashBottomSheet: import LayoutHelper error: {e}")
 
 
-def _computeSha256(filePath: str) -> str:
-    import hashlib
-    h = hashlib.sha256()
-    with open(filePath, "rb") as f:
-        for chunk in iter(lambda: f.read(65536), b""):
-            h.update(chunk)
-    return h.hexdigest()
+from .._hashutil import hashFile as _computeSha256
 
 
 def _extractPluginVersion(filePath: str) -> str | None:
