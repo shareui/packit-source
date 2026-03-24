@@ -1552,7 +1552,7 @@ class InstallUI:
             if show_icon:
                 try:
                     icon_view = BackupImageView(act)
-                    icon_view.setRoundRadius(AndroidUtilities.dp(12))
+                    icon_view.setRoundRadius(AndroidUtilities.dp(settings.get("sticker_radius", 18)))
                     try:
                         icon_view.getImageReceiver().setCrossfadeWithOldImage(True)
                     except Exception:

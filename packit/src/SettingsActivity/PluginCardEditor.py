@@ -40,6 +40,7 @@ _KEY_SHOW_DESC    = "card_show_desc"
 _KEY_DESC_SIZE    = "card_desc_size"
 _KEY_CARD_RADIUS  = "card_radius"
 _KEY_CARD_PADDING = "card_padding"
+_KEY_STICKER_RADIUS = "sticker_radius"
 
 _DEFAULTS = {
     _KEY_SHOW_ICON:    True,
@@ -51,6 +52,7 @@ _DEFAULTS = {
     _KEY_DESC_SIZE:    15,
     _KEY_CARD_RADIUS:  18,
     _KEY_CARD_PADDING: 12,
+    _KEY_STICKER_RADIUS: 18,
     "chip_gravity":    5,
     "chip_ver_size":   11,
     "chip_deps_size":  11,
@@ -640,6 +642,7 @@ class PluginCardPreview:
         self._wire(details_btn,   'details')
 
         self._apply_card_style()
+        self._apply_icon_style()
         self._apply_visibility()
         return outer
 
@@ -894,6 +897,16 @@ class PluginCardPreview:
         except Exception as e:
             log(f"PCE: _apply_card_style error: {e}")
 
+    def _apply_icon_style(self):
+        try:
+            icon_frame = self.elements['icon_frame']
+            if icon_frame:
+                bg = icon_frame.getBackground()
+                if bg and hasattr(bg, 'setCornerRadius'):
+                    bg.setCornerRadius(float(AndroidUtilities.dp(_gs(_KEY_STICKER_RADIUS))))
+        except Exception as e:
+            log(f"PCE: _apply_icon_style error: {e}")
+
     def _apply_visibility(self, animated=False):
         try:
             if animated:
@@ -1026,6 +1039,7 @@ class PluginCardPreview:
                 lp.rightMargin = AndroidUtilities.dp(12)
                 target.setLayoutParams(lp)
             self._apply_card_style()
+            self._apply_icon_style()
             self._apply_visibility(animated=True)
             for ck in ("chip_ver", "chip_deps", "chip_size"):
                 self._refresh_chip(ck)
@@ -1180,6 +1194,7 @@ class PluginCardEditorPage:
             self._header(ctx, strings.card_section_icon)
             self._check(ctx, _KEY_SHOW_ICON, strings.card_show_icon)
             self._slider(ctx, strings.card_icon_size, _KEY_ICON_SIZE, 40, 100, 67)
+            self._slider(ctx, "Sticker Radius", _KEY_STICKER_RADIUS, 0, 50, 18)
             self._check(ctx, "show_default_sticker", strings.show_default_sticker)
 
         elif key == 'name':
