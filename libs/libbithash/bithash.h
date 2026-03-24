@@ -1,6 +1,6 @@
 #ifndef BITHASH_H
 #define BITHASH_H
-
+// written in full by shareui
 #include <stdint.h>
 #include <stddef.h>
 
