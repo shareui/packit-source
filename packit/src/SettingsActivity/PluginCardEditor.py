@@ -1226,7 +1226,7 @@ class PluginCardEditorPage:
 
         elif key == 'details':
             self._header(ctx, strings.card_section_buttons)
-            self._check(ctx, "show_details_button", strings.show_details_button)
+            self._check_details_button(ctx, "show_details_button", strings.show_details_button)
             self._divider(ctx)
             for setting_key, label, icon in [
                 ("relocate_copy_link", strings.copy_link, "msg_copy"),
@@ -1425,9 +1425,21 @@ class PluginCardEditorPage:
                         "relocate_download", "relocate_translate", "relocate_report"
                     ]
                     enabled_count = sum(1 for k in relocate_keys if _gs(k))
+                    details_enabled = _gs("show_details_button")
                     new_val = not _gs(key)
                     
-                    if new_val and enabled_count >= 3:
+                    if new_val and enabled_count + (1 if details_enabled else 0) >= 4:
+                        try:
+                            fragment = get_last_fragment()
+                            if fragment and BulletinFactory:
+                                container = fragment.getParentActivity().getWindow().getDecorView()
+                                resource_provider = fragment.getResourceProvider()
+                                BulletinFactory.of(container, resource_provider).createErrorBulletin(strings["max_buttons_allowed"]).show()
+                        except Exception as e:
+                            log(f"PCE: Failed to show button limit popup: {e}")
+                        return
+                        
+                    if new_val and details_enabled and enabled_count >= 3:
                         try:
                             fragment = get_last_fragment()
                             if fragment and BulletinFactory:
@@ -1447,6 +1459,44 @@ class PluginCardEditorPage:
             self.settings_root.addView(cell, LayoutHelper.createLinear(-1, -2))
         except Exception as e:
             log(f"PCE: _check_relocate_button error: {e}")
+
+    def _check_details_button(self, ctx, key, label):
+        try:
+            from org.telegram.ui.Cells import TextCheckCell
+            cell = TextCheckCell(ctx)
+            current_val = bool(_gs(key))
+            cell.setTextAndCheck(str(label), current_val, False)
+            preview = self.preview
+
+            class CellClick(dynamic_proxy(View.OnClickListener)):
+                def onClick(self, v):
+                    relocate_keys = [
+                        "relocate_copy_link", "relocate_share", "relocate_code",
+                        "relocate_download", "relocate_translate", "relocate_report"
+                    ]
+                    enabled_count = sum(1 for k in relocate_keys if _gs(k))
+                    new_val = not _gs(key)
+                    
+                    if new_val and enabled_count > 3:
+                        try:
+                            fragment = get_last_fragment()
+                            if fragment and BulletinFactory:
+                                container = fragment.getParentActivity().getWindow().getDecorView()
+                                resource_provider = fragment.getResourceProvider()
+                                BulletinFactory.of(container, resource_provider).createErrorBulletin(strings["max_buttons_allowed"]).show()
+                        except Exception as e:
+                            log(f"PCE: Failed to show button limit popup: {e}")
+                        return
+                    
+                    _cs(key, new_val)
+                    cell.setChecked(new_val)
+                    if preview:
+                        run_on_ui_thread(preview.refresh)
+
+            cell.setOnClickListener(CellClick())
+            self.settings_root.addView(cell, LayoutHelper.createLinear(-1, -2))
+        except Exception as e:
+            log(f"PCE: _check_details_button error: {e}")
 
     def _check(self, ctx, key, label):
         try:
