@@ -112,7 +112,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
         self._list_root = None
         self._breadcrumb_bar = None
         self._frag_ref = [None]
-        self._clipboard = None  # ("copy"|"cut", path)
+        self._clipboard = None  # ("copy", path)
 
     def onFragmentCreate(self, *_):
         log(f"filesActivity: onFragmentCreate stack={self._stack}")
@@ -328,27 +328,44 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             self._clipboard = ("copy", path)
             log(f"filesActivity: clipboard copy {path}")
 
-        def on_cut():
-            self._clipboard = ("cut", path)
-            log(f"filesActivity: clipboard cut {path}")
-
-        _show_entry_menu(act, anchor, path, on_rename, on_delete, on_copy, on_cut)
+        _show_entry_menu(act, anchor, path, on_rename, on_delete, on_copy)
 
     def _do_rename(self, path):
         try:
-            from org.telegram.ui.ActionBar import AlertDialog as TgAlertDialog
-            from android.widget import EditText
+            from org.telegram.ui.ActionBar import AlertDialog as TgAlertDialog, Theme as TgTheme
+            from org.telegram.ui.Components import EditTextBoldCursor
             act = self._act
             name = os.path.basename(path)
 
-            edit = EditText(act)
-            edit.setText(name)
-            edit.setSelectAllOnFocus(True)
-            edit.setSingleLine(True)
+            layout = LinearLayout(act)
+            layout.setOrientation(LinearLayout.VERTICAL)
 
+            edit = EditTextBoldCursor(act)
+            edit.lineYFix = True
+            edit.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18)
+            edit.setText(name)
+            edit.setSelection(len(name))
+            edit.setTextColor(TgTheme.getColor(TgTheme.key_dialogTextBlack))
+            edit.setHintColor(TgTheme.getColor(TgTheme.key_groupcreate_hintText))
+            edit.setHintText("Enter name")
+            edit.setFocusable(True)
+            edit.setInputType(0x20001)  # TYPE_CLASS_TEXT | TYPE_TEXT_FLAG_CAP_SENTENCES
+            edit.setCursorColor(TgTheme.getColor(TgTheme.key_windowBackgroundWhiteInputFieldActivated))
+            edit.setLineColors(
+                TgTheme.getColor(TgTheme.key_windowBackgroundWhiteInputField),
+                TgTheme.getColor(TgTheme.key_windowBackgroundWhiteInputFieldActivated),
+                TgTheme.getColor(TgTheme.key_text_RedRegular)
+            )
+            edit.setBackground(None)
+            edit.setPadding(0, AndroidUtilities.dp(6), 0, AndroidUtilities.dp(6))
+            layout.addView(edit, LayoutHelper.createLinear(-1, -2, 24, 0, 24, 10))
+
+            dialog_ref = [None]
             builder = TgAlertDialog.Builder(act)
             builder.setTitle("Rename")
-            builder.setView(edit)
+            builder.makeCustomMaxHeight()
+            builder.setView(layout)
+            builder.setWidth(AndroidUtilities.dp(292))
             builder.setNegativeButton("Cancel", None)
 
             def on_ok(dialog, which):
@@ -358,13 +375,14 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                 new_path = os.path.join(os.path.dirname(path), new_name)
                 try:
                     os.rename(path, new_path)
-                    # update stack if renamed dir is in it
                     for j, s in enumerate(self._stack):
                         if s == path or s.startswith(path + os.sep):
                             self._stack[j] = s.replace(path, new_path, 1)
                     run_on_ui_thread(lambda: self._render())
                 except Exception as e:
                     log(f"filesActivity: rename error: {e}")
+                if dialog_ref[0]:
+                    dialog_ref[0].dismiss()
 
             from java import dynamic_proxy as _dp
             from org.telegram.ui.ActionBar import AlertDialog as _AD
@@ -372,8 +390,24 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                 def __init__(self): super().__init__()
                 def onClick(self, dialog, which): on_ok(dialog, which)
 
+            class _ShowListener(_dp(_AD.OnShowListener)):
+                def __init__(self): super().__init__()
+                def onShow(self, dialog):
+                    edit.requestFocus()
+                    edit.setSelection(len(str(edit.getText())))
+                    AndroidUtilities.showKeyboard(edit)
+
+            class _DismissListener(_dp(_AD.OnDismissListener)):
+                def __init__(self): super().__init__()
+                def onDismiss(self, dialog): AndroidUtilities.hideKeyboard(edit)
+
             builder.setPositiveButton("Rename", _OkListener())
-            builder.show()
+            dialog = builder.create()
+            dialog_ref[0] = dialog
+            dialog.setDismissDialogByButtons(False)
+            dialog.setOnShowListener(_ShowListener())
+            dialog.setOnDismissListener(_DismissListener())
+            dialog.show()
         except Exception as e:
             log(f"filesActivity: _do_rename error: {e}")
 
@@ -612,7 +646,7 @@ def _show_file_info(act, path):
         log(f"filesActivity: _show_file_info error: {e}")
 
 
-def _show_entry_menu(act, anchor_view, path, on_rename, on_delete, on_copy, on_cut):
+def _show_entry_menu(act, anchor_view, path, on_rename, on_delete, on_copy):
     try:
         R = find_class("org.telegram.messenger.R")
         popup_layout = ActionBarPopupWindow.ActionBarPopupWindowLayout(act)
@@ -693,8 +727,7 @@ def _show_entry_menu(act, anchor_view, path, on_rename, on_delete, on_copy, on_c
             popup_layout.addView(item, LayoutHelper.createLinear(-1, -2))
 
         create_item("msg_edit", "Rename", on_rename)
-        create_item("msg_copy", "Copy", on_copy)
-        create_item("msg_forward", "Cut", on_cut)
+        create_item("msg_copy", "Copy path", on_copy)
         create_item("msg_info", "Info", lambda: _show_file_info(act, path))
         create_item("msg_delete", "Delete", on_delete, is_red=True)
 
@@ -722,7 +755,6 @@ def _show_entry_menu(act, anchor_view, path, on_rename, on_delete, on_copy, on_c
 
 
 def _hook_swipe_back(plugin, frag_instance, delegate):
-    # block swipe-back gesture when internal stack has more than one entry
     try:
         from base_plugin import MethodReplacement
 
@@ -730,7 +762,6 @@ def _hook_swipe_back(plugin, frag_instance, delegate):
             def replace_hooked_method(self, param):
                 if param.thisObject is frag_instance:
                     return len(delegate._stack) <= 1
-                # not our instance, allow default behavior
                 return True
 
         method = frag_instance.getClass().getMethod("canBeginSlide")
