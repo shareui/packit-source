@@ -98,6 +98,11 @@ def _show_binary_sheet(activity):
         log(f"openFileFragment: _show_binary_sheet error: {e}")
 
 
+_FIRST_CHUNK_SIZE = 16 * 1024   # 16 KB — shown immediately
+_CHUNK_SIZE = 64 * 1024         # 64 KB per subsequent update
+_CHUNK_INTERVAL_S = 0.1         # 100 ms pause between subsequent chunks
+
+
 class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
 
     def __init__(self, path: str):
@@ -116,12 +121,15 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
         self._reset_btn = None
         self._h_scroll = None
         self._v_scroll = None
+        self._loading = False
+        self._load_cancelled = False
 
     def onFragmentCreate(self, *_):
         log(f"openFileFragment: onFragmentCreate path={self._path}")
 
     def onFragmentDestroy(self, *_):
         log("openFileFragment: onFragmentDestroy")
+        self._load_cancelled = True
         try:
             if self._content_view is not None:
                 parent = self._content_view.getParent()
@@ -241,7 +249,7 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
         self._v_scroll.setFillViewport(False)
 
         self._content_tv = TextView(act)
-        self._content_tv.setText(self._text)
+        self._content_tv.setText("")
         self._content_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
         self._content_tv.setTextColor(text_primary)
         self._content_tv.setSingleLine(False)
@@ -258,9 +266,89 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
         self._h_scroll.addView(self._v_scroll, LayoutHelper.createScroll(-1, -1, 0))
         outer.addView(self._h_scroll, LayoutHelper.createLinear(-1, 0, 1.0))
 
+        self._start_loading()
         return self._content_view
 
+    def _start_loading(self):
+        from client_utils import run_on_queue
+        self._loading = True
+        self._load_cancelled = False
+        run_on_queue(self._load_chunked)
+
+    def _load_chunked(self):
+        # runs on background thread, appends chunks to TextView via UI thread
+        import time
+        try:
+            from android_utils import run_on_ui_thread
+            first = True
+
+            with open(self._path, "r", encoding="utf-8", errors="replace") as f:
+                while True:
+                    if self._load_cancelled:
+                        log("openFileFragment: load cancelled")
+                        return
+
+                    size = _FIRST_CHUNK_SIZE if first else _CHUNK_SIZE
+                    chunk = f.read(size)
+                    if not chunk:
+                        break
+
+                    if not self._load_cancelled:
+                        run_on_ui_thread(lambda p=chunk: self._append_chunk(p))
+
+                    if first:
+                        first = False
+                    else:
+                        # throttle subsequent chunks so UI thread stays free
+                        time.sleep(_CHUNK_INTERVAL_S)
+
+            if not self._load_cancelled:
+                run_on_ui_thread(self._on_load_done)
+        except Exception as e:
+            log(f"openFileFragment: _load_chunked error: {e}")
+            if not self._load_cancelled:
+                from android_utils import run_on_ui_thread
+                run_on_ui_thread(self._on_load_done)
+
+    def _append_chunk(self, chunk: str):
+        # runs on UI thread
+        if self._load_cancelled or self._content_tv is None:
+            return
+        try:
+            self._text += chunk
+            self._content_tv.append(chunk)
+        except Exception as e:
+            log(f"openFileFragment: _append_chunk error: {e}")
+
+    def _on_load_done(self):
+        # runs on UI thread
+        self._loading = False
+        self._original_text = self._text
+        log(f"openFileFragment: load done, total={len(self._text)} chars")
+        self._applyHighlight()
+
+    def _applyHighlight(self):
+        if self._content_tv is None:
+            return
+        ext = os.path.splitext(self._path)[1].lower()
+        try:
+            if ext == ".json":
+                from .packlight import highlightJson
+                spannable = highlightJson(self._text)
+            elif ext in (".py", ".plugin"):
+                from .packlight import highlightPython
+                spannable = highlightPython(self._text)
+            else:
+                return
+            if spannable is not self._text:
+                self._content_tv.setText(spannable)
+        except Exception as e:
+            log(f"openFileFragment: _applyHighlight error: {e}")
+
     def _toggle_edit(self):
+        if self._loading:
+            log("openFileFragment: _toggle_edit blocked: still loading")
+            return
         self._edit_mode = not self._edit_mode
         log(f"openFileFragment: toggle edit mode={self._edit_mode}")
         try:
@@ -353,12 +441,11 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
             log(f"openFileFragment: _do_reset error: {e}")
 
 
-def open_file(path: str, text: str = None):
+def open_file(path: str, binary: bool = False):
     # called on UI thread
-    # text=None means binary sheet mode
-    log(f"openFileFragment: open_file path={path} has_text={text is not None}")
+    log(f"openFileFragment: open_file path={path} binary={binary}")
     try:
-        if text is None:
+        if binary:
             frag = get_last_fragment()
             if frag:
                 act = frag.getParentActivity()
@@ -371,8 +458,6 @@ def open_file(path: str, text: str = None):
             log("openFileFragment: open_file no fragment")
             return
         delegate = OpenFileFragment(path)
-        delegate._text = text
-        delegate._original_text = text
         new_frag = UniversalFragment(delegate)
         frag.presentFragment(new_frag)
         try:
