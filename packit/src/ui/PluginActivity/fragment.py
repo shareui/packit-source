@@ -395,7 +395,6 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         return str(self.plugin.get("name") or self.plugin.get("id") or strings.pp_unknown_plugin)
 
     def onBackPressed(self):
-        log(f"pluginProfile: onBackPressed plugin={self.plugin.get('id')}")
         return False
 
     def afterCreateView(self, v):
@@ -416,6 +415,18 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
 
     def onMenuItemClick(self, mid):
         log(f"pluginProfile: onMenuItemClick mid={mid} MENU_ID={self._MENU_ID}")
+        if mid == -1:
+            try:
+                frag = self._fragment_ref[0]
+                if frag:
+                    frag.finishFragment()
+                else:
+                    fragment = get_last_fragment()
+                    if fragment:
+                        fragment.finishFragment()
+            except Exception as e:
+                log(f"pluginProfile: failed to finish fragment: {e}")
+            return
         if mid != self._MENU_ID:
             return
         try:
@@ -2306,6 +2317,23 @@ def show_plugin_profile(plugin: dict, install_ui, all_plugins: list = None, repo
             action_bar = new_fragment.getActionBar()
             if action_bar:
                 action_bar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))
+                try:
+                    from org.telegram.messenger import R as R_tg
+                    back_icon = getattr(R_tg.drawable, 'ic_ab_back', 0)
+                    if back_icon:
+                        action_bar.setBackButtonImage(back_icon)
+                        action_bar.setBackButtonContentDescription("Back")
+                        try:
+                            back_button = action_bar.getBackButton()
+                            if back_button:
+                                def _on_back_click(v):
+                                    f = get_last_fragment()
+                                    if f: f.finishFragment()
+                                back_button.setOnClickListener(OnClickListener(_on_back_click))
+                        except Exception:
+                            pass
+                except Exception as e:
+                    log(f"Failed to add back button: {e}")
                 delegate._fragment_ref[0] = new_fragment
         except Exception as e:
             log(f"pluginProfile: actionBar setup error: {e}")

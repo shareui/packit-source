@@ -433,6 +433,20 @@ class InstallIconsUI:
                 actionBar = new_fragment.getActionBar()
                 if actionBar:
                     actionBar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))
+                    from org.telegram.messenger import R as R_tg
+                    back_icon = getattr(R_tg.drawable, 'ic_ab_back', 0)
+                    if back_icon:
+                        actionBar.setBackButtonImage(back_icon)
+                        actionBar.setBackButtonContentDescription("Back")
+                        try:
+                            back_button = actionBar.getBackButton()
+                            if back_button:
+                                def _on_back_click(v):
+                                    f = get_last_fragment()
+                                    if f: f.finishFragment()
+                                back_button.setOnClickListener(OnClickListener(_on_back_click))
+                        except Exception:
+                            pass
             except Exception as e:
                 log(f"icons: failed to setup action bar: {e}")
         except Exception as e:
@@ -884,7 +898,14 @@ class InstallIconsUI:
             return False
 
         def onMenuItemClick(self, mid):
-            pass
+            if mid == -1:
+                try:
+                    f = get_last_fragment()
+                    if f: f.finishFragment()
+                except Exception as e:
+                    log(f"icons: failed to finish fragment: {e}")
+                return True
+            return False
 
         def build_list_with_sort(self, sort_type: str, q=None):
             log(f"IconList.build_list_with_sort: sort_type='{sort_type}' q='{q}' total_icons={len(self.icons) if self.icons else 0}")

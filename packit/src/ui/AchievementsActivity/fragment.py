@@ -480,10 +480,18 @@ class _AchievementListFragment(dynamic_proxy(UniversalFragment.UniversalFragment
         return False
 
     def onMenuItemClick(self, item_id):
-        pass
+        if item_id == -1:
+            try:
+                frag = get_last_fragment()
+                if frag:
+                    frag.finishFragment()
+            except Exception as e:
+                log(f"achiev: failed to finish fragment (list): {e}")
+            return True
+        return False
 
     def onBackPressed(self):
-        return None
+        return False
 
 
 class _CategoryFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
@@ -566,13 +574,28 @@ class _CategoryFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegat
                             new_frag = UniversalFragment(delegate)
                             cur_frag.presentFragment(new_frag)
                             try:
-                                from hook_utils import find_class as _fc
+                                action_bar = new_frag.getActionBar()
+                                if action_bar:
+                                    action_bar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))
+                                    from org.telegram.messenger import R as R_tg
+                                    back_icon = getattr(R_tg.drawable, 'ic_ab_back', 0)
+                                    if back_icon:
+                                        action_bar.setBackButtonImage(back_icon)
+                                        action_bar.setBackButtonContentDescription("Back")
+                                        try:
+                                            back_button = action_bar.getBackButton()
+                                            if back_button:
+                                                def _on_back_click(v):
+                                                    f = get_last_fragment()
+                                                    if f: f.finishFragment()
+                                                back_button.setOnClickListener(OnClickListener(_on_back_click))
+                                        except Exception:
+                                            pass
                                 if a:
                                     category_key = a[0].get("category_key", c)
                                     new_frag.setTitle(str(strings[category_key]) if category_key in strings else str(strings[c]), False, 0)
                                 else:
                                     new_frag.setTitle(str(strings[c]) if c in strings else c, False, 0)
-                                new_frag.getActionBar().setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))
                             except Exception as _e:
                                 log(f"achievementsUi: category actionbar setup error: {_e}")
                         except Exception as e:
@@ -622,10 +645,18 @@ class _CategoryFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegat
         return False
 
     def onMenuItemClick(self, item_id):
-        pass
+        if item_id == -1:
+            try:
+                frag = get_last_fragment()
+                if frag:
+                    frag.finishFragment()
+            except Exception as e:
+                log(f"achiev: failed to finish fragment (category): {e}")
+            return True
+        return False
 
     def onBackPressed(self):
-        return None
+        return False
 
 
 def show_hint_sheet(achievement: dict):
@@ -750,8 +781,24 @@ def show_achievements(categories: dict, cat_names: list):
         new_frag = UniversalFragment(delegate)
         frag.presentFragment(new_frag)
         try:
+            action_bar = new_frag.getActionBar()
+            if action_bar:
+                action_bar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))
+                from org.telegram.messenger import R as R_tg
+                back_icon = getattr(R_tg.drawable, 'ic_ab_back', 0)
+                if back_icon:
+                    action_bar.setBackButtonImage(back_icon)
+                    action_bar.setBackButtonContentDescription("Back")
+                    try:
+                        back_button = action_bar.getBackButton()
+                        if back_button:
+                            def _on_back_click(v):
+                                f = get_last_fragment()
+                                if f: f.finishFragment()
+                            back_button.setOnClickListener(OnClickListener(_on_back_click))
+                    except Exception:
+                        pass
             new_frag.setTitle(strings["profile_achievements"], False, 0)
-            new_frag.getActionBar().setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))
         except Exception as _e:
             log(f"achievementsUi: show_achievements actionbar setup error: {_e}")
     except Exception as e:

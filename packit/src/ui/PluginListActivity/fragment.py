@@ -661,6 +661,23 @@ class InstallUI:
                 actionBar = new_fragment.getActionBar()
                 if actionBar:
                     actionBar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))
+                    try:
+                        from org.telegram.messenger import R as R_tg
+                        back_icon = getattr(R_tg.drawable, 'ic_ab_back', 0)
+                        if back_icon:
+                            actionBar.setBackButtonImage(back_icon)
+                            actionBar.setBackButtonContentDescription("Back")
+                            try:
+                                back_button = actionBar.getBackButton()
+                                if back_button:
+                                    def _on_back_click(v):
+                                        f = get_last_fragment()
+                                        if f: f.finishFragment()
+                                    back_button.setOnClickListener(OnClickListener(_on_back_click))
+                            except Exception:
+                                pass
+                    except Exception as e:
+                        log(f"Failed to add back button: {e}")
             except Exception as e:
                 log(f"Failed to setup action bar: {e}")
         except Exception as e:
@@ -1262,7 +1279,13 @@ class InstallUI:
             return False
 
         def onMenuItemClick(self, mid):
-            pass
+            if mid == -1:
+                try:
+                    fragment = get_last_fragment()
+                    if fragment:
+                        fragment.finishFragment()
+                except Exception as e:
+                    log(f"Failed to finish fragment: {e}")
 
         def _get_localized_description(self, plugin):
             about = plugin.get("about", [])
