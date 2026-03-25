@@ -1299,11 +1299,13 @@ class InstallUI:
                 except Exception:
                     pass
                 fuzzy = settings.get("fuzzy_search", False)
+                scored = []
                 for p in self.plugins:
                     s = search_mod.score(p, q, self.search_index, isRussian, fuzzy)
                     if s[0] < 6:
-                        filtered.append(p)
-                filtered.sort(key=lambda p: search_mod.score(p, q, self.search_index, isRussian, fuzzy))
+                        scored.append((s, p))
+                scored.sort(key=lambda x: x[0])
+                filtered = [p for _, p in scored]
 
             if self.selected_tags:
                 tag_filtered = []
