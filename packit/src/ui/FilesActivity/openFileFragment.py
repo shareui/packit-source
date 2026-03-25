@@ -145,7 +145,7 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
         return self._filename
 
     def onBackPressed(self):
-        return None
+        return False
 
     def afterCreateView(self, v):
         return None
@@ -157,6 +157,17 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
         pass
 
     def onLongClick(self, item, view, pos, x, y):
+        return False
+
+    def onMenuItemClick(self, mid):
+        if mid == -1:
+            try:
+                frag = get_last_fragment()
+                if frag:
+                    frag.finishFragment()
+            except Exception as e:
+                log(f"openFileFragment: failed to finish fragment: {e}")
+            return True
         return False
 
     def beforeCreateView(self):
@@ -462,6 +473,26 @@ def open_file(path: str, binary: bool = False):
         frag.presentFragment(new_frag)
         try:
             new_frag.setTitle(os.path.basename(path), False, 0)
+            try:
+                action_bar = new_frag.getActionBar()
+                if action_bar:
+                    action_bar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))
+                    from org.telegram.messenger import R as R_tg
+                    back_icon = getattr(R_tg.drawable, 'ic_ab_back', 0)
+                    if back_icon:
+                        action_bar.setBackButtonImage(back_icon)
+                        action_bar.setBackButtonContentDescription("Back")
+                        try:
+                            back_button = action_bar.getBackButton()
+                            if back_button:
+                                def _on_back_click(v):
+                                    f = get_last_fragment()
+                                    if f: f.finishFragment()
+                                back_button.setOnClickListener(OnClickListener(_on_back_click))
+                        except Exception:
+                            pass
+            except Exception as e:
+                log(f"openFileFragment: Failed to add back button: {e}")
             delegate._frag_ref[0] = new_frag
         except Exception as e:
             log(f"openFileFragment: open_file setup error: {e}")
