@@ -1898,6 +1898,15 @@ class InstallUI:
             if not show_view_button:
                 row.setOnClickListener(OnClickListener(onCardClick))
                 self.install_ui._apply_press_scale(row)
+                name_tv.setClickable(True)
+                name_tv.setFocusable(True)
+                name_tv.setOnClickListener(OnClickListener(onCardClick))
+                self.install_ui._apply_press_scale(name_tv)
+                if settings.get("card_show_desc", True):
+                    desc_tv.setClickable(True)
+                    desc_tv.setFocusable(True)
+                    desc_tv.setOnClickListener(OnClickListener(onCardClick))
+                    self.install_ui._apply_press_scale(desc_tv)
 
             show_view_button = settings.get("show_view_button", True)
             if show_view_button:
