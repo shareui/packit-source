@@ -42,6 +42,80 @@ except Exception as e:
     import android_utils as _au; _au.log(f"filesActivity: import graphics failed: {e}")
 
 
+def _open_file(path, icon_view=None):
+    try:
+        from client_utils import run_on_queue
+
+        def _set_spinner():
+            try:
+                from org.telegram.ui.Components import CircularProgressDrawable
+                color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+                spinner = CircularProgressDrawable(color)
+                try:
+                    spinner.size = float(AndroidUtilities.dp(20))
+                    spinner.thickness = float(AndroidUtilities.dp(2))
+                except Exception:
+                    pass
+                icon_view.setImageDrawable(spinner)
+                icon_view.clearColorFilter()
+                icon_view.setEnabled(False)
+            except Exception as e:
+                log(f"filesActivity: _set_spinner error: {e}")
+
+        def _restore_icon(icon_id):
+            try:
+                if icon_id:
+                    icon_view.setImageResource(icon_id)
+                    icon_view.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+                icon_view.setEnabled(True)
+            except Exception as e:
+                log(f"filesActivity: _restore_icon error: {e}")
+
+        icon_id = [0]
+        if icon_view is not None:
+            try:
+                icon_id[0] = _resolve_icon("msg_sendfile")
+                run_on_ui_thread(lambda: _set_spinner())
+            except Exception as e:
+                log(f"filesActivity: _open_file spinner setup error: {e}")
+
+        def _task():
+            try:
+                from .openFileFragment import _is_binary, open_file
+                if _is_binary(path):
+                    log("filesActivity: binary file, showing sheet")
+                    if icon_view is not None:
+                        run_on_ui_thread(lambda: _restore_icon(icon_id[0]))
+                    frag = get_last_fragment()
+                    if frag:
+                        act = frag.getParentActivity()
+                        if act:
+                            run_on_ui_thread(lambda: open_file(path))
+                    return
+
+                try:
+                    with open(path, "r", encoding="utf-8", errors="replace") as f:
+                        text = f.read()
+                except Exception as e:
+                    log(f"filesActivity: _open_file read error: {e}")
+                    text = ""
+
+                def _present():
+                    if icon_view is not None:
+                        _restore_icon(icon_id[0])
+                    open_file(path, text)
+
+                run_on_ui_thread(_present)
+            except Exception as e:
+                log(f"filesActivity: _open_file task error: {e}")
+                if icon_view is not None:
+                    run_on_ui_thread(lambda: _restore_icon(icon_id[0]))
+
+        run_on_queue(_task)
+    except Exception as e:
+        log(f"filesActivity: _open_file error: {e}")
+
+
 def _resolve_icon(name):
     try:
         R = find_class("org.telegram.messenger.R")
@@ -112,7 +186,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
         self._list_root = None
         self._breadcrumb_bar = None
         self._frag_ref = [None]
-        self._clipboard = None  # ("copy"|"cut", path)
+        self._clipboard = None  # ("copy", path)
 
     def onFragmentCreate(self, *_):
         log(f"filesActivity: onFragmentCreate stack={self._stack}")
@@ -328,27 +402,44 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             self._clipboard = ("copy", path)
             log(f"filesActivity: clipboard copy {path}")
 
-        def on_cut():
-            self._clipboard = ("cut", path)
-            log(f"filesActivity: clipboard cut {path}")
-
-        _show_entry_menu(act, anchor, path, on_rename, on_delete, on_copy, on_cut)
+        _show_entry_menu(act, anchor, path, on_rename, on_delete, on_copy)
 
     def _do_rename(self, path):
         try:
-            from org.telegram.ui.ActionBar import AlertDialog as TgAlertDialog
-            from android.widget import EditText
+            from org.telegram.ui.ActionBar import AlertDialog as TgAlertDialog, Theme as TgTheme
+            from org.telegram.ui.Components import EditTextBoldCursor
             act = self._act
             name = os.path.basename(path)
 
-            edit = EditText(act)
-            edit.setText(name)
-            edit.setSelectAllOnFocus(True)
-            edit.setSingleLine(True)
+            layout = LinearLayout(act)
+            layout.setOrientation(LinearLayout.VERTICAL)
 
+            edit = EditTextBoldCursor(act)
+            edit.lineYFix = True
+            edit.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18)
+            edit.setText(name)
+            edit.setSelection(len(name))
+            edit.setTextColor(TgTheme.getColor(TgTheme.key_dialogTextBlack))
+            edit.setHintColor(TgTheme.getColor(TgTheme.key_groupcreate_hintText))
+            edit.setHintText("Enter name")
+            edit.setFocusable(True)
+            edit.setInputType(0x20001)  # TYPE_CLASS_TEXT | TYPE_TEXT_FLAG_CAP_SENTENCES
+            edit.setCursorColor(TgTheme.getColor(TgTheme.key_windowBackgroundWhiteInputFieldActivated))
+            edit.setLineColors(
+                TgTheme.getColor(TgTheme.key_windowBackgroundWhiteInputField),
+                TgTheme.getColor(TgTheme.key_windowBackgroundWhiteInputFieldActivated),
+                TgTheme.getColor(TgTheme.key_text_RedRegular)
+            )
+            edit.setBackground(None)
+            edit.setPadding(0, AndroidUtilities.dp(6), 0, AndroidUtilities.dp(6))
+            layout.addView(edit, LayoutHelper.createLinear(-1, -2, 24, 0, 24, 10))
+
+            dialog_ref = [None]
             builder = TgAlertDialog.Builder(act)
             builder.setTitle("Rename")
-            builder.setView(edit)
+            builder.makeCustomMaxHeight()
+            builder.setView(layout)
+            builder.setWidth(AndroidUtilities.dp(292))
             builder.setNegativeButton("Cancel", None)
 
             def on_ok(dialog, which):
@@ -358,13 +449,14 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                 new_path = os.path.join(os.path.dirname(path), new_name)
                 try:
                     os.rename(path, new_path)
-                    # update stack if renamed dir is in it
                     for j, s in enumerate(self._stack):
                         if s == path or s.startswith(path + os.sep):
                             self._stack[j] = s.replace(path, new_path, 1)
                     run_on_ui_thread(lambda: self._render())
                 except Exception as e:
                     log(f"filesActivity: rename error: {e}")
+                if dialog_ref[0]:
+                    dialog_ref[0].dismiss()
 
             from java import dynamic_proxy as _dp
             from org.telegram.ui.ActionBar import AlertDialog as _AD
@@ -372,10 +464,105 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                 def __init__(self): super().__init__()
                 def onClick(self, dialog, which): on_ok(dialog, which)
 
+            class _ShowListener(_dp(_AD.OnShowListener)):
+                def __init__(self): super().__init__()
+                def onShow(self, dialog):
+                    edit.requestFocus()
+                    edit.setSelection(len(str(edit.getText())))
+                    AndroidUtilities.showKeyboard(edit)
+
+            class _DismissListener(_dp(_AD.OnDismissListener)):
+                def __init__(self): super().__init__()
+                def onDismiss(self, dialog): AndroidUtilities.hideKeyboard(edit)
+
             builder.setPositiveButton("Rename", _OkListener())
-            builder.show()
+            dialog = builder.create()
+            dialog_ref[0] = dialog
+            dialog.setDismissDialogByButtons(False)
+            dialog.setOnShowListener(_ShowListener())
+            dialog.setOnDismissListener(_DismissListener())
+            dialog.show()
         except Exception as e:
             log(f"filesActivity: _do_rename error: {e}")
+
+    def _do_create_file(self):
+        log("filesActivity: _do_create_file called")
+        try:
+            log(f"filesActivity: _do_create_file act={self._act} stack={self._stack}")
+            from org.telegram.ui.ActionBar import AlertDialog as TgAlertDialog, Theme as TgTheme
+            from org.telegram.ui.Components import EditTextBoldCursor
+            act = self._act
+            current_dir = self._stack[-1]
+            log(f"filesActivity: _do_create_file current_dir={current_dir}")
+
+            layout = LinearLayout(act)
+            layout.setOrientation(LinearLayout.VERTICAL)
+
+            edit = EditTextBoldCursor(act)
+            edit.lineYFix = True
+            edit.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18)
+            edit.setTextColor(TgTheme.getColor(TgTheme.key_dialogTextBlack))
+            edit.setHintColor(TgTheme.getColor(TgTheme.key_groupcreate_hintText))
+            edit.setHintText("File name")
+            edit.setFocusable(True)
+            edit.setInputType(0x20001)  # TYPE_CLASS_TEXT | TYPE_TEXT_FLAG_CAP_SENTENCES
+            edit.setCursorColor(TgTheme.getColor(TgTheme.key_windowBackgroundWhiteInputFieldActivated))
+            edit.setLineColors(
+                TgTheme.getColor(TgTheme.key_windowBackgroundWhiteInputField),
+                TgTheme.getColor(TgTheme.key_windowBackgroundWhiteInputFieldActivated),
+                TgTheme.getColor(TgTheme.key_text_RedRegular)
+            )
+            edit.setBackground(None)
+            edit.setPadding(0, AndroidUtilities.dp(6), 0, AndroidUtilities.dp(6))
+            layout.addView(edit, LayoutHelper.createLinear(-1, -2, 24, 0, 24, 10))
+
+            dialog_ref = [None]
+            builder = TgAlertDialog.Builder(act)
+            builder.setTitle("New File")
+            builder.makeCustomMaxHeight()
+            builder.setView(layout)
+            builder.setWidth(AndroidUtilities.dp(292))
+            builder.setNegativeButton("Cancel", None)
+
+            def on_ok(dialog, which):
+                name = str(edit.getText()).strip()
+                if not name:
+                    return
+                new_path = os.path.join(current_dir, name)
+                try:
+                    open(new_path, "a").close()
+                    run_on_ui_thread(lambda: self._render())
+                except Exception as e:
+                    log(f"filesActivity: create file error: {e}")
+                if dialog_ref[0]:
+                    dialog_ref[0].dismiss()
+
+            from java import dynamic_proxy as _dp
+            from org.telegram.ui.ActionBar import AlertDialog as _AD
+
+            class _OkListener(_dp(_AD.OnButtonClickListener)):
+                def __init__(self): super().__init__()
+                def onClick(self, dialog, which): on_ok(dialog, which)
+
+            class _ShowListener(_dp(_AD.OnShowListener)):
+                def __init__(self): super().__init__()
+                def onShow(self, dialog):
+                    edit.requestFocus()
+                    AndroidUtilities.showKeyboard(edit)
+
+            class _DismissListener(_dp(_AD.OnDismissListener)):
+                def __init__(self): super().__init__()
+                def onDismiss(self, dialog): AndroidUtilities.hideKeyboard(edit)
+
+            builder.setPositiveButton("Create", _OkListener())
+            dialog = builder.create()
+            dialog_ref[0] = dialog
+            dialog.setDismissDialogByButtons(False)
+            dialog.setOnShowListener(_ShowListener())
+            dialog.setOnDismissListener(_DismissListener())
+            dialog.show()
+        except Exception as e:
+            log(f"filesActivity: _do_create_file error: {e}")
 
     def _do_delete(self, path):
         try:
@@ -459,8 +646,8 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
 
             for i, name in enumerate(dirs):
                 full = os.path.join(path, name)
-                row = _make_row(act, name, None, folder_icon_id, t, is_dir=True,
-                                on_menu=lambda btn, p=full: self._open_menu(btn, p))
+                row, _ = _make_row(act, name, None, folder_icon_id, t, is_dir=True,
+                                   on_menu=lambda btn, p=full: self._open_menu(btn, p))
                 row.setOnClickListener(OnClickListener(lambda v, p=full: self._push(p)))
                 _apply_press_scale(row)
                 list_root.addView(row, LayoutHelper.createLinear(-1, -2))
@@ -473,8 +660,9 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                     size = _format_size(os.path.getsize(full))
                 except Exception:
                     size = ""
-                row = _make_row(act, name, size, file_icon_id, t, is_dir=False,
-                                on_menu=lambda btn, p=full: self._open_menu(btn, p))
+                row, iv = _make_row(act, name, size, file_icon_id, t, is_dir=False,
+                                    on_menu=lambda btn, p=full: self._open_menu(btn, p))
+                row.setOnClickListener(OnClickListener(lambda v, p=full, icon=iv: _open_file(p, icon)))
                 _apply_press_scale(row)
                 list_root.addView(row, LayoutHelper.createLinear(-1, -2))
                 if i < len(files) - 1:
@@ -544,7 +732,7 @@ def _make_row(act, name, subtitle, icon_id, t, is_dir, on_menu=None):
         menu_btn.setOnClickListener(OnClickListener(lambda v, btn=menu_btn: on_menu(btn)))
     row.addView(menu_btn, LayoutHelper.createLinear(40, 40, Gravity.CENTER_VERTICAL, 0, 0, 0, 0))
 
-    return row
+    return row, icon_view
 
 
 def _make_divider(act, color):
@@ -612,7 +800,7 @@ def _show_file_info(act, path):
         log(f"filesActivity: _show_file_info error: {e}")
 
 
-def _show_entry_menu(act, anchor_view, path, on_rename, on_delete, on_copy, on_cut):
+def _show_entry_menu(act, anchor_view, path, on_rename, on_delete, on_copy):
     try:
         R = find_class("org.telegram.messenger.R")
         popup_layout = ActionBarPopupWindow.ActionBarPopupWindowLayout(act)
@@ -693,8 +881,7 @@ def _show_entry_menu(act, anchor_view, path, on_rename, on_delete, on_copy, on_c
             popup_layout.addView(item, LayoutHelper.createLinear(-1, -2))
 
         create_item("msg_edit", "Rename", on_rename)
-        create_item("msg_copy", "Copy", on_copy)
-        create_item("msg_forward", "Cut", on_cut)
+        create_item("msg_copy", "Copy path", on_copy)
         create_item("msg_info", "Info", lambda: _show_file_info(act, path))
         create_item("msg_delete", "Delete", on_delete, is_red=True)
 
@@ -722,7 +909,6 @@ def _show_entry_menu(act, anchor_view, path, on_rename, on_delete, on_copy, on_c
 
 
 def _hook_swipe_back(plugin, frag_instance, delegate):
-    # block swipe-back gesture when internal stack has more than one entry
     try:
         from base_plugin import MethodReplacement
 
@@ -730,7 +916,6 @@ def _hook_swipe_back(plugin, frag_instance, delegate):
             def replace_hooked_method(self, param):
                 if param.thisObject is frag_instance:
                     return len(delegate._stack) <= 1
-                # not our instance, allow default behavior
                 return True
 
         method = frag_instance.getClass().getMethod("canBeginSlide")
@@ -761,6 +946,22 @@ def show_files_browser(plugin=None):
             action_bar = new_frag.getActionBar()
             if action_bar:
                 action_bar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))
+                try:
+                    log("filesActivity: creating menu")
+                    menu = action_bar.createMenu()
+                    log(f"filesActivity: menu created: {menu}")
+                    add_icon = _resolve_icon("msg_addbot")
+                    log(f"filesActivity: icon id: {add_icon}")
+                    add_btn = menu.addItemWithWidth(1, add_icon, AndroidUtilities.dp(54))
+                    log(f"filesActivity: add_btn: {add_btn}")
+
+                    add_btn.setOnClickListener(OnClickListener(lambda v: (
+                        log("filesActivity: add_btn clicked"),
+                        delegate._do_create_file()
+                    )))
+                    log("filesActivity: OnClickListener set on add_btn")
+                except Exception as e:
+                    log(f"filesActivity: show_files_browser menu error: {e}")
             delegate._frag_ref[0] = new_frag
         except Exception as e:
             log(f"filesActivity: show_files_browser actionBar error: {e}")
