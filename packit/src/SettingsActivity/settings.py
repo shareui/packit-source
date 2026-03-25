@@ -172,16 +172,14 @@ def _buildCacheCard(context, cacheDir, on_clear, title=None):
 
         card.addView(left, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
 
-        from android.widget import Button
+        from android.widget import ImageView
         from android.graphics import Color
 
-        clearBtn = Button(context)
-        clearBtn.setText(str(strings.clear_cache_button))
-        clearBtn.setAllCaps(False)
-        clearBtn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
-        clearBtn.setTextColor(Theme.getColor(Theme.key_avatar_backgroundRed))
-        clearBtn.setBackgroundColor(Color.TRANSPARENT)
-        clearBtn.setPadding(dp(12), dp(8), dp(12), dp(8))
+        clearBtn = ImageView(context)
+        clearBtn.setImageResource(R.drawable.msg_clearcache)
+        clearBtn.setColorFilter(Theme.getColor(Theme.key_avatar_backgroundRed))
+        clearBtn.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 1))
+        clearBtn.setPadding(dp(8), dp(8), dp(8), dp(8))
         clearBtn.setOnClickListener(OnClickListener(on_clear))
         card.addView(clearBtn, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL))
 
