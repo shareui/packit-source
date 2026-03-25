@@ -1143,7 +1143,7 @@ class OtherSettings:
     def _open_files_browser(self):
         try:
             from ..ui.FilesActivity.fragment import show_files_browser
-            show_files_browser()
+            show_files_browser(plugin=self.plugin)
         except Exception as e:
             log(f"OtherSettings: _open_files_browser error: {e}")
 

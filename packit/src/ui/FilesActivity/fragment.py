@@ -1,6 +1,6 @@
 import os
 from android.view import View, Gravity, MotionEvent
-from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView
+from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView, HorizontalScrollView
 from android.util import TypedValue
 from java import dynamic_proxy
 from android_utils import log, run_on_ui_thread, OnClickListener
@@ -23,6 +23,23 @@ try:
     from com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment
 except Exception as e:
     import android_utils as _au; _au.log(f"filesActivity: import UniversalFragment failed: {e}")
+try:
+    from org.telegram.ui.ActionBar import ActionBarPopupWindow
+except Exception as e:
+    import android_utils as _au; _au.log(f"filesActivity: import ActionBarPopupWindow failed: {e}")
+try:
+    from androidx.core.content import ContextCompat
+except Exception as e:
+    import android_utils as _au; _au.log(f"filesActivity: import ContextCompat failed: {e}")
+try:
+    from android.graphics.drawable import GradientDrawable, RippleDrawable
+except Exception as e:
+    import android_utils as _au; _au.log(f"filesActivity: import drawables failed: {e}")
+try:
+    from android.graphics import Color as AColor, PorterDuff
+    from android.content.res import ColorStateList as AColorStateList
+except Exception as e:
+    import android_utils as _au; _au.log(f"filesActivity: import graphics failed: {e}")
 
 
 def _resolve_icon(name):
@@ -93,8 +110,9 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
         self._alive = [True]
         self._content_view = None
         self._list_root = None
-        self._path_tv = None
+        self._breadcrumb_bar = None
         self._frag_ref = [None]
+        self._clipboard = None  # ("copy"|"cut", path)
 
     def onFragmentCreate(self, *_):
         log(f"filesActivity: onFragmentCreate stack={self._stack}")
@@ -110,7 +128,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                     parent.removeView(self._content_view)
                 self._content_view = None
                 self._list_root = None
-                self._path_tv = None
+                self._breadcrumb_bar = None
                 log("filesActivity: onFragmentDestroy views cleared")
         except Exception as e:
             log(f"filesActivity: onFragmentDestroy error: {e}")
@@ -124,7 +142,9 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             popped = self._stack.pop()
             log(f"filesActivity: onBackPressed popped={popped} remaining={self._stack}")
             run_on_ui_thread(lambda: self._render())
-            return True
+            # UniversalFragment inverts the delegate result (!onBackPressed),
+            # so False here becomes true on java side = "don't close fragment"
+            return False
         log("filesActivity: onBackPressed at root, returning None (close)")
         return None
 
@@ -180,16 +200,21 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
         outer.setOrientation(LinearLayout.VERTICAL)
         self._content_view.addView(outer, FrameLayout.LayoutParams(-1, -1))
 
-        # path bar
+        # breadcrumb bar
         path_bar = FrameLayout(act)
         path_bar.setBackgroundColor(bg_white)
 
-        self._path_tv = TextView(act)
-        self._path_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
-        self._path_tv.setTextColor(text_gray)
-        self._path_tv.setSingleLine(True)
-        self._path_tv.setPadding(dp(16), dp(10), dp(16), dp(10))
-        path_bar.addView(self._path_tv, FrameLayout.LayoutParams(-1, -2))
+        breadcrumb_scroll = HorizontalScrollView(act)
+        breadcrumb_scroll.setHorizontalScrollBarEnabled(False)
+        breadcrumb_scroll.setFillViewport(False)
+
+        self._breadcrumb_bar = LinearLayout(act)
+        self._breadcrumb_bar.setOrientation(LinearLayout.HORIZONTAL)
+        self._breadcrumb_bar.setGravity(Gravity.CENTER_VERTICAL)
+        self._breadcrumb_bar.setPadding(dp(12), dp(8), dp(12), dp(8))
+        breadcrumb_scroll.addView(self._breadcrumb_bar, LayoutHelper.createScroll(-2, -2, 0))
+
+        path_bar.addView(breadcrumb_scroll, FrameLayout.LayoutParams(-1, -2))
 
         div_bar = View(act)
         div_bar.setBackgroundColor(divider_color)
@@ -224,6 +249,174 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
         log(f"filesActivity: _push stack_after={self._stack}")
         self._render()
 
+    def _render_breadcrumbs(self):
+        bar = self._breadcrumb_bar
+        if not bar:
+            return
+        bar.removeAllViews()
+        act = self._act
+        dp = AndroidUtilities.dp
+        t = self._theme
+
+        segments = [("../packitCache", self._root)]
+        if len(self._stack) > 1:
+            rel_parts = os.path.relpath(self._stack[-1], self._root).split(os.sep)
+            for i, part in enumerate(rel_parts):
+                target = os.path.join(self._root, *rel_parts[:i + 1])
+                segments.append((part, target))
+
+        for i, (label, target_path) in enumerate(segments):
+            is_last = (i == len(segments) - 1)
+            is_clickable = (target_path is not None) and not is_last
+
+            seg_tv = TextView(act)
+            seg_tv.setText(label)
+            seg_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+            seg_tv.setTextColor(t["accent"] if is_clickable else t["text_gray"])
+            seg_tv.setSingleLine(True)
+            if is_clickable:
+                # pop stack back to target_path
+                seg_tv.setClickable(True)
+                seg_tv.setFocusable(True)
+                seg_tv.setBackground(Theme.createSelectorDrawable(
+                    Theme.getColor(Theme.key_listSelector), 2
+                ))
+                seg_tv.setPadding(dp(4), dp(2), dp(4), dp(2))
+                seg_tv.setOnClickListener(OnClickListener(
+                    lambda v, p=target_path: self._navigate_to(p)
+                ))
+            else:
+                seg_tv.setPadding(dp(4), dp(2), dp(4), dp(2))
+            bar.addView(seg_tv)
+
+            if not is_last and target_path is not None:
+                sep = TextView(act)
+                sep.setText(" / ")
+                sep.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+                sep.setTextColor(t["text_gray"])
+                bar.addView(sep)
+
+        # scroll to end so current folder is visible
+        try:
+            scroll_view = bar.getParent()
+            from java.lang import Runnable as _Runnable
+            class _ScrollRunnable(dynamic_proxy(_Runnable)):
+                def __init__(self):
+                    super().__init__()
+                def run(self):
+                    scroll_view.scrollTo(999999, 0)
+            scroll_view.post(_ScrollRunnable())
+        except Exception:
+            pass
+
+    def _navigate_to(self, path):
+        # pop stack down to the given path
+        while len(self._stack) > 1 and self._stack[-1] != path:
+            self._stack.pop()
+        self._render()
+
+    def _open_menu(self, anchor, path):
+        act = self._act
+
+        def on_rename():
+            self._do_rename(path)
+
+        def on_delete():
+            self._do_delete(path)
+
+        def on_copy():
+            self._clipboard = ("copy", path)
+            log(f"filesActivity: clipboard copy {path}")
+
+        def on_cut():
+            self._clipboard = ("cut", path)
+            log(f"filesActivity: clipboard cut {path}")
+
+        _show_entry_menu(act, anchor, path, on_rename, on_delete, on_copy, on_cut)
+
+    def _do_rename(self, path):
+        try:
+            from org.telegram.ui.ActionBar import AlertDialog as TgAlertDialog
+            from android.widget import EditText
+            act = self._act
+            name = os.path.basename(path)
+
+            edit = EditText(act)
+            edit.setText(name)
+            edit.setSelectAllOnFocus(True)
+            edit.setSingleLine(True)
+
+            builder = TgAlertDialog.Builder(act)
+            builder.setTitle("Rename")
+            builder.setView(edit)
+            builder.setNegativeButton("Cancel", None)
+
+            def on_ok(dialog, which):
+                new_name = str(edit.getText()).strip()
+                if not new_name or new_name == name:
+                    return
+                new_path = os.path.join(os.path.dirname(path), new_name)
+                try:
+                    os.rename(path, new_path)
+                    # update stack if renamed dir is in it
+                    for j, s in enumerate(self._stack):
+                        if s == path or s.startswith(path + os.sep):
+                            self._stack[j] = s.replace(path, new_path, 1)
+                    run_on_ui_thread(lambda: self._render())
+                except Exception as e:
+                    log(f"filesActivity: rename error: {e}")
+
+            from java import dynamic_proxy as _dp
+            from org.telegram.ui.ActionBar import AlertDialog as _AD
+            class _OkListener(_dp(_AD.OnButtonClickListener)):
+                def __init__(self): super().__init__()
+                def onClick(self, dialog, which): on_ok(dialog, which)
+
+            builder.setPositiveButton("Rename", _OkListener())
+            builder.show()
+        except Exception as e:
+            log(f"filesActivity: _do_rename error: {e}")
+
+    def _do_delete(self, path):
+        try:
+            from org.telegram.ui.ActionBar import AlertDialog as TgAlertDialog
+            act = self._act
+            name = os.path.basename(path)
+            is_dir = os.path.isdir(path)
+            msg = f"Delete {'folder' if is_dir else 'file'} \"{name}\"?"
+
+            builder = TgAlertDialog.Builder(act)
+            builder.setTitle("Delete")
+            builder.setMessage(msg)
+            builder.setNegativeButton("Cancel", None)
+
+            def do_del():
+                try:
+                    import shutil
+                    if is_dir:
+                        shutil.rmtree(path)
+                    else:
+                        os.remove(path)
+                    # pop stack if deleted dir was in it
+                    while len(self._stack) > 1 and (
+                        self._stack[-1] == path or self._stack[-1].startswith(path + os.sep)
+                    ):
+                        self._stack.pop()
+                    run_on_ui_thread(lambda: self._render())
+                except Exception as e:
+                    log(f"filesActivity: delete error: {e}")
+
+            from java import dynamic_proxy as _dp
+            from org.telegram.ui.ActionBar import AlertDialog as _AD
+            class _DelListener(_dp(_AD.OnButtonClickListener)):
+                def __init__(self): super().__init__()
+                def onClick(self, dialog, which): do_del()
+
+            builder.setPositiveButton("Delete", _DelListener())
+            builder.show()
+        except Exception as e:
+            log(f"filesActivity: _do_delete error: {e}")
+
     def _render(self):
         if not self._alive[0]:
             log("filesActivity: _render skipped, not alive")
@@ -232,8 +425,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             path = self._stack[-1]
             log(f"filesActivity: _render path={path} stack={self._stack} list_root={self._list_root is not None}")
 
-            if self._path_tv:
-                self._path_tv.setText(self._rel_path(path))
+            self._render_breadcrumbs()
 
             # update actionbar title
             try:
@@ -267,7 +459,8 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
 
             for i, name in enumerate(dirs):
                 full = os.path.join(path, name)
-                row = _make_row(act, name, None, folder_icon_id, t, is_dir=True)
+                row = _make_row(act, name, None, folder_icon_id, t, is_dir=True,
+                                on_menu=lambda btn, p=full: self._open_menu(btn, p))
                 row.setOnClickListener(OnClickListener(lambda v, p=full: self._push(p)))
                 _apply_press_scale(row)
                 list_root.addView(row, LayoutHelper.createLinear(-1, -2))
@@ -280,7 +473,8 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                     size = _format_size(os.path.getsize(full))
                 except Exception:
                     size = ""
-                row = _make_row(act, name, size, file_icon_id, t, is_dir=False)
+                row = _make_row(act, name, size, file_icon_id, t, is_dir=False,
+                                on_menu=lambda btn, p=full: self._open_menu(btn, p))
                 _apply_press_scale(row)
                 list_root.addView(row, LayoutHelper.createLinear(-1, -2))
                 if i < len(files) - 1:
@@ -290,7 +484,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             log(f"filesActivity: _render error: {e}")
 
 
-def _make_row(act, name, subtitle, icon_id, t, is_dir):
+def _make_row(act, name, subtitle, icon_id, t, is_dir, on_menu=None):
     dp = AndroidUtilities.dp
 
     row = LinearLayout(act)
@@ -302,7 +496,7 @@ def _make_row(act, name, subtitle, icon_id, t, is_dir):
     row.setBackground(Theme.createSelectorDrawable(
         Theme.getColor(Theme.key_listSelector), 2
     ))
-    row.setPadding(dp(16), dp(8), dp(16), dp(8))
+    row.setPadding(dp(16), dp(8), dp(4), dp(8))
 
     icon_view = ImageView(act)
     if icon_id:
@@ -330,6 +524,26 @@ def _make_row(act, name, subtitle, icon_id, t, is_dir):
 
     row.addView(text_col, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
 
+    # three-dot menu button
+    menu_btn = ImageView(act)
+    try:
+        R = find_class("org.telegram.messenger.R")
+        menu_icon = getattr(R.drawable, "ic_ab_other", 0)
+        if not menu_icon:
+            menu_icon = getattr(R.drawable, "msg_more", 0)
+    except Exception:
+        menu_icon = 0
+    if menu_icon:
+        menu_btn.setImageResource(menu_icon)
+        menu_btn.setColorFilter(t["text_gray"])
+    menu_btn.setClickable(True)
+    menu_btn.setFocusable(True)
+    menu_btn.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 1))
+    menu_btn.setPadding(dp(8), dp(8), dp(8), dp(8))
+    if on_menu:
+        menu_btn.setOnClickListener(OnClickListener(lambda v, btn=menu_btn: on_menu(btn)))
+    row.addView(menu_btn, LayoutHelper.createLinear(40, 40, Gravity.CENTER_VERTICAL, 0, 0, 0, 0))
+
     return row
 
 
@@ -339,7 +553,197 @@ def _make_divider(act, color):
     return div
 
 
-def show_files_browser():
+def _get_file_info(path):
+    info = {}
+    try:
+        stat = os.stat(path)
+        info["full_path"] = path
+        info["size_bytes"] = stat.st_size
+        info["size_human"] = _format_size(stat.st_size)
+        import time
+        info["modified"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(stat.st_mtime))
+        info["created"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(stat.st_ctime))
+        info["is_dir"] = os.path.isdir(path)
+        if info["is_dir"]:
+            try:
+                entries = os.listdir(path)
+                info["children"] = len(entries)
+                total = 0
+                for e in entries:
+                    ep = os.path.join(path, e)
+                    if os.path.isfile(ep):
+                        total += os.path.getsize(ep)
+                info["dir_size_human"] = _format_size(total)
+            except Exception:
+                pass
+        else:
+            _, ext = os.path.splitext(path)
+            info["extension"] = ext.lower() if ext else "(none)"
+    except Exception as e:
+        log(f"filesActivity: _get_file_info error: {e}")
+    return info
+
+
+def _show_file_info(act, path):
+    try:
+        from org.telegram.ui.ActionBar import AlertDialog as TgAlertDialog
+        info = _get_file_info(path)
+        name = os.path.basename(path)
+
+        lines = []
+        lines.append(f"Path: {info.get('full_path', path)}")
+        if info.get("is_dir"):
+            lines.append(f"Type: Directory")
+            lines.append(f"Items: {info.get('children', '?')}")
+            lines.append(f"Content size: {info.get('dir_size_human', '?')}")
+        else:
+            lines.append(f"Type: File")
+            lines.append(f"Extension: {info.get('extension', '?')}")
+            lines.append(f"Size: {info.get('size_human', '?')} ({info.get('size_bytes', '?')} bytes)")
+        lines.append(f"Modified: {info.get('modified', '?')}")
+        lines.append(f"Created: {info.get('created', '?')}")
+
+        builder = TgAlertDialog.Builder(act)
+        builder.setTitle(name)
+        builder.setMessage("\n".join(lines))
+        builder.setPositiveButton("OK", None)
+        builder.show()
+    except Exception as e:
+        log(f"filesActivity: _show_file_info error: {e}")
+
+
+def _show_entry_menu(act, anchor_view, path, on_rename, on_delete, on_copy, on_cut):
+    try:
+        R = find_class("org.telegram.messenger.R")
+        popup_layout = ActionBarPopupWindow.ActionBarPopupWindowLayout(act)
+        popup_layout.setBackgroundColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuBackground))
+        popup_layout.setFitItems(True)
+        popup_window_ref = [None]
+
+        def create_item(icon_name, title, action, is_red=False):
+            try:
+                icon_res = getattr(R.drawable, icon_name, 0)
+            except Exception:
+                icon_res = 0
+
+            item = FrameLayout(act)
+            item.setMinimumWidth(AndroidUtilities.dp(160))
+            item.setClickable(True)
+            item.setFocusable(True)
+            try:
+                bg_color = Theme.getColor(Theme.key_dialogBackgroundGray) & 0x20FFFFFF | 0x10000000
+                pressed_color = Theme.getColor(Theme.key_listSelector) & 0x40FFFFFF | 0x30000000
+                btn_bg = GradientDrawable()
+                btn_bg.setCornerRadius(AndroidUtilities.dp(10))
+                btn_bg.setColor(bg_color)
+                try:
+                    ripple_color = AColorStateList.valueOf(AColor.parseColor("#40000000"))
+                    pressed_bg = GradientDrawable()
+                    pressed_bg.setCornerRadius(AndroidUtilities.dp(10))
+                    pressed_bg.setColor(pressed_color)
+                    item.setBackground(RippleDrawable(ripple_color, btn_bg, pressed_bg))
+                except Exception:
+                    item.setBackground(btn_bg)
+            except Exception:
+                item.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 2))
+
+            row = LinearLayout(act)
+            row.setOrientation(LinearLayout.HORIZONTAL)
+            row.setGravity(Gravity.CENTER_VERTICAL)
+            row.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12))
+
+            if icon_res:
+                icon_view = ImageView(act)
+                icon_view.setScaleType(ImageView.ScaleType.CENTER)
+                try:
+                    d = ContextCompat.getDrawable(act, icon_res)
+                    try:
+                        color = Theme.getColor(Theme.key_text_RedRegular) if is_red else Theme.getColor(Theme.key_dialogTextGray)
+                    except Exception:
+                        color = AColor.parseColor("#FF3B30") if is_red else AColor.parseColor("#808080")
+                    d.setColorFilter(color, PorterDuff.Mode.SRC_IN)
+                    icon_view.setImageDrawable(d)
+                except Exception:
+                    icon_view.setImageResource(icon_res)
+                row.addView(icon_view, LayoutHelper.createLinear(24, 24, Gravity.CENTER_VERTICAL, 0, 0, 12, 0))
+
+            tv = TextView(act)
+            tv.setText(title)
+            tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            try:
+                color = Theme.getColor(Theme.key_text_RedRegular) if is_red else Theme.getColor(Theme.key_actionBarDefaultSubmenuItem)
+                tv.setTextColor(color)
+            except Exception:
+                pass
+            row.addView(tv, LayoutHelper.createLinear(-1, -2, 1.0, Gravity.CENTER_VERTICAL))
+            item.addView(row)
+
+            def _click(*_):
+                try:
+                    if popup_window_ref[0]:
+                        popup_window_ref[0].dismiss()
+                except Exception:
+                    pass
+                try:
+                    action()
+                except Exception:
+                    pass
+
+            item.setOnClickListener(OnClickListener(_click))
+            popup_layout.addView(item, LayoutHelper.createLinear(-1, -2))
+
+        create_item("msg_edit", "Rename", on_rename)
+        create_item("msg_copy", "Copy", on_copy)
+        create_item("msg_forward", "Cut", on_cut)
+        create_item("msg_info", "Info", lambda: _show_file_info(act, path))
+        create_item("msg_delete", "Delete", on_delete, is_red=True)
+
+        popup_window = ActionBarPopupWindow(popup_layout, -2, -2)
+        popup_window_ref[0] = popup_window
+        popup_window.setOutsideTouchable(True)
+        popup_window.setClippingEnabled(True)
+        try:
+            popup_window.setAnimationStyle(R.style.PopupContextAnimation)
+        except Exception:
+            pass
+        popup_window.setFocusable(True)
+        popup_layout.measure(
+            View.MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(1000), View.MeasureSpec.AT_MOST),
+            View.MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(1000), View.MeasureSpec.AT_MOST)
+        )
+        location = [0, 0]
+        anchor_view.getLocationInWindow(location)
+        popup_x = location[0] + anchor_view.getWidth() - popup_layout.getMeasuredWidth()
+        popup_y = location[1] - popup_layout.getMeasuredHeight()
+        popup_window.showAtLocation(anchor_view, Gravity.TOP | Gravity.LEFT, popup_x, popup_y)
+        popup_window.dimBehind()
+    except Exception as e:
+        log(f"filesActivity: _show_entry_menu error: {e}")
+
+
+def _hook_swipe_back(plugin, frag_instance, delegate):
+    # block swipe-back gesture when internal stack has more than one entry
+    try:
+        from base_plugin import MethodReplacement
+
+        class _CanBeginSlide(MethodReplacement):
+            def replace_hooked_method(self, param):
+                if param.thisObject is frag_instance:
+                    return len(delegate._stack) <= 1
+                # not our instance, allow default behavior
+                return True
+
+        method = frag_instance.getClass().getMethod("canBeginSlide")
+        method.setAccessible(True)
+        ref = plugin.hook_method(method, _CanBeginSlide())
+        log("filesActivity: canBeginSlide hook registered")
+        return ref
+    except Exception as e:
+        log(f"filesActivity: _hook_swipe_back error: {e}")
+        return None
+
+
+def show_files_browser(plugin=None):
     try:
         frag = get_last_fragment()
         if not frag:
@@ -360,5 +764,20 @@ def show_files_browser():
             delegate._frag_ref[0] = new_frag
         except Exception as e:
             log(f"filesActivity: show_files_browser actionBar error: {e}")
+
+        if plugin is not None:
+            hook_ref = _hook_swipe_back(plugin, new_frag, delegate)
+            if hook_ref is not None:
+                orig_destroy = delegate.onFragmentDestroy
+
+                def _on_destroy(*a):
+                    try:
+                        plugin.unhook_method(hook_ref)
+                        log("filesActivity: canBeginSlide hook removed")
+                    except Exception as e:
+                        log(f"filesActivity: unhook error: {e}")
+                    orig_destroy(*a)
+
+                delegate.onFragmentDestroy = _on_destroy
     except Exception as e:
         log(f"filesActivity: show_files_browser error: {e}")
