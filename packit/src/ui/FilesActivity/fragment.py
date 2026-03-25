@@ -42,10 +42,76 @@ except Exception as e:
     import android_utils as _au; _au.log(f"filesActivity: import graphics failed: {e}")
 
 
-def _open_file(path):
+def _open_file(path, icon_view=None):
     try:
-        from .openFileFragment import open_file
-        open_file(path)
+        from client_utils import run_on_queue
+
+        def _set_spinner():
+            try:
+                from org.telegram.ui.Components import CircularProgressDrawable
+                color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+                spinner = CircularProgressDrawable(color)
+                try:
+                    spinner.size = float(AndroidUtilities.dp(20))
+                    spinner.thickness = float(AndroidUtilities.dp(2))
+                except Exception:
+                    pass
+                icon_view.setImageDrawable(spinner)
+                icon_view.clearColorFilter()
+                icon_view.setEnabled(False)
+            except Exception as e:
+                log(f"filesActivity: _set_spinner error: {e}")
+
+        def _restore_icon(icon_id):
+            try:
+                if icon_id:
+                    icon_view.setImageResource(icon_id)
+                    icon_view.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+                icon_view.setEnabled(True)
+            except Exception as e:
+                log(f"filesActivity: _restore_icon error: {e}")
+
+        icon_id = [0]
+        if icon_view is not None:
+            try:
+                icon_id[0] = _resolve_icon("msg_sendfile")
+                run_on_ui_thread(lambda: _set_spinner())
+            except Exception as e:
+                log(f"filesActivity: _open_file spinner setup error: {e}")
+
+        def _task():
+            try:
+                from .openFileFragment import _is_binary, open_file
+                if _is_binary(path):
+                    log("filesActivity: binary file, showing sheet")
+                    if icon_view is not None:
+                        run_on_ui_thread(lambda: _restore_icon(icon_id[0]))
+                    frag = get_last_fragment()
+                    if frag:
+                        act = frag.getParentActivity()
+                        if act:
+                            run_on_ui_thread(lambda: open_file(path))
+                    return
+
+                try:
+                    with open(path, "r", encoding="utf-8", errors="replace") as f:
+                        text = f.read()
+                except Exception as e:
+                    log(f"filesActivity: _open_file read error: {e}")
+                    text = ""
+
+                def _present():
+                    if icon_view is not None:
+                        _restore_icon(icon_id[0])
+                    open_file(path, text)
+
+                run_on_ui_thread(_present)
+            except Exception as e:
+                log(f"filesActivity: _open_file task error: {e}")
+                if icon_view is not None:
+                    run_on_ui_thread(lambda: _restore_icon(icon_id[0]))
+
+        run_on_queue(_task)
     except Exception as e:
         log(f"filesActivity: _open_file error: {e}")
 
@@ -580,8 +646,8 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
 
             for i, name in enumerate(dirs):
                 full = os.path.join(path, name)
-                row = _make_row(act, name, None, folder_icon_id, t, is_dir=True,
-                                on_menu=lambda btn, p=full: self._open_menu(btn, p))
+                row, _ = _make_row(act, name, None, folder_icon_id, t, is_dir=True,
+                                   on_menu=lambda btn, p=full: self._open_menu(btn, p))
                 row.setOnClickListener(OnClickListener(lambda v, p=full: self._push(p)))
                 _apply_press_scale(row)
                 list_root.addView(row, LayoutHelper.createLinear(-1, -2))
@@ -594,9 +660,9 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                     size = _format_size(os.path.getsize(full))
                 except Exception:
                     size = ""
-                row = _make_row(act, name, size, file_icon_id, t, is_dir=False,
-                                on_menu=lambda btn, p=full: self._open_menu(btn, p))
-                row.setOnClickListener(OnClickListener(lambda v, p=full: _open_file(p)))
+                row, iv = _make_row(act, name, size, file_icon_id, t, is_dir=False,
+                                    on_menu=lambda btn, p=full: self._open_menu(btn, p))
+                row.setOnClickListener(OnClickListener(lambda v, p=full, icon=iv: _open_file(p, icon)))
                 _apply_press_scale(row)
                 list_root.addView(row, LayoutHelper.createLinear(-1, -2))
                 if i < len(files) - 1:
@@ -666,7 +732,7 @@ def _make_row(act, name, subtitle, icon_id, t, is_dir, on_menu=None):
         menu_btn.setOnClickListener(OnClickListener(lambda v, btn=menu_btn: on_menu(btn)))
     row.addView(menu_btn, LayoutHelper.createLinear(40, 40, Gravity.CENTER_VERTICAL, 0, 0, 0, 0))
 
-    return row
+    return row, icon_view
 
 
 def _make_divider(act, color):

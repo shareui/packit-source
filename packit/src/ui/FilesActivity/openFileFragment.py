@@ -162,15 +162,6 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
             return None
         self._frag_ref[0] = frag
 
-        try:
-            with open(self._path, "r", encoding="utf-8", errors="replace") as f:
-                self._text = f.read()
-            self._original_text = self._text
-        except Exception as e:
-            log(f"openFileFragment: read error: {e}")
-            self._text = ""
-            self._original_text = ""
-
         dp = AndroidUtilities.dp
         bg = Theme.getColor(Theme.key_windowBackgroundWhite)
         bg_gray = Theme.getColor(Theme.key_windowBackgroundGray)
@@ -362,24 +353,26 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
             log(f"openFileFragment: _do_reset error: {e}")
 
 
-def open_file(path: str):
-    log(f"openFileFragment: open_file path={path}")
+def open_file(path: str, text: str = None):
+    # called on UI thread
+    # text=None means binary sheet mode
+    log(f"openFileFragment: open_file path={path} has_text={text is not None}")
     try:
+        if text is None:
+            frag = get_last_fragment()
+            if frag:
+                act = frag.getParentActivity()
+                if act:
+                    _show_binary_sheet(act)
+            return
+
         frag = get_last_fragment()
         if not frag:
             log("openFileFragment: open_file no fragment")
             return
-        act = frag.getParentActivity()
-        if not act:
-            log("openFileFragment: open_file no activity")
-            return
-
-        if _is_binary(path):
-            log("openFileFragment: binary file detected, showing sheet")
-            _show_binary_sheet(act)
-            return
-
         delegate = OpenFileFragment(path)
+        delegate._text = text
+        delegate._original_text = text
         new_frag = UniversalFragment(delegate)
         frag.presentFragment(new_frag)
         try:
