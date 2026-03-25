@@ -90,20 +90,13 @@ def _open_file(path, icon_view=None):
                     if frag:
                         act = frag.getParentActivity()
                         if act:
-                            run_on_ui_thread(lambda: open_file(path))
+                            run_on_ui_thread(lambda: open_file(path, binary=True))
                     return
-
-                try:
-                    with open(path, "r", encoding="utf-8", errors="replace") as f:
-                        text = f.read()
-                except Exception as e:
-                    log(f"filesActivity: _open_file read error: {e}")
-                    text = ""
 
                 def _present():
                     if icon_view is not None:
                         _restore_icon(icon_id[0])
-                    open_file(path, text)
+                    open_file(path)
 
                 run_on_ui_thread(_present)
             except Exception as e:
