@@ -28,7 +28,18 @@ class _CToken(ctypes.Structure):
         ("type",   ctypes.c_uint8),
     ]
 
-_TokenBuf = _CToken * _MAX_TOKENS
+
+class _CCharRange(ctypes.Structure):
+    _fields_ = [
+        ("byte_start", ctypes.c_uint32),
+        ("byte_end",   ctypes.c_uint32),
+        ("char_start", ctypes.c_uint32),
+        ("char_end",   ctypes.c_uint32),
+    ]
+
+
+_TokenBuf     = _CToken     * _MAX_TOKENS
+_CharRangeBuf = _CCharRange * _MAX_TOKENS
 
 
 def _loadLib():
@@ -41,10 +52,22 @@ def _loadLib():
     soPath = os.path.normpath(soPath)
     try:
         _lib = ctypes.CDLL(soPath)
-        _lib.packlight_json.argtypes   = [ctypes.c_char_p, ctypes.c_uint32, ctypes.POINTER(_CToken), ctypes.c_uint32]
-        _lib.packlight_json.restype    = ctypes.c_uint32
-        _lib.packlight_python.argtypes = [ctypes.c_char_p, ctypes.c_uint32, ctypes.POINTER(_CToken), ctypes.c_uint32]
-        _lib.packlight_python.restype  = ctypes.c_uint32
+        _lib.packlight_json.argtypes = [
+            ctypes.c_char_p, ctypes.c_uint32,
+            ctypes.POINTER(_CToken), ctypes.c_uint32,
+        ]
+        _lib.packlight_json.restype = ctypes.c_uint32
+        _lib.packlight_python.argtypes = [
+            ctypes.c_char_p, ctypes.c_uint32,
+            ctypes.POINTER(_CToken), ctypes.c_uint32,
+        ]
+        _lib.packlight_python.restype = ctypes.c_uint32
+        _lib.packlight_tokens_to_chars.argtypes = [
+            ctypes.c_char_p, ctypes.c_uint32,
+            ctypes.POINTER(_CToken), ctypes.c_uint32,
+            ctypes.POINTER(_CCharRange), ctypes.c_uint32,
+        ]
+        _lib.packlight_tokens_to_chars.restype = ctypes.c_uint32
         log("packlight: libpacklight.so loaded")
     except Exception as e:
         log(f"packlight: load error: {e}")
@@ -73,78 +96,53 @@ def _resolveColors():
         return {}
 
 
-def _applySpans(spannable, srcBytes: bytes, buf, cnt: int, colors: dict):
+def _applySpans(spannable, tokBuf, ranges, cnt, colors, offset=0):
+    # runs on UI thread — only setSpan calls, no byte walking
     try:
         from android.text.style import ForegroundColorSpan
-
-        # build byte→char map in one pass for only needed offsets
-        needed = set()
-        for k in range(cnt):
-            needed.add(buf[k].start)
-            needed.add(buf[k].start + buf[k].length)
-
-        byteToChar = {}
-        charIdx = 0
-        byteIdx = 0
-        n = len(srcBytes)
-        while byteIdx <= n:
-            if byteIdx in needed:
-                byteToChar[byteIdx] = charIdx
-            if byteIdx == n:
-                break
-            b = srcBytes[byteIdx]
-            if b < 0x80:   byteIdx += 1
-            elif b < 0xE0: byteIdx += 2
-            elif b < 0xF0: byteIdx += 3
-            else:           byteIdx += 4
-            charIdx += 1
-
         EXCL_EXCL = 0x11
         for k in range(cnt):
-            tk = buf[k]
-            color = colors.get(tk.type)
+            color = colors.get(tokBuf[offset + k].type)
             if color is None:
                 continue
-            cs = byteToChar.get(tk.start)
-            ce = byteToChar.get(tk.start + tk.length)
-            if cs is None or ce is None or cs >= ce:
+            cs = ranges[offset + k].char_start
+            ce = ranges[offset + k].char_end
+            if cs == 0xFFFFFFFF or ce == 0xFFFFFFFF or cs >= ce:
                 continue
             spannable.setSpan(ForegroundColorSpan(color), cs, ce, EXCL_EXCL)
     except Exception as e:
         log(f"packlight: _applySpans error: {e}")
 
 
-def _highlight(text: str, tokenizeFn) -> object:
+def tokenize(text: str, tokenizeFn):
+    # runs on background thread — tokenize + char mapping, no Python UTF-8 walk
     try:
         lib = _loadLib()
         if lib is None:
-            return text
+            return None
         encoded = text.encode("utf-8")
-        buf = _TokenBuf()
-        cnt = tokenizeFn(encoded, len(encoded), buf, _MAX_TOKENS)
+        srcLen = len(encoded)
+        tokBuf = _TokenBuf()
+        cnt = tokenizeFn(encoded, srcLen, tokBuf, _MAX_TOKENS)
         if cnt == 0:
-            return text
-        colors = _resolveColors()
-        if not colors:
-            return text
-        from android.text import SpannableString
-        spannable = SpannableString(text)
-        _applySpans(spannable, encoded, buf, cnt, colors)
-        return spannable
+            return None
+        ranges = _CharRangeBuf()
+        lib.packlight_tokens_to_chars(encoded, srcLen, tokBuf, cnt, ranges, _MAX_TOKENS)
+        return tokBuf, ranges, cnt
     except Exception as e:
-        log(f"packlight: _highlight error: {e}")
-        return text
+        log(f"packlight: tokenize error: {e}")
+        return None
 
 
-def highlightJson(text: str) -> object:
+def tokenizeJson(text: str):
     lib = _loadLib()
     if lib is None:
-        return text
-    return _highlight(text, lib.packlight_json)
+        return None
+    return tokenize(text, lib.packlight_json)
 
 
-def highlightPython(text: str) -> object:
+def tokenizePython(text: str):
     lib = _loadLib()
     if lib is None:
-        return text
-    return _highlight(text, lib.packlight_python)
+        return None
+    return tokenize(text, lib.packlight_python)

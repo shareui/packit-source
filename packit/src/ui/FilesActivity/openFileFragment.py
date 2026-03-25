@@ -123,6 +123,9 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
         self._v_scroll = None
         self._loading = False
         self._load_cancelled = False
+        self._highlight_cancelled = False
+        self._spannable = None
+        self._highlighted = None
 
     def onFragmentCreate(self, *_):
         log(f"openFileFragment: onFragmentCreate path={self._path}")
@@ -130,6 +133,7 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
     def onFragmentDestroy(self, *_):
         log("openFileFragment: onFragmentDestroy")
         self._load_cancelled = True
+        self._highlight_cancelled = True
         try:
             if self._content_view is not None:
                 parent = self._content_view.getParent()
@@ -284,6 +288,7 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
         from client_utils import run_on_queue
         self._loading = True
         self._load_cancelled = False
+        self._highlight_cancelled = False
         run_on_queue(self._load_chunked)
 
     def _load_chunked(self):
@@ -336,25 +341,79 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
         self._loading = False
         self._original_text = self._text
         log(f"openFileFragment: load done, total={len(self._text)} chars")
-        self._applyHighlight()
+        self._startHighlight()
 
-    def _applyHighlight(self):
-        if self._content_tv is None:
-            return
+    def _startHighlight(self):
         ext = os.path.splitext(self._path)[1].lower()
+        if ext not in (".json", ".py", ".plugin"):
+            return
+        self._highlight_cancelled = False
+        from client_utils import run_on_queue
+        run_on_queue(lambda: self._highlightBg(ext))
+
+    def _highlightBg(self, ext: str):
+        # runs on background thread — tokenize + char mapping in C, no Python UTF-8 walk
         try:
-            if ext == ".json":
-                from .packlight import highlightJson
-                spannable = highlightJson(self._text)
-            elif ext in (".py", ".plugin"):
-                from .packlight import highlightPython
-                spannable = highlightPython(self._text)
-            else:
+            from .packlight import tokenizeJson, tokenizePython, _resolveColors, _applySpans
+            if self._highlight_cancelled:
                 return
-            if spannable is not self._text:
-                self._content_tv.setText(spannable)
+            text = self._text
+            if ext == ".json":
+                result = tokenizeJson(text)
+            else:
+                result = tokenizePython(text)
+            if result is None or self._highlight_cancelled:
+                from android_utils import run_on_ui_thread
+                return
+            tokBuf, ranges, cnt = result
+            colors = _resolveColors()
+            if not colors or self._highlight_cancelled:
+                return
+            log(f"openFileFragment: highlight done, tokens={cnt}, applying chunked")
+            from android_utils import run_on_ui_thread
+            run_on_ui_thread(lambda: self._applyHighlightChunked(text, tokBuf, ranges, cnt, colors, 0))
         except Exception as e:
-            log(f"openFileFragment: _applyHighlight error: {e}")
+            log(f"openFileFragment: _highlightBg error: {e}")
+            from android_utils import run_on_ui_thread
+
+    # how many setSpan() calls per UI frame
+    _SPAN_CHUNK = 1000
+
+    def _applyHighlightChunked(self, text: str, tokBuf, ranges, cnt: int, colors: dict, offset: int):
+        # runs on UI thread — no sleep, no blocking
+        if self._highlight_cancelled or self._content_tv is None:
+            tokBuf = None
+            ranges = None
+            return
+        try:
+            from android.text import SpannableString
+            from .packlight import _applySpans
+
+            if offset == 0:
+                self._spannable = SpannableString(text)
+
+            end = min(offset + self._SPAN_CHUNK, cnt)
+            _applySpans(self._spannable, tokBuf, ranges, end - offset, colors, offset)
+
+            if end < cnt and not self._highlight_cancelled:
+                from android_utils import run_on_ui_thread
+                run_on_ui_thread(
+                    lambda: self._applyHighlightChunked(text, tokBuf, ranges, cnt, colors, end),
+                    16
+                )
+            else:
+                if not self._highlight_cancelled and self._content_tv is not None:
+                    self._highlighted = self._spannable
+                    self._content_tv.setText(self._spannable)
+                    log("openFileFragment: highlight applied")
+                self._spannable = None
+                tokBuf = None
+                ranges = None
+        except Exception as e:
+            log(f"openFileFragment: _applyHighlightChunked error: {e}")
+            self._spannable = None
+            tokBuf = None
+            ranges = None
 
     def _toggle_edit(self):
         if self._loading:
@@ -383,7 +442,7 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
                     AndroidUtilities.hideKeyboard(self._edit_tv)
                     self._edit_tv.setVisibility(View.GONE)
                 self._h_scroll.setBackgroundColor(t["bg"])
-                self._content_tv.setText(self._text)
+                self._content_tv.setText(self._highlighted if self._highlighted is not None else self._text)
                 self._content_tv.setVisibility(View.VISIBLE)
         except Exception as e:
             log(f"openFileFragment: _toggle_edit error: {e}")
@@ -437,6 +496,8 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
             with open(self._path, "w", encoding="utf-8") as f:
                 f.write(new_text)
             self._text = new_text
+            self._highlighted = None
+            self._startHighlight()
             log(f"openFileFragment: saved {self._path}")
         except Exception as e:
             log(f"openFileFragment: _do_save error: {e}")
