@@ -375,7 +375,7 @@ def _buildSearchEngineCards(context, key, default, on_change=None):
 
         headerView = TextView(context)
         headerView.setText(str(strings.search_engine))
-        headerView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+        headerView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
         headerView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
         headerView.setGravity(Gravity.CENTER_HORIZONTAL)
         wrapper.addView(headerView, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 6))
@@ -616,7 +616,7 @@ def _buildHashFunctionCards(context, key, default, on_change=None):
 
         headerView = TextView(context)
         headerView.setText(str(strings.hash_function))
-        headerView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+        headerView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
         headerView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
         headerView.setGravity(Gravity.CENTER_HORIZONTAL)
         wrapper.addView(headerView, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 6))
@@ -769,7 +769,7 @@ def _buildSortMenuDesignToggle(context, key, default, on_change=None):
 
         headerView = TextView(context)
         headerView.setText(str(strings.sort_menu_design))
-        headerView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+        headerView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
         headerView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
         headerView.setGravity(Gravity.CENTER_HORIZONTAL)
         wrapper.addView(headerView, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 6))
@@ -932,8 +932,6 @@ def _buildSortMenuDesignToggle(context, key, default, on_change=None):
 
             return container
 
-        labels = [str(strings.sort_menu_design_modern), str(strings.sort_menu_design_classic)]
-
         for i in range(2):
             # outer column: card + label underneath
             col = LinearLayout(context)
@@ -955,18 +953,6 @@ def _buildSortMenuDesignToggle(context, key, default, on_change=None):
             preview = buildPreviewRow(context, isClassic=(i == 1))
             card.addView(preview, LayoutHelper.createLinear(-1, -2))
             col.addView(card, LayoutHelper.createLinear(-1, -2))
-
-            nameView = TextView(context)
-            nameView.setText(labels[i])
-            nameView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
-            nameView.setTextColor(blackText)
-            nameView.setGravity(Gravity.CENTER)
-            nameView.setPadding(0, dp(5), 0, 0)
-            try:
-                nameView.setTypeface(AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_MEDIUM))
-            except Exception:
-                pass
-            col.addView(nameView, LayoutHelper.createLinear(-1, -2))
 
             if i == 0:
                 row.addView(col, LayoutHelper.createLinear(0, -2, 1.0, Gravity.TOP, 0, 0, 6, 0))
@@ -1153,6 +1139,13 @@ class OtherSettings:
                 frag.presentFragment(PillStackPreferencesActivity())
         except Exception as e:
             log(f"OtherSettings: _open_pill_stack_settings error: {e}")
+
+    def _open_files_browser(self):
+        try:
+            from ..ui.FilesActivity.fragment import show_files_browser
+            show_files_browser()
+        except Exception as e:
+            log(f"OtherSettings: _open_files_browser error: {e}")
 
     def _getCacheDir(self) -> str:
         pkg = ApplicationLoader.applicationContext.getPackageName()
@@ -1423,6 +1416,12 @@ class OtherSettings:
 
         # filesystem section should always be at the bottom of the page
         items.append(Header(text=strings.filesystem_header))
+        items.append(Text(
+            text="Open Directory",
+            subtext="Browse packitCache files and folders",
+            icon="files_folder",
+            on_click=lambda v: self._open_files_browser()
+        ))
 
         pathCardBuilt = False
         if ctx:
