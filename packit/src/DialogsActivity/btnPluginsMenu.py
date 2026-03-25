@@ -9,22 +9,23 @@ except Exception as e:
 _SETTINGS_LINK = "https://t.me/exteraSettings?s=mainMenuSettings"
 
 
-def _open_settings_link():
+def _open_packit_settings(plugin):
     try:
         from android_utils import run_on_ui_thread as _rout
         from client_utils import get_last_fragment
-        from org.telegram.messenger import Browser
+        from com.exteragram.messenger.plugins import PluginsController
+        from com.exteragram.messenger.plugins.ui import PluginSettingsActivity
         def _open():
             try:
                 frag = get_last_fragment()
-                activity = frag.getParentActivity() if frag else None
-                if activity:
-                    Browser.openUrl(activity, _SETTINGS_LINK)
+                plugin_obj = PluginsController.getInstance().plugins.get(plugin.id)
+                if plugin_obj and frag:
+                    frag.presentFragment(PluginSettingsActivity(plugin_obj))
             except Exception as e:
-                import android_utils as _au; _au.log(f"BtnPluginsMenu: open link error: {e}")
+                import android_utils as _au; _au.log(f"BtnPluginsMenu: open settings error: {e}")
         _rout(_open)
     except Exception as e:
-        import android_utils as _au; _au.log(f"BtnPluginsMenu: _open_settings_link error: {e}")
+        import android_utils as _au; _au.log(f"BtnPluginsMenu: _open_packit_settings error: {e}")
 
 
 class BtnPluginsMenu:
@@ -43,7 +44,7 @@ class BtnPluginsMenu:
                         text=self.get_text('packit'),
                         icon='msg_plugins',
                         item_id='packit_chat_plugins',
-                        on_click=lambda ctx: _open_settings_link()
+                        on_click=lambda ctx: _open_packit_settings(self.plugin)
                     ))
         except Exception:
             pass
