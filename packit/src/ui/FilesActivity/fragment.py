@@ -411,6 +411,85 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
         except Exception as e:
             log(f"filesActivity: _do_rename error: {e}")
 
+    def _do_create_file(self):
+        log("filesActivity: _do_create_file called")
+        try:
+            log(f"filesActivity: _do_create_file act={self._act} stack={self._stack}")
+            from org.telegram.ui.ActionBar import AlertDialog as TgAlertDialog, Theme as TgTheme
+            from org.telegram.ui.Components import EditTextBoldCursor
+            act = self._act
+            current_dir = self._stack[-1]
+            log(f"filesActivity: _do_create_file current_dir={current_dir}")
+
+            layout = LinearLayout(act)
+            layout.setOrientation(LinearLayout.VERTICAL)
+
+            edit = EditTextBoldCursor(act)
+            edit.lineYFix = True
+            edit.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18)
+            edit.setTextColor(TgTheme.getColor(TgTheme.key_dialogTextBlack))
+            edit.setHintColor(TgTheme.getColor(TgTheme.key_groupcreate_hintText))
+            edit.setHintText("File name")
+            edit.setFocusable(True)
+            edit.setInputType(0x20001)  # TYPE_CLASS_TEXT | TYPE_TEXT_FLAG_CAP_SENTENCES
+            edit.setCursorColor(TgTheme.getColor(TgTheme.key_windowBackgroundWhiteInputFieldActivated))
+            edit.setLineColors(
+                TgTheme.getColor(TgTheme.key_windowBackgroundWhiteInputField),
+                TgTheme.getColor(TgTheme.key_windowBackgroundWhiteInputFieldActivated),
+                TgTheme.getColor(TgTheme.key_text_RedRegular)
+            )
+            edit.setBackground(None)
+            edit.setPadding(0, AndroidUtilities.dp(6), 0, AndroidUtilities.dp(6))
+            layout.addView(edit, LayoutHelper.createLinear(-1, -2, 24, 0, 24, 10))
+
+            dialog_ref = [None]
+            builder = TgAlertDialog.Builder(act)
+            builder.setTitle("New File")
+            builder.makeCustomMaxHeight()
+            builder.setView(layout)
+            builder.setWidth(AndroidUtilities.dp(292))
+            builder.setNegativeButton("Cancel", None)
+
+            def on_ok(dialog, which):
+                name = str(edit.getText()).strip()
+                if not name:
+                    return
+                new_path = os.path.join(current_dir, name)
+                try:
+                    open(new_path, "a").close()
+                    run_on_ui_thread(lambda: self._render())
+                except Exception as e:
+                    log(f"filesActivity: create file error: {e}")
+                if dialog_ref[0]:
+                    dialog_ref[0].dismiss()
+
+            from java import dynamic_proxy as _dp
+            from org.telegram.ui.ActionBar import AlertDialog as _AD
+
+            class _OkListener(_dp(_AD.OnButtonClickListener)):
+                def __init__(self): super().__init__()
+                def onClick(self, dialog, which): on_ok(dialog, which)
+
+            class _ShowListener(_dp(_AD.OnShowListener)):
+                def __init__(self): super().__init__()
+                def onShow(self, dialog):
+                    edit.requestFocus()
+                    AndroidUtilities.showKeyboard(edit)
+
+            class _DismissListener(_dp(_AD.OnDismissListener)):
+                def __init__(self): super().__init__()
+                def onDismiss(self, dialog): AndroidUtilities.hideKeyboard(edit)
+
+            builder.setPositiveButton("Create", _OkListener())
+            dialog = builder.create()
+            dialog_ref[0] = dialog
+            dialog.setDismissDialogByButtons(False)
+            dialog.setOnShowListener(_ShowListener())
+            dialog.setOnDismissListener(_DismissListener())
+            dialog.show()
+        except Exception as e:
+            log(f"filesActivity: _do_create_file error: {e}")
+
     def _do_delete(self, path):
         try:
             from org.telegram.ui.ActionBar import AlertDialog as TgAlertDialog
@@ -792,6 +871,22 @@ def show_files_browser(plugin=None):
             action_bar = new_frag.getActionBar()
             if action_bar:
                 action_bar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))
+                try:
+                    log("filesActivity: creating menu")
+                    menu = action_bar.createMenu()
+                    log(f"filesActivity: menu created: {menu}")
+                    add_icon = _resolve_icon("msg_addbot")
+                    log(f"filesActivity: icon id: {add_icon}")
+                    add_btn = menu.addItemWithWidth(1, add_icon, AndroidUtilities.dp(54))
+                    log(f"filesActivity: add_btn: {add_btn}")
+
+                    add_btn.setOnClickListener(OnClickListener(lambda v: (
+                        log("filesActivity: add_btn clicked"),
+                        delegate._do_create_file()
+                    )))
+                    log("filesActivity: OnClickListener set on add_btn")
+                except Exception as e:
+                    log(f"filesActivity: show_files_browser menu error: {e}")
             delegate._frag_ref[0] = new_frag
         except Exception as e:
             log(f"filesActivity: show_files_browser actionBar error: {e}")
