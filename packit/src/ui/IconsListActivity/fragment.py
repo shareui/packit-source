@@ -579,8 +579,14 @@ class InstallIconsUI:
                             pass
                     else:
                         try:
-                            self.clear_btn.animate().alpha(0.0).setDuration(200).withEndAction(
-                                lambda: self.clear_btn.setVisibility(View.GONE)).start()
+                            Runnable = find_class("java.lang.Runnable")
+                            class _HideRunnable(dynamic_proxy(Runnable)):
+                                def __init__(self, btn):
+                                    super().__init__()
+                                    self._btn = btn
+                                def run(self):
+                                    self._btn.setVisibility(View.GONE)
+                            self.clear_btn.animate().alpha(0.0).setDuration(200).withEndAction(_HideRunnable(self.clear_btn)).start()
                         except Exception:
                             self.clear_btn.setVisibility(View.GONE)
                 def beforeTextChanged(self, s, start, count, after):
