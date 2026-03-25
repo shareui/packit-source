@@ -1,0 +1,391 @@
+import os
+from android.view import View, Gravity
+from android.widget import LinearLayout, TextView, FrameLayout, HorizontalScrollView, ImageView, ScrollView
+from android.util import TypedValue
+from android.text import TextUtils
+from java import dynamic_proxy
+from android_utils import log, OnClickListener
+from client_utils import get_last_fragment
+from hook_utils import find_class
+
+try:
+    from org.telegram.ui.ActionBar import Theme
+except Exception as e:
+    import android_utils as _au; _au.log(f"openFileFragment: import Theme failed: {e}")
+try:
+    from org.telegram.ui.Components import LayoutHelper
+except Exception as e:
+    import android_utils as _au; _au.log(f"openFileFragment: import LayoutHelper failed: {e}")
+try:
+    from org.telegram.messenger import AndroidUtilities
+except Exception as e:
+    import android_utils as _au; _au.log(f"openFileFragment: import AndroidUtilities failed: {e}")
+try:
+    from com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment
+except Exception as e:
+    import android_utils as _au; _au.log(f"openFileFragment: import UniversalFragment failed: {e}")
+try:
+    from org.telegram.ui.ActionBar import BottomSheet
+except Exception as e:
+    import android_utils as _au; _au.log(f"openFileFragment: import BottomSheet failed: {e}")
+
+_BINARY_SAMPLE_SIZE = 8192
+
+
+def _is_binary(path):
+    try:
+        with open(path, "rb") as f:
+            chunk = f.read(_BINARY_SAMPLE_SIZE)
+        return b"\x00" in chunk
+    except Exception as e:
+        log(f"openFileFragment: _is_binary error: {e}")
+        return False
+
+
+def _resolve_icon(name):
+    try:
+        R = find_class("org.telegram.messenger.R")
+        return getattr(R.drawable, name)
+    except Exception:
+        return 0
+
+
+def _make_toolbar_btn(act, icon_name, on_click):
+    dp = AndroidUtilities.dp
+    btn = ImageView(act)
+    icon_id = _resolve_icon(icon_name)
+    if icon_id:
+        btn.setImageResource(icon_id)
+    btn.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+    btn.setClickable(True)
+    btn.setFocusable(True)
+    btn.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 1))
+    btn.setPadding(dp(8), dp(8), dp(8), dp(8))
+    btn.setOnClickListener(OnClickListener(on_click))
+    return btn
+
+
+def _show_binary_sheet(activity):
+    try:
+        sheet = BottomSheet(activity, False)
+        sheet.fixNavigationBar()
+
+        container = LinearLayout(activity)
+        container.setOrientation(LinearLayout.VERTICAL)
+        container.setPadding(
+            AndroidUtilities.dp(16), AndroidUtilities.dp(16),
+            AndroidUtilities.dp(16), AndroidUtilities.dp(16)
+        )
+
+        msg = TextView(activity)
+        msg.setText("This file contains binary data, I don't think opening it is a good idea.")
+        msg.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+        msg.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+        msg.setLineSpacing(AndroidUtilities.dp(2), 1.0)
+        container.addView(msg, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 20))
+
+        from org.telegram.ui.Stories.recorder import ButtonWithCounterView
+        close_btn = ButtonWithCounterView(activity, False, None)
+        close_btn.setRound()
+        close_btn.setNeutral()
+        close_btn.setText("Close", False)
+        close_btn.setOnClickListener(OnClickListener(lambda v: sheet.dismiss()))
+        container.addView(close_btn, LayoutHelper.createLinear(-1, 48, 0, 0, 0, 0, 0))
+
+        sheet.setCustomView(container)
+        sheet.show()
+    except Exception as e:
+        log(f"openFileFragment: _show_binary_sheet error: {e}")
+
+
+class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
+
+    def __init__(self, path: str):
+        super().__init__()
+        self._path = path
+        self._filename = os.path.basename(path)
+        self._edit_mode = False
+        self._content_view = None
+        self._content_tv = None
+        self._edit_tv = None
+        self._frag_ref = [None]
+        self._text = ""
+        self._original_text = ""
+        self._edit_btn = None
+        self._save_btn = None
+        self._reset_btn = None
+        self._h_scroll = None
+        self._v_scroll = None
+
+    def onFragmentCreate(self, *_):
+        log(f"openFileFragment: onFragmentCreate path={self._path}")
+
+    def onFragmentDestroy(self, *_):
+        log("openFileFragment: onFragmentDestroy")
+        try:
+            if self._content_view is not None:
+                parent = self._content_view.getParent()
+                if parent is not None:
+                    parent.removeView(self._content_view)
+                self._content_view = None
+                self._content_tv = None
+                self._edit_tv = None
+        except Exception as e:
+            log(f"openFileFragment: onFragmentDestroy error: {e}")
+
+    def getTitle(self):
+        return self._filename
+
+    def onBackPressed(self):
+        return None
+
+    def afterCreateView(self, v):
+        return None
+
+    def fillItems(self, items, adapter):
+        pass
+
+    def onClick(self, item, view, pos, x, y):
+        pass
+
+    def onLongClick(self, item, view, pos, x, y):
+        return False
+
+    def beforeCreateView(self):
+        log(f"openFileFragment: beforeCreateView path={self._path}")
+
+        frag = get_last_fragment()
+        if not frag:
+            return None
+        act = frag.getParentActivity()
+        if not act:
+            return None
+        self._frag_ref[0] = frag
+
+        try:
+            with open(self._path, "r", encoding="utf-8", errors="replace") as f:
+                self._text = f.read()
+            self._original_text = self._text
+        except Exception as e:
+            log(f"openFileFragment: read error: {e}")
+            self._text = ""
+            self._original_text = ""
+
+        dp = AndroidUtilities.dp
+        bg = Theme.getColor(Theme.key_windowBackgroundWhite)
+        bg_gray = Theme.getColor(Theme.key_windowBackgroundGray)
+        text_primary = Theme.getColor(Theme.key_windowBackgroundWhiteBlackText)
+        text_gray = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+        accent = Theme.getColor(Theme.key_featuredStickers_addButton)
+        divider_color = Theme.getColor(Theme.key_divider)
+
+        self._act = act
+        self._theme = {
+            "bg": bg, "bg_gray": bg_gray, "text_primary": text_primary,
+            "text_gray": text_gray, "accent": accent, "divider": divider_color
+        }
+
+        self._content_view = FrameLayout(act)
+        self._content_view.setBackgroundColor(bg)
+
+        outer = LinearLayout(act)
+        outer.setOrientation(LinearLayout.VERTICAL)
+        self._content_view.addView(outer, FrameLayout.LayoutParams(-1, -1))
+
+        # toolbar: file icon + name left, save/reset/edit right
+        toolbar = FrameLayout(act)
+        toolbar.setBackgroundColor(bg)
+
+        toolbar_inner = LinearLayout(act)
+        toolbar_inner.setOrientation(LinearLayout.HORIZONTAL)
+        toolbar_inner.setGravity(Gravity.CENTER_VERTICAL)
+        toolbar_inner.setPadding(dp(12), dp(8), dp(8), dp(8))
+
+        file_icon = ImageView(act)
+        file_icon_id = _resolve_icon("msg_filehq")
+        if file_icon_id:
+            file_icon.setImageResource(file_icon_id)
+            file_icon.setColorFilter(accent)
+        file_icon.setPadding(dp(4), dp(4), dp(4), dp(4))
+        toolbar_inner.addView(file_icon, LayoutHelper.createLinear(32, 32, Gravity.CENTER_VERTICAL, 0, 0, 8, 0))
+
+        name_tv = TextView(act)
+        name_tv.setText(self._filename)
+        name_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+        name_tv.setTextColor(text_primary)
+        name_tv.setSingleLine(True)
+        name_tv.setEllipsize(TextUtils.TruncateAt.END)
+        toolbar_inner.addView(name_tv, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+
+        save_btn = _make_toolbar_btn(act, "msg_saved", lambda v: self._do_save())
+        self._save_btn = save_btn
+        save_btn.setVisibility(View.GONE)
+        toolbar_inner.addView(save_btn, LayoutHelper.createLinear(40, 40, Gravity.CENTER_VERTICAL))
+
+        reset_btn = _make_toolbar_btn(act, "msg_reset", lambda v: self._do_reset())
+        self._reset_btn = reset_btn
+        reset_btn.setVisibility(View.GONE)
+        toolbar_inner.addView(reset_btn, LayoutHelper.createLinear(40, 40, Gravity.CENTER_VERTICAL))
+
+        edit_btn = _make_toolbar_btn(act, "menu_topic_add_30", lambda v: self._toggle_edit())
+        self._edit_btn = edit_btn
+        toolbar_inner.addView(edit_btn, LayoutHelper.createLinear(40, 40, Gravity.CENTER_VERTICAL))
+
+        toolbar.addView(toolbar_inner, FrameLayout.LayoutParams(-1, -2))
+
+        div = View(act)
+        div.setBackgroundColor(divider_color)
+        toolbar.addView(div, LayoutHelper.createFrame(-1, 1, 0x50))
+
+        outer.addView(toolbar, LayoutHelper.createLinear(-1, -2))
+
+        # content scroll: h_scroll wraps v_scroll wraps content
+        self._h_scroll = HorizontalScrollView(act)
+        self._h_scroll.setHorizontalScrollBarEnabled(True)
+        self._h_scroll.setFillViewport(True)
+        self._h_scroll.setBackgroundColor(bg)
+
+        self._v_scroll = ScrollView(act)
+        self._v_scroll.setVerticalScrollBarEnabled(True)
+        self._v_scroll.setFillViewport(False)
+
+        self._content_tv = TextView(act)
+        self._content_tv.setText(self._text)
+        self._content_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+        self._content_tv.setTextColor(text_primary)
+        self._content_tv.setSingleLine(False)
+        self._content_tv.setMaxLines(999999)
+        self._content_tv.setHorizontallyScrolling(True)
+        self._content_tv.setPadding(dp(16), dp(12), dp(16), dp(32))
+        try:
+            from android.graphics import Typeface
+            self._content_tv.setTypeface(Typeface.MONOSPACE)
+        except Exception:
+            pass
+
+        self._v_scroll.addView(self._content_tv, LayoutHelper.createScroll(-2, -2, 0))
+        self._h_scroll.addView(self._v_scroll, LayoutHelper.createScroll(-1, -1, 0))
+        outer.addView(self._h_scroll, LayoutHelper.createLinear(-1, 0, 1.0))
+
+        return self._content_view
+
+    def _toggle_edit(self):
+        self._edit_mode = not self._edit_mode
+        log(f"openFileFragment: toggle edit mode={self._edit_mode}")
+        try:
+            t = self._theme
+
+            if self._edit_mode:
+                self._edit_btn.setColorFilter(t["accent"])
+                self._save_btn.setVisibility(View.VISIBLE)
+                self._reset_btn.setVisibility(View.VISIBLE)
+                self._content_tv.setVisibility(View.GONE)
+                self._h_scroll.setBackgroundColor(t["bg_gray"])
+                self._ensure_edit_tv()
+                self._edit_tv.setVisibility(View.VISIBLE)
+                self._edit_tv.requestFocus()
+                AndroidUtilities.showKeyboard(self._edit_tv)
+            else:
+                self._edit_btn.setColorFilter(t["text_gray"])
+                self._save_btn.setVisibility(View.GONE)
+                self._reset_btn.setVisibility(View.GONE)
+                if self._edit_tv:
+                    AndroidUtilities.hideKeyboard(self._edit_tv)
+                    self._edit_tv.setVisibility(View.GONE)
+                self._h_scroll.setBackgroundColor(t["bg"])
+                self._content_tv.setText(self._text)
+                self._content_tv.setVisibility(View.VISIBLE)
+        except Exception as e:
+            log(f"openFileFragment: _toggle_edit error: {e}")
+
+    def _ensure_edit_tv(self):
+        if self._edit_tv is not None:
+            self._edit_tv.setText(self._text)
+            self._edit_tv.setSelection(0)
+            return
+        try:
+            from org.telegram.ui.Components import EditTextBoldCursor
+            from org.telegram.ui.ActionBar import Theme as TgTheme
+            act = self._act
+            dp = AndroidUtilities.dp
+
+            edit = EditTextBoldCursor(act)
+            edit.lineYFix = True
+            edit.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+            edit.setTextColor(TgTheme.getColor(TgTheme.key_windowBackgroundWhiteBlackText))
+            edit.setHintColor(TgTheme.getColor(TgTheme.key_groupcreate_hintText))
+            edit.setCursorColor(TgTheme.getColor(TgTheme.key_windowBackgroundWhiteInputFieldActivated))
+            edit.setBackground(None)
+            edit.setGravity(Gravity.TOP)
+            edit.setSingleLine(False)
+            edit.setMaxLines(999999)
+            edit.setHorizontallyScrolling(False)
+            edit.setPadding(dp(16), dp(12), dp(16), dp(32))
+            try:
+                from android.graphics import Typeface
+                edit.setTypeface(Typeface.MONOSPACE)
+            except Exception:
+                pass
+            edit.setText(self._text)
+            edit.setSelection(0)
+
+            self._edit_tv = edit
+            self._v_scroll.removeAllViews()
+            wrapper = LinearLayout(act)
+            wrapper.setOrientation(LinearLayout.VERTICAL)
+            wrapper.addView(self._content_tv, LayoutHelper.createLinear(-2, -2))
+            wrapper.addView(self._edit_tv, LayoutHelper.createLinear(-1, -2))
+            self._v_scroll.addView(wrapper, LayoutHelper.createScroll(-1, -2, 0))
+        except Exception as e:
+            log(f"openFileFragment: _ensure_edit_tv error: {e}")
+
+    def _do_save(self):
+        if not self._edit_tv:
+            return
+        try:
+            new_text = str(self._edit_tv.getText())
+            with open(self._path, "w", encoding="utf-8") as f:
+                f.write(new_text)
+            self._text = new_text
+            log(f"openFileFragment: saved {self._path}")
+        except Exception as e:
+            log(f"openFileFragment: _do_save error: {e}")
+
+    def _do_reset(self):
+        if not self._edit_tv:
+            return
+        try:
+            self._edit_tv.setText(self._original_text)
+            self._edit_tv.setSelection(0)
+            log("openFileFragment: reset to original")
+        except Exception as e:
+            log(f"openFileFragment: _do_reset error: {e}")
+
+
+def open_file(path: str):
+    log(f"openFileFragment: open_file path={path}")
+    try:
+        frag = get_last_fragment()
+        if not frag:
+            log("openFileFragment: open_file no fragment")
+            return
+        act = frag.getParentActivity()
+        if not act:
+            log("openFileFragment: open_file no activity")
+            return
+
+        if _is_binary(path):
+            log("openFileFragment: binary file detected, showing sheet")
+            _show_binary_sheet(act)
+            return
+
+        delegate = OpenFileFragment(path)
+        new_frag = UniversalFragment(delegate)
+        frag.presentFragment(new_frag)
+        try:
+            new_frag.setTitle(os.path.basename(path), False, 0)
+            delegate._frag_ref[0] = new_frag
+        except Exception as e:
+            log(f"openFileFragment: open_file setup error: {e}")
+    except Exception as e:
+        log(f"openFileFragment: open_file error: {e}")

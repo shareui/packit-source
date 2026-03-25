@@ -42,6 +42,14 @@ except Exception as e:
     import android_utils as _au; _au.log(f"filesActivity: import graphics failed: {e}")
 
 
+def _open_file(path):
+    try:
+        from .openFileFragment import open_file
+        open_file(path)
+    except Exception as e:
+        log(f"filesActivity: _open_file error: {e}")
+
+
 def _resolve_icon(name):
     try:
         R = find_class("org.telegram.messenger.R")
@@ -588,6 +596,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                     size = ""
                 row = _make_row(act, name, size, file_icon_id, t, is_dir=False,
                                 on_menu=lambda btn, p=full: self._open_menu(btn, p))
+                row.setOnClickListener(OnClickListener(lambda v, p=full: _open_file(p)))
                 _apply_press_scale(row)
                 list_root.addView(row, LayoutHelper.createLinear(-1, -2))
                 if i < len(files) - 1:
