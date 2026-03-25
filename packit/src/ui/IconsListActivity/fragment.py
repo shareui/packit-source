@@ -44,6 +44,7 @@ except Exception as e:
 
 from .RepoBottomSheet import show_icon_repo_sheet
 from .SortBottomSheet import show_icon_sort_menu
+from ..PluginListActivity.service import SearchEngine as search_mod
 
 
 def _count_active_repos(repoManager) -> int:
@@ -206,51 +207,76 @@ class InstallIconsUI:
         }
 
     def open(self):
+        log("IconList.open: called")
         fragment = get_last_fragment()
         if not fragment:
+            log("IconList.open: no fragment, aborting")
             return
         repos = []
         try:
-            for r in (self.repoManager.getRepositories() or []):
+            raw = self.repoManager.getRepositories() or []
+            log(f"IconList.open: raw repos count={len(raw)}")
+            for r in raw:
                 try:
-                    if not r or not r.get("enabled"):
+                    if not r:
+                        log("IconList.open: skipping null repo")
                         continue
+                    enabled = r.get("enabled")
                     name = str(r.get("name") or "").strip()
                     url = str(r.get("url") or "").strip()
+                    log(f"IconList.open: repo name='{name}' url='{url}' enabled={enabled}")
+                    if not r.get("enabled"):
+                        log(f"IconList.open: skipping disabled repo '{name}'")
+                        continue
                     if name and url:
                         repos.append(r)
-                except Exception:
+                    else:
+                        log(f"IconList.open: skipping repo with empty name or url: name='{name}' url='{url}'")
+                except Exception as e:
+                    log(f"IconList.open: error processing repo: {e}")
                     continue
-        except Exception:
-            pass
+        except Exception as e:
+            log(f"IconList.open: getRepositories failed: {e}")
+        log(f"IconList.open: usable repos count={len(repos)}")
         if not repos:
+            log("IconList.open: no usable repos, showing error bulletin")
             BulletinHelper.show_error("No repositories configured")
             return
-        if settings.get("skip_repository_selection", False):
+        skip_sel = settings.get("skip_repository_selection", False)
+        log(f"IconList.open: skip_repository_selection={skip_sel}")
+        if skip_sel:
             self._open_all_repos_icons()
             return
         if len(repos) == 1:
+            log(f"IconList.open: single repo, opening directly: {repos[0].get('name')}")
             self._open_repo_icons(repos[0])
             return
+        log("IconList.open: multiple repos, showing repo sheet")
         show_icon_repo_sheet(self, repos)
 
     def _open_all_repos_icons(self):
+        log("IconList._open_all_repos_icons: called")
         fragment = get_last_fragment()
         if not fragment:
+            log("IconList._open_all_repos_icons: no fragment, aborting")
             return
         self._show_icons_universal(strings["all_repositories"], [])
 
         def load_task():
             try:
                 repos = self.repoManager.getRepositories()
+                log(f"IconList._open_all_repos_icons: total repos={len(repos) if repos else 0}")
                 all_icons = []
                 for repo in repos:
                     if not repo.get("enabled"):
+                        log(f"IconList._open_all_repos_icons: skipping disabled repo '{repo.get('name')}'")
                         continue
                     repo_id = (repo.get("id") or "").strip()
                     repo_url = (repo.get("url") or "").strip()
                     if not repo_url:
+                        log(f"IconList._open_all_repos_icons: skipping repo '{repo.get('name')}' - empty url")
                         continue
+                    log(f"IconList._open_all_repos_icons: loading repo '{repo.get('name')}' id='{repo_id}' url='{repo_url}'")
                     try:
                         icons_url = repo_url
                         if repo_id:
@@ -261,18 +287,23 @@ class InstallIconsUI:
                                 from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
                             import os
                             pkg = ApplicationLoader.applicationContext.getPackageName()
-                            cache_path = f"/data/data/{pkg}/files/packitCache/{repo_id}.json"
+                            cache_path = f"/data/data/{pkg}/files/packitCache/reposCache/{repo_id}.json"
+                            log(f"IconList._open_all_repos_icons: cache_path='{cache_path}' exists={os.path.exists(cache_path)}")
                             if os.path.exists(cache_path):
                                 with open(cache_path, "r", encoding="utf-8") as f:
                                     cached = json.load(f)
                                 icons_url = cached.get("repomap", {}).get("icons") or repo_url
+                                log(f"IconList._open_all_repos_icons: resolved icons_url from cache='{icons_url}'")
 
+                        log(f"IconList._open_all_repos_icons: fetching icons from '{icons_url}'")
                         response = requests.get(icons_url, timeout=10)
+                        log(f"IconList._open_all_repos_icons: repo '{repo.get('name')}' HTTP {response.status_code}")
                         if response.status_code != 200:
-                            log(f"icons repo '{repo.get('name')}': HTTP {response.status_code}, skipping")
+                            log(f"IconList._open_all_repos_icons: repo '{repo.get('name')}': HTTP {response.status_code}, skipping")
                             continue
                         config = response.json()
                         icons = config.get("icons", {})
+                        log(f"IconList._open_all_repos_icons: repo '{repo.get('name')}' icons type={type(icons).__name__} len={len(icons) if icons else 0}")
                         if isinstance(icons, dict):
                             for iconId, info in icons.items():
                                 if isinstance(info, dict):
@@ -282,24 +313,29 @@ class InstallIconsUI:
                                 if isinstance(item, dict) and item.get("id"):
                                     all_icons.append({"id": item.get("id"), "repo_name": repo.get("name", "Unknown"), **item})
                     except Exception as e:
-                        log(f"icons: failed to load repo {repo.get('name')}: {e}")
+                        log(f"IconList._open_all_repos_icons: failed to load repo '{repo.get('name')}': {e}")
 
+                log(f"IconList._open_all_repos_icons: total icons collected={len(all_icons)}")
                 run_on_ui_thread(lambda: self._update_current_fragment_icons(all_icons))
             except Exception as e:
                 BulletinHelper.show_error("Failed to load icons")
-                log(f"icons: failed to load all repos: {e}")
+                log(f"IconList._open_all_repos_icons: fatal error: {e}")
         run_on_queue(load_task)
 
     def _open_repo_icons(self, repo):
         repo_name = repo.get("name") or strings["unnamed"]
         repo_url = (repo.get("url") or "").strip()
+        log(f"IconList._open_repo_icons: repo='{repo_name}' url='{repo_url}'")
         if not repo_url:
+            log("IconList._open_repo_icons: empty url, aborting")
             BulletinHelper.show_error("Repository URL is empty")
             return
         fragment = get_last_fragment()
         if not fragment:
+            log("IconList._open_repo_icons: no fragment, aborting")
             return
         repo_id = (repo.get("id") or "").strip()
+        log(f"IconList._open_repo_icons: repo_id='{repo_id}'")
         self._show_icons_universal(repo_name, [], repo_id=repo_id)
 
         def load_task():
@@ -313,17 +349,22 @@ class InstallIconsUI:
                         from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
                     import os
                     pkg = ApplicationLoader.applicationContext.getPackageName()
-                    cache_path = f"/data/data/{pkg}/files/packitCache/{repo_id}.json"
+                    cache_path = f"/data/data/{pkg}/files/packitCache/reposCache/{repo_id}.json"
+                    log(f"IconList._open_repo_icons: cache_path='{cache_path}' exists={os.path.exists(cache_path)}")
                     if os.path.exists(cache_path):
                         with open(cache_path, "r", encoding="utf-8") as f:
                             cached = json.load(f)
                         icons_url = cached.get("repomap", {}).get("icons") or repo_url
+                        log(f"IconList._open_repo_icons: resolved icons_url from cache='{icons_url}'")
 
+                log(f"IconList._open_repo_icons: fetching '{icons_url}'")
                 r = requests.get(icons_url, timeout=20)
+                log(f"IconList._open_repo_icons: HTTP {r.status_code}")
                 if r.status_code != 200:
                     raise Exception(f"HTTP {r.status_code}")
                 config = r.json()
                 icons_raw = config.get("icons", [])
+                log(f"IconList._open_repo_icons: icons_raw type={type(icons_raw).__name__} len={len(icons_raw) if icons_raw else 0}")
                 icons = []
                 if isinstance(icons_raw, dict):
                     for iid, info in icons_raw.items():
@@ -333,32 +374,51 @@ class InstallIconsUI:
                     for item in icons_raw:
                         if isinstance(item, dict) and item.get("id"):
                             icons.append(item)
+                        else:
+                            log(f"IconList._open_repo_icons: skipping list item (no id or not dict): {item}")
 
+                log(f"IconList._open_repo_icons: parsed icons count={len(icons)}")
                 run_on_ui_thread(lambda: self._update_current_fragment_icons(icons))
             except Exception as e:
                 BulletinHelper.show_error("An error occurred while downloading")
-                log(f"InstallIconsUI: error downloading repo '{repo_url}': {e}")
+                log(f"IconList._open_repo_icons: error for url='{repo_url}': {e}")
         run_on_queue(load_task)
 
     def _update_current_fragment_icons(self, icons):
+        log(f"IconList._update_current_fragment_icons: called with icons count={len(icons) if icons else 0}")
         try:
             fragment = get_last_fragment()
             if not fragment:
+                log("IconList._update_current_fragment_icons: no fragment")
                 return
-            if hasattr(fragment, 'getDelegate') and fragment.getDelegate():
+            has_delegate = hasattr(fragment, 'getDelegate')
+            log(f"IconList._update_current_fragment_icons: hasDelegate={has_delegate}")
+            if has_delegate and fragment.getDelegate():
                 delegate = fragment.getDelegate()
-                if hasattr(delegate, 'icons'):
+                has_icons_attr = hasattr(delegate, 'icons')
+                log(f"IconList._update_current_fragment_icons: delegate={delegate} hasIcons={has_icons_attr}")
+                if has_icons_attr:
                     delegate.icons = icons
+                    delegate.search_index = search_mod.build_index(icons)
+                    log(f"IconList._update_current_fragment_icons: search index built for {len(icons)} icons")
                     delegate.filtered_icons = []
                     delegate.visible_icons = []
-                    # if still showing loading placeholder — transition to real list
-                    if getattr(delegate, '_loading_started', False) and callable(getattr(delegate, '_finish_loading', None)):
+                    loading_started = getattr(delegate, '_loading_started', False)
+                    has_finish = callable(getattr(delegate, '_finish_loading', None))
+                    log(f"IconList._update_current_fragment_icons: _loading_started={loading_started} _finish_loading callable={has_finish}")
+                    if loading_started and has_finish:
                         delegate._loading_started = False
+                        log("IconList._update_current_fragment_icons: calling _finish_loading via run_on_ui_thread")
                         run_on_ui_thread(delegate._finish_loading)
                     elif hasattr(delegate, 'results_container') and delegate.results_container:
+                        log(f"IconList._update_current_fragment_icons: calling build_list_with_sort('{delegate.current_sort_type}')")
                         delegate.build_list_with_sort(delegate.current_sort_type)
+                    else:
+                        log("IconList._update_current_fragment_icons: no results_container and loading not started, icons not shown")
+            else:
+                log("IconList._update_current_fragment_icons: fragment has no usable delegate")
         except Exception as e:
-            log(f"icons: failed to update fragment: {e}")
+            log(f"IconList._update_current_fragment_icons: error: {e}")
 
     def _show_icons_universal(self, repo_name: str, icons: list, repo_id: str = ""):
         fragment = get_last_fragment()
@@ -387,6 +447,7 @@ class InstallIconsUI:
             self.icons = icons
             self.show_loading_initial = show_loading_initial
             self.last_search_query = None
+            self.search_index = None
             self.filtered_icons = []
             self.visible_icons = []
             self.lazy_load_queue = deque()
@@ -518,8 +579,14 @@ class InstallIconsUI:
                             pass
                     else:
                         try:
-                            self.clear_btn.animate().alpha(0.0).setDuration(200).withEndAction(
-                                lambda: self.clear_btn.setVisibility(View.GONE)).start()
+                            Runnable = find_class("java.lang.Runnable")
+                            class _HideRunnable(dynamic_proxy(Runnable)):
+                                def __init__(self, btn):
+                                    super().__init__()
+                                    self._btn = btn
+                                def run(self):
+                                    self._btn.setVisibility(View.GONE)
+                            self.clear_btn.animate().alpha(0.0).setDuration(200).withEndAction(_HideRunnable(self.clear_btn)).start()
                         except Exception:
                             self.clear_btn.setVisibility(View.GONE)
                 def beforeTextChanged(self, s, start, count, after):
@@ -739,20 +806,24 @@ class InstallIconsUI:
                 _loading_container_ref = loading_container
                 def finish_loading():
                     try:
+                        log(f"IconList.finish_loading: called, icons count={len(self.icons) if self.icons else 0}")
                         if _loading_container_ref is not None:
                             try:
                                 self.content_view.removeView(_loading_container_ref)
-                            except Exception:
-                                pass
+                                log("IconList.finish_loading: removed loading spinner")
+                            except Exception as e:
+                                log(f"IconList.finish_loading: removeView failed: {e}")
                         content_wrapper.addView(self.results_container, FrameLayout.LayoutParams(-1, -2))
                         if self.icons:
+                            log(f"IconList.finish_loading: building list, icons={len(self.icons)}")
                             self.build_list_with_sort("alpha_az")
                         else:
+                            log("IconList.finish_loading: icons is empty, showing empty state")
                             self._show_empty_state()
                         if hasattr(self, 'subtitle'):
                             self.subtitle.setText(strings["icons_count"].format(len(self.icons)))
                     except Exception as e:
-                        log(f"icons: finish_loading error: {e}")
+                        log(f"IconList.finish_loading: error: {e}")
 
                 self._finish_loading = finish_loading
                 self._loading_started = True
@@ -816,6 +887,7 @@ class InstallIconsUI:
             pass
 
         def build_list_with_sort(self, sort_type: str, q=None):
+            log(f"IconList.build_list_with_sort: sort_type='{sort_type}' q='{q}' total_icons={len(self.icons) if self.icons else 0}")
             self.current_sort_type = sort_type
             q = (q or "").strip()
             if q != self.last_search_query:
@@ -830,13 +902,20 @@ class InstallIconsUI:
             if not q:
                 filtered = list(self.icons)
             else:
-                q_lower = q.lower()
-                filtered = [
-                    icon for icon in self.icons
-                    if q_lower in str(icon.get("id") or "").lower()
-                    or q_lower in str(icon.get("name") or "").lower()
-                    or q_lower in str(icon.get("author") or "").lower()
-                ]
+                isRussian = False
+                try:
+                    from java.util import Locale
+                    isRussian = Locale.getDefault().getLanguage() == "ru"
+                except Exception:
+                    pass
+                fuzzy = settings.get("fuzzy_search", False)
+                scored = []
+                for icon in self.icons:
+                    s = search_mod.score(icon, q, self.search_index, isRussian, fuzzy)
+                    if s[0] < 6:
+                        scored.append((s, icon))
+                scored.sort(key=lambda x: x[0])
+                filtered = [icon for _, icon in scored]
 
             if not q:
                 if sort_type == "alpha_az":
@@ -847,6 +926,7 @@ class InstallIconsUI:
                     filtered.sort(key=lambda i: str(i.get("author") or "").lower())
 
             self.filtered_icons = filtered
+            log(f"IconList.build_list_with_sort: filtered count={len(filtered)}")
 
             fragment = get_last_fragment()
             act = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
@@ -854,14 +934,17 @@ class InstallIconsUI:
                 act = fragment.getContext() if fragment else None
 
             if not filtered:
+                log("IconList.build_list_with_sort: filtered is empty, calling _show_empty_state")
                 self._show_empty_state()
             else:
+                log(f"IconList.build_list_with_sort: loading initial batch of {min(self.batch_size, len(filtered))}")
                 self._load_initial_batch()
 
         def build_list(self, q):
             self.build_list_with_sort(self.current_sort_type, q)
 
         def _show_empty_state(self):
+            log(f"IconList._show_empty_state: called, icons={len(self.icons) if self.icons else 0} filtered={len(self.filtered_icons) if self.filtered_icons else 0} last_query='{self.last_search_query}'")
             try:
                 fragment = get_last_fragment()
                 act = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None

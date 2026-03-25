@@ -750,6 +750,241 @@ def _buildHashFunctionCards(context, key, default, on_change=None):
         return None
 
 
+def _buildSortMenuDesignToggle(context, key, default, on_change=None):
+    try:
+        from elyx import settings as _settings
+        from android.graphics.drawable import GradientDrawable
+        from android.graphics import Color
+        from android.animation import ValueAnimator
+        from android.view.animation import DecelerateInterpolator
+        from android.view import View
+        from android.widget import ImageView
+        from java import dynamic_proxy
+        from hook_utils import find_class
+        dp = AndroidUtilities.dp
+
+        wrapper = LinearLayout(context)
+        wrapper.setOrientation(LinearLayout.VERTICAL)
+        wrapper.setPadding(dp(16), dp(8), dp(16), dp(8))
+
+        headerView = TextView(context)
+        headerView.setText(str(strings.sort_menu_design))
+        headerView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+        headerView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+        headerView.setGravity(Gravity.CENTER_HORIZONTAL)
+        wrapper.addView(headerView, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 6))
+
+        row = LinearLayout(context)
+        row.setOrientation(LinearLayout.HORIZONTAL)
+        wrapper.addView(row, LayoutHelper.createLinear(-1, -2))
+
+        accentColor = Theme.getColor(Theme.key_featuredStickers_addButton)
+        surfaceColor = Theme.getColor(Theme.key_windowBackgroundWhite)
+        grayColor = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+        blackText = Theme.getColor(Theme.key_windowBackgroundWhiteBlackText)
+        dialogBg = Theme.getColor(Theme.key_dialogBackground)
+        dialogBgGray = Theme.getColor(Theme.key_dialogBackgroundGray)
+        dialogTextBlack = Theme.getColor(Theme.key_dialogTextBlack)
+        dialogTextGray = Theme.getColor(Theme.key_dialogTextGray2)
+        buttonText = Theme.getColor(Theme.key_featuredStickers_buttonText)
+
+        accentR = (accentColor >> 16) & 0xFF
+        accentG = (accentColor >> 8) & 0xFF
+        accentB = accentColor & 0xFF
+        activeStroke = accentColor
+        inactiveStroke = Color.argb(40, 128, 128, 128)
+
+        # 0 = modern (default), 1 = classic
+        current_ref = [_settings.get(key, default)]
+        card_refs = [None, None]
+        bg_refs = [None, None]
+
+        def lerpColor(c1, c2, t):
+            a = int(((c1 >> 24) & 0xFF) + t * (((c2 >> 24) & 0xFF) - ((c1 >> 24) & 0xFF)))
+            r = int(((c1 >> 16) & 0xFF) + t * (((c2 >> 16) & 0xFF) - ((c1 >> 16) & 0xFF)))
+            g = int(((c1 >> 8) & 0xFF) + t * (((c2 >> 8) & 0xFF) - ((c1 >> 8) & 0xFF)))
+            b = int((c1 & 0xFF) + t * ((c2 & 0xFF) - (c1 & 0xFF)))
+            return Color.argb(a, r, g, b)
+
+        def animateCard(card, bg, toActive):
+            fromStroke = inactiveStroke if toActive else activeStroke
+            toStroke = activeStroke if toActive else inactiveStroke
+            strokeFrom = dp(1) if toActive else dp(2)
+            strokeTo = dp(2) if toActive else dp(1)
+
+            class _Listener(dynamic_proxy(ValueAnimator.AnimatorUpdateListener)):
+                def onAnimationUpdate(self, anim):
+                    t = float(anim.getAnimatedFraction())
+                    bg.setStroke(int(strokeFrom + t * (strokeTo - strokeFrom)), lerpColor(fromStroke, toStroke, t))
+                    card.setBackground(bg)
+
+            anim = ValueAnimator.ofFloat(0.0, 1.0)
+            anim.setDuration(350)
+            anim.setInterpolator(DecelerateInterpolator(2.0))
+            anim.addUpdateListener(_Listener())
+            anim.start()
+
+        def makeCardBg(active):
+            bg = GradientDrawable()
+            bg.setCornerRadius(dp(12))
+            bg.setColor(0x00000000)
+            bg.setStroke(dp(2) if active else dp(1), activeStroke if active else inactiveStroke)
+            return bg
+
+        def refreshCards(prev):
+            cur = current_ref[0]
+            for i, card in enumerate(card_refs):
+                if card is not None and bg_refs[i] is not None:
+                    if i == cur and i != prev:
+                        animateCard(card, bg_refs[i], True)
+                    elif i == prev and i != cur:
+                        animateCard(card, bg_refs[i], False)
+
+        def makeCardClick(idx):
+            def onClick(v):
+                prev = current_ref[0]
+                if prev == idx:
+                    return
+                _settings.set(key, idx)
+                current_ref[0] = idx
+                refreshCards(prev)
+                if on_change:
+                    on_change(idx)
+            return onClick
+
+        def resolveIcon(name):
+            try:
+                R = find_class("org.telegram.messenger.R")
+                return getattr(R.drawable, name)
+            except Exception:
+                return 0
+
+        def buildPreviewRow(act, isClassic):
+            container = LinearLayout(act)
+            container.setOrientation(LinearLayout.VERTICAL)
+            container.setPadding(dp(6), dp(6), dp(6), dp(4))
+
+            previewBg = GradientDrawable()
+            previewBg.setCornerRadius(dp(8))
+            previewBg.setColor(dialogBg)
+            container.setBackground(previewBg)
+
+            def makeRow(label, isSelected):
+                optRow = LinearLayout(act)
+                optRow.setOrientation(LinearLayout.HORIZONTAL)
+                optRow.setGravity(Gravity.CENTER_VERTICAL)
+                optRow.setPadding(dp(6), dp(5), dp(6), dp(5))
+
+                rowBg = GradientDrawable()
+                rowBg.setCornerRadius(dp(5))
+                rowBg.setColor(accentColor if (isSelected and isClassic) else 0x00000000)
+                optRow.setBackground(rowBg)
+
+                if not isClassic:
+                    dot = FrameLayout(act)
+                    dotSize = dp(8)
+                    dotBg = GradientDrawable()
+                    dotBg.setShape(GradientDrawable.OVAL)
+                    if isSelected:
+                        dotBg.setColor(accentColor)
+                        dotBg.setStroke(dp(1), Color.WHITE)
+                    else:
+                        dotBg.setColor(0x00000000)
+                    dot.setBackground(dotBg)
+                    dotLp = LinearLayout.LayoutParams(dotSize, dotSize)
+                    dotLp.rightMargin = dp(5)
+                    optRow.addView(dot, dotLp)
+
+                iconView = ImageView(act)
+                iconId = resolveIcon("msg_archive")
+                if iconId:
+                    iconView.setImageResource(iconId)
+                    if isSelected and isClassic:
+                        iconView.setColorFilter(Color.WHITE)
+                    elif isSelected:
+                        iconView.setColorFilter(accentColor)
+                    else:
+                        iconView.setColorFilter(dialogTextGray)
+                iconLp = LinearLayout.LayoutParams(dp(12), dp(12))
+                iconLp.rightMargin = dp(5)
+                optRow.addView(iconView, iconLp)
+
+                labelView = TextView(act)
+                labelView.setText(label)
+                labelView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 9)
+                if isSelected and isClassic:
+                    labelView.setTextColor(buttonText)
+                elif isSelected:
+                    labelView.setTextColor(accentColor)
+                else:
+                    labelView.setTextColor(dialogTextBlack)
+                optRow.addView(labelView, LayoutHelper.createLinear(-1, -2, Gravity.CENTER_VERTICAL))
+
+                return optRow
+
+            container.addView(makeRow("A \u2192 Z", True), LayoutHelper.createLinear(-1, -2))
+
+            div = View(act)
+            div.setBackgroundColor(Theme.getColor(Theme.key_divider))
+            container.addView(div, LayoutHelper.createLinear(-1, 1, 0, dp(4), 0, dp(4)))
+
+            container.addView(makeRow("Z \u2192 A", False), LayoutHelper.createLinear(-1, -2))
+
+            return container
+
+        labels = [str(strings.sort_menu_design_modern), str(strings.sort_menu_design_classic)]
+
+        for i in range(2):
+            # outer column: card + label underneath
+            col = LinearLayout(context)
+            col.setOrientation(LinearLayout.VERTICAL)
+            col.setGravity(Gravity.CENTER_HORIZONTAL)
+
+            card = LinearLayout(context)
+            card.setOrientation(LinearLayout.VERTICAL)
+            card.setGravity(Gravity.CENTER_HORIZONTAL)
+            card.setClickable(True)
+            card.setFocusable(True)
+            card.setPadding(dp(10), dp(10), dp(10), dp(10))
+            cardBg = makeCardBg(current_ref[0] == i)
+            card.setBackground(cardBg)
+            bg_refs[i] = cardBg
+            card.setOnClickListener(OnClickListener(makeCardClick(i)))
+            card_refs[i] = card
+
+            preview = buildPreviewRow(context, isClassic=(i == 1))
+            card.addView(preview, LayoutHelper.createLinear(-1, -2))
+            col.addView(card, LayoutHelper.createLinear(-1, -2))
+
+            nameView = TextView(context)
+            nameView.setText(labels[i])
+            nameView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
+            nameView.setTextColor(blackText)
+            nameView.setGravity(Gravity.CENTER)
+            nameView.setPadding(0, dp(5), 0, 0)
+            try:
+                nameView.setTypeface(AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_MEDIUM))
+            except Exception:
+                pass
+            col.addView(nameView, LayoutHelper.createLinear(-1, -2))
+
+            if i == 0:
+                row.addView(col, LayoutHelper.createLinear(0, -2, 1.0, Gravity.TOP, 0, 0, 6, 0))
+            else:
+                row.addView(col, LayoutHelper.createLinear(0, -2, 1.0, Gravity.TOP, 0, 0, 0, 0))
+
+        hintView = TextView(context)
+        hintView.setText(str(strings.sort_menu_design_desc))
+        hintView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
+        hintView.setTextColor(grayColor)
+        wrapper.addView(hintView, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 0))
+
+        return wrapper
+    except Exception as e:
+        log(f"_buildSortMenuDesignToggle error: {e}")
+        return None
+
+
 class OtherSettings:
     def __init__(self, chat_button=None, plugin=None):
         self.chat_button = chat_button
@@ -774,6 +1009,24 @@ class OtherSettings:
             text=strings.button_in_dialogs_menu,
             icon="msg_addbot",
             on_click=self._open_main_menu_settings
+        )
+
+    def _build_sort_menu_design_item(self, ctx):
+        try:
+            if ctx:
+                view = _buildSortMenuDesignToggle(ctx, key="old_sort_menu_design", default=False)
+                if view is not None:
+                    return Custom(view=view)
+            log("other: _build_sort_menu_design_item falling back to Switch")
+        except Exception as e:
+            log(f"other: _build_sort_menu_design_item error: {e}")
+        return Switch(
+            key="old_sort_menu_design",
+            text=strings.classic_sort_menu,
+            subtext=strings.classic_sort_menu_desc,
+            default=False,
+            icon="msg_list",
+            link_alias="old_sort_menu_design"
         )
 
     def _build_search_engine_item(self, ctx):
@@ -1064,14 +1317,7 @@ class OtherSettings:
                 icon="msg_block",
                 link_alias="hide_unavailable_plugins"
             ),
-            Switch(
-                key="old_sort_menu_design",
-                text=strings.classic_sort_menu,
-                subtext=strings.classic_sort_menu_desc,
-                default=False,
-                icon="msg_list",
-                link_alias="old_sort_menu_design"
-            ),
+            self._build_sort_menu_design_item(ctx),
             Divider(),
             Header(text=strings.plugin_profile_header),
             Switch(
@@ -1134,8 +1380,7 @@ class OtherSettings:
             Switch(key="sfx_achievement", text=strings.sfx_achievement, default=True, icon="msg_gift_premium", link_alias="sfx_achievement"),
             Divider(text=strings.sfx_header_desc),
             Header(text=strings.components_header),
-            self._build_search_engine_item(ctx),    # variant 1: two cards side-by-side
-            # self._build_search_engine_item_v3(ctx), # variant 3: inline toggle
+            self._build_search_engine_item(ctx),    
             self._build_hash_function_item(ctx),
             Divider(),
             Header(text=strings.misc_header),

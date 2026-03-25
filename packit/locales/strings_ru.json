@@ -633,5 +633,9 @@
   "search_engine_python": "SearchEngine.py",
   "search_engine_desc": "Select a method to search for plugins from the list. Select native for faster search.",
   "search_engine_native_short": "Native",
-  "search_engine_python_short": "Python"
+  "search_engine_python_short": "Python",
+  "sort_menu_design": "Sort Menu Style",
+  "sort_menu_design_modern": "Modern",
+  "sort_menu_design_classic": "Classic",
+  "sort_menu_design_desc": "Modern style highlights the active option with a colored dot. Classic fills the row with the accent color."
 }
