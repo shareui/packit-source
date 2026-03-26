@@ -369,6 +369,11 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
 
     def onFragmentDestroy(self, *_):
         log(f"pluginProfile: onFragmentDestroy plugin={self.plugin.get('id')}")
+        try:
+            from ...ui.AchievementsActivity.service.AchivementsEngine import unregister_bulletin_container
+            unregister_bulletin_container(self.content_view)
+        except Exception as e:
+            log(f"pluginProfile: unregister_bulletin_container error: {e}")
         self._alive[0] = False
         try:
             spinner = getattr(self, '_changelog_spinner', None)
@@ -467,6 +472,12 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
 
         self.content_view = FrameLayout(act)
         self.content_view.setBackgroundColor(bg_color)
+
+        try:
+            from ...ui.AchievementsActivity.service.AchivementsEngine import register_bulletin_container
+            register_bulletin_container(self.content_view)
+        except Exception as e:
+            log(f"pluginProfile: register_bulletin_container error: {e}")
 
         scroll = ScrollView(act)
         scroll.setFillViewport(True)

@@ -232,6 +232,78 @@ def _check_updates(pkg: str) -> list:
     return updates
 
 
+def _get_ignore_list(pkg: str, repo_id: str) -> list:
+    # reads ignore_list array from {rm_rid}-index.json
+    path = _get_index_path(pkg, repo_id)
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        lst = data.get("ignore_list")
+        return lst if isinstance(lst, list) else []
+    except Exception as e:
+        log(f"pluginsUpdates: _get_ignore_list error for '{repo_id}': {e}")
+        return []
+
+
+def _save_ignore_list(pkg: str, repo_id: str, lst: list):
+    # writes ignore_list array back into {rm_rid}-index.json
+    path = _get_index_path(pkg, repo_id)
+    try:
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception:
+            data = {}
+        data["ignore_list"] = lst
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        log(f"pluginsUpdates: _save_ignore_list error for '{repo_id}': {e}")
+
+
+def _is_ignored(pkg: str, pid: str, repo_id: str, repo_version: str) -> bool:
+    # returns True if plugin should be hidden from updates list
+    lst = _get_ignore_list(pkg, repo_id)
+    for entry in lst:
+        if entry.get("id") != pid:
+            continue
+        if "version" not in entry:
+            # forever ignore
+            return True
+        # until-next: ignore while repo version <= recorded version
+        recorded = entry.get("version", "")
+        if _version_tuple(repo_version) <= _version_tuple(recorded):
+            return True
+    return False
+
+
+def _ignore_until_next(pkg: str, pid: str, repo_id: str, repo_version: str):
+    # records plugin+version so it's ignored until a newer version appears
+    lst = _get_ignore_list(pkg, repo_id)
+    lst = [e for e in lst if e.get("id") != pid]
+    lst.append({"id": pid, "version": repo_version})
+    _save_ignore_list(pkg, repo_id, lst)
+
+
+def _ignore_forever(pkg: str, pid: str, repo_id: str):
+    # records plugin without version so it's ignored permanently
+    lst = _get_ignore_list(pkg, repo_id)
+    lst = [e for e in lst if e.get("id") != pid]
+    lst.append({"id": pid})
+    _save_ignore_list(pkg, repo_id, lst)
+
+
+def _filter_ignored(pkg: str, updates: list) -> list:
+    result = []
+    for item in updates:
+        pid = item["id"]
+        repo_id = item.get("repo_id", "")
+        repo_version = item.get("repo_version", "")
+        if not _is_ignored(pkg, pid, repo_id, repo_version):
+            result.append(item)
+    return result
+
+
 class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
 
     def __init__(self):
@@ -365,7 +437,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     run_on_ui_thread(lambda: self._show_empty("You have not installed any plugins from PackIt") if alive[0] else None)
                     return
 
-                updates = _check_updates(pkg)
+                updates = _filter_ignored(pkg, _check_updates(pkg))
 
                 def on_done():
                     if not alive[0]:
@@ -575,17 +647,179 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
         col.addView(ver_row, ver_row_lp)
 
+        from android.widget import ImageView as _ImageView
+        from hook_utils import find_class as _find_class
+
+        try:
+            R_tg = _find_class("org.telegram.messenger.R")
+            ignore_icon_id = getattr(R_tg.drawable, "menu_hide_gift", 0)
+            download_icon_id = getattr(R_tg.drawable, "msg_download", 0)
+        except Exception:
+            ignore_icon_id = 0
+            download_icon_id = 0
+
+        ignore_btn = _ImageView(act)
+        if ignore_icon_id:
+            ignore_btn.setImageResource(ignore_icon_id)
+        ignore_btn.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon))
+        ignore_btn.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 1))
+        ignore_btn.setPadding(dp(6), dp(6), dp(6), dp(6))
+        ignore_btn.setOnClickListener(OnClickListener(lambda v: self._show_ignore_dialog(pid, item.get("repo_id", ""), repo_v, outer)))
+        ignore_btn_lp = LinearLayout.LayoutParams(dp(32), dp(32))
+        ignore_btn_lp.leftMargin = dp(4)
+
+        download_btn = _ImageView(act)
+        if download_icon_id:
+            download_btn.setImageResource(download_icon_id)
+        download_btn.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon))
+        download_btn.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 1))
+        download_btn.setPadding(dp(6), dp(6), dp(6), dp(6))
+        download_btn.setOnClickListener(OnClickListener(lambda v: self._install_update(item)))
+        download_btn_lp = LinearLayout.LayoutParams(dp(32), dp(32))
+        download_btn_lp.leftMargin = dp(4)
+
+        # col takes remaining space, buttons sit at center-right of top_row
         top_row.addView(col, LayoutHelper.createLinear(0, -2, 1.0))
+        top_row.addView(ignore_btn, ignore_btn_lp)
+        top_row.addView(download_btn, download_btn_lp)
         outer.addView(top_row, LayoutHelper.createLinear(-1, -2))
 
-        chip_row = LinearLayout(act)
-        chip_row.setOrientation(LinearLayout.HORIZONTAL)
-        chip_lp = LinearLayout.LayoutParams(-2, -2)
-        chip_lp.topMargin = dp(8)
-        chip_row.addView(self._make_repo_chip(act, repo_name))
-        outer.addView(chip_row, chip_lp)
+        show_repo_chip = bool(settings.get("show_from_repo", False))
+        if show_repo_chip and repo_name:
+            chip_row = LinearLayout(act)
+            chip_row.setOrientation(LinearLayout.HORIZONTAL)
+            chip_row_lp = LinearLayout.LayoutParams(-2, -2)
+            chip_row_lp.topMargin = dp(8)
+            chip_row.addView(self._make_repo_chip(act, repo_name))
+            outer.addView(chip_row, chip_row_lp)
 
         return outer, outer_lp
+
+    def _show_ignore_dialog(self, pid: str, repo_id: str, repo_version: str, card_view):
+        try:
+            from ui.alert import AlertDialogBuilder
+            act = self._act
+
+            def on_confirm():
+                mode_builder = AlertDialogBuilder(act)
+                mode_builder.set_title("Ignore mode")
+                mode_builder.set_message("Select the update ignore mode.")
+                mode_builder.set_positive_button("Forever", lambda d, w: self._apply_ignore(pid, repo_id, repo_version, True, card_view))
+                mode_builder.set_negative_button("Until the next update", lambda d, w: self._apply_ignore(pid, repo_id, repo_version, False, card_view))
+                mode_builder.show()
+
+            builder = AlertDialogBuilder(act)
+            builder.set_title("Ignore updates")
+            builder.set_message("This plugin's update will be ignored depending on the option selected. Continue?")
+            builder.set_positive_button("OK", lambda d, w: on_confirm())
+            builder.set_negative_button("Cancel", lambda d, w: None)
+            builder.show()
+        except Exception as e:
+            log(f"pluginsUpdates: _show_ignore_dialog error: {e}")
+
+    def _apply_ignore(self, pid: str, repo_id: str, repo_version: str, forever: bool, card_view):
+        try:
+            pkg = ApplicationLoader.applicationContext.getPackageName()
+            if forever:
+                _ignore_forever(pkg, pid, repo_id)
+            else:
+                _ignore_until_next(pkg, pid, repo_id, repo_version)
+            run_on_ui_thread(lambda: self._remove_card(card_view))
+        except Exception as e:
+            log(f"pluginsUpdates: _apply_ignore error: {e}")
+
+    def _install_update(self, item: dict):
+        pid = item["id"]
+        repo_id = item.get("repo_id", "")
+        repos = _get_repos()
+        repo = None
+        for r in repos:
+            if str(r.get("id") or "") == repo_id:
+                repo = r
+                break
+        if not repo:
+            log(f"pluginsUpdates: _install_update repo '{repo_id}' not found")
+            return
+
+        def task():
+            try:
+                from ...deeplinks.install import _resolvePluginsUrl
+                from ...core import install_plugin
+                import requests as _requests
+
+                plugins_url = _resolvePluginsUrl(repo)
+                if not plugins_url:
+                    log(f"pluginsUpdates: _install_update no plugins url for '{repo_id}'")
+                    return
+
+                r = _requests.get(plugins_url, timeout=20, headers={"User-Agent": "PackIt/1.0"})
+                if r.status_code != 200:
+                    log(f"pluginsUpdates: _install_update HTTP {r.status_code}")
+                    return
+
+                data = r.json()
+                plugins_raw = data.get("plugins", {})
+
+                plugin = None
+                all_plugins = []
+                if isinstance(plugins_raw, dict):
+                    for _pid, info in plugins_raw.items():
+                        if isinstance(info, dict):
+                            all_plugins.append({"id": _pid, **info})
+                    info = plugins_raw.get(pid)
+                    if isinstance(info, dict):
+                        plugin = {"id": pid, **info}
+                elif isinstance(plugins_raw, list):
+                    all_plugins = [p for p in plugins_raw if isinstance(p, dict)]
+                    for p in plugins_raw:
+                        if isinstance(p, dict) and p.get("id") == pid:
+                            plugin = p
+                            break
+
+                if not plugin:
+                    log(f"pluginsUpdates: _install_update plugin '{pid}' not found in repo")
+                    return
+
+                run_on_ui_thread(lambda: install_plugin(plugin, all_plugins=all_plugins, rm_rid=repo_id))
+            except Exception as e:
+                log(f"pluginsUpdates: _install_update task error: {e}")
+
+        run_on_queue(task)
+
+    def _remove_card(self, card_view):
+        try:
+            from android.animation import ObjectAnimator, AnimatorSet, Animator
+            from java import dynamic_proxy
+
+            fade = ObjectAnimator.ofFloat(card_view, "alpha", 1.0, 0.0)
+            slide = ObjectAnimator.ofFloat(card_view, "translationX", 0.0, float(AndroidUtilities.dp(40)))
+
+            anim = AnimatorSet()
+            anim.playTogether(fade, slide)
+            anim.setDuration(220)
+
+            class _Listener(dynamic_proxy(Animator.AnimatorListener)):
+                def onAnimationEnd(self, *args):
+                    try:
+                        parent = card_view.getParent()
+                        if parent is not None:
+                            parent.removeView(card_view)
+                    except Exception:
+                        pass
+                def onAnimationStart(self, *args): pass
+                def onAnimationCancel(self, *args): pass
+                def onAnimationRepeat(self, *args): pass
+
+            anim.addListener(_Listener())
+            anim.start()
+        except Exception as e:
+            log(f"pluginsUpdates: _remove_card error: {e}")
+            try:
+                parent = card_view.getParent()
+                if parent is not None:
+                    parent.removeView(card_view)
+            except Exception:
+                pass
 
     def _show_updates(self, updates: list):
         try:
