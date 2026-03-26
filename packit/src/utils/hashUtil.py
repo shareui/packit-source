@@ -105,3 +105,27 @@ def hashFile(path: str) -> str:
     if getHashMethod() == METHOD_BITHASH:
         return _hashFileBithash(path)
     return _hashFileSha256(path)
+
+
+def matchesStoredHash(path: str, sha256: str, bithash: str, label: str = "") -> bool:
+    # checks file hash against stored values with fallback between methods
+    # preferred method from settings, falls back to whichever hash is available
+    # returns True (skip) if neither hash is stored
+    has_sha256 = bool(sha256)
+    has_bithash = bool(bithash)
+
+    if not has_sha256 and not has_bithash:
+        log(f"hashutil: no stored hash for '{label or path}', skipping check")
+        return True
+
+    preferred = getHashMethod()
+
+    if preferred == METHOD_BITHASH and has_bithash:
+        return _hashFileBithash(path) == bithash
+    if preferred == METHOD_SHA256 and has_sha256:
+        return _hashFileSha256(path) == sha256
+
+    # preferred hash unavailable, use whichever is present
+    if has_sha256:
+        return _hashFileSha256(path) == sha256
+    return _hashFileBithash(path) == bithash

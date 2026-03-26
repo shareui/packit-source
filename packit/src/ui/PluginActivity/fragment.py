@@ -809,7 +809,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                             else:
                                 run_on_ui_thread(lambda: _set_loading(_btn, _label, _btn_text_color, _act, False))
 
-                    install_plugin(_p, on_finish=_finish, install_ui=_install_ui, all_plugins=_all)
+                    install_plugin(_p, on_finish=_finish, install_ui=_install_ui, all_plugins=_all, rm_rid=self.repo_id)
 
                 _unavail_hint_ref = [None]
 

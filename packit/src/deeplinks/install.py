@@ -318,8 +318,12 @@ def _handleInstallPlugin(repo: dict, pluginId: str, versionId: str = ""):
                     original_plugin = plugin  # keep original for compatibility search
                     plugin = dict(plugin)
                     plugin["link"] = link
+                    plugin["version"] = versionId
                     if meta.get("min_version"):
                         plugin["min_version"] = meta["min_version"]
+                    # old versions have no hash in repo — mark so update checker compares by version
+                    plugin["hash"] = "Outdated"
+                    plugin["bithash"] = "Outdated"
                 else:
                     run_on_ui_thread(lambda: BulletinHelper.show_error(f"Version '{versionId}' not found"))
                     return
