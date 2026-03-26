@@ -3,6 +3,8 @@ import os
 import threading
 
 from android.view import Gravity
+from android.util import TypedValue
+from android.graphics.drawable import GradientDrawable
 from android.widget import FrameLayout, LinearLayout, TextView, ProgressBar, ImageView
 from java import dynamic_proxy
 from android_utils import log, run_on_ui_thread
@@ -88,7 +90,7 @@ def _get_repo_plugins_url(pkg: str, rm_rid: str, fallback_url: str) -> str:
 
 
 def _fetch_repo_plugins(url: str) -> dict:
-    # returns dict: plugin_id -> plugin_info
+    # returns dict: plugin_id plugin_info
     try:
         r = requests.get(url, timeout=20, headers={"User-Agent": "PackIt/1.0"})
         if r.status_code != 200:
@@ -120,13 +122,14 @@ def _version_tuple(v: str):
 
 def _check_updates(pkg: str) -> list:
     # returns list of dicts: {id, repo_id, local_version, repo_version, reason}
-    # reason: "hash_diff_newer" | "state_changed"
+    # reason: "hash_diff_newer" "state_changed"
     repos = _get_repos()
     updates = []
 
     for repo in repos:
         rm_rid = str(repo.get("id") or "")
         repo_url = str(repo.get("url") or "").strip()
+        repo_name = str(repo.get("name") or rm_rid)
         if not rm_rid or not repo_url:
             continue
 
@@ -168,7 +171,7 @@ def _check_updates(pkg: str) -> list:
             local_ver = _version_tuple(entry.get("version") or "")
             repo_ver = _version_tuple(repo_info.get("version") or "")
 
-            # Outdated means a non-latest version was installed — no hash available for it,
+            # Outdated means a non-latest version was installed, no hash available for it,
             # so skip hash comparison and check purely by version
             is_outdated_marker = local_hash == "Outdated" or local_bithash == "Outdated"
             if is_outdated_marker:
@@ -176,13 +179,17 @@ def _check_updates(pkg: str) -> list:
                     updates.append({
                         "id": pid,
                         "repo_id": rm_rid,
+                        "repo_name": repo_name,
+                        "plugin_name": str(repo_info.get("name") or pid),
+                        "icon": str(repo_info.get("icon") or ""),
                         "local_version": str(entry.get("version") or ""),
                         "repo_version": str(repo_info.get("version") or ""),
+                        "state": str(repo_info.get("state") or ""),
                         "reason": "hash_diff_newer",
                     })
                 continue
 
-            # compare hashes — pick matching type
+            # compare hashes, pick matching type
             hash_matches = True
             if local_hash and repo_hash:
                 hash_matches = local_hash == repo_hash
@@ -192,25 +199,33 @@ def _check_updates(pkg: str) -> list:
             if hash_matches:
                 continue
 
-            # hash differs — determine reason
+            # hash differs, determine reason
             if repo_ver > local_ver:
                 updates.append({
                     "id": pid,
                     "repo_id": rm_rid,
+                    "repo_name": repo_name,
+                    "plugin_name": str(repo_info.get("name") or pid),
+                    "icon": str(repo_info.get("icon") or ""),
                     "local_version": str(entry.get("version") or ""),
                     "repo_version": str(repo_info.get("version") or ""),
+                    "state": str(repo_info.get("state") or ""),
                     "reason": "hash_diff_newer",
                 })
             else:
-                # same or older version — check if state changed
+                # same or older version, check if state changed
                 local_state = str(entry.get("state") or "")
                 repo_state = str(repo_info.get("state") or "")
                 if local_state != repo_state:
                     updates.append({
                         "id": pid,
                         "repo_id": rm_rid,
+                        "repo_name": repo_name,
+                        "plugin_name": str(repo_info.get("name") or pid),
+                        "icon": str(repo_info.get("icon") or ""),
                         "local_version": str(entry.get("version") or ""),
                         "repo_version": str(repo_info.get("version") or ""),
+                        "state": str(repo_info.get("state") or ""),
                         "reason": "state_changed",
                     })
 
@@ -289,8 +304,6 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             FrameLayout.LayoutParams(-1, -1)
         )
 
-        # centered spinner matching PluginList style
-        self._spinner = None
         self._spinner_container = None
         try:
             from org.telegram.ui.Components import CircularProgressDrawable
@@ -349,7 +362,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     total_installed += len(_read_index(pkg, rm_rid))
 
                 if total_installed == 0:
-                    run_on_ui_thread(lambda: self._show_empty("The index did not produce any results") if alive[0] else None)
+                    run_on_ui_thread(lambda: self._show_empty("You have not installed any plugins from PackIt") if alive[0] else None)
                     return
 
                 updates = _check_updates(pkg)
@@ -395,30 +408,195 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         except Exception as e:
             log(f"pluginsUpdates: _show_empty error: {e}")
 
+    def _make_repo_chip(self, act, repo_name: str):
+        import ctypes
+        try:
+            color = Theme.getColor(Theme.key_avatar_background2Blue)
+        except Exception:
+            color = 0xFF888888
+        r = (color >> 16) & 0xFF
+        g = (color >> 8) & 0xFF
+        b = color & 0xFF
+        fill = ctypes.c_int32((0x33 << 24) | (r << 16) | (g << 8) | b).value
+        text_color = ctypes.c_int32((0xFF << 24) | (r << 16) | (g << 8) | b).value
+        bg = GradientDrawable()
+        bg.setShape(GradientDrawable.RECTANGLE)
+        bg.setCornerRadius(AndroidUtilities.dp(6))
+        bg.setColor(fill)
+        tv = TextView(act)
+        tv.setText(f"From {repo_name} repository")
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
+        tv.setTextColor(text_color)
+        tv.setBackground(bg)
+        tv.setPadding(
+            AndroidUtilities.dp(7), AndroidUtilities.dp(2),
+            AndroidUtilities.dp(7), AndroidUtilities.dp(2)
+        )
+        return tv
+
+    def _make_state_chip(self, act, state: str):
+        import ctypes
+        _STATE_COLOR_KEYS = {
+            "release": "key_color_green",
+            "beta":    "key_color_orange",
+            "alpha":   "key_color_red",
+        }
+        color_key = _STATE_COLOR_KEYS.get(state.lower(), "key_windowBackgroundWhiteGrayText")
+        try:
+            color = Theme.getColor(getattr(Theme, color_key))
+        except Exception:
+            color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+        r = (color >> 16) & 0xFF
+        g = (color >> 8) & 0xFF
+        b = color & 0xFF
+        fill = ctypes.c_int32((0x33 << 24) | (r << 16) | (g << 8) | b).value
+        text_color = ctypes.c_int32((0xFF << 24) | (r << 16) | (g << 8) | b).value
+        bg = GradientDrawable()
+        bg.setShape(GradientDrawable.RECTANGLE)
+        bg.setCornerRadius(AndroidUtilities.dp(6))
+        bg.setColor(fill)
+        tv = TextView(act)
+        tv.setText(state)
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
+        tv.setTextColor(text_color)
+        tv.setBackground(bg)
+        tv.setPadding(
+            AndroidUtilities.dp(7), AndroidUtilities.dp(3),
+            AndroidUtilities.dp(7), AndroidUtilities.dp(3)
+        )
+        return tv
+
+    def _make_update_card(self, act, item: dict):
+        dp = AndroidUtilities.dp
+        pid = item["id"]
+        display_name = item.get("plugin_name") or pid
+        icon_str = item.get("icon") or ""
+        local_v = item["local_version"]
+        repo_v = item["repo_version"]
+        repo_name = item.get("repo_name") or item.get("repo_id") or ""
+        icon_size_dp = 48
+
+        outer = LinearLayout(act)
+        outer.setOrientation(LinearLayout.VERTICAL)
+        outer_lp = LinearLayout.LayoutParams(-1, -2)
+        outer_lp.bottomMargin = dp(10)
+
+        card_bg = GradientDrawable()
+        card_bg.setShape(GradientDrawable.RECTANGLE)
+        card_bg.setCornerRadius(dp(12))
+        try:
+            card_bg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite))
+        except Exception:
+            card_bg.setColor(0xFFFFFFFF)
+        outer.setBackground(card_bg)
+        outer.setPadding(dp(14), dp(12), dp(14), dp(12))
+
+        top_row = LinearLayout(act)
+        top_row.setOrientation(LinearLayout.HORIZONTAL)
+        top_row.setGravity(Gravity.CENTER_VERTICAL)
+
+        show_icon = bool(icon_str and icon_str != "Unknown" and "/" in icon_str)
+        icon_view = None
+        if show_icon:
+            try:
+                from org.telegram.ui.Components import BackupImageView
+                from org.telegram.messenger import MediaDataController, ImageLocation
+                icon_view = BackupImageView(act)
+                icon_view.setRoundRadius(dp(12))
+                try:
+                    icon_view.getImageReceiver().setCrossfadeWithOldImage(True)
+                except Exception:
+                    pass
+                icon_lp = LinearLayout.LayoutParams(dp(icon_size_dp), dp(icon_size_dp))
+                icon_lp.rightMargin = dp(12)
+                top_row.addView(icon_view, icon_lp)
+
+                pack_name, index_str = icon_str.split("/", 1)
+                sticker_index = int(index_str)
+                mdc = MediaDataController.getInstance(0)
+                ss = None
+                try:
+                    ss = mdc.getStickerSetByName(pack_name)
+                except Exception:
+                    pass
+                if not ss:
+                    try:
+                        ss = mdc.getStickerSetByEmojiOrName(pack_name)
+                    except Exception:
+                        pass
+                if ss and getattr(ss, "documents", None) and ss.documents.size() > sticker_index:
+                    doc = ss.documents.get(sticker_index)
+                    icon_view.setImage(
+                        ImageLocation.getForDocument(doc),
+                        f"{icon_size_dp}_{icon_size_dp}",
+                        None, None, 0, 1
+                    )
+                else:
+                    try:
+                        mdc.loadStickersByEmojiOrName(pack_name, False, False)
+                    except Exception:
+                        pass
+            except Exception as e:
+                log(f"pluginsUpdates: icon init error for '{pid}': {e}")
+
+        col = LinearLayout(act)
+        col.setOrientation(LinearLayout.VERTICAL)
+        col.setGravity(Gravity.CENTER_VERTICAL)
+
+        name_tv = TextView(act)
+        name_tv.setText(display_name)
+        name_tv.setTextColor(self._text_primary)
+        name_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+        try:
+            name_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+        except Exception:
+            pass
+        name_tv.setSingleLine(True)
+        col.addView(name_tv, LayoutHelper.createLinear(-1, -2))
+
+        ver_row = LinearLayout(act)
+        ver_row.setOrientation(LinearLayout.HORIZONTAL)
+        ver_row.setGravity(Gravity.CENTER_VERTICAL)
+        ver_row_lp = LinearLayout.LayoutParams(-1, -2)
+        ver_row_lp.topMargin = dp(2)
+
+        ver_tv = TextView(act)
+        ver_tv.setText(f"{local_v} → {repo_v}")
+        ver_tv.setTextColor(self._text_gray)
+        ver_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
+        ver_row.addView(ver_tv, LinearLayout.LayoutParams(-2, -2))
+
+        state = item.get("state", "").strip()
+        if state:
+            state_chip = self._make_state_chip(act, state)
+            state_chip_lp = LinearLayout.LayoutParams(-2, -2)
+            state_chip_lp.leftMargin = dp(6)
+            ver_row.addView(state_chip, state_chip_lp)
+
+        col.addView(ver_row, ver_row_lp)
+
+        top_row.addView(col, LayoutHelper.createLinear(0, -2, 1.0))
+        outer.addView(top_row, LayoutHelper.createLinear(-1, -2))
+
+        chip_row = LinearLayout(act)
+        chip_row.setOrientation(LinearLayout.HORIZONTAL)
+        chip_lp = LinearLayout.LayoutParams(-2, -2)
+        chip_lp.topMargin = dp(8)
+        chip_row.addView(self._make_repo_chip(act, repo_name))
+        outer.addView(chip_row, chip_lp)
+
+        return outer, outer_lp
+
     def _show_updates(self, updates: list):
         try:
             act = self._act
             dp = AndroidUtilities.dp
             container = self._results_container
-            container.setPadding(dp(16), dp(16), dp(16), dp(16))
+            container.setPadding(dp(12), dp(12), dp(12), dp(12))
 
             for item in updates:
-                tv = TextView(act)
-                pid = item["id"]
-                local_v = item["local_version"]
-                repo_v = item["repo_version"]
-                reason = item["reason"]
-
-                if reason == "hash_diff_newer":
-                    label = f"{pid}  {local_v} → {repo_v}"
-                else:
-                    label = f"{pid}  {local_v} (state changed)"
-
-                tv.setText(label)
-                tv.setTextColor(self._text_primary)
-                tv.setTextSize(1, 15)
-                tv.setPadding(0, dp(8), 0, dp(8))
-                container.addView(tv, LayoutHelper.createLinear(-1, -2))
+                card, lp = self._make_update_card(act, item)
+                container.addView(card, lp)
         except Exception as e:
             log(f"pluginsUpdates: _show_updates error: {e}")
 

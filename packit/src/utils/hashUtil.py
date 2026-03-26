@@ -14,7 +14,7 @@ _libLoaded = False
 def getHashMethod() -> int:
     try:
         from elyx import settings
-        return settings.get("hash_function", METHOD_SHA256)
+        return int(settings.get("hash_function", METHOD_SHA256))
     except Exception:
         return METHOD_SHA256
 
@@ -26,11 +26,7 @@ def _getBitHashLib():
     try:
         from org.telegram.messenger import ApplicationLoader
         pkg = ApplicationLoader.applicationContext.getPackageName()
-        soPath = f"/data/data/{pkg}/files/packit/res/native/libbithash.so"
-        if not os.path.exists(soPath):
-            # fallback: try alongside this file
-            soPath = os.path.join(os.path.dirname(__file__), "..", "res", "native", "libbithash.so")
-            soPath = os.path.normpath(soPath)
+        soPath = f"/data/data/{pkg}/files/plugins/ElyxPlugins/shareui_packit/packit/res/native/libbithash.so"
         _lib = ctypes.CDLL(soPath)
         _lib.bitHash_oneshot.restype = ctypes.c_uint64
         _lib.bitHash_oneshot.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_uint64]
@@ -121,11 +117,21 @@ def matchesStoredHash(path: str, sha256: str, bithash: str, label: str = "") -> 
     preferred = getHashMethod()
 
     if preferred == METHOD_BITHASH and has_bithash:
-        return _hashFileBithash(path) == bithash
+        # only use bithash if the lib is actually available
+        if _getBitHashLib() is not None:
+            return _hashFileBithash(path) == bithash
+        # lib unavailable, fall back to sha256
+        if has_sha256:
+            return _hashFileSha256(path) == sha256
+        log(f"hashutil: bithash lib unavailable and no sha256 stored for '{label or path}', skipping check")
+        return True
     if preferred == METHOD_SHA256 and has_sha256:
         return _hashFileSha256(path) == sha256
 
     # preferred hash unavailable, use whichever is present
     if has_sha256:
         return _hashFileSha256(path) == sha256
-    return _hashFileBithash(path) == bithash
+    if _getBitHashLib() is not None:
+        return _hashFileBithash(path) == bithash
+    log(f"hashutil: bithash lib unavailable and no sha256 stored for '{label or path}', skipping check")
+    return True

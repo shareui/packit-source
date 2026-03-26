@@ -80,11 +80,16 @@ def purge_missing():
             removed_missing = 0
             removed_hash = 0
             for p in plugins:
+                plugin_id = str(p.get("id") or "<no_id>")
                 local_path = str(p.get("local_path") or "")
                 if not os.path.exists(local_path):
+                    log(f"installIndex.purge: drop '{plugin_id}' — file missing: '{local_path}'")
                     removed_missing += 1
                     continue
                 if not _hash_matches(p):
+                    stored_hash = str(p.get("hash") or "")
+                    stored_bithash = str(p.get("bithash") or "")
+                    log(f"installIndex.purge: drop '{plugin_id}' — hash mismatch (hash='{stored_hash}', bithash='{stored_bithash}', path='{local_path}')")
                     removed_hash += 1
                     continue
                 kept.append(p)
