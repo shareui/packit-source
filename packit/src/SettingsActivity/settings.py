@@ -1399,6 +1399,14 @@ class OtherSettings:
                 icon="msg_online",
                 link_alias="static_online_status"
             ),
+            Switch(
+                key="show_from_repo",
+                text=strings.show_from_repo,
+                subtext=strings.show_from_repo_desc,
+                default=False,
+                icon="msg_channel",
+                link_alias="show_from_repo"
+            ),
         ]
 
         items.append(Switch(

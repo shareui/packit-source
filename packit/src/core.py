@@ -3,6 +3,7 @@ import threading
 import requests
 from android_utils import log, run_on_ui_thread
 from client_utils import get_last_fragment
+from hook_utils import find_class
 from ui.bulletin import BulletinHelper
 from android.widget import ProgressBar, LinearLayout
 from java import dynamic_proxy
@@ -23,6 +24,34 @@ except Exception as e:
     from .utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 import time
 import signal
+
+_install_listeners = []
+_install_listeners_lock = threading.Lock()
+
+
+def add_install_listener(fn):
+    # fn(plugin_id: str) called on UI thread after successful install
+    with _install_listeners_lock:
+        if fn not in _install_listeners:
+            _install_listeners.append(fn)
+
+
+def remove_install_listener(fn):
+    with _install_listeners_lock:
+        try:
+            _install_listeners.remove(fn)
+        except ValueError:
+            pass
+
+
+def _fire_install_listeners(plugin_id: str):
+    with _install_listeners_lock:
+        listeners = list(_install_listeners)
+    for fn in listeners:
+        try:
+            fn(plugin_id)
+        except Exception as e:
+            log(f"core: install listener error: {e}")
 
 
 def _get_real_dialog(dlg):
@@ -95,6 +124,56 @@ def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button,
                 button.invalidate()
             run_on_ui_thread(_restore_icon)
 
+        plugin_id = str(plugin_info.get("id") or "")
+
+        observer_ref = [None]
+
+        def _on_plugins_updated():
+            # check the plugin is now actually installed
+            try:
+                installed = PluginsController.getInstance().getPluginEngine(plugin_id) is not None
+            except Exception:
+                installed = False
+            if not installed:
+                return
+            # unregister observer
+            try:
+                if observer_ref[0] is not None:
+                    NotificationCenter.getGlobalInstance().removeObserver(
+                        observer_ref[0], NotificationCenter.pluginsUpdated
+                    )
+                    observer_ref[0] = None
+            except Exception as e:
+                log(f"core: removeObserver error: {e}")
+            # fire callbacks
+            try:
+                if on_finish:
+                    on_finish(True)
+            except Exception:
+                pass
+            _fire_install_listeners(plugin_id)
+
+        try:
+            NotificationCenterDelegate = find_class(
+                "org.telegram.messenger.NotificationCenter$NotificationCenterDelegate"
+            )
+
+            class _InstallObserver(dynamic_proxy(NotificationCenterDelegate)):
+                def didReceivedNotification(self, id, account, *args):
+                    run_on_ui_thread(_on_plugins_updated)
+
+            obs = _InstallObserver()
+            NotificationCenter.getGlobalInstance().addObserver(obs, NotificationCenter.pluginsUpdated)
+            observer_ref[0] = obs
+        except Exception as e:
+            log(f"core: addObserver error: {e}")
+            # fallback: fire on_finish with False so caller isn't stuck
+            try:
+                if on_finish:
+                    on_finish(False)
+            except Exception:
+                pass
+
         if _is_elyx_plugin(plugin_info):
             from elyxcore import ElyxEngine
             from com.exteragram.messenger.plugins.ui.components import InstallPluginBottomSheet
@@ -105,11 +184,6 @@ def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button,
             set_pending(plugin_info, rm_rid)
             PluginsController.getInstance().showInstallDialog(fragment, temp_path, True)
 
-        try:
-            if on_finish:
-                on_finish(True)
-        except Exception:
-            pass
     except Exception as e:
         BulletinHelper.show_error(f"Failed to open install dialog: {e}")
         try:

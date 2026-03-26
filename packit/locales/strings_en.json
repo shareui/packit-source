@@ -687,5 +687,13 @@
   "sort_menu_design": "Sort Menu Style",
   "sort_menu_design_modern": "Modern",
   "sort_menu_design_classic": "Classic",
-  "sort_menu_design_desc": "Modern style highlights the active option with a colored dot. Classic fills the row with the accent color."
+  "sort_menu_design_desc": "Modern style highlights the active option with a colored dot. Classic fills the row with the accent color.",
+  "show_from_repo": "Show repository name",
+  "show_from_repo_desc": "Show \"From {name} repository\" chip on each update card.",
+  "ignore_updates_title": "Ignore updates",
+  "ignore_updates_message": "This plugin's update will be ignored depending on the option selected. Continue?",
+  "ignore_mode_title": "Ignore mode",
+  "ignore_mode_message": "Select the update ignore mode.",
+  "ignore_mode_until_next": "Until the next update",
+  "ignore_mode_forever": "Forever"
 }

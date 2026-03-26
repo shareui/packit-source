@@ -2,7 +2,9 @@ import json
 import os
 import threading
 
-from android.view import Gravity
+from android.view import Gravity, MotionEvent, View
+from android.util import TypedValue
+from android.graphics.drawable import GradientDrawable
 from android.widget import FrameLayout, LinearLayout, TextView, ProgressBar, ImageView
 from java import dynamic_proxy
 from android_utils import log, run_on_ui_thread
@@ -88,7 +90,7 @@ def _get_repo_plugins_url(pkg: str, rm_rid: str, fallback_url: str) -> str:
 
 
 def _fetch_repo_plugins(url: str) -> dict:
-    # returns dict: plugin_id -> plugin_info
+    # returns dict: plugin_id plugin_info
     try:
         r = requests.get(url, timeout=20, headers={"User-Agent": "PackIt/1.0"})
         if r.status_code != 200:
@@ -120,13 +122,14 @@ def _version_tuple(v: str):
 
 def _check_updates(pkg: str) -> list:
     # returns list of dicts: {id, repo_id, local_version, repo_version, reason}
-    # reason: "hash_diff_newer" | "state_changed"
+    # reason: "hash_diff_newer" "state_changed"
     repos = _get_repos()
     updates = []
 
     for repo in repos:
         rm_rid = str(repo.get("id") or "")
         repo_url = str(repo.get("url") or "").strip()
+        repo_name = str(repo.get("name") or rm_rid)
         if not rm_rid or not repo_url:
             continue
 
@@ -168,7 +171,7 @@ def _check_updates(pkg: str) -> list:
             local_ver = _version_tuple(entry.get("version") or "")
             repo_ver = _version_tuple(repo_info.get("version") or "")
 
-            # Outdated means a non-latest version was installed — no hash available for it,
+            # Outdated means a non-latest version was installed, no hash available for it,
             # so skip hash comparison and check purely by version
             is_outdated_marker = local_hash == "Outdated" or local_bithash == "Outdated"
             if is_outdated_marker:
@@ -176,13 +179,17 @@ def _check_updates(pkg: str) -> list:
                     updates.append({
                         "id": pid,
                         "repo_id": rm_rid,
+                        "repo_name": repo_name,
+                        "plugin_name": str(repo_info.get("name") or pid),
+                        "icon": str(repo_info.get("icon") or ""),
                         "local_version": str(entry.get("version") or ""),
                         "repo_version": str(repo_info.get("version") or ""),
+                        "state": str(repo_info.get("state") or ""),
                         "reason": "hash_diff_newer",
                     })
                 continue
 
-            # compare hashes — pick matching type
+            # compare hashes, pick matching type
             hash_matches = True
             if local_hash and repo_hash:
                 hash_matches = local_hash == repo_hash
@@ -192,45 +199,134 @@ def _check_updates(pkg: str) -> list:
             if hash_matches:
                 continue
 
-            # hash differs — determine reason
+            # hash differs, determine reason
             if repo_ver > local_ver:
                 updates.append({
                     "id": pid,
                     "repo_id": rm_rid,
+                    "repo_name": repo_name,
+                    "plugin_name": str(repo_info.get("name") or pid),
+                    "icon": str(repo_info.get("icon") or ""),
                     "local_version": str(entry.get("version") or ""),
                     "repo_version": str(repo_info.get("version") or ""),
+                    "state": str(repo_info.get("state") or ""),
                     "reason": "hash_diff_newer",
                 })
             else:
-                # same or older version — check if state changed
+                # same or older version, check if state changed
                 local_state = str(entry.get("state") or "")
                 repo_state = str(repo_info.get("state") or "")
                 if local_state != repo_state:
                     updates.append({
                         "id": pid,
                         "repo_id": rm_rid,
+                        "repo_name": repo_name,
+                        "plugin_name": str(repo_info.get("name") or pid),
+                        "icon": str(repo_info.get("icon") or ""),
                         "local_version": str(entry.get("version") or ""),
                         "repo_version": str(repo_info.get("version") or ""),
+                        "state": str(repo_info.get("state") or ""),
                         "reason": "state_changed",
                     })
 
     return updates
 
 
+def _get_ignore_list(pkg: str, repo_id: str) -> list:
+    # reads ignore_list array from {rm_rid}-index.json
+    path = _get_index_path(pkg, repo_id)
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        lst = data.get("ignore_list")
+        return lst if isinstance(lst, list) else []
+    except Exception as e:
+        log(f"pluginsUpdates: _get_ignore_list error for '{repo_id}': {e}")
+        return []
+
+
+def _save_ignore_list(pkg: str, repo_id: str, lst: list):
+    # writes ignore_list array back into {rm_rid}-index.json
+    path = _get_index_path(pkg, repo_id)
+    try:
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception:
+            data = {}
+        data["ignore_list"] = lst
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        log(f"pluginsUpdates: _save_ignore_list error for '{repo_id}': {e}")
+
+
+def _is_ignored(pkg: str, pid: str, repo_id: str, repo_version: str) -> bool:
+    # returns True if plugin should be hidden from updates list
+    lst = _get_ignore_list(pkg, repo_id)
+    for entry in lst:
+        if entry.get("id") != pid:
+            continue
+        if "version" not in entry:
+            # forever ignore
+            return True
+        # until-next: ignore while repo version <= recorded version
+        recorded = entry.get("version", "")
+        if _version_tuple(repo_version) <= _version_tuple(recorded):
+            return True
+    return False
+
+
+def _ignore_until_next(pkg: str, pid: str, repo_id: str, repo_version: str):
+    # records plugin+version so it's ignored until a newer version appears
+    lst = _get_ignore_list(pkg, repo_id)
+    lst = [e for e in lst if e.get("id") != pid]
+    lst.append({"id": pid, "version": repo_version})
+    _save_ignore_list(pkg, repo_id, lst)
+
+
+def _ignore_forever(pkg: str, pid: str, repo_id: str):
+    # records plugin without version so it's ignored permanently
+    lst = _get_ignore_list(pkg, repo_id)
+    lst = [e for e in lst if e.get("id") != pid]
+    lst.append({"id": pid})
+    _save_ignore_list(pkg, repo_id, lst)
+
+
+def _filter_ignored(pkg: str, updates: list) -> list:
+    result = []
+    for item in updates:
+        pid = item["id"]
+        repo_id = item.get("repo_id", "")
+        repo_version = item.get("repo_version", "")
+        if not _is_ignored(pkg, pid, repo_id, repo_version):
+            result.append(item)
+    return result
+
+
 class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
 
-    def __init__(self):
+    def __init__(self, plugin=None):
         super().__init__()
+        self._plugin = plugin
         self._content_view = None
         self._alive = [True]
         self._spinner = None
         self._spinner_container = None
+        self._active_listeners = []
 
     def onFragmentCreate(self, *_):
         pass
 
     def onFragmentDestroy(self, *_):
         self._alive[0] = False
+        try:
+            from ...core import remove_install_listener
+            for fn in list(self._active_listeners):
+                remove_install_listener(fn)
+            self._active_listeners.clear()
+        except Exception as e:
+            log(f"pluginsUpdates: onFragmentDestroy listeners cleanup error: {e}")
         try:
             if self._content_view is not None:
                 parent = self._content_view.getParent()
@@ -289,8 +385,6 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             FrameLayout.LayoutParams(-1, -1)
         )
 
-        # centered spinner matching PluginList style
-        self._spinner = None
         self._spinner_container = None
         try:
             from org.telegram.ui.Components import CircularProgressDrawable
@@ -349,10 +443,10 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     total_installed += len(_read_index(pkg, rm_rid))
 
                 if total_installed == 0:
-                    run_on_ui_thread(lambda: self._show_empty("The index did not produce any results") if alive[0] else None)
+                    run_on_ui_thread(lambda: self._show_empty("You have not installed any plugins from PackIt") if alive[0] else None)
                     return
 
-                updates = _check_updates(pkg)
+                updates = _filter_ignored(pkg, _check_updates(pkg))
 
                 def on_done():
                     if not alive[0]:
@@ -395,41 +489,569 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         except Exception as e:
             log(f"pluginsUpdates: _show_empty error: {e}")
 
+    def _make_repo_chip(self, act, repo_name: str):
+        import ctypes
+        try:
+            color = Theme.getColor(Theme.key_avatar_background2Blue)
+        except Exception:
+            color = 0xFF888888
+        r = (color >> 16) & 0xFF
+        g = (color >> 8) & 0xFF
+        b = color & 0xFF
+        fill = ctypes.c_int32((0x33 << 24) | (r << 16) | (g << 8) | b).value
+        text_color = ctypes.c_int32((0xFF << 24) | (r << 16) | (g << 8) | b).value
+        bg = GradientDrawable()
+        bg.setShape(GradientDrawable.RECTANGLE)
+        bg.setCornerRadius(AndroidUtilities.dp(6))
+        bg.setColor(fill)
+        tv = TextView(act)
+        tv.setText(f"From {repo_name} repository")
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
+        tv.setTextColor(text_color)
+        tv.setBackground(bg)
+        tv.setPadding(
+            AndroidUtilities.dp(7), AndroidUtilities.dp(2),
+            AndroidUtilities.dp(7), AndroidUtilities.dp(2)
+        )
+        return tv
+
+    def _make_state_chip(self, act, state: str):
+        import ctypes
+        _STATE_COLOR_KEYS = {
+            "release": "key_color_green",
+            "beta":    "key_color_orange",
+            "alpha":   "key_color_red",
+        }
+        color_key = _STATE_COLOR_KEYS.get(state.lower(), "key_windowBackgroundWhiteGrayText")
+        try:
+            color = Theme.getColor(getattr(Theme, color_key))
+        except Exception:
+            color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+        r = (color >> 16) & 0xFF
+        g = (color >> 8) & 0xFF
+        b = color & 0xFF
+        fill = ctypes.c_int32((0x33 << 24) | (r << 16) | (g << 8) | b).value
+        text_color = ctypes.c_int32((0xFF << 24) | (r << 16) | (g << 8) | b).value
+        bg = GradientDrawable()
+        bg.setShape(GradientDrawable.RECTANGLE)
+        bg.setCornerRadius(AndroidUtilities.dp(6))
+        bg.setColor(fill)
+        tv = TextView(act)
+        tv.setText(state)
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
+        tv.setTextColor(text_color)
+        tv.setBackground(bg)
+        tv.setPadding(
+            AndroidUtilities.dp(7), AndroidUtilities.dp(3),
+            AndroidUtilities.dp(7), AndroidUtilities.dp(3)
+        )
+        return tv
+
+    def _make_update_card(self, act, item: dict):
+        dp = AndroidUtilities.dp
+        pid = item["id"]
+        display_name = item.get("plugin_name") or pid
+        icon_str = item.get("icon") or ""
+        local_v = item["local_version"]
+        repo_v = item["repo_version"]
+        repo_name = item.get("repo_name") or item.get("repo_id") or ""
+        icon_size_dp = 48
+
+        outer = LinearLayout(act)
+        outer.setOrientation(LinearLayout.VERTICAL)
+        outer_lp = LinearLayout.LayoutParams(-1, -2)
+        outer_lp.bottomMargin = dp(10)
+
+        card_bg = GradientDrawable()
+        card_bg.setShape(GradientDrawable.RECTANGLE)
+        card_bg.setCornerRadius(dp(12))
+        try:
+            card_bg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite))
+        except Exception:
+            card_bg.setColor(0xFFFFFFFF)
+        outer.setBackground(card_bg)
+        outer.setPadding(dp(14), dp(12), dp(14), dp(12))
+
+        top_row = LinearLayout(act)
+        top_row.setOrientation(LinearLayout.HORIZONTAL)
+        top_row.setGravity(Gravity.CENTER_VERTICAL)
+
+        show_icon = bool(icon_str and icon_str != "Unknown" and "/" in icon_str)
+        icon_view = None
+        if show_icon:
+            try:
+                from org.telegram.ui.Components import BackupImageView
+                from org.telegram.messenger import MediaDataController, ImageLocation
+                icon_view = BackupImageView(act)
+                icon_view.setRoundRadius(dp(12))
+                try:
+                    icon_view.getImageReceiver().setCrossfadeWithOldImage(True)
+                except Exception:
+                    pass
+                icon_lp = LinearLayout.LayoutParams(dp(icon_size_dp), dp(icon_size_dp))
+                icon_lp.rightMargin = dp(12)
+                top_row.addView(icon_view, icon_lp)
+
+                pack_name, index_str = icon_str.split("/", 1)
+                sticker_index = int(index_str)
+                mdc = MediaDataController.getInstance(0)
+                ss = None
+                try:
+                    ss = mdc.getStickerSetByName(pack_name)
+                except Exception:
+                    pass
+                if not ss:
+                    try:
+                        ss = mdc.getStickerSetByEmojiOrName(pack_name)
+                    except Exception:
+                        pass
+                if ss and getattr(ss, "documents", None) and ss.documents.size() > sticker_index:
+                    doc = ss.documents.get(sticker_index)
+                    icon_view.setImage(
+                        ImageLocation.getForDocument(doc),
+                        f"{icon_size_dp}_{icon_size_dp}",
+                        None, None, 0, 1
+                    )
+                else:
+                    try:
+                        mdc.loadStickersByEmojiOrName(pack_name, False, False)
+                    except Exception:
+                        pass
+            except Exception as e:
+                log(f"pluginsUpdates: icon init error for '{pid}': {e}")
+
+        col = LinearLayout(act)
+        col.setOrientation(LinearLayout.VERTICAL)
+        col.setGravity(Gravity.CENTER_VERTICAL)
+
+        name_tv = TextView(act)
+        name_tv.setText(display_name)
+        name_tv.setTextColor(self._text_primary)
+        name_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+        try:
+            name_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+        except Exception:
+            pass
+        name_tv.setSingleLine(True)
+        col.addView(name_tv, LayoutHelper.createLinear(-1, -2))
+
+        ver_row = LinearLayout(act)
+        ver_row.setOrientation(LinearLayout.HORIZONTAL)
+        ver_row.setGravity(Gravity.CENTER_VERTICAL)
+        ver_row_lp = LinearLayout.LayoutParams(-1, -2)
+        ver_row_lp.topMargin = dp(2)
+
+        ver_tv = TextView(act)
+        ver_tv.setText(f"{local_v} → {repo_v}")
+        ver_tv.setTextColor(self._text_gray)
+        ver_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
+        ver_row.addView(ver_tv, LinearLayout.LayoutParams(-2, -2))
+
+        state = item.get("state", "").strip()
+        if state:
+            state_chip = self._make_state_chip(act, state)
+            state_chip_lp = LinearLayout.LayoutParams(-2, -2)
+            state_chip_lp.leftMargin = dp(6)
+            ver_row.addView(state_chip, state_chip_lp)
+
+        col.addView(ver_row, ver_row_lp)
+
+        from android.widget import ImageView as _ImageView
+        from hook_utils import find_class as _find_class
+
+        try:
+            R_tg = _find_class("org.telegram.messenger.R")
+            ignore_icon_id = getattr(R_tg.drawable, "menu_hide_gift", 0)
+            download_icon_id = getattr(R_tg.drawable, "msg_download", 0)
+        except Exception:
+            ignore_icon_id = 0
+            download_icon_id = 0
+
+        ignore_btn = _ImageView(act)
+        if ignore_icon_id:
+            ignore_btn.setImageResource(ignore_icon_id)
+        ignore_btn.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon))
+        ignore_btn.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 1))
+        ignore_btn.setPadding(dp(6), dp(6), dp(6), dp(6))
+        ignore_btn.setOnClickListener(OnClickListener(lambda v: self._show_ignore_dialog(pid, item.get("repo_id", ""), repo_v, outer)))
+        ignore_btn_lp = LinearLayout.LayoutParams(dp(32), dp(32))
+        ignore_btn_lp.leftMargin = dp(4)
+
+        btn_size = dp(32)
+        download_btn = FrameLayout(act)
+        download_btn.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 1))
+
+        download_icon_view = _ImageView(act)
+        if download_icon_id:
+            download_icon_view.setImageResource(download_icon_id)
+        download_icon_view.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon))
+        download_icon_view.setScaleType(_ImageView.ScaleType.CENTER_INSIDE)
+        download_icon_view.setPadding(dp(6), dp(6), dp(6), dp(6))
+        icon_lp = FrameLayout.LayoutParams(btn_size, btn_size)
+        icon_lp.gravity = Gravity.CENTER
+        download_btn.addView(download_icon_view, icon_lp)
+
+        download_btn.setOnClickListener(OnClickListener(lambda v: self._install_update(item, download_btn, download_icon_view, act)))
+        download_btn_lp = LinearLayout.LayoutParams(btn_size, btn_size)
+        download_btn_lp.leftMargin = dp(4)
+
+        # col takes remaining space, buttons sit at center-right of top_row
+        top_row.addView(col, LayoutHelper.createLinear(0, -2, 1.0))
+        top_row.addView(ignore_btn, ignore_btn_lp)
+        top_row.addView(download_btn, download_btn_lp)
+        outer.addView(top_row, LayoutHelper.createLinear(-1, -2))
+
+        show_repo_chip = bool(settings.get("show_from_repo", False))
+        if show_repo_chip and repo_name:
+            chip_row = LinearLayout(act)
+            chip_row.setOrientation(LinearLayout.HORIZONTAL)
+            chip_row_lp = LinearLayout.LayoutParams(-2, -2)
+            chip_row_lp.topMargin = dp(8)
+            chip_row.addView(self._make_repo_chip(act, repo_name))
+            outer.addView(chip_row, chip_row_lp)
+
+        outer.setBackground(card_bg)
+        outer.setClickable(True)
+        outer.setFocusable(True)
+        outer.setOnClickListener(OnClickListener(lambda v: self._open_plugin_profile(item)))
+
+        class _CardTouchListener(dynamic_proxy(View.OnTouchListener)):
+            def __init__(self): super().__init__()
+            def onTouch(self, v, event):
+                try:
+                    action = event.getActionMasked()
+                    if action == MotionEvent.ACTION_DOWN:
+                        v.animate().scaleX(0.97).scaleY(0.97).setDuration(100).start()
+                    elif action in (MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL):
+                        v.animate().scaleX(1.0).scaleY(1.0).setDuration(200).start()
+                except Exception:
+                    pass
+                return False
+
+        outer.setOnTouchListener(_CardTouchListener())
+
+        return outer, outer_lp
+
+    def _open_plugin_profile(self, item: dict):
+        try:
+            if not self._plugin:
+                log("pluginsUpdates: _open_plugin_profile no plugin ref")
+                return
+            pid = item["id"]
+            repo_id = item.get("repo_id", "")
+
+            repos = _get_repos()
+            repo = None
+            for r in repos:
+                if str(r.get("id") or "") == repo_id:
+                    repo = r
+                    break
+
+            if not repo:
+                log(f"pluginsUpdates: _open_plugin_profile repo '{repo_id}' not found")
+                return
+
+            repo_url = str(repo.get("url") or "").strip()
+            plugin = self._plugin
+
+            def task():
+                try:
+                    pkg = ApplicationLoader.applicationContext.getPackageName()
+                    plugins_url = _get_repo_plugins_url(pkg, repo_id, repo_url)
+                    repo_plugins = _fetch_repo_plugins(plugins_url)
+                    full_data = repo_plugins.get(pid)
+                    if not full_data:
+                        log(f"pluginsUpdates: _open_plugin_profile plugin '{pid}' not in repo data")
+                        return
+                    plugin_data = {"id": pid, **full_data}
+
+                    def on_ui():
+                        try:
+                            from ..PluginListActivity.fragment import InstallUI
+                            from ..PluginActivity.fragment import show_plugin_profile
+                            install_ui = InstallUI(plugin)
+                            all_plugins = [{"id": k, **v} for k, v in repo_plugins.items() if isinstance(v, dict)]
+                            show_plugin_profile(plugin_data, install_ui, all_plugins=all_plugins, repo_id=repo_id)
+                        except Exception as e:
+                            log(f"pluginsUpdates: _open_plugin_profile on_ui error: {e}")
+
+                    run_on_ui_thread(on_ui)
+                except Exception as e:
+                    log(f"pluginsUpdates: _open_plugin_profile task error: {e}")
+
+            run_on_queue(task)
+        except Exception as e:
+            log(f"pluginsUpdates: _open_plugin_profile error: {e}")
+
+    def _show_ignore_dialog(self, pid: str, repo_id: str, repo_version: str, card_view):
+        try:
+            from ui.alert import AlertDialogBuilder
+            act = self._act
+
+            def on_confirm():
+                mode_builder = AlertDialogBuilder(act)
+                mode_builder.set_title("Ignore mode")
+                mode_builder.set_message("Select the update ignore mode.")
+                mode_builder.set_positive_button("Forever", lambda d, w: self._apply_ignore(pid, repo_id, repo_version, True, card_view))
+                mode_builder.set_negative_button("Until the next update", lambda d, w: self._apply_ignore(pid, repo_id, repo_version, False, card_view))
+                mode_builder.show()
+
+            builder = AlertDialogBuilder(act)
+            builder.set_title("Ignore updates")
+            builder.set_message("This plugin's update will be ignored depending on the option selected. Continue?")
+            builder.set_positive_button("OK", lambda d, w: on_confirm())
+            builder.set_negative_button("Cancel", lambda d, w: None)
+            builder.show()
+        except Exception as e:
+            log(f"pluginsUpdates: _show_ignore_dialog error: {e}")
+
+    def _apply_ignore(self, pid: str, repo_id: str, repo_version: str, forever: bool, card_view):
+        try:
+            pkg = ApplicationLoader.applicationContext.getPackageName()
+            if forever:
+                _ignore_forever(pkg, pid, repo_id)
+            else:
+                _ignore_until_next(pkg, pid, repo_id, repo_version)
+            run_on_ui_thread(lambda: self._remove_card(card_view))
+        except Exception as e:
+            log(f"pluginsUpdates: _apply_ignore error: {e}")
+
+    def _install_update(self, item: dict, download_btn=None, download_icon_view=None, act=None):
+        pid = item["id"]
+        repo_id = item.get("repo_id", "")
+        repos = _get_repos()
+        repo = None
+        for r in repos:
+            if str(r.get("id") or "") == repo_id:
+                repo = r
+                break
+        if not repo:
+            log(f"pluginsUpdates: _install_update repo '{repo_id}' not found")
+            return
+
+        def set_btn_state(state: str):
+            # state: "loading" | "done" | "idle"
+            if download_btn is None:
+                return
+            try:
+                download_btn.setEnabled(state != "loading")
+                download_btn.removeAllViews()
+                btn_lp = FrameLayout.LayoutParams(AndroidUtilities.dp(32), AndroidUtilities.dp(32))
+                btn_lp.gravity = Gravity.CENTER
+                if state == "loading":
+                    try:
+                        from org.telegram.ui.Components import CircularProgressDrawable
+                        spin_color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon)
+                        d = CircularProgressDrawable(spin_color)
+                        try:
+                            d.size = float(AndroidUtilities.dp(20))
+                            d.thickness = float(AndroidUtilities.dp(2))
+                        except Exception:
+                            pass
+                        spin_iv = ImageView(act)
+                        spin_iv.setImageDrawable(d)
+                        spin_iv.setScaleType(ImageView.ScaleType.CENTER)
+                        download_btn.addView(spin_iv, btn_lp)
+                    except Exception as e:
+                        log(f"pluginsUpdates: spinner create error: {e}")
+                        if download_icon_view is not None:
+                            download_btn.addView(download_icon_view, btn_lp)
+                elif state == "done":
+                    download_btn.setEnabled(False)
+                    download_btn.setClickable(False)
+                    download_btn.setBackground(None)
+                    try:
+                        from hook_utils import find_class as _fc
+                        R_tg = _fc("org.telegram.messenger.R")
+                        check_icon_id = getattr(R_tg.drawable, "msg_select", 0)
+                    except Exception:
+                        check_icon_id = 0
+                    check_iv = ImageView(act)
+                    check_iv.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+                    check_iv.setPadding(AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6))
+                    if check_icon_id:
+                        check_iv.setImageResource(check_icon_id)
+                    try:
+                        green = Theme.getColor(Theme.key_avatar_backgroundGreen)
+                    except Exception:
+                        green = 0xFF4CAF50
+                    check_iv.setColorFilter(green)
+                    download_btn.addView(check_iv, btn_lp)
+                else:
+                    if download_icon_view is not None:
+                        download_btn.addView(download_icon_view, btn_lp)
+            except Exception as e:
+                log(f"pluginsUpdates: set_btn_state error: {e}")
+
+        run_on_ui_thread(lambda: set_btn_state("loading"))
+
+        def task():
+            try:
+                from ...deeplinks.install import _resolvePluginsUrl
+                from ...core import install_plugin
+                import requests as _requests
+
+                plugins_url = _resolvePluginsUrl(repo)
+                if not plugins_url:
+                    log(f"pluginsUpdates: _install_update no plugins url for '{repo_id}'")
+                    run_on_ui_thread(lambda: set_btn_state("idle"))
+                    return
+
+                r = _requests.get(plugins_url, timeout=20, headers={"User-Agent": "PackIt/1.0"})
+                if r.status_code != 200:
+                    log(f"pluginsUpdates: _install_update HTTP {r.status_code}")
+                    run_on_ui_thread(lambda: set_btn_state("idle"))
+                    return
+
+                data = r.json()
+                plugins_raw = data.get("plugins", {})
+
+                plugin = None
+                all_plugins = []
+                if isinstance(plugins_raw, dict):
+                    for _pid, info in plugins_raw.items():
+                        if isinstance(info, dict):
+                            all_plugins.append({"id": _pid, **info})
+                    info = plugins_raw.get(pid)
+                    if isinstance(info, dict):
+                        plugin = {"id": pid, **info}
+                elif isinstance(plugins_raw, list):
+                    all_plugins = [p for p in plugins_raw if isinstance(p, dict)]
+                    for p in plugins_raw:
+                        if isinstance(p, dict) and p.get("id") == pid:
+                            plugin = p
+                            break
+
+                if not plugin:
+                    log(f"pluginsUpdates: _install_update plugin '{pid}' not found in repo")
+                    run_on_ui_thread(lambda: set_btn_state("idle"))
+                    return
+
+                def on_finish(ok):
+                    # ok=False means deps cancelled or dialog error, not install cancel
+                    # actual success comes via add_install_listener
+                    if not ok:
+                        run_on_ui_thread(lambda: set_btn_state("idle"))
+
+                from ...core import add_install_listener, remove_install_listener
+
+                listener_ref = [None]
+
+                def on_installed(installed_pid):
+                    if installed_pid != pid:
+                        return
+                    remove_install_listener(listener_ref[0])
+                    listener_ref[0] = None
+                    set_btn_state("done")
+
+                listener_ref[0] = on_installed
+                add_install_listener(on_installed)
+                self._active_listeners.append(on_installed)
+
+                run_on_ui_thread(lambda: install_plugin(plugin, all_plugins=all_plugins, rm_rid=repo_id, on_finish=on_finish))
+            except Exception as e:
+                log(f"pluginsUpdates: _install_update task error: {e}")
+                run_on_ui_thread(lambda: set_btn_state("idle"))
+
+        run_on_queue(task)
+
+    def _remove_card(self, card_view):
+        try:
+            from android.animation import ObjectAnimator, AnimatorSet, ValueAnimator, Animator
+            from android.view import ViewGroup
+
+            fade = ObjectAnimator.ofFloat(card_view, "alpha", 1.0, 0.0)
+            slide = ObjectAnimator.ofFloat(card_view, "translationX", 0.0, float(AndroidUtilities.dp(40)))
+
+            exit_anim = AnimatorSet()
+            exit_anim.playTogether(fade, slide)
+            exit_anim.setDuration(200)
+
+            measured_height = [card_view.getHeight()]
+
+            class _ExitListener(dynamic_proxy(Animator.AnimatorListener)):
+                def onAnimationEnd(self, *args):
+                    try:
+                        h = measured_height[0]
+                        if h <= 0:
+                            parent = card_view.getParent()
+                            if parent is not None:
+                                parent.removeView(card_view)
+                            return
+
+                        lp = card_view.getLayoutParams()
+
+                        collapse = ValueAnimator.ofInt(h, 0)
+                        collapse.setDuration(180)
+
+                        class _UpdateListener(dynamic_proxy(ValueAnimator.AnimatorUpdateListener)):
+                            def onAnimationUpdate(self, anim):
+                                try:
+                                    lp.height = int(anim.getAnimatedValue())
+                                    card_view.setLayoutParams(lp)
+                                except Exception:
+                                    pass
+
+                        class _CollapseEndListener(dynamic_proxy(Animator.AnimatorListener)):
+                            def onAnimationEnd(self, *args):
+                                try:
+                                    parent = card_view.getParent()
+                                    if parent is not None:
+                                        parent.removeView(card_view)
+                                except Exception:
+                                    pass
+                            def onAnimationStart(self, *args): pass
+                            def onAnimationCancel(self, *args): pass
+                            def onAnimationRepeat(self, *args): pass
+
+                        collapse.addUpdateListener(_UpdateListener())
+                        collapse.addListener(_CollapseEndListener())
+                        collapse.start()
+                    except Exception as e:
+                        log(f"pluginsUpdates: _remove_card collapse error: {e}")
+                        try:
+                            parent = card_view.getParent()
+                            if parent is not None:
+                                parent.removeView(card_view)
+                        except Exception:
+                            pass
+
+                def onAnimationStart(self, *args): pass
+                def onAnimationCancel(self, *args): pass
+                def onAnimationRepeat(self, *args): pass
+
+            exit_anim.addListener(_ExitListener())
+            exit_anim.start()
+        except Exception as e:
+            log(f"pluginsUpdates: _remove_card error: {e}")
+            try:
+                parent = card_view.getParent()
+                if parent is not None:
+                    parent.removeView(card_view)
+            except Exception:
+                pass
+
     def _show_updates(self, updates: list):
         try:
             act = self._act
             dp = AndroidUtilities.dp
             container = self._results_container
-            container.setPadding(dp(16), dp(16), dp(16), dp(16))
+            container.setPadding(dp(12), dp(12), dp(12), dp(12))
 
             for item in updates:
-                tv = TextView(act)
-                pid = item["id"]
-                local_v = item["local_version"]
-                repo_v = item["repo_version"]
-                reason = item["reason"]
-
-                if reason == "hash_diff_newer":
-                    label = f"{pid}  {local_v} → {repo_v}"
-                else:
-                    label = f"{pid}  {local_v} (state changed)"
-
-                tv.setText(label)
-                tv.setTextColor(self._text_primary)
-                tv.setTextSize(1, 15)
-                tv.setPadding(0, dp(8), 0, dp(8))
-                container.addView(tv, LayoutHelper.createLinear(-1, -2))
+                card, lp = self._make_update_card(act, item)
+                container.addView(card, lp)
         except Exception as e:
             log(f"pluginsUpdates: _show_updates error: {e}")
 
 
-def show_updates_fragment():
+def show_updates_fragment(plugin=None):
     try:
         frag = get_last_fragment()
         if not frag:
             log("pluginsUpdates: show_updates_fragment no fragment")
             return
-        delegate = UpdatesFragment()
+        delegate = UpdatesFragment(plugin)
         new_frag = UniversalFragment(delegate)
         frag.presentFragment(new_frag)
         try:

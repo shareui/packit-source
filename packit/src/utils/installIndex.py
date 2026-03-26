@@ -79,13 +79,21 @@ def purge_missing():
             kept = []
             removed_missing = 0
             removed_hash = 0
+            removed_ids = []
             for p in plugins:
+                plugin_id = str(p.get("id") or "<no_id>")
                 local_path = str(p.get("local_path") or "")
                 if not os.path.exists(local_path):
+                    log(f"installIndex.purge: drop '{plugin_id}' — file missing: '{local_path}'")
                     removed_missing += 1
+                    removed_ids.append(plugin_id)
                     continue
                 if not _hash_matches(p):
+                    stored_hash = str(p.get("hash") or "")
+                    stored_bithash = str(p.get("bithash") or "")
+                    log(f"installIndex.purge: drop '{plugin_id}' — hash mismatch (hash='{stored_hash}', bithash='{stored_bithash}', path='{local_path}')")
                     removed_hash += 1
+                    removed_ids.append(plugin_id)
                     continue
                 kept.append(p)
 
@@ -93,6 +101,15 @@ def purge_missing():
                 continue
 
             data["installed_plugins"] = kept
+
+            # remove purged plugins from ignore_list too
+            if removed_ids:
+                ignore_list = data.get("ignore_list")
+                if isinstance(ignore_list, list):
+                    cleaned = [e for e in ignore_list if str(e.get("id") or "") not in removed_ids]
+                    if len(cleaned) != len(ignore_list):
+                        data["ignore_list"] = cleaned
+                        log(f"installIndex.purge: cleaned {len(ignore_list) - len(cleaned)} ignore_list entry(s) from '{rm_rid}-index.json'")
             with open(index_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
 
