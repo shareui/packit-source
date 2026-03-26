@@ -20,6 +20,9 @@ def _strip_version(raw: str) -> str:
 
 
 def _hash_matches(p: dict) -> bool:
+    # entries marked Outdated have no stored hash — skip hash verification
+    if str(p.get("hash") or "") == "Outdated" or str(p.get("bithash") or "") == "Outdated":
+        return True
     local_path = str(p.get("local_path") or "")
     try:
         from .hashUtil import matchesStoredHash

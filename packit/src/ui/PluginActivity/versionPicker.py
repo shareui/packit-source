@@ -694,8 +694,13 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
                 return
             versioned = dict(plugin)
             versioned["link"] = entry["link"]
+            versioned["version"] = entry["version"]
             if entry["min_version"]:
                 versioned["min_version"] = entry["min_version"]
+            # old versions have no hash in repo — mark so update checker compares by version
+            if entry["version"] != str(plugin.get("version") or ""):
+                versioned["hash"] = "Outdated"
+                versioned["bithash"] = "Outdated"
             # show loading on picker button, then dismiss after install starts
             _dl_btn.setEnabled(False)
             _dl_btn.removeAllViews()

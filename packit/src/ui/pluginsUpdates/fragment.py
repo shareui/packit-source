@@ -3,7 +3,7 @@ import os
 import threading
 
 from android.view import Gravity
-from android.widget import FrameLayout, LinearLayout, TextView, ProgressBar
+from android.widget import FrameLayout, LinearLayout, TextView, ProgressBar, ImageView
 from java import dynamic_proxy
 from android_utils import log, run_on_ui_thread
 from client_utils import get_last_fragment, run_on_queue
@@ -150,10 +150,37 @@ def _check_updates(pkg: str) -> list:
                 # plugin not found in repo, skip
                 continue
 
+            # skip update if the repo version requires a newer app than installed
+            repo_min_ver = str(repo_info.get("min_version") or "")
+            if repo_min_ver:
+                try:
+                    from ..PluginListActivity.fragment import _is_min_version_satisfied
+                    if not _is_min_version_satisfied(repo_min_ver):
+                        continue
+                except Exception as e:
+                    log(f"pluginsUpdates: min_version check error for '{pid}': {e}")
+
             local_hash = str(entry.get("hash") or "")
             local_bithash = str(entry.get("bithash") or "")
             repo_hash = str(repo_info.get("hash") or "")
             repo_bithash = str(repo_info.get("bithash") or "")
+
+            local_ver = _version_tuple(entry.get("version") or "")
+            repo_ver = _version_tuple(repo_info.get("version") or "")
+
+            # Outdated means a non-latest version was installed — no hash available for it,
+            # so skip hash comparison and check purely by version
+            is_outdated_marker = local_hash == "Outdated" or local_bithash == "Outdated"
+            if is_outdated_marker:
+                if repo_ver > local_ver:
+                    updates.append({
+                        "id": pid,
+                        "repo_id": rm_rid,
+                        "local_version": str(entry.get("version") or ""),
+                        "repo_version": str(repo_info.get("version") or ""),
+                        "reason": "hash_diff_newer",
+                    })
+                continue
 
             # compare hashes — pick matching type
             hash_matches = True
@@ -166,9 +193,6 @@ def _check_updates(pkg: str) -> list:
                 continue
 
             # hash differs — determine reason
-            local_ver = _version_tuple(entry.get("version") or "")
-            repo_ver = _version_tuple(repo_info.get("version") or "")
-
             if repo_ver > local_ver:
                 updates.append({
                     "id": pid,
@@ -199,6 +223,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         super().__init__()
         self._content_view = None
         self._alive = [True]
+        self._spinner = None
+        self._spinner_container = None
 
     def onFragmentCreate(self, *_):
         pass
@@ -263,11 +289,34 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             FrameLayout.LayoutParams(-1, -1)
         )
 
-        # centered spinner shown while loading
-        self._spinner = ProgressBar(act)
-        spinner_lp = FrameLayout.LayoutParams(dp(48), dp(48))
-        spinner_lp.gravity = Gravity.CENTER
-        self._content_view.addView(self._spinner, spinner_lp)
+        # centered spinner matching PluginList style
+        self._spinner = None
+        self._spinner_container = None
+        try:
+            from org.telegram.ui.Components import CircularProgressDrawable
+            size = 122
+            color = Theme.getColor(Theme.key_dialogLinkSelection)
+            thickness = float(AndroidUtilities.dp(8))
+            d = CircularProgressDrawable(float(size), thickness, color)
+            d.setBounds(0, 0, size, size)
+            spinner_view = ImageView(act)
+            spinner_view.setImageDrawable(d)
+            spinner_view.setScaleType(ImageView.ScaleType.FIT_CENTER)
+            spinner_container = FrameLayout(act)
+            spinner_lp = FrameLayout.LayoutParams(size, size)
+            spinner_lp.gravity = Gravity.CENTER
+            spinner_container.addView(spinner_view, spinner_lp)
+            self._content_view.addView(spinner_container, FrameLayout.LayoutParams(-1, -1, Gravity.CENTER))
+            self._spinner = spinner_view
+            self._spinner_container = spinner_container
+        except Exception as e:
+            log(f"pluginsUpdates: spinner error: {e}")
+            fallback = ProgressBar(act)
+            fallback_lp = FrameLayout.LayoutParams(AndroidUtilities.dp(48), AndroidUtilities.dp(48))
+            fallback_lp.gravity = Gravity.CENTER
+            self._content_view.addView(fallback, fallback_lp)
+            self._spinner = fallback
+            self._spinner_container = fallback
 
         self._text_primary = text_primary
         self._text_gray = text_gray
@@ -323,8 +372,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
     def _hide_spinner(self):
         try:
-            if self._spinner:
-                self._spinner.setVisibility(4)  # GONE
+            if self._spinner_container is not None:
+                self._spinner_container.setVisibility(4)  # GONE
         except Exception as e:
             log(f"pluginsUpdates: _hide_spinner error: {e}")
 
