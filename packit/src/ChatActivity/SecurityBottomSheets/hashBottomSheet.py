@@ -17,7 +17,7 @@ except Exception as e:
     log(f"hashBottomSheet: import LayoutHelper error: {e}")
 
 
-from .._hashutil import hashFile as _computeSha256
+from ..hashUtil import hashFile as _computeSha256
 
 
 def _extractPluginVersion(filePath: str) -> str | None:
