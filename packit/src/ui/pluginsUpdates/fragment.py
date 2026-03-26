@@ -2,7 +2,7 @@ import json
 import os
 import threading
 
-from android.view import Gravity
+from android.view import Gravity, MotionEvent, View
 from android.util import TypedValue
 from android.graphics.drawable import GradientDrawable
 from android.widget import FrameLayout, LinearLayout, TextView, ProgressBar, ImageView
@@ -306,18 +306,27 @@ def _filter_ignored(pkg: str, updates: list) -> list:
 
 class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
 
-    def __init__(self):
+    def __init__(self, plugin=None):
         super().__init__()
+        self._plugin = plugin
         self._content_view = None
         self._alive = [True]
         self._spinner = None
         self._spinner_container = None
+        self._active_listeners = []
 
     def onFragmentCreate(self, *_):
         pass
 
     def onFragmentDestroy(self, *_):
         self._alive[0] = False
+        try:
+            from ...core import remove_install_listener
+            for fn in list(self._active_listeners):
+                remove_install_listener(fn)
+            self._active_listeners.clear()
+        except Exception as e:
+            log(f"pluginsUpdates: onFragmentDestroy listeners cleanup error: {e}")
         try:
             if self._content_view is not None:
                 parent = self._content_view.getParent()
@@ -668,14 +677,22 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         ignore_btn_lp = LinearLayout.LayoutParams(dp(32), dp(32))
         ignore_btn_lp.leftMargin = dp(4)
 
-        download_btn = _ImageView(act)
-        if download_icon_id:
-            download_btn.setImageResource(download_icon_id)
-        download_btn.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon))
+        btn_size = dp(32)
+        download_btn = FrameLayout(act)
         download_btn.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 1))
-        download_btn.setPadding(dp(6), dp(6), dp(6), dp(6))
-        download_btn.setOnClickListener(OnClickListener(lambda v: self._install_update(item)))
-        download_btn_lp = LinearLayout.LayoutParams(dp(32), dp(32))
+
+        download_icon_view = _ImageView(act)
+        if download_icon_id:
+            download_icon_view.setImageResource(download_icon_id)
+        download_icon_view.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon))
+        download_icon_view.setScaleType(_ImageView.ScaleType.CENTER_INSIDE)
+        download_icon_view.setPadding(dp(6), dp(6), dp(6), dp(6))
+        icon_lp = FrameLayout.LayoutParams(btn_size, btn_size)
+        icon_lp.gravity = Gravity.CENTER
+        download_btn.addView(download_icon_view, icon_lp)
+
+        download_btn.setOnClickListener(OnClickListener(lambda v: self._install_update(item, download_btn, download_icon_view, act)))
+        download_btn_lp = LinearLayout.LayoutParams(btn_size, btn_size)
         download_btn_lp.leftMargin = dp(4)
 
         # col takes remaining space, buttons sit at center-right of top_row
@@ -693,7 +710,78 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             chip_row.addView(self._make_repo_chip(act, repo_name))
             outer.addView(chip_row, chip_row_lp)
 
+        outer.setBackground(card_bg)
+        outer.setClickable(True)
+        outer.setFocusable(True)
+        outer.setOnClickListener(OnClickListener(lambda v: self._open_plugin_profile(item)))
+
+        class _CardTouchListener(dynamic_proxy(View.OnTouchListener)):
+            def __init__(self): super().__init__()
+            def onTouch(self, v, event):
+                try:
+                    action = event.getActionMasked()
+                    if action == MotionEvent.ACTION_DOWN:
+                        v.animate().scaleX(0.97).scaleY(0.97).setDuration(100).start()
+                    elif action in (MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL):
+                        v.animate().scaleX(1.0).scaleY(1.0).setDuration(200).start()
+                except Exception:
+                    pass
+                return False
+
+        outer.setOnTouchListener(_CardTouchListener())
+
         return outer, outer_lp
+
+    def _open_plugin_profile(self, item: dict):
+        try:
+            if not self._plugin:
+                log("pluginsUpdates: _open_plugin_profile no plugin ref")
+                return
+            pid = item["id"]
+            repo_id = item.get("repo_id", "")
+
+            repos = _get_repos()
+            repo = None
+            for r in repos:
+                if str(r.get("id") or "") == repo_id:
+                    repo = r
+                    break
+
+            if not repo:
+                log(f"pluginsUpdates: _open_plugin_profile repo '{repo_id}' not found")
+                return
+
+            repo_url = str(repo.get("url") or "").strip()
+            plugin = self._plugin
+
+            def task():
+                try:
+                    pkg = ApplicationLoader.applicationContext.getPackageName()
+                    plugins_url = _get_repo_plugins_url(pkg, repo_id, repo_url)
+                    repo_plugins = _fetch_repo_plugins(plugins_url)
+                    full_data = repo_plugins.get(pid)
+                    if not full_data:
+                        log(f"pluginsUpdates: _open_plugin_profile plugin '{pid}' not in repo data")
+                        return
+                    plugin_data = {"id": pid, **full_data}
+
+                    def on_ui():
+                        try:
+                            from ..PluginListActivity.fragment import InstallUI
+                            from ..PluginActivity.fragment import show_plugin_profile
+                            install_ui = InstallUI(plugin)
+                            all_plugins = [{"id": k, **v} for k, v in repo_plugins.items() if isinstance(v, dict)]
+                            show_plugin_profile(plugin_data, install_ui, all_plugins=all_plugins, repo_id=repo_id)
+                        except Exception as e:
+                            log(f"pluginsUpdates: _open_plugin_profile on_ui error: {e}")
+
+                    run_on_ui_thread(on_ui)
+                except Exception as e:
+                    log(f"pluginsUpdates: _open_plugin_profile task error: {e}")
+
+            run_on_queue(task)
+        except Exception as e:
+            log(f"pluginsUpdates: _open_plugin_profile error: {e}")
 
     def _show_ignore_dialog(self, pid: str, repo_id: str, repo_version: str, card_view):
         try:
@@ -728,7 +816,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         except Exception as e:
             log(f"pluginsUpdates: _apply_ignore error: {e}")
 
-    def _install_update(self, item: dict):
+    def _install_update(self, item: dict, download_btn=None, download_icon_view=None, act=None):
         pid = item["id"]
         repo_id = item.get("repo_id", "")
         repos = _get_repos()
@@ -741,6 +829,62 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             log(f"pluginsUpdates: _install_update repo '{repo_id}' not found")
             return
 
+        def set_btn_state(state: str):
+            # state: "loading" | "done" | "idle"
+            if download_btn is None:
+                return
+            try:
+                download_btn.setEnabled(state != "loading")
+                download_btn.removeAllViews()
+                btn_lp = FrameLayout.LayoutParams(AndroidUtilities.dp(32), AndroidUtilities.dp(32))
+                btn_lp.gravity = Gravity.CENTER
+                if state == "loading":
+                    try:
+                        from org.telegram.ui.Components import CircularProgressDrawable
+                        spin_color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon)
+                        d = CircularProgressDrawable(spin_color)
+                        try:
+                            d.size = float(AndroidUtilities.dp(20))
+                            d.thickness = float(AndroidUtilities.dp(2))
+                        except Exception:
+                            pass
+                        spin_iv = ImageView(act)
+                        spin_iv.setImageDrawable(d)
+                        spin_iv.setScaleType(ImageView.ScaleType.CENTER)
+                        download_btn.addView(spin_iv, btn_lp)
+                    except Exception as e:
+                        log(f"pluginsUpdates: spinner create error: {e}")
+                        if download_icon_view is not None:
+                            download_btn.addView(download_icon_view, btn_lp)
+                elif state == "done":
+                    download_btn.setEnabled(False)
+                    download_btn.setClickable(False)
+                    download_btn.setBackground(None)
+                    try:
+                        from hook_utils import find_class as _fc
+                        R_tg = _fc("org.telegram.messenger.R")
+                        check_icon_id = getattr(R_tg.drawable, "msg_select", 0)
+                    except Exception:
+                        check_icon_id = 0
+                    check_iv = ImageView(act)
+                    check_iv.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+                    check_iv.setPadding(AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6))
+                    if check_icon_id:
+                        check_iv.setImageResource(check_icon_id)
+                    try:
+                        green = Theme.getColor(Theme.key_avatar_backgroundGreen)
+                    except Exception:
+                        green = 0xFF4CAF50
+                    check_iv.setColorFilter(green)
+                    download_btn.addView(check_iv, btn_lp)
+                else:
+                    if download_icon_view is not None:
+                        download_btn.addView(download_icon_view, btn_lp)
+            except Exception as e:
+                log(f"pluginsUpdates: set_btn_state error: {e}")
+
+        run_on_ui_thread(lambda: set_btn_state("loading"))
+
         def task():
             try:
                 from ...deeplinks.install import _resolvePluginsUrl
@@ -750,11 +894,13 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 plugins_url = _resolvePluginsUrl(repo)
                 if not plugins_url:
                     log(f"pluginsUpdates: _install_update no plugins url for '{repo_id}'")
+                    run_on_ui_thread(lambda: set_btn_state("idle"))
                     return
 
                 r = _requests.get(plugins_url, timeout=20, headers={"User-Agent": "PackIt/1.0"})
                 if r.status_code != 200:
                     log(f"pluginsUpdates: _install_update HTTP {r.status_code}")
+                    run_on_ui_thread(lambda: set_btn_state("idle"))
                     return
 
                 data = r.json()
@@ -778,40 +924,104 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
                 if not plugin:
                     log(f"pluginsUpdates: _install_update plugin '{pid}' not found in repo")
+                    run_on_ui_thread(lambda: set_btn_state("idle"))
                     return
 
-                run_on_ui_thread(lambda: install_plugin(plugin, all_plugins=all_plugins, rm_rid=repo_id))
+                def on_finish(ok):
+                    # ok=False means deps cancelled or dialog error, not install cancel
+                    # actual success comes via add_install_listener
+                    if not ok:
+                        run_on_ui_thread(lambda: set_btn_state("idle"))
+
+                from ...core import add_install_listener, remove_install_listener
+
+                listener_ref = [None]
+
+                def on_installed(installed_pid):
+                    if installed_pid != pid:
+                        return
+                    remove_install_listener(listener_ref[0])
+                    listener_ref[0] = None
+                    set_btn_state("done")
+
+                listener_ref[0] = on_installed
+                add_install_listener(on_installed)
+                self._active_listeners.append(on_installed)
+
+                run_on_ui_thread(lambda: install_plugin(plugin, all_plugins=all_plugins, rm_rid=repo_id, on_finish=on_finish))
             except Exception as e:
                 log(f"pluginsUpdates: _install_update task error: {e}")
+                run_on_ui_thread(lambda: set_btn_state("idle"))
 
         run_on_queue(task)
 
     def _remove_card(self, card_view):
         try:
-            from android.animation import ObjectAnimator, AnimatorSet, Animator
-            from java import dynamic_proxy
+            from android.animation import ObjectAnimator, AnimatorSet, ValueAnimator, Animator
+            from android.view import ViewGroup
 
             fade = ObjectAnimator.ofFloat(card_view, "alpha", 1.0, 0.0)
             slide = ObjectAnimator.ofFloat(card_view, "translationX", 0.0, float(AndroidUtilities.dp(40)))
 
-            anim = AnimatorSet()
-            anim.playTogether(fade, slide)
-            anim.setDuration(220)
+            exit_anim = AnimatorSet()
+            exit_anim.playTogether(fade, slide)
+            exit_anim.setDuration(200)
 
-            class _Listener(dynamic_proxy(Animator.AnimatorListener)):
+            measured_height = [card_view.getHeight()]
+
+            class _ExitListener(dynamic_proxy(Animator.AnimatorListener)):
                 def onAnimationEnd(self, *args):
                     try:
-                        parent = card_view.getParent()
-                        if parent is not None:
-                            parent.removeView(card_view)
-                    except Exception:
-                        pass
+                        h = measured_height[0]
+                        if h <= 0:
+                            parent = card_view.getParent()
+                            if parent is not None:
+                                parent.removeView(card_view)
+                            return
+
+                        lp = card_view.getLayoutParams()
+
+                        collapse = ValueAnimator.ofInt(h, 0)
+                        collapse.setDuration(180)
+
+                        class _UpdateListener(dynamic_proxy(ValueAnimator.AnimatorUpdateListener)):
+                            def onAnimationUpdate(self, anim):
+                                try:
+                                    lp.height = int(anim.getAnimatedValue())
+                                    card_view.setLayoutParams(lp)
+                                except Exception:
+                                    pass
+
+                        class _CollapseEndListener(dynamic_proxy(Animator.AnimatorListener)):
+                            def onAnimationEnd(self, *args):
+                                try:
+                                    parent = card_view.getParent()
+                                    if parent is not None:
+                                        parent.removeView(card_view)
+                                except Exception:
+                                    pass
+                            def onAnimationStart(self, *args): pass
+                            def onAnimationCancel(self, *args): pass
+                            def onAnimationRepeat(self, *args): pass
+
+                        collapse.addUpdateListener(_UpdateListener())
+                        collapse.addListener(_CollapseEndListener())
+                        collapse.start()
+                    except Exception as e:
+                        log(f"pluginsUpdates: _remove_card collapse error: {e}")
+                        try:
+                            parent = card_view.getParent()
+                            if parent is not None:
+                                parent.removeView(card_view)
+                        except Exception:
+                            pass
+
                 def onAnimationStart(self, *args): pass
                 def onAnimationCancel(self, *args): pass
                 def onAnimationRepeat(self, *args): pass
 
-            anim.addListener(_Listener())
-            anim.start()
+            exit_anim.addListener(_ExitListener())
+            exit_anim.start()
         except Exception as e:
             log(f"pluginsUpdates: _remove_card error: {e}")
             try:
@@ -835,13 +1045,13 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             log(f"pluginsUpdates: _show_updates error: {e}")
 
 
-def show_updates_fragment():
+def show_updates_fragment(plugin=None):
     try:
         frag = get_last_fragment()
         if not frag:
             log("pluginsUpdates: show_updates_fragment no fragment")
             return
-        delegate = UpdatesFragment()
+        delegate = UpdatesFragment(plugin)
         new_frag = UniversalFragment(delegate)
         frag.presentFragment(new_frag)
         try:
