@@ -17,7 +17,7 @@ class _InstallSuccessHook(MethodHook):
                 increment_category("Installing plugins")
             except Exception as e:
                 log(f"installSuccessHook: achievements increment error: {e}")
-            from ....installIndex import commit_pending
+            from ....utils.installIndex import commit_pending
             commit_pending()
         except Exception as e:
             log(f"installSuccessHook: error: {e}")

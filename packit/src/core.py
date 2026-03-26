@@ -101,7 +101,7 @@ def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button,
             install_params = InstallPluginBottomSheet.PluginInstallParams(temp_path, False)
             ElyxEngine.instance.showInstallDialog(fragment, install_params)
         else:
-            from .installIndex import set_pending
+            from .utils.installIndex import set_pending
             set_pending(plugin_info, rm_rid)
             PluginsController.getInstance().showInstallDialog(fragment, temp_path, True)
 
@@ -119,7 +119,7 @@ def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button,
             pass
 
 
-from .hashUtil import hashFile, getHashMethod, METHOD_SHA256, METHOD_BITHASH, matchesStoredHash
+from .utils.hashUtil import hashFile, getHashMethod, METHOD_SHA256, METHOD_BITHASH, matchesStoredHash
 
 
 def _get_plugin_cache_path(pkg: str, filename: str) -> str:

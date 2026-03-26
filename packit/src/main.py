@@ -47,7 +47,7 @@ class PackItPlugin(BasePlugin):
     def on_plugin_load(self):
         LocalConfig.init()
         try:
-            from .installIndex import purge_missing
+            from .utils.installIndex import purge_missing
             purge_missing()
         except Exception as e:
             log(f"PackIt: installIndex purge error: {e}")
