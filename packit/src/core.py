@@ -69,18 +69,18 @@ def _is_elyx_plugin(plugin_info: dict) -> bool:
             return True
     return False
 
-def install_plugin(plugin_info: dict, icon_view=None, button=None, original_icon_id=None, loading_view=None, on_finish=None, install_ui=None, all_plugins: list = None):
+def install_plugin(plugin_info: dict, icon_view=None, button=None, original_icon_id=None, loading_view=None, on_finish=None, install_ui=None, all_plugins: list = None, rm_rid: str = ""):
     deps = plugin_info.get("deps") or []
     if deps:
         from .ui.PluginListActivity.depsSheet import show_deps_sheet
         def on_confirmed():
-            _do_install(plugin_info, icon_view, button, original_icon_id, loading_view, on_finish, install_ui)
+            _do_install(plugin_info, icon_view, button, original_icon_id, loading_view, on_finish, install_ui, rm_rid=rm_rid)
         show_deps_sheet(install_ui, plugin_info, on_confirmed, all_plugins=all_plugins, on_cancel=on_finish)
         return
-    _do_install(plugin_info, icon_view, button, original_icon_id, loading_view, on_finish, install_ui)
+    _do_install(plugin_info, icon_view, button, original_icon_id, loading_view, on_finish, install_ui, rm_rid=rm_rid)
 
 
-def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button, icon_view, original_icon_id, on_finish):
+def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button, icon_view, original_icon_id, on_finish, rm_rid=""):
     try:
         if loading_view and button and icon_view:
             def _restore_icon():
@@ -101,6 +101,8 @@ def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button,
             install_params = InstallPluginBottomSheet.PluginInstallParams(temp_path, False)
             ElyxEngine.instance.showInstallDialog(fragment, install_params)
         else:
+            from .installIndex import set_pending
+            set_pending(plugin_info, rm_rid)
             PluginsController.getInstance().showInstallDialog(fragment, temp_path, True)
 
         try:
@@ -146,7 +148,7 @@ def _sha256_file(path: str) -> str:
     return hashFile(path)
 
 
-def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id=None, loading_view=None, on_finish=None, install_ui=None):
+def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id=None, loading_view=None, on_finish=None, install_ui=None, rm_rid: str = ""):
     plugin_id = plugin_info.get("id")
     url = plugin_info.get("link") or plugin_info.get("raw")
 
@@ -227,7 +229,7 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
                         _dismiss_dialog(dlg)
                         run_on_ui_thread(lambda: _open_install_dialog(
                             temp_path, plugin_info, fragment,
-                            loading_view, button, icon_view, original_icon_id, on_finish
+                            loading_view, button, icon_view, original_icon_id, on_finish, rm_rid
                         ))
                         return
                     else:
@@ -305,7 +307,7 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
 
             run_on_ui_thread(lambda: _open_install_dialog(
                 temp_path, plugin_info, fragment,
-                loading_view, button, icon_view, original_icon_id, on_finish
+                loading_view, button, icon_view, original_icon_id, on_finish, rm_rid
             ))
         except Exception as e:
             log(f"core.install_plugin: error downloading '{plugin_id}' from '{url}': {e}")
