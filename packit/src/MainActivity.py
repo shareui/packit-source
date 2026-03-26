@@ -193,10 +193,11 @@ class SettingsBuilder:
     
     def _check_updates(self, view):
         try:
-            from ui.bulletin import BulletinHelper
-            BulletinHelper.show_info(strings.not_ready_yet)
-        except Exception:
-            pass
+            from .ui.pluginsUpdates.fragment import show_updates_fragment
+            show_updates_fragment()
+        except Exception as e:
+            from android_utils import log
+            log(f"MainActivity: _check_updates error: {e}")
     
     def _install_icons(self, view):
         try:

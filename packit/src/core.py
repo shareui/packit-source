@@ -290,6 +290,7 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
                             _set_progress(dlg, percent)
 
             # save to cache if hash provided
+            expected_hash = str(plugin_info.get("hash") or plugin_info.get("bithash") or "")
             if expected_hash:
                 try:
                     import shutil
