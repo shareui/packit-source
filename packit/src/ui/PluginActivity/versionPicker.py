@@ -29,7 +29,7 @@ def _build_version_entries(plugin):
         entries.append({
             "version": str(plugin.get("version") or ""),
             "link": latest_link,
-            "min_version": str(plugin.get("min_version") or ""),
+            "app_version": str(plugin.get("app_version") or ""),
         })
     for ver, meta in (plugin.get("versions") or {}).items():
         if not isinstance(meta, dict):
@@ -40,7 +40,7 @@ def _build_version_entries(plugin):
         entries.append({
             "version": str(ver),
             "link": link,
-            "min_version": str(meta.get("min_version") or ""),
+            "app_version": str(meta.get("app_version") or ""),
         })
     entries.sort(key=lambda e: _ver_key(e["version"]), reverse=True)
     return entries
@@ -56,7 +56,7 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
         from android.util import TypedValue
         from android.graphics.drawable import GradientDrawable
         from android_utils import OnClickListener
-        from ..PluginListActivity.fragment import _is_min_version_satisfied
+        from ...utils.app_version import check_app_version as _check_app_version
         import ctypes
         from java import dynamic_proxy
 
@@ -69,8 +69,8 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
         try:
             from elyx import settings as _s
             if _s.get("hide_unavailable_plugins", False):
-                from ..PluginListActivity.fragment import _is_min_version_satisfied
-                entries = [e for e in entries if not e["min_version"] or _is_min_version_satisfied(e["min_version"])]
+                from ...utils.app_version import check_app_version as _check_app_version
+                entries = [e for e in entries if not e["app_version"] or _check_app_version(e["app_version"])]
         except Exception:
             pass
 
@@ -499,8 +499,8 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
         # populate version rows
         for i, entry in enumerate(entries):
             ver = entry["version"]
-            min_ver = entry["min_version"]
-            available = (not min_ver) or _is_min_version_satisfied(min_ver)
+            av = entry["app_version"]
+            available = (not av) or _check_app_version(av)
 
             row = FrameLayout(act)
             row.setClickable(True)
@@ -695,8 +695,8 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
             versioned = dict(plugin)
             versioned["link"] = entry["link"]
             versioned["version"] = entry["version"]
-            if entry["min_version"]:
-                versioned["min_version"] = entry["min_version"]
+            if entry["app_version"]:
+                versioned["app_version"] = entry["app_version"]
             # old versions have no hash in repo — mark so update checker compares by version
             if entry["version"] != str(plugin.get("version") or ""):
                 versioned["hash"] = "Outdated"

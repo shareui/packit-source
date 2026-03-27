@@ -148,7 +148,7 @@ def show_deps_sheet(install_ui, plugin_info: dict, on_confirm, all_plugins: list
                     dep_name=meta.get("name") or dep_id,
                     dep_version=meta.get("version") or "",
                     dep_author=meta.get("author") or "",
-                    dep_min_version=meta.get("min_version") or "",
+                    dep_min_version=meta.get("app_version") or "",
                     dep_icon=meta.get("icon") or "",
                     dep_meta=meta,
                     installed=status.get(dep_id, False),

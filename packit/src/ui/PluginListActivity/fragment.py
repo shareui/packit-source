@@ -176,13 +176,9 @@ def _parse_version(v_str):
     except Exception:
         return (0,)
 
-def _is_min_version_satisfied(plugin_min_ver):
-    try:
-        from org.telegram.messenger import BuildVars
-        app_ver = BuildVars.BUILD_VERSION_STRING
-        return _parse_version(app_ver) >= _parse_version(plugin_min_ver)
-    except Exception:
-        return True
+def _check_app_version(app_version_expr):
+    from ...utils.app_version import check_app_version
+    return check_app_version(app_version_expr)
 
 def _filter_unavailable(plugins):
     try:
@@ -193,8 +189,8 @@ def _filter_unavailable(plugins):
         return plugins
     result = []
     for p in plugins:
-        mv = p.get("min_version")
-        if not mv or _is_min_version_satisfied(mv):
+        av = p.get("app_version")
+        if not av or _check_app_version(av):
             result.append(p)
     return result
 
@@ -1775,7 +1771,7 @@ class InstallUI:
                 chips_col.setGravity(Gravity.TOP | Gravity.RIGHT)
 
                 if show_min_ver:
-                    min_ver = p.get("min_version")
+                    min_ver = p.get("app_version")
                     if min_ver:
                         chip = self.install_ui._make_info_chip(act, str(min_ver), "key_avatar_background2Blue")
                         chip_lp = LinearLayout.LayoutParams(-2, -2)
@@ -1824,8 +1820,8 @@ class InstallUI:
             base_color = Theme.getColor(Theme.key_featuredStickers_addButton)
             pressed_color = Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
 
-            plugin_min_version = p.get("min_version")
-            is_available = (not plugin_min_version) or _is_min_version_satisfied(plugin_min_version)
+            plugin_min_version = p.get("app_version")
+            is_available = (not plugin_min_version) or _check_app_version(plugin_min_version)
 
             install_btn = self.install_ui._create_pill(act, base_color, pressed_color)
             install_icon = ImageView(act)
