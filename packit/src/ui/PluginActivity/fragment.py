@@ -588,8 +588,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             chip_lp.rightMargin = AndroidUtilities.dp(4)
             chips_row.addView(chip, chip_lp)
 
-        if p.get("min_version"):
-            chip = _make_chip(act, str(p["min_version"]), "key_avatar_background2Blue")
+        if p.get("app_version"):
+            chip = _make_chip(act, str(p["app_version"]), "key_avatar_background2Blue")
             chips_row.addView(chip, LinearLayout.LayoutParams(-2, -2))
 
         if chips_row.getChildCount() > 0:
@@ -688,9 +688,9 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         deps = p.get("deps") or []
 
         if has_link:
-            from ..PluginListActivity.fragment import _is_min_version_satisfied
-            plugin_min_ver = p.get("min_version")
-            is_available = (not plugin_min_ver) or _is_min_version_satisfied(plugin_min_ver)
+            from ...utils.app_version import check_app_version as _check_app_version
+            plugin_app_ver = p.get("app_version")
+            is_available = (not plugin_app_ver) or _check_app_version(plugin_app_ver)
 
             try:
                 btn_base = Theme.getColor(Theme.key_featuredStickers_addButton)
@@ -878,7 +878,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     if not versions:
                         _do_install(_p, _install_ui, _all, _btn, _label, _btn_text_color, _act)
                         return
-                    from ..PluginListActivity.fragment import _is_min_version_satisfied
+                    from ...utils.app_version import check_app_version as _check_app_version
                     from .versionPicker import _build_version_entries
                     all_entries = _build_version_entries(_p)
                     hide_unavail = False
@@ -887,7 +887,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                         hide_unavail = _s.get("hide_unavailable_plugins", False)
                     except Exception:
                         pass
-                    avail = [e for e in all_entries if not e["min_version"] or _is_min_version_satisfied(e["min_version"])]
+                    avail = [e for e in all_entries if not e["app_version"] or _check_app_version(e["app_version"])]
                     if hide_unavail and not avail:
                         _show_all_unavail_hint(_btn, _act)
                         return
@@ -895,8 +895,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                         e = avail[0]
                         versioned = dict(_p)
                         versioned["link"] = e["link"]
-                        if e["min_version"]:
-                            versioned["min_version"] = e["min_version"]
+                        if e["app_version"]:
+                            versioned["app_version"] = e["app_version"]
                         _do_install(versioned, _install_ui, _all, _btn, _label, _btn_text_color, _act)
                         return
                     _show_version_picker(_act, _p, _install_ui, _all, _btn, _label, _btn_text_color, _do_install)

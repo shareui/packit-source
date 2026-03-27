@@ -115,27 +115,27 @@ def _handleOpenInstall(repoManager):
         log(f"deeplinks.install: open error: {e}")
 
 
-def _is_version_ok(min_ver: str) -> bool:
-    if not min_ver:
+def _is_version_ok(app_ver_expr: str) -> bool:
+    if not app_ver_expr:
         return True
     try:
-        from ..ui.PluginListActivity.fragment import _is_min_version_satisfied
-        return _is_min_version_satisfied(min_ver)
+        from ..utils.app_version import check_app_version
+        return check_app_version(app_ver_expr)
     except Exception:
         return True
 
 
 def _find_best_compatible(plugin: dict) -> dict | None:
-    # returns a plugin dict with link/min_version set to best available compatible version
+    # returns a plugin dict with link/app_version set to best available compatible version
     # checks root version first (newest), then versions dict descending
     from ..ui.PluginActivity.versionPicker import _build_version_entries
     entries = _build_version_entries(plugin)
     for e in entries:
-        if _is_version_ok(e["min_version"]):
+        if _is_version_ok(e["app_version"]):
             result = dict(plugin)
             result["link"] = e["link"]
-            if e["min_version"]:
-                result["min_version"] = e["min_version"]
+            if e["app_version"]:
+                result["app_version"] = e["app_version"]
             return result
     return None
 
@@ -319,8 +319,8 @@ def _handleInstallPlugin(repo: dict, pluginId: str, versionId: str = ""):
                     plugin = dict(plugin)
                     plugin["link"] = link
                     plugin["version"] = versionId
-                    if meta.get("min_version"):
-                        plugin["min_version"] = meta["min_version"]
+                    if meta.get("app_version"):
+                        plugin["app_version"] = meta["app_version"]
                     # old versions have no hash in repo — mark so update checker compares by version
                     plugin["hash"] = "Outdated"
                     plugin["bithash"] = "Outdated"
@@ -329,8 +329,8 @@ def _handleInstallPlugin(repo: dict, pluginId: str, versionId: str = ""):
                     return
 
                 # check compatibility of resolved version
-                min_ver = plugin.get("min_version") or ""
-                if not _is_version_ok(min_ver):
+                app_ver = plugin.get("app_version") or ""
+                if not _is_version_ok(app_ver):
                     compatible = _find_best_compatible(original_plugin)
                     if compatible:
                         _v = versionId

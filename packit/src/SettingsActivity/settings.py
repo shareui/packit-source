@@ -143,6 +143,70 @@ def _buildTextSubtextCell(context, text, subtext, icon, on_click):
         return None
 
 
+def _buildTextSubtextCellIconRight(context, text, subtext, icon, on_click):
+    # cell: title + subtitle on left, icon on right
+    try:
+        from android.widget import ImageView
+        from hook_utils import find_class
+        dp = AndroidUtilities.dp
+        log("other: _buildTextSubtextCellIconRight start")
+
+        row = LinearLayout(context)
+        row.setOrientation(LinearLayout.HORIZONTAL)
+        row.setGravity(Gravity.CENTER_VERTICAL)
+        row.setMinimumHeight(dp(64))
+        row.setClickable(True)
+        row.setFocusable(True)
+        row.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 2))
+        row.setOnClickListener(OnClickListener(on_click))
+        log("other: _buildTextSubtextCellIconRight row created")
+
+        textBlock = LinearLayout(context)
+        textBlock.setOrientation(LinearLayout.VERTICAL)
+        textBlock.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL)
+
+        titleView = TextView(context)
+        titleView.setText(str(text))
+        titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
+        titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+        titleView.setGravity(Gravity.LEFT)
+        textBlock.addView(titleView, LayoutHelper.createLinear(-1, -2))
+
+        if subtext:
+            subtitleView = TextView(context)
+            subtitleView.setText(str(subtext))
+            subtitleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+            subtitleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+            subtitleView.setGravity(Gravity.LEFT)
+            textBlock.addView(subtitleView, LayoutHelper.createLinear(-1, -2, 0, 2, 0, 0))
+
+        row.addView(textBlock, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL, 23, 10, 0, 10))
+        log("other: _buildTextSubtextCellIconRight textBlock added")
+
+        icon_id = None
+        try:
+            R = find_class("org.telegram.messenger.R")
+            icon_id = getattr(R.drawable, icon)
+            log(f"other: _buildTextSubtextCellIconRight icon_id={icon_id}")
+        except Exception as e:
+            log(f"other: _buildTextSubtextCellIconRight icon resolve error: {e}")
+
+        if icon_id is not None:
+            iconView = ImageView(context)
+            iconView.setImageResource(icon_id)
+            iconView.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon))
+            icon_lp = LayoutHelper.createLinear(24, 24, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 0, 0, 23, 0)
+            row.addView(iconView, icon_lp)
+            log("other: _buildTextSubtextCellIconRight icon added")
+
+        log("other: _buildTextSubtextCellIconRight done")
+        return row
+    except Exception as e:
+        log(f"other: _buildTextSubtextCellIconRight error: {e}")
+        return None
+
+
+
 def _buildCacheCard(context, cacheDir, on_clear, title=None):
     # card showing cache size with clear button
     try:
@@ -765,13 +829,6 @@ def _buildSortMenuDesignToggle(context, key, default, on_change=None):
         wrapper.setOrientation(LinearLayout.VERTICAL)
         wrapper.setPadding(dp(16), dp(8), dp(16), dp(8))
 
-        headerView = TextView(context)
-        headerView.setText(str(strings.sort_menu_design))
-        headerView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
-        headerView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
-        headerView.setGravity(Gravity.CENTER_HORIZONTAL)
-        wrapper.addView(headerView, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 6))
-
         row = LinearLayout(context)
         row.setOrientation(LinearLayout.HORIZONTAL)
         wrapper.addView(row, LayoutHelper.createLinear(-1, -2))
@@ -956,12 +1013,6 @@ def _buildSortMenuDesignToggle(context, key, default, on_change=None):
                 row.addView(col, LayoutHelper.createLinear(0, -2, 1.0, Gravity.TOP, 0, 0, 6, 0))
             else:
                 row.addView(col, LayoutHelper.createLinear(0, -2, 1.0, Gravity.TOP, 0, 0, 0, 0))
-
-        hintView = TextView(context)
-        hintView.setText(str(strings.sort_menu_design_desc))
-        hintView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
-        hintView.setTextColor(grayColor)
-        wrapper.addView(hintView, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 0))
 
         return wrapper
     except Exception as e:
@@ -1293,6 +1344,7 @@ class OtherSettings:
         items += [
             Divider(text=strings.buttons_header_desc),
             Header(text=strings.interface_header),
+            self._build_sort_menu_design_item(ctx),
             self._build_font_picker_item(ctx),
             Text(
                 text=strings.edit_plugin_card,
@@ -1308,7 +1360,6 @@ class OtherSettings:
                 icon="msg_block",
                 link_alias="hide_unavailable_plugins"
             ),
-            self._build_sort_menu_design_item(ctx),
             Divider(),
             Header(text=strings.plugin_profile_header),
             Switch(
@@ -1422,12 +1473,28 @@ class OtherSettings:
 
         # filesystem section should always be at the bottom of the page
         items.append(Header(text=strings.filesystem_header))
-        items.append(Text(
-            text="Open Directory",
-            subtext="Browse packitCache files and folders",
-            icon="files_folder",
-            on_click=lambda v: self._open_files_browser()
-        ))
+        if ctx:
+            openDirView = _buildTextSubtextCellIconRight(
+                ctx,
+                text="Open Directory",
+                subtext="Browse packitCache files and folders",
+                icon="files_folder",
+                on_click=lambda v: self._open_files_browser()
+            )
+            if openDirView is not None:
+                items.append(Custom(view=openDirView))
+            else:
+                items.append(Text(
+                    text="Open Directory",
+                    icon="files_folder",
+                    on_click=lambda v: self._open_files_browser()
+                ))
+        else:
+            items.append(Text(
+                text="Open Directory",
+                icon="files_folder",
+                on_click=lambda v: self._open_files_browser()
+            ))
 
         pathCardBuilt = False
         if ctx:

@@ -153,15 +153,15 @@ def _check_updates(pkg: str) -> list:
                 # plugin not found in repo, skip
                 continue
 
-            # skip update if the repo version requires a newer app than installed
-            repo_min_ver = str(repo_info.get("min_version") or "")
-            if repo_min_ver:
+            # skip update if the repo version requires an incompatible app version
+            repo_app_ver = str(repo_info.get("app_version") or "")
+            if repo_app_ver:
                 try:
-                    from ..PluginListActivity.fragment import _is_min_version_satisfied
-                    if not _is_min_version_satisfied(repo_min_ver):
+                    from ...utils.app_version import check_app_version
+                    if not check_app_version(repo_app_ver):
                         continue
                 except Exception as e:
-                    log(f"pluginsUpdates: min_version check error for '{pid}': {e}")
+                    log(f"pluginsUpdates: app_version check error for '{pid}': {e}")
 
             local_hash = str(entry.get("hash") or "")
             local_bithash = str(entry.get("bithash") or "")
@@ -443,7 +443,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     total_installed += len(_read_index(pkg, rm_rid))
 
                 if total_installed == 0:
-                    run_on_ui_thread(lambda: self._show_empty("You have not installed any plugins from PackIt") if alive[0] else None)
+                    run_on_ui_thread(lambda: self._show_empty("You have not installed any plugins from PackIt", "utyan_empty") if alive[0] else None)
                     return
 
                 updates = _filter_ignored(pkg, _check_updates(pkg))
@@ -453,14 +453,14 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         return
                     self._hide_spinner()
                     if not updates:
-                        self._show_empty("All plugins of the current version")
+                        self._show_empty("All plugins of the current version", "done")
                     else:
                         self._show_updates(updates)
 
                 run_on_ui_thread(on_done)
             except Exception as e:
                 log(f"pluginsUpdates: task error: {e}")
-                run_on_ui_thread(lambda: self._show_empty("Failed to check updates") if alive[0] else None)
+                run_on_ui_thread(lambda: self._show_empty("Failed to check updates", "error") if alive[0] else None)
 
         run_on_queue(task)
 
@@ -471,21 +471,48 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         except Exception as e:
             log(f"pluginsUpdates: _hide_spinner error: {e}")
 
-    def _show_empty(self, message: str):
+    def _show_empty(self, message: str, anim_name: str = "done"):
         try:
             self._hide_spinner()
             act = self._act
             dp = AndroidUtilities.dp
 
+            card = LinearLayout(act)
+            card.setOrientation(LinearLayout.VERTICAL)
+            card.setGravity(Gravity.CENTER)
+            card.setPadding(dp(24), dp(28), dp(24), dp(28))
+            try:
+                bg = GradientDrawable()
+                bg.setCornerRadius(dp(16))
+                bg.setColor(Theme.getColor(Theme.key_dialogBackground))
+                card.setBackground(bg)
+            except Exception:
+                pass
+
+            try:
+                from org.telegram.ui.Components import RLottieImageView
+                from org.telegram.messenger import R as R_tg
+                lottie = RLottieImageView(act)
+                lottie.setAnimation(getattr(R_tg.raw, anim_name), dp(72), dp(72))
+                lottie.setAutoRepeat(False)
+                lottie.playAnimation()
+                lottie_lp = LinearLayout.LayoutParams(dp(72), dp(72))
+                lottie_lp.gravity = Gravity.CENTER_HORIZONTAL
+                lottie_lp.bottomMargin = dp(12)
+                card.addView(lottie, lottie_lp)
+            except Exception as e:
+                log(f"pluginsUpdates: _show_empty lottie error: {e}")
+
             tv = TextView(act)
             tv.setText(message)
             tv.setTextColor(self._text_gray)
-            tv.setTextSize(1, 15)
-            tv.setPadding(dp(24), dp(24), dp(24), dp(24))
+            tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+            tv.setGravity(Gravity.CENTER)
+            card.addView(tv, LinearLayout.LayoutParams(-2, -2))
 
-            lp = FrameLayout.LayoutParams(-2, -2)
-            lp.gravity = Gravity.CENTER
-            self._content_view.addView(tv, lp)
+            card_lp = FrameLayout.LayoutParams(-2, -2)
+            card_lp.gravity = Gravity.CENTER
+            self._content_view.addView(card, card_lp)
         except Exception as e:
             log(f"pluginsUpdates: _show_empty error: {e}")
 
