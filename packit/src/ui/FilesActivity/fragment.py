@@ -40,6 +40,10 @@ try:
     from android.content.res import ColorStateList as AColorStateList
 except Exception as e:
     import android_utils as _au; _au.log(f"filesActivity: import graphics failed: {e}")
+try:
+    from elyx import strings
+except Exception as e:
+    import android_utils as _au; _au.log(f"filesActivity: import elyx.strings failed: {e}")
 
 
 def _open_file(path, icon_view=None):
@@ -403,8 +407,13 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             self._do_delete(path)
 
         def on_copy():
-            self._clipboard = ("copy", path)
-            log(f"filesActivity: clipboard copy {path}")
+            try:
+                from org.telegram.messenger import AndroidUtilities, R as R_tg
+                from ui.bulletin import BulletinHelper
+                AndroidUtilities.addToClipboard(path)
+                BulletinHelper.show_info(str(strings["copied_to_clipboard"]))
+            except Exception as e:
+                log(f"filesActivity: on_copy error: {e}")
 
         _show_entry_menu(act, anchor, path, on_rename, on_delete, on_copy)
 
@@ -778,28 +787,10 @@ def _get_file_info(path):
 
 def _show_file_info(act, path):
     try:
-        from org.telegram.ui.ActionBar import AlertDialog as TgAlertDialog
+        from .infoDialog import show_info_dialog
         info = _get_file_info(path)
         name = os.path.basename(path)
-
-        lines = []
-        lines.append(f"Path: {info.get('full_path', path)}")
-        if info.get("is_dir"):
-            lines.append(f"Type: Directory")
-            lines.append(f"Items: {info.get('children', '?')}")
-            lines.append(f"Content size: {info.get('dir_size_human', '?')}")
-        else:
-            lines.append(f"Type: File")
-            lines.append(f"Extension: {info.get('extension', '?')}")
-            lines.append(f"Size: {info.get('size_human', '?')} ({info.get('size_bytes', '?')} bytes)")
-        lines.append(f"Modified: {info.get('modified', '?')}")
-        lines.append(f"Created: {info.get('created', '?')}")
-
-        builder = TgAlertDialog.Builder(act)
-        builder.setTitle(name)
-        builder.setMessage("\n".join(lines))
-        builder.setPositiveButton("OK", None)
-        builder.show()
+        show_info_dialog(act, name, info)
     except Exception as e:
         log(f"filesActivity: _show_file_info error: {e}")
 
