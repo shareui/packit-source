@@ -85,6 +85,8 @@ class PackItPlugin(BasePlugin):
         self.everyone_hook_refs = _everyone.setup_hook(self)
         self._init_official_repository()
         self._check_for_update()
+        if settings.get("show_updates_on_startup", False):
+            self._check_startup_updates()
         log("PackIt loaded!")
 
     def _show_startup_loading(self):
@@ -121,6 +123,13 @@ class PackItPlugin(BasePlugin):
             check_and_show()
         except Exception as e:
             log(f"PackIt: update check error: {e}")
+
+    def _check_startup_updates(self):
+        try:
+            from .ui.pluginsUpdates.startupSheet import check_and_show_startup_updates
+            check_and_show_startup_updates(plugin=self)
+        except Exception as e:
+            log(f"PackIt: startup updates check error: {e}")
     
     def _check_identity_achievement(self):
         from org.telegram.messenger import UserConfig, MessagesController
