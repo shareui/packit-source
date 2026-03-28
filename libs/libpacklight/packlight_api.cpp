@@ -2,6 +2,7 @@
 #include "pl_utf.h"
 #include <stdlib.h>
 #include <string.h>
+// localuse library written entirely by @shareui
 
 // forward declarations from language modules
 uint32_t pl_tokenize_json(const char* src, uint32_t src_len, Token* out, uint32_t out_cap);

@@ -695,5 +695,6 @@
   "ignore_mode_title": "Ignore mode",
   "ignore_mode_message": "Select the update ignore mode.",
   "ignore_mode_until_next": "Until the next update",
-  "ignore_mode_forever": "Forever"
+  "ignore_mode_forever": "Forever",
+  "cancel": "Cancel"
 }

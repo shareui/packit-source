@@ -2,6 +2,7 @@
 #include "packlight.h"
 #include <string.h>
 #include <stdint.h>
+// localuse library written entirely by @shareui
 
 static inline bool plIsAlpha(char c) {
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';

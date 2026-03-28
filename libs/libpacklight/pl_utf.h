@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
+// localuse library written entirely by @shareui
 
 // number of bytes in a utf-8 sequence starting with byte b
 static inline uint32_t utf8SeqLen(uint8_t b) {

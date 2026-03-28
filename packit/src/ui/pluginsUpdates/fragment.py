@@ -812,23 +812,12 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
     def _show_ignore_dialog(self, pid: str, repo_id: str, repo_version: str, card_view):
         try:
-            from ui.alert import AlertDialogBuilder
-            act = self._act
+            from .hideDialog import show_hide_dialog
 
-            def on_confirm():
-                mode_builder = AlertDialogBuilder(act)
-                mode_builder.set_title("Ignore mode")
-                mode_builder.set_message("Select the update ignore mode.")
-                mode_builder.set_positive_button("Forever", lambda d, w: self._apply_ignore(pid, repo_id, repo_version, True, card_view))
-                mode_builder.set_negative_button("Until the next update", lambda d, w: self._apply_ignore(pid, repo_id, repo_version, False, card_view))
-                mode_builder.show()
+            def on_apply(forever: bool):
+                self._apply_ignore(pid, repo_id, repo_version, forever, card_view)
 
-            builder = AlertDialogBuilder(act)
-            builder.set_title("Ignore updates")
-            builder.set_message("This plugin's update will be ignored depending on the option selected. Continue?")
-            builder.set_positive_button("OK", lambda d, w: on_confirm())
-            builder.set_negative_button("Cancel", lambda d, w: None)
-            builder.show()
+            show_hide_dialog(self._act, pid, repo_id, repo_version, on_apply)
         except Exception as e:
             log(f"pluginsUpdates: _show_ignore_dialog error: {e}")
 
