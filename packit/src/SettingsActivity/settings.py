@@ -1469,6 +1469,15 @@ class OtherSettings:
             link_alias="disable_achievements_notify"
         ))
 
+        items.append(Switch(
+            key="show_updates_on_startup",
+            text=strings.show_updates_on_startup,
+            subtext=strings.show_updates_on_startup_desc,
+            default=False,
+            icon="msg_download",
+            link_alias="show_updates_on_startup"
+        ))
+
         items.append(Divider())
 
         # filesystem section should always be at the bottom of the page
