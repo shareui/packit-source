@@ -22,7 +22,7 @@ from .ui.PluginListActivity.service.InstallDismissHook import setup_install_dism
 from .ChatActivity.export.DecryptorBottomSheet import setup_packit_file_hook
 from android_utils import log
 
-
+# кстати тебя врядли выложат в utilits. Ты пофакту, повторил kpm. А как бы в utils правило второй вариант нельзя выкладыватьб
 class PackItPlugin(BasePlugin):
     def __init__(self):
         super().__init__()
