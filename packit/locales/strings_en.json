@@ -704,5 +704,15 @@
   "ignore_mode_message": "Select the update ignore mode.",
   "ignore_mode_until_next": "Until the next update",
   "ignore_mode_forever": "Forever",
-  "cancel": "Cancel"
+  "cancel": "Cancel",
+  "updating_plugins_header": "Updating plugins",
+  "clear_ignore_list": "Clearing the ignore list",
+  "clear_ignore_list_desc": "Remove plugins from the update ignore list",
+  "clear_ignore_list_dialog_title": "Select an option",
+  "clear_ignore_list_specific": "Specific plugin",
+  "clear_ignore_list_all": "Clear all",
+  "clear_ignore_list_cancel": "Cancel",
+  "clear_ignore_list_done": "List of ignored updates has been cleared.",
+  "clear_ignore_list_specific_done": "Successfully removed!",
+  "clear_ignore_list_remove": "Remove"
 }

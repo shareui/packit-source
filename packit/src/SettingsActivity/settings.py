@@ -1304,6 +1304,17 @@ class OtherSettings:
             log(f"OtherSettings: _open_card_editor error: {e}")
             return []
 
+    def _onClearIgnoreListClick(self, view):
+        try:
+            from ..ui.pluginsUpdates.clearIgnoreListDialog import show_clear_ignore_list_dialog
+            frag = get_last_fragment()
+            act = frag.getParentActivity() if frag else None
+            if not act:
+                return
+            show_clear_ignore_list_dialog(act)
+        except Exception as e:
+            log(f"OtherSettings: _onClearIgnoreListClick error: {e}")
+
     def build(self):
         ctx = self._getContext()
 
@@ -1469,6 +1480,8 @@ class OtherSettings:
             link_alias="disable_achievements_notify"
         ))
 
+        items.append(Divider())
+        items.append(Header(text=strings.updating_plugins_header))
         items.append(Switch(
             key="show_updates_on_startup",
             text=strings.show_updates_on_startup,
@@ -1476,6 +1489,12 @@ class OtherSettings:
             default=False,
             icon="msg_download",
             link_alias="show_updates_on_startup"
+        ))
+        items.append(Text(
+            text=strings.clear_ignore_list,
+            subtext=strings.clear_ignore_list_desc,
+            icon="msg_delete",
+            on_click=self._onClearIgnoreListClick
         ))
 
         items.append(Divider())

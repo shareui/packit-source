@@ -364,6 +364,11 @@ def _showResults(results: dict, act):
 
         def onLearnMore(v):
             try:
+                from ...utils.localConfig import LocalConfig
+                LocalConfig.set("signatures", True)
+            except Exception as ex:
+                log(f"securityUi: LocalConfig.set signatures error: {ex}")
+            try:
                 from android.net import Uri
                 from org.telegram.messenger.browser import Browser
                 Browser.openUrl(act, Uri.parse("https://t.me/packitGround/13/999"), True, True, True, None, None, False, False, False)
@@ -400,11 +405,18 @@ def _showResults(results: dict, act):
             LinearLayout.LayoutParams.WRAP_CONTENT
         ))
 
-        learnMoreRow = _buildLearnMoreBtn(act, onLearnMore)
-        wrapper.addView(learnMoreRow, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        ))
+        try:
+            from ...utils.localConfig import LocalConfig
+            showLearnMore = not LocalConfig.get("signatures", False)
+        except Exception:
+            showLearnMore = True
+
+        if showLearnMore:
+            learnMoreRow = _buildLearnMoreBtn(act, onLearnMore)
+            wrapper.addView(learnMoreRow, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ))
 
         closeRow = _buildCloseBtn(act, lambda v: sheetRef[0].dismiss() if sheetRef[0] else None)
         wrapper.addView(closeRow, LinearLayout.LayoutParams(
