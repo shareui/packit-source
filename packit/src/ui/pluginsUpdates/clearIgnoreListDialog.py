@@ -290,7 +290,7 @@ def show_clear_ignore_list_dialog(act):
         input_container.setVisibility(FrameLayout.GONE)
         pill_bg = GradientDrawable()
         pill_bg.setShape(GradientDrawable.RECTANGLE)
-        pill_bg.setCornerRadius(dp(50))
+        pill_bg.setCornerRadius(dp(12))
         pill_bg.setColor(Theme.getColor(Theme.key_dialogBackgroundGray))
         pill_bg.setStroke(dp(2), accent_color)
         input_container.setBackground(pill_bg)
@@ -308,10 +308,10 @@ def show_clear_ignore_list_dialog(act):
             edit_text.setCursorColor(accent_color)
         except Exception:
             pass
-        edit_text.setPadding(0, 0, 0, 0)
-        input_container.addView(edit_text, FrameLayout.LayoutParams(-1, dp(42)))
+        edit_text.setPadding(0, dp(14), 0, dp(14))
+        input_container.addView(edit_text, FrameLayout.LayoutParams(-1, -2))
         # same bottom margin as the button: 10dp
-        card.addView(input_container, LayoutHelper.createLinear(-1, dp(42), 0, 0, 0, 10))
+        card.addView(input_container, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 10))
 
         def _on_specific_click(v):
             try:

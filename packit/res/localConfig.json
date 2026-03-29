@@ -4,5 +4,6 @@
   "showTgc": false,
   "installUiOpenCount": 0,
   "update_dismissed_ver": "",
-  "saved_plugins": {}
+  "saved_plugins": {},
+  "signatures": false
 }

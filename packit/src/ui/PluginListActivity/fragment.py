@@ -1637,6 +1637,18 @@ class InstallUI:
                             MediaDataController.getInstance(0).loadStickersByEmojiOrName(pack_name, False, False)
                         except Exception:
                             pass
+
+                        def _retry_load(view=icon_view, loader=try_load_icon):
+                            import time
+                            for delay in (0.5, 1.0, 2.0, 3.0):
+                                time.sleep(delay)
+                                try:
+                                    if run_on_ui_thread(loader):
+                                        return
+                                except Exception:
+                                    pass
+
+                        threading.Thread(target=_retry_load, daemon=True).start()
                 except Exception as e:
                     log(f"InstallUI: icon init error for '{p.get('id')}': {e}")
 
