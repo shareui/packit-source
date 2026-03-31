@@ -472,10 +472,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             except Exception as e:
                 log(f"filesActivity: on_copy error: {e}")
 
-        def on_open_in_new_window():
-            self._open_folder_in_new_window(path)
-
-        _show_entry_menu(act, anchor, path, on_rename, on_delete, on_copy, on_open_in_new_window)
+        _show_entry_menu(act, anchor, path, on_rename, on_delete, on_copy)
 
     def _do_rename(self, path):
         try:
@@ -855,9 +852,8 @@ def _show_file_info(act, path):
         log(f"filesActivity: _show_file_info error: {e}")
 
 
-def _show_entry_menu(act, anchor_view, path, on_rename, on_delete, on_copy, on_open_in_new_window=None):
+def _show_entry_menu(act, anchor_view, path, on_rename, on_delete, on_copy):
     try:
-        is_dir = os.path.isdir(path)
         R = find_class("org.telegram.messenger.R")
         popup_layout = ActionBarPopupWindow.ActionBarPopupWindowLayout(act)
         popup_layout.setBackgroundColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuBackground))
@@ -939,8 +935,6 @@ def _show_entry_menu(act, anchor_view, path, on_rename, on_delete, on_copy, on_o
         create_item("msg_edit", "Rename", on_rename)
         create_item("msg_copy", "Copy path", on_copy)
         create_item("msg_info", "Info", lambda: _show_file_info(act, path))
-        if is_dir and on_open_in_new_window:
-            create_item("files_folder", "Open in new window", on_open_in_new_window)
         create_item("msg_delete", "Delete", on_delete, is_red=True)
 
         popup_window = ActionBarPopupWindow(popup_layout, -2, -2)
