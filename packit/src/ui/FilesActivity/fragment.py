@@ -397,6 +397,63 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             self._stack.pop()
         self._render()
 
+    def _open_folder_in_new_window(self, path):
+        try:
+            frag = get_last_fragment()
+            if not frag:
+                return
+            
+            delegate = FilesFragment(path)
+            new_frag = UniversalFragment(delegate)
+            frag.presentFragment(new_frag)
+            
+            try:
+                if path == delegate._root:
+                    title = "../packitCache"
+                else:
+                    rel = os.path.relpath(path, delegate._root)
+                    title = f"../packitCache/{rel}"
+
+                new_frag.setTitle(title, False, 0)
+                action_bar = new_frag.getActionBar()
+                if action_bar:
+                    action_bar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))
+                    try:
+                        from org.telegram.messenger import R as R_tg
+                        back_icon = getattr(R_tg.drawable, 'ic_ab_back', 0)
+                        if back_icon:
+                            action_bar.setBackButtonImage(back_icon)
+                            action_bar.setBackButtonContentDescription("Back")
+                            try:
+                                back_button = action_bar.getBackButton()
+                                if back_button:
+                                    def _on_back_click(v):
+                                        f = get_last_fragment()
+                                        if f: f.finishFragment()
+                                    back_button.setOnClickListener(OnClickListener(_on_back_click))
+                            except Exception:
+                                pass
+                    except Exception as e:
+                        log(f"filesActivity: Failed to add back button: {e}")
+
+                    try:
+                        menu = action_bar.createMenu()
+                        add_icon = _resolve_icon("msg_addbot")
+                        add_btn = menu.addItemWithWidth(1, add_icon, AndroidUtilities.dp(54))
+                        
+                        add_btn.setOnClickListener(OnClickListener(lambda v: (
+                            delegate._do_create_file()
+                        )))
+                    except Exception as e:
+                        log(f"filesActivity: _open_folder_in_new_window menu error: {e}")
+                
+                delegate._frag_ref[0] = new_frag
+            except Exception as e:
+                log(f"filesActivity: _open_folder_in_new_window actionBar error: {e}")
+                
+        except Exception as e:
+            log(f"filesActivity: _open_folder_in_new_window error: {e}")
+
     def _open_menu(self, anchor, path):
         act = self._act
 
@@ -415,7 +472,10 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             except Exception as e:
                 log(f"filesActivity: on_copy error: {e}")
 
-        _show_entry_menu(act, anchor, path, on_rename, on_delete, on_copy)
+        def on_open_in_new_window():
+            self._open_folder_in_new_window(path)
+
+        _show_entry_menu(act, anchor, path, on_rename, on_delete, on_copy, on_open_in_new_window)
 
     def _do_rename(self, path):
         try:
@@ -661,7 +721,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                 full = os.path.join(path, name)
                 row, _ = _make_row(act, name, None, folder_icon_id, t, is_dir=True,
                                    on_menu=lambda btn, p=full: self._open_menu(btn, p))
-                row.setOnClickListener(OnClickListener(lambda v, p=full: self._push(p)))
+                row.setOnClickListener(OnClickListener(lambda v, p=full: self._open_folder_in_new_window(p)))
                 _apply_press_scale(row)
                 list_root.addView(row, LayoutHelper.createLinear(-1, -2))
                 if i < len(dirs) - 1 or files:
@@ -795,8 +855,9 @@ def _show_file_info(act, path):
         log(f"filesActivity: _show_file_info error: {e}")
 
 
-def _show_entry_menu(act, anchor_view, path, on_rename, on_delete, on_copy):
+def _show_entry_menu(act, anchor_view, path, on_rename, on_delete, on_copy, on_open_in_new_window=None):
     try:
+        is_dir = os.path.isdir(path)
         R = find_class("org.telegram.messenger.R")
         popup_layout = ActionBarPopupWindow.ActionBarPopupWindowLayout(act)
         popup_layout.setBackgroundColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuBackground))
@@ -878,6 +939,8 @@ def _show_entry_menu(act, anchor_view, path, on_rename, on_delete, on_copy):
         create_item("msg_edit", "Rename", on_rename)
         create_item("msg_copy", "Copy path", on_copy)
         create_item("msg_info", "Info", lambda: _show_file_info(act, path))
+        if is_dir and on_open_in_new_window:
+            create_item("files_folder", "Open in new window", on_open_in_new_window)
         create_item("msg_delete", "Delete", on_delete, is_red=True)
 
         popup_window = ActionBarPopupWindow(popup_layout, -2, -2)
