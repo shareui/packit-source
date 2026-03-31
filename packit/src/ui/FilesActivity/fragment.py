@@ -205,7 +205,13 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             log(f"filesActivity: onFragmentDestroy error: {e}")
 
     def getTitle(self):
-        return self._rel_path(self._stack[-1])
+        current_path = self._stack[-1]
+        if current_path == self._root:
+            name = os.path.basename(self._root)
+            if name == "packitCache":
+                return "../packitCache"
+            return f"../packitCache/{name}" if name else "../packitCache"
+        return os.path.basename(current_path)
 
     def onBackPressed(self):
         log(f"filesActivity: onBackPressed stack_len={len(self._stack)} stack={self._stack}")
@@ -318,10 +324,15 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
         return self._content_view
 
     def _rel_path(self, path):
+        root_name = os.path.basename(self._root)
+        if root_name == "packitCache":
+            prefix = "../packitCache"
+        else:
+            prefix = f"../packitCache/{root_name}" if root_name else "../packitCache"
         if path == self._root:
-            return "../packitCache"
+            return prefix
         rel = os.path.relpath(path, self._root)
-        return f"../packitCache/{rel}"
+        return f"{prefix}/{rel}"
 
     def _push(self, path):
         log(f"filesActivity: _push path={path} alive={self._alive[0]} stack_before={self._stack}")
@@ -340,7 +351,12 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
         dp = AndroidUtilities.dp
         t = self._theme
 
-        segments = [("../packitCache", self._root)]
+        root_name = os.path.basename(self._root)
+        if root_name == "packitCache":
+            prefix = "../packitCache"
+        else:
+            prefix = f"../packitCache/{root_name}" if root_name else "../packitCache"
+        segments = [(prefix, self._root)]
         if len(self._stack) > 1:
             rel_parts = os.path.relpath(self._stack[-1], self._root).split(os.sep)
             for i, part in enumerate(rel_parts):
@@ -396,6 +412,58 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
         while len(self._stack) > 1 and self._stack[-1] != path:
             self._stack.pop()
         self._render()
+
+    def _open_folder_in_new_window(self, path):
+        try:
+            frag = get_last_fragment()
+            if not frag:
+                return
+            
+            delegate = FilesFragment(path)
+            new_frag = UniversalFragment(delegate)
+            frag.presentFragment(new_frag)
+            
+            try:
+                folder_name = os.path.basename(path)
+                new_frag.setTitle(folder_name, False, 0)
+                action_bar = new_frag.getActionBar()
+                if action_bar:
+                    action_bar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))
+                    try:
+                        from org.telegram.messenger import R as R_tg
+                        back_icon = getattr(R_tg.drawable, 'ic_ab_back', 0)
+                        if back_icon:
+                            action_bar.setBackButtonImage(back_icon)
+                            action_bar.setBackButtonContentDescription("Back")
+                            try:
+                                back_button = action_bar.getBackButton()
+                                if back_button:
+                                    def _on_back_click(v):
+                                        f = get_last_fragment()
+                                        if f: f.finishFragment()
+                                    back_button.setOnClickListener(OnClickListener(_on_back_click))
+                            except Exception:
+                                pass
+                    except Exception as e:
+                        log(f"filesActivity: Failed to add back button: {e}")
+
+                    try:
+                        menu = action_bar.createMenu()
+                        add_icon = _resolve_icon("msg_addbot")
+                        add_btn = menu.addItemWithWidth(1, add_icon, AndroidUtilities.dp(54))
+                        
+                        add_btn.setOnClickListener(OnClickListener(lambda v: (
+                            delegate._do_create_file()
+                        )))
+                    except Exception as e:
+                        log(f"filesActivity: _open_folder_in_new_window menu error: {e}")
+                
+                delegate._frag_ref[0] = new_frag
+            except Exception as e:
+                log(f"filesActivity: _open_folder_in_new_window actionBar error: {e}")
+                
+        except Exception as e:
+            log(f"filesActivity: _open_folder_in_new_window error: {e}")
 
     def _open_menu(self, anchor, path):
         act = self._act
@@ -579,18 +647,18 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
 
     def _do_delete(self, path):
         try:
-            from org.telegram.ui.ActionBar import AlertDialog as TgAlertDialog
+            from ui.alert import AlertDialogBuilder
             act = self._act
             name = os.path.basename(path)
             is_dir = os.path.isdir(path)
             msg = f"Delete {'folder' if is_dir else 'file'} \"{name}\"?"
 
-            builder = TgAlertDialog.Builder(act)
-            builder.setTitle("Delete")
-            builder.setMessage(msg)
-            builder.setNegativeButton("Cancel", None)
+            builder = AlertDialogBuilder(act)
+            builder.set_title("Delete")
+            builder.set_message(msg)
+            builder.set_negative_button("Cancel", lambda b, w: b.dismiss())
 
-            def do_del():
+            def on_yes(b, w):
                 try:
                     import shutil
                     if is_dir:
@@ -606,13 +674,11 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                 except Exception as e:
                     log(f"filesActivity: delete error: {e}")
 
-            from java import dynamic_proxy as _dp
-            from org.telegram.ui.ActionBar import AlertDialog as _AD
-            class _DelListener(_dp(_AD.OnButtonClickListener)):
-                def __init__(self): super().__init__()
-                def onClick(self, dialog, which): do_del()
-
-            builder.setPositiveButton("Delete", _DelListener())
+            builder.set_positive_button("Delete", on_yes)
+            try:
+                builder.make_button_red(AlertDialogBuilder.BUTTON_POSITIVE)
+            except Exception as e:
+                log(f"filesActivity: make_button_red error: {e}")
             builder.show()
         except Exception as e:
             log(f"filesActivity: _do_delete error: {e}")
@@ -626,14 +692,6 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             log(f"filesActivity: _render path={path} stack={self._stack} list_root={self._list_root is not None}")
 
             self._render_breadcrumbs()
-
-            # update actionbar title
-            try:
-                frag = self._frag_ref[0]
-                if frag:
-                    frag.setTitle(self._rel_path(path), False, 0)
-            except Exception:
-                pass
 
             list_root = self._list_root
             list_root.removeAllViews()
@@ -661,7 +719,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                 full = os.path.join(path, name)
                 row, _ = _make_row(act, name, None, folder_icon_id, t, is_dir=True,
                                    on_menu=lambda btn, p=full: self._open_menu(btn, p))
-                row.setOnClickListener(OnClickListener(lambda v, p=full: self._push(p)))
+                row.setOnClickListener(OnClickListener(lambda v, p=full: self._open_folder_in_new_window(p)))
                 _apply_press_scale(row)
                 list_root.addView(row, LayoutHelper.createLinear(-1, -2))
                 if i < len(dirs) - 1 or files:
@@ -937,7 +995,12 @@ def show_files_browser(plugin=None):
         new_frag = UniversalFragment(delegate)
         frag.presentFragment(new_frag)
         try:
-            new_frag.setTitle("../packitCache", False, 0)
+            root_name = os.path.basename(root)
+            if root_name == "packitCache":
+                title = "../packitCache"
+            else:
+                title = f"../packitCache/{root_name}" if root_name else "../packitCache"
+            new_frag.setTitle(title, False, 0)
             action_bar = new_frag.getActionBar()
             if action_bar:
                 action_bar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))

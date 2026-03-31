@@ -1,8 +1,9 @@
 import os
-from android.view import View, Gravity
+from android.view import View, Gravity, MotionEvent
 from android.widget import LinearLayout, TextView, FrameLayout, HorizontalScrollView, ImageView, ScrollView
 from android.util import TypedValue
 from android.text import TextUtils
+from android.graphics.drawable import GradientDrawable
 from java import dynamic_proxy
 from android_utils import log, OnClickListener
 from client_utils import get_last_fragment
@@ -67,32 +68,111 @@ def _make_toolbar_btn(act, icon_name, on_click):
 
 def _show_binary_sheet(activity):
     try:
-        sheet = BottomSheet(activity, False)
-        sheet.fixNavigationBar()
+        from elyx import strings
+        sheet = BottomSheet(activity, False, get_last_fragment().getResourceProvider())
+        sheet.setApplyBottomPadding(False)
+        sheet.setApplyTopPadding(False)
 
         container = LinearLayout(activity)
         container.setOrientation(LinearLayout.VERTICAL)
-        container.setPadding(
-            AndroidUtilities.dp(16), AndroidUtilities.dp(16),
-            AndroidUtilities.dp(16), AndroidUtilities.dp(16)
-        )
+        container.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(16), AndroidUtilities.dp(20), AndroidUtilities.dp(8))
+        try:
+            from ui.settings import Header
+            container.setBackground(Header._create_rounded_bg(Theme.getColor(Theme.key_dialogBackground)))
+        except Exception:
+            try:
+                container.setBackgroundColor(Theme.getColor(Theme.key_dialogBackground))
+            except Exception:
+                pass
 
+        title = TextView(activity)
+        title.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
+        title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20)
+        try:
+            title.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+        except Exception:
+            title.setTypeface(AndroidUtilities.bold())
+        title.setText(strings["binary_file_title"])
+        title.setGravity(Gravity.CENTER)
+        container.addView(title, LayoutHelper.createLinear(-1, -2, Gravity.TOP, 0, 16, 0, 16))
+
+        msg_container = FrameLayout(activity)
+        msg_container.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12))
+        border_bg = GradientDrawable()
+        border_bg.setShape(GradientDrawable.RECTANGLE)
+        border_bg.setCornerRadius(AndroidUtilities.dp(12))
+        border_bg.setStroke(AndroidUtilities.dp(2), Theme.getColor(Theme.key_featuredStickers_addButton))
+        border_bg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite))
+        msg_container.setBackground(border_bg)
+        
         msg = TextView(activity)
-        msg.setText("This file contains binary data, I don't think opening it is a good idea.")
+        msg.setText(strings["binary_file_message"])
         msg.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
-        msg.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+        msg.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
         msg.setLineSpacing(AndroidUtilities.dp(2), 1.0)
-        container.addView(msg, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 20))
+        msg_container.addView(msg, FrameLayout.LayoutParams(-1, -2))
+        container.addView(msg_container, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 20))
 
-        from org.telegram.ui.Stories.recorder import ButtonWithCounterView
-        close_btn = ButtonWithCounterView(activity, False, None)
-        close_btn.setRound()
-        close_btn.setNeutral()
-        close_btn.setText("Close", False)
-        close_btn.setOnClickListener(OnClickListener(lambda v: sheet.dismiss()))
-        container.addView(close_btn, LayoutHelper.createLinear(-1, 48, 0, 0, 0, 0, 0))
+        close_btn = FrameLayout(activity)
+        try:
+            base_color = Theme.getColor(Theme.key_featuredStickers_addButton)
+        except Exception:
+            base_color = Theme.getColor(Theme.key_dialogTextBlue)
+        try:
+            pressed_color = Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
+        except Exception:
+            pressed_color = base_color
+        close_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+            AndroidUtilities.dp(28),
+            base_color,
+            pressed_color
+        ))
+        close_btn.setPadding(0, AndroidUtilities.dp(14), 0, AndroidUtilities.dp(14))
+        close_btn.setClickable(True)
+        close_btn.setFocusable(True)
+        close_text = TextView(activity)
+        close_text.setText(strings["close_button"])
+        close_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
+        close_text.setTypeface(AndroidUtilities.bold())
+        close_text.setGravity(Gravity.CENTER)
+        close_text.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
+        close_btn.addView(close_text, FrameLayout.LayoutParams(-1, -2))
+
+        def on_close(v):
+            try:
+                sheet.dismiss()
+            except Exception:
+                pass
+
+        def _apply_press_scale(view):
+            try:
+                class _TouchListener(dynamic_proxy(View.OnTouchListener)):
+                    def __init__(self):
+                        super().__init__()
+                    def onTouch(self, v, event):
+                        try:
+                            action = event.getActionMasked()
+                            if action == MotionEvent.ACTION_DOWN:
+                                v.animate().scaleX(0.93).scaleY(0.93).setDuration(100).start()
+                            elif action in (MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL):
+                                v.animate().scaleX(1.0).scaleY(1.0).setDuration(200).start()
+                        except Exception:
+                            pass
+                        return False
+                view.setOnTouchListener(_TouchListener())
+            except Exception:
+                pass
+
+        close_btn.setOnClickListener(OnClickListener(on_close))
+        _apply_press_scale(close_btn)
+        container.addView(close_btn, LayoutHelper.createLinear(-1, -2, 0, 16, 0, 8))
 
         sheet.setCustomView(container)
+        try:
+            from ..viewUtils import applyFontToTree
+            applyFontToTree(container)
+        except Exception:
+            pass
         sheet.show()
     except Exception as e:
         log(f"openFileFragment: _show_binary_sheet error: {e}")

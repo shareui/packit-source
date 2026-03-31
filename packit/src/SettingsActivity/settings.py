@@ -180,7 +180,7 @@ def _buildTextSubtextCellIconRight(context, text, subtext, icon, on_click):
             subtitleView.setGravity(Gravity.LEFT)
             textBlock.addView(subtitleView, LayoutHelper.createLinear(-1, -2, 0, 2, 0, 0))
 
-        row.addView(textBlock, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL, 23, 10, 0, 10))
+        row.addView(textBlock, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL, 16, 10, 8, 10))
         log("other: _buildTextSubtextCellIconRight textBlock added")
 
         icon_id = None
@@ -194,8 +194,10 @@ def _buildTextSubtextCellIconRight(context, text, subtext, icon, on_click):
         if icon_id is not None:
             iconView = ImageView(context)
             iconView.setImageResource(icon_id)
-            iconView.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon))
-            icon_lp = LayoutHelper.createLinear(24, 24, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 0, 0, 23, 0)
+            iconView.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+            iconView.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 1))
+            iconView.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
+            icon_lp = LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL, 0, 0, 8, 0)
             row.addView(iconView, icon_lp)
             log("other: _buildTextSubtextCellIconRight icon added")
 
@@ -1506,7 +1508,7 @@ class OtherSettings:
                 ctx,
                 text="Open Directory",
                 subtext="Browse packitCache files and folders",
-                icon="files_folder",
+                icon="msg_folders",
                 on_click=lambda v: self._open_files_browser()
             )
             if openDirView is not None:
@@ -1514,13 +1516,13 @@ class OtherSettings:
             else:
                 items.append(Text(
                     text="Open Directory",
-                    icon="files_folder",
+                    icon="msg_folders",
                     on_click=lambda v: self._open_files_browser()
                 ))
         else:
             items.append(Text(
                 text="Open Directory",
-                icon="files_folder",
+                icon="msg_folders",
                 on_click=lambda v: self._open_files_browser()
             ))
 

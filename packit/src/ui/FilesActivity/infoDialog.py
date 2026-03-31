@@ -294,7 +294,9 @@ def show_info_dialog(act, name: str, info: dict):
 
         for label, display_val, copy_val, icon in _build_display(info):
             row = _make_row(act, decor, label, display_val, icon, copy_val)
-            rows_layout.addView(row, LinearLayout.LayoutParams(-1, -2))
+            lp = LinearLayout.LayoutParams(-1, -2)
+            lp.bottomMargin = AndroidUtilities.dp(4)
+            rows_layout.addView(row, lp)
 
         card.addView(rows_layout, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 12))
 
