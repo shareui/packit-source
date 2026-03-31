@@ -647,18 +647,18 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
 
     def _do_delete(self, path):
         try:
-            from org.telegram.ui.ActionBar import AlertDialog as TgAlertDialog
+            from ui.alert import AlertDialogBuilder
             act = self._act
             name = os.path.basename(path)
             is_dir = os.path.isdir(path)
             msg = f"Delete {'folder' if is_dir else 'file'} \"{name}\"?"
 
-            builder = TgAlertDialog.Builder(act)
-            builder.setTitle("Delete")
-            builder.setMessage(msg)
-            builder.setNegativeButton("Cancel", None)
+            builder = AlertDialogBuilder(act)
+            builder.set_title("Delete")
+            builder.set_message(msg)
+            builder.set_negative_button("Cancel", lambda b, w: b.dismiss())
 
-            def do_del():
+            def on_yes(b, w):
                 try:
                     import shutil
                     if is_dir:
@@ -674,13 +674,11 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                 except Exception as e:
                     log(f"filesActivity: delete error: {e}")
 
-            from java import dynamic_proxy as _dp
-            from org.telegram.ui.ActionBar import AlertDialog as _AD
-            class _DelListener(_dp(_AD.OnButtonClickListener)):
-                def __init__(self): super().__init__()
-                def onClick(self, dialog, which): do_del()
-
-            builder.setPositiveButton("Delete", _DelListener())
+            builder.set_positive_button("Delete", on_yes)
+            try:
+                builder.make_button_red(AlertDialogBuilder.BUTTON_POSITIVE)
+            except Exception as e:
+                log(f"filesActivity: make_button_red error: {e}")
             builder.show()
         except Exception as e:
             log(f"filesActivity: _do_delete error: {e}")
