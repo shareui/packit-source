@@ -207,7 +207,10 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
     def getTitle(self):
         current_path = self._stack[-1]
         if current_path == self._root:
-            return "../packitCache"
+            name = os.path.basename(self._root)
+            if name == "packitCache":
+                return "../packitCache"
+            return f"../packitCache/{name}" if name else "../packitCache"
         return os.path.basename(current_path)
 
     def onBackPressed(self):
@@ -321,10 +324,15 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
         return self._content_view
 
     def _rel_path(self, path):
+        root_name = os.path.basename(self._root)
+        if root_name == "packitCache":
+            prefix = "../packitCache"
+        else:
+            prefix = f"../packitCache/{root_name}" if root_name else "../packitCache"
         if path == self._root:
-            return "../packitCache"
+            return prefix
         rel = os.path.relpath(path, self._root)
-        return f"../packitCache/{rel}"
+        return f"{prefix}/{rel}"
 
     def _push(self, path):
         log(f"filesActivity: _push path={path} alive={self._alive[0]} stack_before={self._stack}")
@@ -343,7 +351,12 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
         dp = AndroidUtilities.dp
         t = self._theme
 
-        segments = [("../packitCache", self._root)]
+        root_name = os.path.basename(self._root)
+        if root_name == "packitCache":
+            prefix = "../packitCache"
+        else:
+            prefix = f"../packitCache/{root_name}" if root_name else "../packitCache"
+        segments = [(prefix, self._root)]
         if len(self._stack) > 1:
             rel_parts = os.path.relpath(self._stack[-1], self._root).split(os.sep)
             for i, part in enumerate(rel_parts):
@@ -984,7 +997,12 @@ def show_files_browser(plugin=None):
         new_frag = UniversalFragment(delegate)
         frag.presentFragment(new_frag)
         try:
-            new_frag.setTitle("../packitCache", False, 0)
+            root_name = os.path.basename(root)
+            if root_name == "packitCache":
+                title = "../packitCache"
+            else:
+                title = f"../packitCache/{root_name}" if root_name else "../packitCache"
+            new_frag.setTitle(title, False, 0)
             action_bar = new_frag.getActionBar()
             if action_bar:
                 action_bar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))
