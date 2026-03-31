@@ -205,7 +205,10 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             log(f"filesActivity: onFragmentDestroy error: {e}")
 
     def getTitle(self):
-        return self._rel_path(self._stack[-1])
+        current_path = self._stack[-1]
+        if current_path == self._root:
+            return "../packitCache"
+        return os.path.basename(current_path)
 
     def onBackPressed(self):
         log(f"filesActivity: onBackPressed stack_len={len(self._stack)} stack={self._stack}")
@@ -408,13 +411,8 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             frag.presentFragment(new_frag)
             
             try:
-                if path == delegate._root:
-                    title = "../packitCache"
-                else:
-                    rel = os.path.relpath(path, delegate._root)
-                    title = f"../packitCache/{rel}"
-
-                new_frag.setTitle(title, False, 0)
+                folder_name = os.path.basename(path)
+                new_frag.setTitle(folder_name, False, 0)
                 action_bar = new_frag.getActionBar()
                 if action_bar:
                     action_bar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))
@@ -683,14 +681,6 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             log(f"filesActivity: _render path={path} stack={self._stack} list_root={self._list_root is not None}")
 
             self._render_breadcrumbs()
-
-            # update actionbar title
-            try:
-                frag = self._frag_ref[0]
-                if frag:
-                    frag.setTitle(self._rel_path(path), False, 0)
-            except Exception:
-                pass
 
             list_root = self._list_root
             list_root.removeAllViews()
