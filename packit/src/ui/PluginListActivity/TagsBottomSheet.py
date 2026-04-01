@@ -7,6 +7,7 @@ from android.graphics.drawable import GradientDrawable
 from android_utils import log
 from android_utils import OnClickListener
 from client_utils import get_last_fragment
+from .service import TagEngine
 try:
     from elyx import settings, strings
 except Exception as e:
@@ -31,16 +32,7 @@ except Exception as e:
 
 def show_tag_filter_menu(install_ui, act, plugins, selected_tags, on_tags_selected, on_save):
     try:
-        tags_summary = {}
-        for plugin in plugins:
-            plugin_tags = plugin.get("tags", [])
-            if isinstance(plugin_tags, list):
-                for tag_info in plugin_tags:
-                    if isinstance(tag_info, list) and len(tag_info) >= 1:
-                        tag_name = tag_info[0]
-                        if tag_name not in tags_summary:
-                            tags_summary[tag_name] = 0
-                        tags_summary[tag_name] += 1
+        tags_summary = TagEngine.collect_tags(plugins)
 
         if not tags_summary:
             log("No tags found in plugins")

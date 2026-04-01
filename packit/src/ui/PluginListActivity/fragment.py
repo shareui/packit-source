@@ -96,6 +96,7 @@ from .RepoBottomSheet import show_repo_sheet
 from .SortBottomSheet import show_sort_menu
 from .TagsBottomSheet import show_tag_filter_menu
 from .service import SearchEngine as search_mod
+from .service import TagEngine as tag_mod
 from .service.PluginActions import copy_plugin_link, share_plugin_file, view_plugin_code, report_plugin, download_plugin_file, translate_plugin
 from ...utils.media import playSound
 from ...core import install_plugin
@@ -1326,17 +1327,7 @@ class InstallUI:
                 filtered = [p for _, p in scored]
 
             if self.selected_tags:
-                tag_filtered = []
-                for p in filtered:
-                    plugin_tags = p.get("tags", [])
-                    if isinstance(plugin_tags, list):
-                        for tag_info in plugin_tags:
-                            if isinstance(tag_info, list) and len(tag_info) >= 1:
-                                tag_name = tag_info[0]
-                                if tag_name in self.selected_tags:
-                                    tag_filtered.append(p)
-                                    break
-                filtered = tag_filtered
+                filtered = tag_mod.filter_by_tags(filtered, self.selected_tags)
             
             if not q:
                 if sort_type == "alpha_az":
