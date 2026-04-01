@@ -151,6 +151,12 @@ def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button,
                     on_finish(True)
             except Exception:
                 pass
+            if _is_elyx_plugin(plugin_info) and rm_rid:
+                try:
+                    from .utils.installIndex import commit_elyx_pending
+                    commit_elyx_pending(plugin_info, rm_rid)
+                except Exception as e:
+                    log(f"core: elyx index commit error: {e}")
             _fire_install_listeners(plugin_id)
 
         try:

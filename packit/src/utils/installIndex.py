@@ -202,3 +202,64 @@ def commit_pending():
         log(f"installIndex: wrote entry for '{plugin_id}' in '{rm_rid}-index.json'")
     except Exception as e:
         log(f"installIndex: write error for '{plugin_id}': {e}")
+
+
+def commit_elyx_pending(plugin_info: dict, rm_rid: str):
+    # called after successful elyxcore install
+    if not rm_rid:
+        log("installIndex.elyx: no rm_rid, skipping")
+        return
+
+    try:
+        from org.telegram.messenger import ApplicationLoader
+        pkg = ApplicationLoader.applicationContext.getPackageName()
+    except Exception as e:
+        log(f"installIndex.elyx: cannot get pkg: {e}")
+        return
+
+    plugin_id = str(plugin_info.get("id") or "")
+    if not plugin_id:
+        log("installIndex.elyx: no plugin id, skipping")
+        return
+
+    version = _strip_version(plugin_info.get("version") or "")
+    state = str(plugin_info.get("state") or "")
+    archive_path = f"/data/data/{pkg}/files/plugins/ElyxPlugins/archives/{plugin_id}.zip"
+    local_path = archive_path if os.path.exists(archive_path) else "Unknown"
+    hash_val = str(plugin_info.get("hash") or "")
+    bithash_val = str(plugin_info.get("bithash") or "")
+
+    record = {
+        "id": plugin_id,
+        "version": version,
+        "state": state,
+        "local_path": local_path,
+        "file_type": "elyxcore",
+        "hash": hash_val,
+        "bithash": bithash_val,
+    }
+
+    index_path = _get_index_path(pkg, rm_rid)
+    try:
+        os.makedirs(os.path.dirname(index_path), exist_ok=True)
+        if os.path.exists(index_path):
+            with open(index_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if not isinstance(data, dict):
+                data = {}
+        else:
+            data = {}
+
+        plugins = data.get("installed_plugins")
+        if not isinstance(plugins, list):
+            plugins = []
+        plugins = [p for p in plugins if str(p.get("id") or "") != plugin_id]
+        plugins.append(record)
+        data["installed_plugins"] = plugins
+
+        with open(index_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+
+        log(f"installIndex.elyx: wrote entry for '{plugin_id}' in '{rm_rid}-index.json'")
+    except Exception as e:
+        log(f"installIndex.elyx: write error for '{plugin_id}': {e}")
