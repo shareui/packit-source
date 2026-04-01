@@ -165,8 +165,21 @@ def commit_pending():
     candidate_path = f"/data/data/{pkg}/files/plugins/{plugin_id}.py"
     local_path = candidate_path if os.path.exists(candidate_path) else "Unknown"
     file_type = "plugin"
-    hash_val = str(plugin_info.get("hash") or "")
-    bithash_val = str(plugin_info.get("bithash") or "")
+
+    # hash the installed file, not the source index hash:
+    # PluginsController may modify the file during install
+    hash_val = ""
+    bithash_val = ""
+    if os.path.exists(candidate_path):
+        try:
+            from .hashUtil import _hashFileSha256, _hashFileBithash, _getBitHashLib
+            hash_val = _hashFileSha256(candidate_path)
+            if _getBitHashLib() is not None:
+                bithash_val = _hashFileBithash(candidate_path)
+        except Exception as e:
+            log(f"installIndex: failed to hash plugin file for '{plugin_id}': {e}")
+            hash_val = str(plugin_info.get("hash") or "")
+            bithash_val = str(plugin_info.get("bithash") or "")
 
     record = {
         "id": plugin_id,
@@ -226,8 +239,21 @@ def commit_elyx_pending(plugin_info: dict, rm_rid: str):
     state = str(plugin_info.get("state") or "")
     archive_path = f"/data/data/{pkg}/files/plugins/ElyxPlugins/archives/{plugin_id}.zip"
     local_path = archive_path if os.path.exists(archive_path) else "Unknown"
-    hash_val = str(plugin_info.get("hash") or "")
-    bithash_val = str(plugin_info.get("bithash") or "")
+
+    # hash the installed archive, not the source index hash:
+    # elyxcore may repack the zip during install, so the bytes differ from original
+    hash_val = ""
+    bithash_val = ""
+    if os.path.exists(archive_path):
+        try:
+            from .hashUtil import _hashFileSha256, _hashFileBithash, _getBitHashLib
+            hash_val = _hashFileSha256(archive_path)
+            if _getBitHashLib() is not None:
+                bithash_val = _hashFileBithash(archive_path)
+        except Exception as e:
+            log(f"installIndex.elyx: failed to hash archive for '{plugin_id}': {e}")
+            hash_val = str(plugin_info.get("hash") or "")
+            bithash_val = str(plugin_info.get("bithash") or "")
 
     record = {
         "id": plugin_id,
