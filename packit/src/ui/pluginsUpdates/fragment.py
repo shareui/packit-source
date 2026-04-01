@@ -171,35 +171,7 @@ def _check_updates(pkg: str) -> list:
             local_ver = _version_tuple(entry.get("version") or "")
             repo_ver = _version_tuple(repo_info.get("version") or "")
 
-            # Outdated means a non-latest version was installed, no hash available for it,
-            # so skip hash comparison and check purely by version
-            is_outdated_marker = local_hash == "Outdated" or local_bithash == "Outdated"
-            if is_outdated_marker:
-                if repo_ver > local_ver:
-                    updates.append({
-                        "id": pid,
-                        "repo_id": rm_rid,
-                        "repo_name": repo_name,
-                        "plugin_name": str(repo_info.get("name") or pid),
-                        "icon": str(repo_info.get("icon") or ""),
-                        "local_version": str(entry.get("version") or ""),
-                        "repo_version": str(repo_info.get("version") or ""),
-                        "state": str(repo_info.get("state") or ""),
-                        "reason": "hash_diff_newer",
-                    })
-                continue
-
-            # compare hashes, pick matching type
-            hash_matches = True
-            if local_hash and repo_hash:
-                hash_matches = local_hash == repo_hash
-            elif local_bithash and repo_bithash:
-                hash_matches = local_bithash == repo_bithash
-
-            if hash_matches:
-                continue
-
-            # hash differs, determine reason
+            # version check first: if repo is newer — update regardless of hash
             if repo_ver > local_ver:
                 updates.append({
                     "id": pid,
@@ -212,22 +184,33 @@ def _check_updates(pkg: str) -> list:
                     "state": str(repo_info.get("state") or ""),
                     "reason": "hash_diff_newer",
                 })
-            else:
-                # same or older version, check if state changed
-                local_state = str(entry.get("state") or "")
-                repo_state = str(repo_info.get("state") or "")
-                if local_state != repo_state:
-                    updates.append({
-                        "id": pid,
-                        "repo_id": rm_rid,
-                        "repo_name": repo_name,
-                        "plugin_name": str(repo_info.get("name") or pid),
-                        "icon": str(repo_info.get("icon") or ""),
-                        "local_version": str(entry.get("version") or ""),
-                        "repo_version": str(repo_info.get("version") or ""),
-                        "state": str(repo_info.get("state") or ""),
-                        "reason": "state_changed",
-                    })
+                continue
+
+            # same or older version: compare hashes to detect silent updates or state changes
+            hash_matches = True
+            if local_hash and repo_hash:
+                hash_matches = local_hash == repo_hash
+            elif local_bithash and repo_bithash:
+                hash_matches = local_bithash == repo_bithash
+
+            if hash_matches:
+                continue
+
+            # hash differs at same/older version, check if state changed
+            local_state = str(entry.get("state") or "")
+            repo_state = str(repo_info.get("state") or "")
+            if local_state != repo_state:
+                updates.append({
+                    "id": pid,
+                    "repo_id": rm_rid,
+                    "repo_name": repo_name,
+                    "plugin_name": str(repo_info.get("name") or pid),
+                    "icon": str(repo_info.get("icon") or ""),
+                    "local_version": str(entry.get("version") or ""),
+                    "repo_version": str(repo_info.get("version") or ""),
+                    "state": str(repo_info.get("state") or ""),
+                    "reason": "state_changed",
+                })
 
     return updates
 
