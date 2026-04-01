@@ -3,7 +3,6 @@ import json
 import threading
 from collections import deque
 from time import time
-from android.animation import ObjectAnimator
 from android.view import View, MotionEvent, Gravity
 from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView, VideoView, ProgressBar, HorizontalScrollView
 from android.util import TypedValue
@@ -1620,12 +1619,6 @@ class InstallUI:
                                     f"{icon_size_dp}_{icon_size_dp}",
                                     None, None, 0, 1
                                 )
-                                try:
-                                    fade_in = ObjectAnimator.ofFloat(icon_view, "alpha", 0.0, 1.0)
-                                    fade_in.setDuration(300)
-                                    fade_in.start()
-                                except Exception:
-                                    pass
                                 return True
                             return False
                         except Exception as e:

@@ -2,7 +2,6 @@ from android.view import View, Gravity
 from android.widget import LinearLayout, TextView, FrameLayout, ImageView
 from android.util import TypedValue
 from android.graphics.drawable import GradientDrawable
-from android.animation import ObjectAnimator
 from android_utils import log, run_on_ui_thread, OnClickListener
 from client_utils import get_last_fragment
 from hook_utils import find_class
@@ -327,10 +326,6 @@ def _make_dep_card(act, dep_id, dep_name, dep_version, dep_author, dep_min_versi
                             f"{icon_size_dp}_{icon_size_dp}",
                             None, None, 0, 1
                         )
-                        try:
-                            ObjectAnimator.ofFloat(iv, "alpha", 0.0, 1.0).setDuration(300).start()
-                        except Exception:
-                            pass
                         return True
                     return False
                 except Exception as e:
