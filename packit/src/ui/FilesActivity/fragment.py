@@ -521,7 +521,6 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             builder.makeCustomMaxHeight()
             builder.setView(layout)
             builder.setWidth(AndroidUtilities.dp(292))
-            builder.setNegativeButton("Cancel", None)
 
             def on_ok(dialog, which):
                 new_name = str(edit.getText()).strip()
@@ -544,6 +543,14 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             class _OkListener(_dp(_AD.OnButtonClickListener)):
                 def __init__(self): super().__init__()
                 def onClick(self, dialog, which): on_ok(dialog, which)
+
+            class _CancelListener(_dp(_AD.OnButtonClickListener)):
+                def __init__(self): super().__init__()
+                def onClick(self, dialog, which):
+                    if dialog_ref[0]:
+                        dialog_ref[0].dismiss()
+
+            builder.setNegativeButton("Cancel", _CancelListener())
 
             class _ShowListener(_dp(_AD.OnShowListener)):
                 def __init__(self): super().__init__()
@@ -603,8 +610,6 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             builder.makeCustomMaxHeight()
             builder.setView(layout)
             builder.setWidth(AndroidUtilities.dp(292))
-            builder.setNegativeButton("Cancel", None)
-
             def on_ok(dialog, which):
                 name = str(edit.getText()).strip()
                 if not name:
@@ -624,6 +629,14 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             class _OkListener(_dp(_AD.OnButtonClickListener)):
                 def __init__(self): super().__init__()
                 def onClick(self, dialog, which): on_ok(dialog, which)
+
+            class _CancelListener(_dp(_AD.OnButtonClickListener)):
+                def __init__(self): super().__init__()
+                def onClick(self, dialog, which):
+                    if dialog_ref[0]:
+                        dialog_ref[0].dismiss()
+
+            builder.setNegativeButton("Cancel", _CancelListener())
 
             class _ShowListener(_dp(_AD.OnShowListener)):
                 def __init__(self): super().__init__()

@@ -46,6 +46,7 @@
   "github": "GitHub",
   "direct_message": "Direct Message",
   "personal_channel": "Personal Channel",
+  "plugins_channel": "Channel for plugins",
   "lead_developer_vestr": "Lead Developer",
   "special_thanks": "Special thanks to: @NKS22S, @justkoder",
   "for_users": "For Users",

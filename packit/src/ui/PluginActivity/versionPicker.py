@@ -46,7 +46,7 @@ def _build_version_entries(plugin):
     return entries
 
 
-def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_text_color, do_install):
+def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_text_color, do_install, on_cancel=None):
     try:
         from org.telegram.ui.ActionBar import Theme
         from org.telegram.ui.Components import LayoutHelper
@@ -181,7 +181,9 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
             except Exception as e:
                 log(f"version_picker: animate_in error: {e}")
 
-        def _dismiss():
+        install_started = [False]
+
+        def _dismiss(restore_btn=False):
             try:
                 from android.animation import AnimatorSet, ObjectAnimator, Animator
 
@@ -221,7 +223,12 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
         overlay.setBackgroundColor(ctypes.c_int32(0x99000000).value)
         overlay.setClickable(True)
         overlay.setFocusable(True)
-        overlay.setOnClickListener(OnClickListener(lambda v: _dismiss()))
+        def _on_overlay_click(v):
+            if install_started[0] and on_cancel:
+                on_cancel()
+            _dismiss()
+
+        overlay.setOnClickListener(OnClickListener(_on_overlay_click))
 
         # card
         card = LinearLayout(act)
@@ -728,6 +735,7 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
             def _after_install(ok):
                 _dismiss()
 
+            install_started[0] = True
             do_install(versioned, install_ui, all_plugins, btn, label, btn_text_color, act,
                        on_finish_override=_after_install)
 

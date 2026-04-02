@@ -91,7 +91,14 @@ def _make_profile_header(context):
 
         if user:
             img = BackupImageView(context)
-            img.setRoundRadius(AndroidUtilities.dp(40))
+            try:
+                from hook_utils import find_class
+                ExteraConfig = find_class("com.exteragram.messenger.ExteraConfig")
+                # avatar size is 100dp; getAvatarCorners returns px radius matching user setting
+                avatarRadius = ExteraConfig.getAvatarCorners(100.0)
+            except Exception:
+                avatarRadius = AndroidUtilities.dp(40)
+            img.setRoundRadius(avatarRadius)
             avatar_drawable = AvatarDrawable(user)
             img.setForUserOrChat(user, avatar_drawable)
             content.addView(img, LayoutHelper.createLinear(100, 100, Gravity.CENTER_HORIZONTAL, 0, 24, 0, 16))
