@@ -899,7 +899,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                             versioned["app_version"] = e["app_version"]
                         _do_install(versioned, _install_ui, _all, _btn, _label, _btn_text_color, _act)
                         return
-                    _show_version_picker(_act, _p, _install_ui, _all, _btn, _label, _btn_text_color, _do_install)
+                    _show_version_picker(_act, _p, _install_ui, _all, _btn, _label, _btn_text_color, _do_install,
+                                         on_cancel=lambda: run_on_ui_thread(lambda: _set_loading(_btn, _label, _btn_text_color, _act, False)))
 
                 install_btn.setOnClickListener(OnClickListener(onInstallClick))
 

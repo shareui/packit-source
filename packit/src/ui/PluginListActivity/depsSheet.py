@@ -182,7 +182,10 @@ def show_deps_sheet(install_ui, plugin_info: dict, on_confirm, all_plugins: list
             action_tv.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
             action_btn.addView(action_tv, FrameLayout.LayoutParams(-1, -2))
 
+            dismissed_by_button = [False]
+
             def on_action(v):
+                dismissed_by_button[0] = True
                 try:
                     sheet.dismiss()
                 except Exception as e:
@@ -232,6 +235,7 @@ def show_deps_sheet(install_ui, plugin_info: dict, on_confirm, all_plugins: list
             cancel_btn.addView(cancel_tv, FrameLayout.LayoutParams(-1, -2))
 
             def on_cancel_click(v):
+                dismissed_by_button[0] = True
                 try:
                     sheet.dismiss()
                 except Exception:
@@ -252,6 +256,20 @@ def show_deps_sheet(install_ui, plugin_info: dict, on_confirm, all_plugins: list
                 applyFontToTree(root)
             except Exception:
                 pass
+
+            try:
+                from java import dynamic_proxy
+                Runnable = find_class("java.lang.Runnable")
+
+                class _OnDismiss(dynamic_proxy(Runnable)):
+                    def run(self):
+                        if not dismissed_by_button[0] and on_cancel:
+                            on_cancel(False)
+
+                sheet.setOnDismissListener(_OnDismiss())
+            except Exception as e:
+                log(f"depsSheet: setOnDismissListener error: {e}")
+
             sheet.show()
         except Exception as e:
             log(f"deps_sheet: show error: {e}")
