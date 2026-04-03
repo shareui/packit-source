@@ -125,7 +125,7 @@ def show_tag_filter_menu(install_ui, act, plugins, selected_tags, on_tags_select
         save_btn.setClickable(True)
         save_btn.setFocusable(True)
         save_text = TextView(act)
-        save_text.setText(strings.get("save_button", "Save"))
+        save_text.setText(strings["save_button"])
         save_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
         save_text.setTypeface(AndroidUtilities.bold())
         save_text.setGravity(Gravity.CENTER)
@@ -134,6 +134,8 @@ def show_tag_filter_menu(install_ui, act, plugins, selected_tags, on_tags_select
 
         def on_save_click(v):
             try:
+                if not show_tag_filter_menu.current_selected:
+                    return
                 on_tags_selected(show_tag_filter_menu.current_selected)
                 tag_sheet.dismiss()
                 on_save()
