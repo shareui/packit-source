@@ -206,7 +206,8 @@ def _get_plugin_cache_path(pkg: str, filename: str) -> str:
     # cache is isolated per hash method
     method = getHashMethod()
     subdir = "BitHash" if method == METHOD_BITHASH else "sha256"
-    cache_dir = f"/data/data/{pkg}/files/packitCache/pluginCache/{subdir}"
+    from .utils._paths import getPluginCacheDir
+    cache_dir = getPluginCacheDir(subdir)
     os.makedirs(cache_dir, exist_ok=True)
     return os.path.join(cache_dir, filename)
 
@@ -241,10 +242,9 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
         return
 
     # check cache before showing the heavy loading dialog
-    pkg_pre = ApplicationLoader.applicationContext.getPackageName()
     url_pre = plugin_info.get("link") or plugin_info.get("raw") or ""
     filename_pre = url_pre.split("/")[-1] or f"{plugin_id}.plugin"
-    cache_path_pre = _get_plugin_cache_path(pkg_pre, filename_pre)
+    cache_path_pre = _get_plugin_cache_path(None, filename_pre)
     has_cache = False
     if os.path.exists(cache_path_pre):
         try:
@@ -270,8 +270,8 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
 
     def task():
         try:
-            pkg = ApplicationLoader.applicationContext.getPackageName()
-            plugins_dir = f"/data/data/{pkg}/files/plugins"
+            from .utils._paths import getPluginsDir
+            plugins_dir = getPluginsDir()
             try:
                 os.makedirs(plugins_dir, exist_ok=True)
             except Exception:
@@ -280,7 +280,7 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
             temp_path = os.path.join(plugins_dir, f".temp_{plugin_id}.plugin")
             # check local plugin cache
             filename = url.split("/")[-1] or f"{plugin_id}.plugin"
-            cache_path = _get_plugin_cache_path(pkg, filename)
+            cache_path = _get_plugin_cache_path(None, filename)
             if os.path.exists(cache_path):
                 try:
                     if matchesStoredHash(
@@ -431,8 +431,8 @@ def install_icon_pack(icon_info: dict):
                 run_on_ui_thread(lambda: BulletinHelper.show_error(f"Download failed: HTTP {r.status_code}"))
                 return
 
-            pkg = ApplicationLoader.applicationContext.getPackageName()
-            tmp_path = f"/data/data/{pkg}/cache/packit_iconpack_{pack_id}.icons"
+            from .utils._paths import getIconPackTmpPath
+            tmp_path = getIconPackTmpPath(pack_id)
 
             content_length = r.headers.get("content-length")
             total = int(content_length) if content_length else 0

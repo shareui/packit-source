@@ -495,9 +495,8 @@ def _show_sheet(updates: list, plugin, on_sheet_closed=None):
 
         def _ignore_all(v=None):
             try:
-                pkg = ApplicationLoader.applicationContext.getPackageName()
                 for it in updates:
-                    _ignore_until_next(pkg, it["id"], it.get("repo_id", ""), it.get("repo_version", ""))
+                    _ignore_until_next(None, it["id"], it.get("repo_id", ""), it.get("repo_version", ""))
                 sheet.dismiss()
                 if on_sheet_closed:
                     on_sheet_closed(None)
@@ -546,10 +545,9 @@ def _show_sheet(updates: list, plugin, on_sheet_closed=None):
 
 def _apply_actions_and_refresh(acted_items, plugin):
     try:
-        pkg = ApplicationLoader.applicationContext.getPackageName()
         for action, item in (acted_items or []):
             if action == "ignore":
-                _ignore_until_next(pkg, item["id"], item.get("repo_id", ""), item.get("repo_version", ""))
+                _ignore_until_next(None, item["id"], item.get("repo_id", ""), item.get("repo_version", ""))
             elif action == "update":
                 _do_install(item, plugin)
     except Exception as e:
@@ -558,8 +556,7 @@ def _apply_actions_and_refresh(acted_items, plugin):
     def task():
         try:
             time.sleep(1.5)
-            pkg = ApplicationLoader.applicationContext.getPackageName()
-            updates = _filter_ignored(pkg, _check_updates(pkg))
+            updates = _filter_ignored(None, _check_updates(None))
             if updates:
                 run_on_ui_thread(lambda: _show_sheet(
                     updates, plugin,
@@ -638,15 +635,13 @@ def _do_install(item: dict, plugin):
 def check_and_show_startup_updates(plugin=None):
     def task():
         try:
-            pkg = ApplicationLoader.applicationContext.getPackageName()
-
             try:
                 from ...utils.installIndex import purge_missing
                 purge_missing()
             except Exception as e:
                 log(f"startupSheet: purge_missing error: {e}")
 
-            updates = _filter_ignored(pkg, _check_updates(pkg))
+            updates = _filter_ignored(None, _check_updates(None))
             if not updates:
                 log("startupSheet: no updates found")
                 return

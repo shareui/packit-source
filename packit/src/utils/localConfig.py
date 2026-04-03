@@ -15,8 +15,8 @@ except Exception as e:
 
 
 def _get_configs_dir() -> str:
-    pkg = ApplicationLoader.applicationContext.getPackageName()
-    return f"/data/data/{pkg}/files/packitCache/packitConfigs"
+    from ._paths import getConfigsDir
+    return getConfigsDir()
 
 
 def _get_config_path() -> str:
@@ -24,8 +24,8 @@ def _get_config_path() -> str:
 
 
 def _get_cache_dir() -> str:
-    pkg = ApplicationLoader.applicationContext.getPackageName()
-    return f"/data/data/{pkg}/files/packitCache"
+    from ._paths import getCacheRoot
+    return getCacheRoot()
 
 
 def _get_install_date_path() -> str:

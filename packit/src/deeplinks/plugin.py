@@ -21,8 +21,8 @@ _REQUIRED = {"plugin", "repo"}
 
 
 def _getCachePath(repoId: str) -> str:
-    pkg = ApplicationLoader.applicationContext.getPackageName()
-    return f"/data/data/{pkg}/files/packitCache/reposCache/{repoId}.json"
+    from ..utils._paths import getRepoCachePath
+    return getRepoCachePath(repoId)
 
 
 def _resolvePluginsUrl(repo: dict) -> str:

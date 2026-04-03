@@ -794,13 +794,11 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     # check if cached so we can delay the spinner removal
                     cached = False
                     try:
-                        from org.telegram.messenger import ApplicationLoader as _AL
                         import os as _os
                         from ...core import _get_plugin_cache_path, _sha256_file
-                        _pkg = _AL.applicationContext.getPackageName()
                         _url = _p.get("link") or _p.get("raw") or ""
                         _fname = _url.split("/")[-1] or f"{_p.get('id')}.plugin"
-                        _cp = _get_plugin_cache_path(_pkg, _fname)
+                        _cp = _get_plugin_cache_path(None, _fname)
                         _eh = _p.get("hash") or ""
                         if _eh and _os.path.exists(_cp):
                             cached = _eh == _sha256_file(_cp)

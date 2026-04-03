@@ -24,9 +24,8 @@ def _getBitHashLib():
         return _lib
     _libLoaded = True
     try:
-        from org.telegram.messenger import ApplicationLoader
-        pkg = ApplicationLoader.applicationContext.getPackageName()
-        soPath = f"/data/data/{pkg}/files/plugins/ElyxPlugins/shareui_packit/packit/res/native/libbithash.so"
+        from ._paths import getBitHashSoPath
+        soPath = getBitHashSoPath()
         _lib = ctypes.CDLL(soPath)
         _lib.bitHash_oneshot.restype = ctypes.c_uint64
         _lib.bitHash_oneshot.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_uint64]

@@ -41,8 +41,8 @@ _REPO_ADD_ALL = _REPO_ADD_REQUIRED | _REPO_ADD_OPTIONAL
 
 
 def _get_cache_dir() -> str:
-    pkg = ApplicationLoader.applicationContext.getPackageName()
-    return f"/data/data/{pkg}/files/packitCache/reposCache"
+    from ..utils._paths import getReposCacheDir
+    return getReposCacheDir()
 
 
 def handle(url, repoManager):

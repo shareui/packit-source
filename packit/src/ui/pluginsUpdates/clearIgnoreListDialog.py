@@ -144,13 +144,13 @@ def _make_btn(act, text: str, accent: bool):
 
 
 def _get_index_path(pkg: str, rm_rid: str) -> str:
-    return f"/data/data/{pkg}/files/packitCache/reposCache/{rm_rid}-index.json"
+    from ...utils._paths import getRepoIndexPath
+    return getRepoIndexPath(rm_rid)
 
 
 def _clear_all_ignore_lists():
     # clears ignore_list in every repo index file
     try:
-        pkg = ApplicationLoader.applicationContext.getPackageName()
         raw = settings.get("repositories", "[]")
         repos = json.loads(raw)
         if not isinstance(repos, list):
@@ -159,7 +159,7 @@ def _clear_all_ignore_lists():
             rm_rid = repo.get("rm_rid") or repo.get("id") or ""
             if not rm_rid:
                 continue
-            path = _get_index_path(pkg, rm_rid)
+            path = _get_index_path(None, rm_rid)
             if not os.path.exists(path):
                 continue
             try:
@@ -183,7 +183,6 @@ def _clear_all_ignore_lists():
 def _remove_plugin_from_ignore_lists(pid: str):
     # removes a specific plugin id from ignore_list across all repos
     try:
-        pkg = ApplicationLoader.applicationContext.getPackageName()
         raw = settings.get("repositories", "[]")
         repos = json.loads(raw)
         if not isinstance(repos, list):
@@ -192,7 +191,7 @@ def _remove_plugin_from_ignore_lists(pid: str):
             rm_rid = repo.get("rm_rid") or repo.get("id") or ""
             if not rm_rid:
                 continue
-            path = _get_index_path(pkg, rm_rid)
+            path = _get_index_path(None, rm_rid)
             if not os.path.exists(path):
                 continue
             try:
