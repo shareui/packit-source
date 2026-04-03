@@ -25,6 +25,7 @@
   "delete_repository_title": "Delete",
   "delete_repository_message": "Are you sure you want to delete this repository? No takebacks.",
   "delete_button": "Delete",
+  "save_button": "Save",
   "close_button": "Close",
   "binary_file_title": "Binary File",
   "binary_file_message": "This file contains binary data, I don't think opening it is a good idea.",
