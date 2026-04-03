@@ -4,6 +4,7 @@ from android.view import Gravity
 from android.util import TypedValue
 from android.graphics import Color
 from android.graphics.drawable import GradientDrawable
+from android.text import TextUtils
 from android_utils import log
 from android_utils import OnClickListener
 from client_utils import get_last_fragment
@@ -69,16 +70,42 @@ def show_tag_filter_menu(install_ui, act, plugins, selected_tags, on_tags_select
             current_selected = set(tags_summary.keys())
 
         show_tag_filter_menu.current_selected = current_selected
+        
+        tags_container = LinearLayout(act)
+        tags_container.setOrientation(LinearLayout.VERTICAL)
+        tags_container.setPadding(AndroidUtilities.dp(0), AndroidUtilities.dp(8), AndroidUtilities.dp(0), AndroidUtilities.dp(8))
+        
         tag_items = list(tags_summary.items())
-        for i, (tag_name, count) in enumerate(tag_items):
-            tag_option = create_tag_option(install_ui, act, tag_name, count, tag_name in current_selected)
+        current_row = None
+        current_row_items = []
+        
+        def create_new_row():
+            nonlocal current_row, current_row_items
+            current_row = LinearLayout(act)
+            current_row.setOrientation(LinearLayout.HORIZONTAL)
+            current_row.setGravity(Gravity.CENTER)
+            tags_container.addView(current_row, LayoutHelper.createLinear(-1, -2, 0, 4, 0, 4))
+            current_row_items = []
+        
+        def check_row_space(tag_name):
+            if not current_row or len(current_row_items) >= 3:
+                return True
+            if len(current_row_items) == 2:
+                return False
+            return True
+        
+        create_new_row()
+        
+        for tag_name, count in tag_items:
+            if not check_row_space(tag_name):
+                create_new_row()
+            
+            tag_option = create_tag_tile(install_ui, act, tag_name, count, tag_name in current_selected)
             tag_options[tag_name] = tag_option
-            tag_root.addView(tag_option, LayoutHelper.createLinear(-1, -2, 0, 1, 0, 1))
-
-            if i < len(tag_items) - 1:
-                divider = View(act)
-                divider.setBackgroundColor(Theme.getColor(Theme.key_divider))
-                tag_root.addView(divider, LayoutHelper.createFrame(-1, 1, Gravity.TOP, 16, 4, 16, 4))
+            current_row.addView(tag_option, LayoutHelper.createLinear(-2, -2, 1.0, 0, 8, 0))
+            current_row_items.append(tag_name)
+        
+        tag_root.addView(tags_container, LayoutHelper.createLinear(-1, -2))
 
         save_btn = FrameLayout(act)
         try:
@@ -121,7 +148,7 @@ def show_tag_filter_menu(install_ui, act, plugins, selected_tags, on_tags_select
                     else:
                         show_tag_filter_menu.current_selected.add(tag_name)
                     tag_option = tag_options[tag_name]
-                    update_tag_option(install_ui, tag_option, tag_name, count, tag_name in show_tag_filter_menu.current_selected)
+                    update_tag_tile(install_ui, tag_option, tag_name, tags_summary[tag_name], tag_name in show_tag_filter_menu.current_selected)
                 except Exception as e:
                     log(f"Tag click error: {e}")
             return handler
@@ -145,207 +172,144 @@ def show_tag_filter_menu(install_ui, act, plugins, selected_tags, on_tags_select
         log(f"tag filter menu error: {e}")
 
 
-def create_tag_option(install_ui, act, tag_name, count, is_selected):
+def create_tag_tile(install_ui, act, tag_name, count, is_selected):
     try:
-        option = LinearLayout(act)
-        option.setOrientation(LinearLayout.HORIZONTAL)
-        option.setGravity(Gravity.CENTER_VERTICAL)
-        option.setClickable(True)
-        option.setFocusable(True)
-        option.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12))
+        tile = FrameLayout(act)
+        tile.setClickable(True)
+        tile.setFocusable(True)
+        tile.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12))
         
-        use_classic_design = settings.get("old_sort_menu_design", False)
-
-        try:
-            if is_selected and use_classic_design:
-                option.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                    AndroidUtilities.dp(8),
-                    Theme.getColor(Theme.key_featuredStickers_addButton),
-                    Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
-                ))
-            else:
-                option.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                    AndroidUtilities.dp(8),
-                    Theme.getColor(Theme.key_dialogBackground),
-                    Theme.getColor(Theme.key_dialogBackgroundGray)
-                ))
-        except Exception:
-            try:
-                option.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector)))
-            except Exception:
-                pass
-
-        option_text = TextView(act)
-        option_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 17)
-        option_text.setText(tag_name)
-        if is_selected and use_classic_design:
-            option_text.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
-        elif is_selected and not use_classic_design:
-            option_text.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton))
+        main_color = Theme.getColor(Theme.key_featuredStickers_addButton)
+        
+        if is_selected:
+            tile_bg = GradientDrawable()
+            tile_bg.setShape(GradientDrawable.RECTANGLE)
+            tile_bg.setCornerRadius(AndroidUtilities.dp(16))
+            tile_bg.setColor(main_color)
+            tile.setBackground(tile_bg)
+            
+            text_color = Color.WHITE
+            count_bg_color = Color.WHITE
+            count_text_color = main_color
         else:
-            option_text.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
+            import ctypes
+            r = (main_color >> 16) & 0xFF
+            g = (main_color >> 8) & 0xFF
+            b = main_color & 0xFF
+            transparent_color = ctypes.c_int32((0x15 << 24) | (r << 16) | (g << 8) | b).value
+            
+            tile_bg = GradientDrawable()
+            tile_bg.setShape(GradientDrawable.RECTANGLE)
+            tile_bg.setCornerRadius(AndroidUtilities.dp(16))
+            tile_bg.setColor(transparent_color)
+            tile_bg.setStroke(AndroidUtilities.dp(1), main_color)
+            tile.setBackground(tile_bg)
+            
+            text_color = main_color
+            count_bg_color = main_color
+            count_text_color = Color.WHITE
         
-        option_layout = LinearLayout(act)
-        option_layout.setOrientation(LinearLayout.HORIZONTAL)
-        option_layout.setGravity(Gravity.CENTER_VERTICAL)
+        content_layout = LinearLayout(act)
+        content_layout.setOrientation(LinearLayout.HORIZONTAL)
+        content_layout.setGravity(Gravity.CENTER_VERTICAL)
+        content_layout.setPadding(AndroidUtilities.dp(0), AndroidUtilities.dp(0), AndroidUtilities.dp(0), AndroidUtilities.dp(0))
         
-        if is_selected and not use_classic_design:
-            check_circle = FrameLayout(act)
-            check_circle_size = AndroidUtilities.dp(20)
-            check_circle_params = LinearLayout.LayoutParams(check_circle_size, check_circle_size)
-            check_circle_params.rightMargin = AndroidUtilities.dp(12)
-            circle_bg = GradientDrawable()
-            circle_bg.setShape(GradientDrawable.OVAL)
-            circle_bg.setColor(Theme.getColor(Theme.key_featuredStickers_addButton))
-            circle_bg.setStroke(AndroidUtilities.dp(1), Color.WHITE)
-            check_circle.setBackground(circle_bg)
-            dot = View(act)
-            dot_size = AndroidUtilities.dp(8)
-            dot_bg = GradientDrawable()
-            dot_bg.setShape(GradientDrawable.OVAL)
-            dot_bg.setColor(Color.WHITE)
-            dot.setBackground(dot_bg)
-            check_circle.addView(dot, FrameLayout.LayoutParams(dot_size, dot_size, Gravity.CENTER))
-            option_layout.addView(check_circle, check_circle_params)
-        elif not use_classic_design:
-            empty_space = View(act)
-            empty_space_params = LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
-            empty_space_params.rightMargin = AndroidUtilities.dp(12)
-            option_layout.addView(empty_space, empty_space_params)
-
+        tag_text = TextView(act)
+        tag_text.setText(tag_name)
+        tag_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
+        tag_text.setTypeface(AndroidUtilities.bold())
+        tag_text.setTextColor(text_color)
+        tag_text.setGravity(Gravity.CENTER_VERTICAL)
+        tag_text.setSingleLine(True)
+        tag_text.setEllipsize(TextUtils.TruncateAt.END)
+        
         count_circle = FrameLayout(act)
-        count_circle_size = AndroidUtilities.dp(24) if use_classic_design else AndroidUtilities.dp(20)
-        count_circle_params = LinearLayout.LayoutParams(count_circle_size, count_circle_size)
-        count_circle_params.rightMargin = AndroidUtilities.dp(20) if use_classic_design else AndroidUtilities.dp(16)
+        count_size = AndroidUtilities.dp(22)
+        count_params = LinearLayout.LayoutParams(count_size, count_size)
+        count_params.setMargins(AndroidUtilities.dp(8), 0, 0, 0)
         
-        if is_selected and use_classic_design:
-            count_bg = GradientDrawable()
-            count_bg.setShape(GradientDrawable.OVAL)
-            count_bg.setColor(Color.WHITE)
-            count_bg.setStroke(AndroidUtilities.dp(1), Theme.getColor(Theme.key_dialogTextGray2))
-            count_circle.setBackground(count_bg)
-            count_text = TextView(act)
-            count_text.setText(str(count))
-            count_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
-            count_text.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton))
-            count_text.setGravity(Gravity.CENTER)
-        else:
-            count_bg = GradientDrawable()
-            count_bg.setShape(GradientDrawable.OVAL)
-            count_bg.setColor(Theme.getColor(Theme.key_featuredStickers_addButton))
-            count_circle.setBackground(count_bg)
-            count_text = TextView(act)
-            count_text.setText(str(count))
-            count_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
-            count_text.setTextColor(Color.WHITE)
-            count_text.setGravity(Gravity.CENTER)
+        count_bg = GradientDrawable()
+        count_bg.setShape(GradientDrawable.OVAL)
+        count_bg.setColor(count_bg_color)
+        count_circle.setBackground(count_bg)
+        
+        count_text = TextView(act)
+        count_text.setText(str(count))
+        count_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
+        count_text.setTextColor(count_text_color)
+        count_text.setGravity(Gravity.CENTER)
+        count_text.setTypeface(AndroidUtilities.bold())
         
         count_circle.addView(count_text, FrameLayout.LayoutParams(-1, -1, Gravity.CENTER))
-        option_layout.addView(count_circle, count_circle_params)
-
-        option_layout.addView(option_text, LayoutHelper.createLinear(-1, -2))
-        option.addView(option_layout, LayoutHelper.createLinear(-1, -2))
-
-        return option
+        
+        content_layout.addView(tag_text, LayoutHelper.createLinear(-2, -2, 1.0))
+        content_layout.addView(count_circle, count_params)
+        
+        tile.addView(content_layout, FrameLayout.LayoutParams(-2, -2))
+        
+        return tile
     except Exception as e:
-        log(f"create_tag_option error: {e}")
+        log(f"create_tag_tile error: {e}")
         return View(act)
 
 
-def update_tag_option(install_ui, option, tag_name, count, is_selected):
+def update_tag_tile(install_ui, tile, tag_name, count, is_selected):
     try:
-        use_classic_design = settings.get("old_sort_menu_design", False)
-
-        try:
-            if is_selected and use_classic_design:
-                option.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                    AndroidUtilities.dp(8),
-                    Theme.getColor(Theme.key_featuredStickers_addButton),
-                    Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
-                ))
-            else:
-                option.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                    AndroidUtilities.dp(8),
-                    Theme.getColor(Theme.key_dialogBackground),
-                    Theme.getColor(Theme.key_dialogBackgroundGray)
-                ))
-        except Exception:
-            pass
-
-        if option.getChildCount() > 0:
-            option_layout = option.getChildAt(0)
-            if isinstance(option_layout, LinearLayout):
-                if not use_classic_design:
-
-                    if option_layout.getChildCount() > 0:
-                        option_layout.removeViewAt(0)
-
-                    if is_selected:
-                        check_circle = FrameLayout(option.getContext())
-                        check_circle_size = AndroidUtilities.dp(20)
-                        check_circle_params = LinearLayout.LayoutParams(check_circle_size, check_circle_size)
-                        check_circle_params.rightMargin = AndroidUtilities.dp(12)
-                        circle_bg = GradientDrawable()
-                        circle_bg.setShape(GradientDrawable.OVAL)
-                        circle_bg.setColor(Theme.getColor(Theme.key_featuredStickers_addButton))
-                        circle_bg.setStroke(AndroidUtilities.dp(1), Color.WHITE)
-                        check_circle.setBackground(circle_bg)
-                        dot = View(option.getContext())
-                        dot_size = AndroidUtilities.dp(8)
-                        dot_bg = GradientDrawable()
-                        dot_bg.setShape(GradientDrawable.OVAL)
-                        dot_bg.setColor(Color.WHITE)
-                        dot.setBackground(dot_bg)
-                        check_circle.addView(dot, FrameLayout.LayoutParams(dot_size, dot_size, Gravity.CENTER))
-                        option_layout.addView(check_circle, 0, check_circle_params)
-                    else:
-                        empty_space = View(option.getContext())
-                        empty_space_params = LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
-                        empty_space_params.rightMargin = AndroidUtilities.dp(12)
-                        option_layout.addView(empty_space, 0, empty_space_params)
-
-                count_circle_index = 1 if not use_classic_design else 0
-                if option_layout.getChildCount() > count_circle_index:
-                    count_circle = option_layout.getChildAt(count_circle_index)
-                    if isinstance(count_circle, FrameLayout) and count_circle.getChildCount() > 0:
-                        count_text = count_circle.getChildAt(0)
-                        if isinstance(count_text, TextView):
-                            count_text.setText(str(count))
-
-                            if is_selected and use_classic_design:
-                                count_bg = GradientDrawable()
-                                count_bg.setShape(GradientDrawable.OVAL)
-                                count_bg.setColor(Color.WHITE)
-                                count_bg.setStroke(AndroidUtilities.dp(1), Theme.getColor(Theme.key_dialogTextGray2))
-                                count_circle.setBackground(count_bg)
-                                count_text.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton))
-
-                                count_circle_size = AndroidUtilities.dp(24)
-                                count_circle_params = LinearLayout.LayoutParams(count_circle_size, count_circle_size)
-                                count_circle_params.rightMargin = AndroidUtilities.dp(20)
-                                count_circle.setLayoutParams(count_circle_params)
-                            else:
-                                count_bg = GradientDrawable()
-                                count_bg.setShape(GradientDrawable.OVAL)
-                                count_bg.setColor(Theme.getColor(Theme.key_featuredStickers_addButton))
-                                count_circle.setBackground(count_bg)
-                                count_text.setTextColor(Color.WHITE)
-
-                                count_circle_size = AndroidUtilities.dp(20)
-                                count_circle_params = LinearLayout.LayoutParams(count_circle_size, count_circle_size)
-                                count_circle_params.rightMargin = AndroidUtilities.dp(16)
-                                count_circle.setLayoutParams(count_circle_params)
-
-                text_index = 2 if not use_classic_design else 1
-                if option_layout.getChildCount() > text_index:
-                    option_text = option_layout.getChildAt(text_index)
-                    if isinstance(option_text, TextView):
-                        option_text.setText(tag_name)
-                        if is_selected and use_classic_design:
-                            option_text.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
-                        elif is_selected and not use_classic_design:
-                            option_text.setTextColor(Theme.getColor(Theme.key_featuredStickers_addButton))
-                        else:
-                            option_text.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
+        main_color = Theme.getColor(Theme.key_featuredStickers_addButton)
+        
+        if is_selected:
+            tile_bg = GradientDrawable()
+            tile_bg.setShape(GradientDrawable.RECTANGLE)
+            tile_bg.setCornerRadius(AndroidUtilities.dp(16))
+            tile_bg.setColor(main_color)
+            tile.setBackground(tile_bg)
+            
+            text_color = Color.WHITE
+            count_bg_color = Color.WHITE
+            count_text_color = main_color
+        else:
+            import ctypes
+            r = (main_color >> 16) & 0xFF
+            g = (main_color >> 8) & 0xFF
+            b = main_color & 0xFF
+            transparent_color = ctypes.c_int32((0x15 << 24) | (r << 16) | (g << 8) | b).value
+            
+            tile_bg = GradientDrawable()
+            tile_bg.setShape(GradientDrawable.RECTANGLE)
+            tile_bg.setCornerRadius(AndroidUtilities.dp(16))
+            tile_bg.setColor(transparent_color)
+            tile_bg.setStroke(AndroidUtilities.dp(1), main_color)
+            tile.setBackground(tile_bg)
+            
+            text_color = main_color
+            count_bg_color = main_color
+            count_text_color = Color.WHITE
+        
+        if tile.getChildCount() > 0:
+            content_layout = tile.getChildAt(0)
+            if isinstance(content_layout, LinearLayout) and content_layout.getChildCount() >= 2:
+                tag_text = content_layout.getChildAt(0)
+                count_circle = content_layout.getChildAt(1)
+                
+                if isinstance(tag_text, TextView):
+                    tag_text.setText(tag_name)
+                    tag_text.setTextColor(text_color)
+                    tag_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
+                
+                if isinstance(count_circle, FrameLayout) and count_circle.getChildCount() > 0:
+                    count_text = count_circle.getChildAt(0)
+                    if isinstance(count_text, TextView):
+                        count_text.setText(str(count))
+                        count_text.setTextColor(count_text_color)
+                        count_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
+                    
+                    count_bg = GradientDrawable()
+                    count_bg.setShape(GradientDrawable.OVAL)
+                    count_bg.setColor(count_bg_color)
+                    count_circle.setBackground(count_bg)
+                    
+                    count_params = LinearLayout.LayoutParams(AndroidUtilities.dp(22), AndroidUtilities.dp(22))
+                    count_params.setMargins(AndroidUtilities.dp(8), 0, 0, 0)
+                    count_circle.setLayoutParams(count_params)
     except Exception as e:
-        log(f"update_tag_option error: {e}")
+        log(f"update_tag_tile error: {e}")
