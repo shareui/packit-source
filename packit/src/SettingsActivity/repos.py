@@ -350,8 +350,8 @@ class RepositoriesSettings:
             def task():
                 try:
                     repos = self.repoManager.getRepositories()
-                    pkg = ApplicationLoader.applicationContext.getPackageName()
-                    cache_dir = f"/data/data/{pkg}/files/packitCache/reposCache"
+                    from ..utils._paths import getReposCacheDir
+                    cache_dir = getReposCacheDir()
                     os.makedirs(cache_dir, exist_ok=True)
                     changed = False
                     to_remove = []

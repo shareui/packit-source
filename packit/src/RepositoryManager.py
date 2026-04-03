@@ -20,8 +20,8 @@ OFFICIAL_REPO_URL = "https://raw.githubusercontent.com/shareui/packit/refs/heads
 
 
 def _get_cache_dir() -> str:
-    pkg = ApplicationLoader.applicationContext.getPackageName()
-    return f"/data/data/{pkg}/files/packitCache/reposCache"
+    from .utils._paths import getReposCacheDir
+    return getReposCacheDir()
 
 
 class RepositoryManager:
@@ -75,8 +75,8 @@ class RepositoryManager:
             return None
 
     def _get_temp_dir(self) -> str:
-        pkg = ApplicationLoader.applicationContext.getPackageName()
-        return f"/data/data/{pkg}/files/packitCache/packitTemp"
+        from .utils._paths import getTempDir
+        return getTempDir()
 
     def _cleanup_temp_dir(self):
         import shutil

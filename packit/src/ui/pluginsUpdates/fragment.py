@@ -42,11 +42,13 @@ except Exception as e:
 
 
 def _get_index_path(pkg: str, rm_rid: str) -> str:
-    return f"/data/data/{pkg}/files/packitCache/reposCache/{rm_rid}-index.json"
+    from ...utils._paths import getRepoIndexPath
+    return getRepoIndexPath(rm_rid)
 
 
 def _get_repo_cache_path(pkg: str, rm_rid: str) -> str:
-    return f"/data/data/{pkg}/files/packitCache/reposCache/{rm_rid}.json"
+    from ...utils._paths import getRepoCachePath
+    return getRepoCachePath(rm_rid)
 
 
 def _get_repos() -> list:
@@ -407,8 +409,6 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
         def task():
             try:
-                pkg = ApplicationLoader.applicationContext.getPackageName()
-
                 # purge stale entries first
                 try:
                     from ...utils.installIndex import purge_missing
@@ -423,13 +423,13 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     rm_rid = str(repo.get("id") or "")
                     if not rm_rid:
                         continue
-                    total_installed += len(_read_index(pkg, rm_rid))
+                    total_installed += len(_read_index(None, rm_rid))
 
                 if total_installed == 0:
                     run_on_ui_thread(lambda: self._show_empty("You have not installed any plugins from PackIt", "utyan_empty") if alive[0] else None)
                     return
 
-                updates = _filter_ignored(pkg, _check_updates(pkg))
+                updates = _filter_ignored(None, _check_updates(None))
 
                 def on_done():
                     if not alive[0]:
@@ -766,8 +766,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
             def task():
                 try:
-                    pkg = ApplicationLoader.applicationContext.getPackageName()
-                    plugins_url = _get_repo_plugins_url(pkg, repo_id, repo_url)
+                    plugins_url = _get_repo_plugins_url(None, repo_id, repo_url)
                     repo_plugins = _fetch_repo_plugins(plugins_url)
                     full_data = repo_plugins.get(pid)
                     if not full_data:
@@ -806,11 +805,10 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
     def _apply_ignore(self, pid: str, repo_id: str, repo_version: str, forever: bool, card_view):
         try:
-            pkg = ApplicationLoader.applicationContext.getPackageName()
             if forever:
-                _ignore_forever(pkg, pid, repo_id)
+                _ignore_forever(None, pid, repo_id)
             else:
-                _ignore_until_next(pkg, pid, repo_id, repo_version)
+                _ignore_until_next(None, pid, repo_id, repo_version)
             run_on_ui_thread(lambda: self._remove_card(card_view))
         except Exception as e:
             log(f"pluginsUpdates: _apply_ignore error: {e}")

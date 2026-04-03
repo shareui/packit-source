@@ -20,8 +20,8 @@ _FILE_NAMES = {
 
 
 def _get_configs_dir() -> str:
-    pkg = ApplicationLoader.applicationContext.getPackageName()
-    return f"/data/data/{pkg}/files/packitCache/packitConfigs"
+    from ....utils._paths import getConfigsDir
+    return getConfigsDir()
 
 
 def _get_user_id() -> int:

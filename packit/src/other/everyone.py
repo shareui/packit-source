@@ -19,8 +19,8 @@ _lock = threading.Lock()
 
 
 def _get_cache_path() -> str:
-    pkg = ApplicationLoader.applicationContext.getPackageName()
-    cache_dir = f"/data/data/{pkg}/files/packitCache"
+    from ..utils._paths import getCacheRoot
+    cache_dir = getCacheRoot()
     os.makedirs(cache_dir, exist_ok=True)
     return os.path.join(cache_dir, _CACHE_FILENAME)
 

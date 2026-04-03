@@ -10,8 +10,9 @@ _lock = threading.Lock()
 _pending = None
 
 
-def _get_index_path(pkg: str, rm_rid: str) -> str:
-    return f"/data/data/{pkg}/files/packitCache/reposCache/{rm_rid}-index.json"
+def _get_index_path(rm_rid: str) -> str:
+    from .utils._paths import getRepoIndexPath
+    return getRepoIndexPath(rm_rid)
 
 
 def _strip_version(raw: str) -> str:
@@ -40,13 +41,6 @@ def _hash_matches(p: dict) -> bool:
 def purge_missing():
     # removes index entries whose file is absent or whose hash does not match
     try:
-        from org.telegram.messenger import ApplicationLoader
-        pkg = ApplicationLoader.applicationContext.getPackageName()
-    except Exception as e:
-        log(f"installIndex.purge: cannot get pkg: {e}")
-        return
-
-    try:
         from elyx import settings
         import json as _json
         repos_raw = settings.get("repositories", "[]")
@@ -62,7 +56,7 @@ def purge_missing():
         if not rm_rid:
             continue
 
-        index_path = _get_index_path(pkg, rm_rid)
+        index_path = _get_index_path(rm_rid)
         if not os.path.exists(index_path):
             continue
 
@@ -149,10 +143,9 @@ def commit_pending():
         return
 
     try:
-        from org.telegram.messenger import ApplicationLoader
-        pkg = ApplicationLoader.applicationContext.getPackageName()
+        from ._paths import getPluginsDir, getRepoIndexPath
     except Exception as e:
-        log(f"installIndex: cannot get pkg: {e}")
+        log(f"installIndex: cannot import paths: {e}")
         return
 
     plugin_id = str(plugin_info.get("id") or "")
@@ -162,7 +155,7 @@ def commit_pending():
 
     version = _strip_version(plugin_info.get("version") or "")
     state = str(plugin_info.get("state") or "")
-    candidate_path = f"/data/data/{pkg}/files/plugins/{plugin_id}.py"
+    candidate_path = getPluginsDir() + f"/{plugin_id}.py"
     local_path = candidate_path if os.path.exists(candidate_path) else "Unknown"
     file_type = "plugin"
 
@@ -191,7 +184,7 @@ def commit_pending():
         "bithash": bithash_val,
     }
 
-    index_path = _get_index_path(pkg, rm_rid)
+    index_path = _get_index_path(rm_rid)
     try:
         os.makedirs(os.path.dirname(index_path), exist_ok=True)
         if os.path.exists(index_path):
@@ -224,10 +217,9 @@ def commit_elyx_pending(plugin_info: dict, rm_rid: str):
         return
 
     try:
-        from org.telegram.messenger import ApplicationLoader
-        pkg = ApplicationLoader.applicationContext.getPackageName()
+        from ._paths import getElyxArchivesDir
     except Exception as e:
-        log(f"installIndex.elyx: cannot get pkg: {e}")
+        log(f"installIndex.elyx: cannot import paths: {e}")
         return
 
     plugin_id = str(plugin_info.get("id") or "")
@@ -237,7 +229,7 @@ def commit_elyx_pending(plugin_info: dict, rm_rid: str):
 
     version = _strip_version(plugin_info.get("version") or "")
     state = str(plugin_info.get("state") or "")
-    archive_path = f"/data/data/{pkg}/files/plugins/ElyxPlugins/archives/{plugin_id}.zip"
+    archive_path = getElyxArchivesDir() + f"/{plugin_id}.zip"
     local_path = archive_path if os.path.exists(archive_path) else "Unknown"
 
     # hash the installed archive, not the source index hash:
@@ -265,7 +257,7 @@ def commit_elyx_pending(plugin_info: dict, rm_rid: str):
         "bithash": bithash_val,
     }
 
-    index_path = _get_index_path(pkg, rm_rid)
+    index_path = _get_index_path(rm_rid)
     try:
         os.makedirs(os.path.dirname(index_path), exist_ok=True)
         if os.path.exists(index_path):

@@ -18,8 +18,8 @@ import os
 
 
 def _get_cache_dir() -> str:
-    pkg = ApplicationLoader.applicationContext.getPackageName()
-    return f"/data/data/{pkg}/files/packitCache"
+    from ..utils._paths import getCacheRoot
+    return getCacheRoot()
 
 
 def _run_update(repoManager):

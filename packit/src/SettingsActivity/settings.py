@@ -1199,8 +1199,8 @@ class OtherSettings:
             log(f"OtherSettings: _open_files_browser error: {e}")
 
     def _getCacheDir(self) -> str:
-        pkg = ApplicationLoader.applicationContext.getPackageName()
-        return f"/data/data/{pkg}/files/packitCache"
+        from ..utils._paths import getCacheRoot
+        return getCacheRoot()
 
     def _killProcess(self):
         time.sleep(1)
@@ -1260,8 +1260,8 @@ class OtherSettings:
 
     def _onClearPluginCacheClick(self, view):
         try:
-            pkg = ApplicationLoader.applicationContext.getPackageName()
-            plugin_cache_dir = f"/data/data/{pkg}/files/packitCache/pluginCache"
+            from ..utils._paths import getCacheRoot
+            plugin_cache_dir = getCacheRoot() + "/pluginCache"
             if os.path.exists(plugin_cache_dir):
                 shutil.rmtree(plugin_cache_dir)
                 log("other: plugin cache cleared")
@@ -1559,8 +1559,8 @@ class OtherSettings:
                     red=True
                 ))
 
-            pkg = ApplicationLoader.applicationContext.getPackageName()
-            pluginCacheDir = f"/data/data/{pkg}/files/packitCache/pluginCache"
+            from ..utils._paths import getCacheRoot
+            pluginCacheDir = getCacheRoot() + "/pluginCache"
             pluginCacheCard = _buildCacheCard(ctx, pluginCacheDir, self._onClearPluginCacheClick, title=strings.clear_plugin_cache)
             if pluginCacheCard is not None:
                 items.append(Custom(view=pluginCacheCard))

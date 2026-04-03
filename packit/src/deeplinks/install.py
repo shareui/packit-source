@@ -26,8 +26,8 @@ _INSTALL_ALL = _INSTALL_REQUIRED | _INSTALL_OPTIONAL
 
 
 def _getCachePath(repoId: str) -> str:
-    pkg = ApplicationLoader.applicationContext.getPackageName()
-    return f"/data/data/{pkg}/files/packitCache/reposCache/{repoId}.json"
+    from ..utils._paths import getRepoCachePath
+    return getRepoCachePath(repoId)
 
 
 def _findRepo(repoManager, repoId: str) -> dict | None:

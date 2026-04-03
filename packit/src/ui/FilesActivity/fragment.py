@@ -132,8 +132,8 @@ def _format_size(size):
 
 def _get_cache_root():
     try:
-        pkg = ApplicationLoader.applicationContext.getPackageName()
-        return f"/data/data/{pkg}/files/packitCache"
+        from ...utils._paths import getCacheRoot
+        return getCacheRoot()
     except Exception as e:
         log(f"filesActivity: _get_cache_root error: {e}")
         return ""

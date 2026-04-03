@@ -56,9 +56,8 @@ def _loadCachedRepos() -> list:
     import os, json
     result = []
     try:
-        from org.telegram.messenger import ApplicationLoader
-        pkg = ApplicationLoader.applicationContext.getPackageName()
-        cacheDir = f"/data/data/{pkg}/files/packitCache/reposCache"
+        from ...utils._paths import getReposCacheDir
+        cacheDir = getReposCacheDir()
     except Exception as e:
         log(f"hashBottomSheet: _loadCachedRepos error: {e}")
         return result
@@ -148,8 +147,8 @@ def _installFromRepo(pluginId: str, pluginsUrl: str, repoManager, act):
                 run_on_ui_thread(lambda: BulletinHelper.show_error(strings["sec_plugin_no_link"]))
                 return
 
-            pkg = ApplicationLoader.applicationContext.getPackageName()
-            pluginsDir = f"/data/data/{pkg}/files/plugins"
+            from ...utils._paths import getPluginsDir
+            pluginsDir = getPluginsDir()
             os.makedirs(pluginsDir, exist_ok=True)
             tempPath = os.path.join(pluginsDir, f".temp_{pluginId}.plugin")
 

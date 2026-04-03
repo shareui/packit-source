@@ -38,8 +38,8 @@ ACHIEVEMENTS = _load_achievements()
 
 
 def _get_configs_dir() -> str:
-    pkg = ApplicationLoader.applicationContext.getPackageName()
-    return f"/data/data/{pkg}/files/packitCache/packitConfigs"
+    from ....utils._paths import getConfigsDir
+    return getConfigsDir()
 
 
 def _get_db_path() -> str:

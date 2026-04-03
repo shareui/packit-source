@@ -22,6 +22,32 @@ from .ui.PluginListActivity.service.InstallDismissHook import setup_install_dism
 from .ChatActivity.export.DecryptorBottomSheet import setup_packit_file_hook
 from android_utils import log
 
+CHECK_PATHS = True
+
+
+def _check_paths():
+    try:
+        from .utils._paths import (
+            getCacheRoot, getConfigsDir, getReposCacheDir,
+            getTempDir, getPluginsDir, getElyxArchivesDir, getBitHashSoPath,
+        )
+        import os
+        paths = {
+            "cacheRoot": getCacheRoot(),
+            "configsDir": getConfigsDir(),
+            "reposCacheDir": getReposCacheDir(),
+            "tempDir": getTempDir(),
+            "pluginsDir": getPluginsDir(),
+            "elyxArchivesDir": getElyxArchivesDir(),
+            "bitHashSo": getBitHashSoPath(),
+        }
+        for name, path in paths.items():
+            exists = os.path.exists(path)
+            log(f"PackIt paths: {name} {'OK' if exists else 'NOT FOUND'} -> {path}")
+    except Exception as e:
+        log(f"PackIt paths: check failed: {e}")
+
+
 # кстати тебя врядли выложат в utilits. Ты пофакту, повторил kpm. А как бы в utils правило второй вариант нельзя выкладыватьб
 class PackItPlugin(BasePlugin):
     def __init__(self):
@@ -45,6 +71,8 @@ class PackItPlugin(BasePlugin):
         log("PackIt initialized!")
     
     def on_plugin_load(self):
+        if CHECK_PATHS:
+            _check_paths()
         LocalConfig.init()
         try:
             from .utils.installIndex import purge_missing
