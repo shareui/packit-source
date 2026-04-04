@@ -78,6 +78,9 @@ _BUF_SIZE = 65536
 
 
 def _open_db_from_file(path: str, account_id: str):
+    if _lib is None:
+        log("packitdb: _lib is None, cannot open db")
+        return None
     if not os.path.exists(path):
         return _lib.packdb_open_from_payload(
             path.encode(), account_id.encode(), None, 0
@@ -104,6 +107,9 @@ def _open_db_from_file(path: str, account_id: str):
 
 
 def _close_and_write(db, path: str, account_id: str):
+    if _lib is None:
+        log("packitdb: _lib is None, cannot write db")
+        return
     raw_buf = (ctypes.c_uint8 * _BUF_SIZE)()
     out_len = ctypes.c_uint32(_BUF_SIZE)
     rc = _lib.packdb_serialize_to(db, raw_buf, ctypes.byref(out_len))
@@ -120,6 +126,8 @@ def _close_and_write(db, path: str, account_id: str):
 
 
 def _db_to_dict(db) -> dict:
+    if _lib is None:
+        return {}
     buf = ctypes.create_string_buffer(8192)
     _lib.packdb_award_list(db, buf, 8192)
     awarded = [s for s in buf.value.decode("utf-8").splitlines() if s]
@@ -132,6 +140,8 @@ def _db_to_dict(db) -> dict:
 
 
 def _dict_to_db(db, data: dict):
+    if _lib is None:
+        return
     for key, val in data.items():
         if key == "_awarded":
             continue
@@ -157,6 +167,8 @@ def _load_account(account_id: str = None) -> dict:
 
 
 def _save_account(data: dict, account_id: str = None):
+    if _lib is None:
+        return
     if account_id is None:
         account_id = _get_current_account_id()
     os.makedirs(_get_configs_dir(), exist_ok=True)
@@ -178,6 +190,8 @@ def _save_account(data: dict, account_id: str = None):
 
 
 def load_account_data_for_import(account_id: str, account_data: dict):
+    if _lib is None:
+        return
     os.makedirs(_get_configs_dir(), exist_ok=True)
     db = _lib.packdb_open(_get_db_path().encode(), account_id.encode())
     if not db:
