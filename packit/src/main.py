@@ -20,6 +20,17 @@ from .SettingsActivity.service.settingsActivityHook import setup_settings_activi
 from .DialogsActivity.pillWidget import setup_pill_widget
 from .ui.PluginListActivity.service.InstallDismissHook import setup_install_dismiss_hook
 from .ChatActivity.export.DecryptorBottomSheet import setup_packit_file_hook
+from .ChatActivity.plugin_autocomplete import (
+    setup_packit_autocomplete,
+    _packit_get_class,
+    _packit_hook_enter_view_constructor,
+    _packit_attach_text_watcher,
+    _packit_load_plugins_from_cache,
+    _packit_show_matching_plugins,
+    _packit_show_plugins_popup,
+    _packit_hide_popup,
+    _packit_send_plugin_info
+)
 from android_utils import log
 
 CHECK_PATHS = True
@@ -83,6 +94,7 @@ class PackItPlugin(BasePlugin):
         self.pill_widget_hook_ref = None
         self.settings_activity_hook_refs = []
         self.everyone_hook_refs = []
+        self.packit_hook_constructor_ref = None
         log("PackIt initialized!")
     
     def on_plugin_load(self):
@@ -131,6 +143,7 @@ class PackItPlugin(BasePlugin):
         setup_pill_widget(self)
         self.dialogs_menu_hook_ref = self.chatUI.setup_dialogs_menu_hook()
         self.everyone_hook_refs = _everyone.setup_hook(self)
+        self.packit_hook_constructor_ref = setup_packit_autocomplete(self)
         self._init_official_repository()
         self._check_for_update()
         if settings.get("show_updates_on_startup", False):
@@ -220,7 +233,21 @@ class PackItPlugin(BasePlugin):
         try:
             if hasattr(self, 'badgeManager'):
                 self.badgeManager.cleanup()
+            if hasattr(self, 'packit_hook_constructor_ref') and self.packit_hook_constructor_ref:
+                try:
+                    self.unhook_method(self.packit_hook_constructor_ref)
+                except Exception:
+                    pass
         except Exception as e:
             log(f"Error cleaning up badge manager: {e}")
     def create_settings(self):
         return self.settingsBuilder.buildMainSettings()
+
+PackItPlugin._packit_get_class = _packit_get_class
+PackItPlugin._packit_hook_enter_view_constructor = _packit_hook_enter_view_constructor
+PackItPlugin._packit_attach_text_watcher = _packit_attach_text_watcher
+PackItPlugin._packit_load_plugins_from_cache = _packit_load_plugins_from_cache
+PackItPlugin._packit_show_matching_plugins = _packit_show_matching_plugins
+PackItPlugin._packit_show_plugins_popup = _packit_show_plugins_popup
+PackItPlugin._packit_hide_popup = _packit_hide_popup
+PackItPlugin._packit_send_plugin_info = _packit_send_plugin_info
