@@ -49,6 +49,16 @@ PL_API uint32_t packlight_python(
     Token* out_tokens, uint32_t out_cap
 );
 
+PL_API uint32_t packlight_java(
+    const char* src, uint32_t src_len,
+    Token* out_tokens, uint32_t out_cap
+);
+
+PL_API uint32_t packlight_kotlin(
+    const char* src, uint32_t src_len,
+    Token* out_tokens, uint32_t out_cap
+);
+
 // convert a slice of tokens to char ranges in one pass over src
 // src must be the full utf-8 source; tokens must be sorted by start offset
 // writes out_cap entries into out_ranges, returns count written (== token_count on success)
