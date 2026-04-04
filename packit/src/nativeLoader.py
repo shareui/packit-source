@@ -51,26 +51,7 @@ def loadSearch() -> "ctypes.CDLL | None":
 
 def loadPackLight() -> "ctypes.CDLL | None":
     try:
-        class _Token(ctypes.Structure):
-            _fields_ = [("start", ctypes.c_uint32), ("length", ctypes.c_uint32), ("type", ctypes.c_uint8)]
-
-        class _CharRange(ctypes.Structure):
-            _fields_ = [("byte_start", ctypes.c_uint32), ("byte_end", ctypes.c_uint32),
-                        ("char_start", ctypes.c_uint32), ("char_end", ctypes.c_uint32)]
-
-        _MAX = 65536
-        lib = ctypes.CDLL(_soPath("libpacklight"))
-        _sig = [ctypes.c_char_p, ctypes.c_uint32, ctypes.POINTER(_Token), ctypes.c_uint32]
-        for name in ("packlight_json", "packlight_python", "packlight_java", "packlight_kotlin"):
-            getattr(lib, name).argtypes = _sig
-            getattr(lib, name).restype = ctypes.c_uint32
-        lib.packlight_tokens_to_chars.argtypes = [
-            ctypes.c_char_p, ctypes.c_uint32,
-            ctypes.POINTER(_Token), ctypes.c_uint32,
-            ctypes.POINTER(_CharRange), ctypes.c_uint32,
-        ]
-        lib.packlight_tokens_to_chars.restype = ctypes.c_uint32
-        return lib
+        return ctypes.CDLL(_soPath("libpacklight"))
     except Exception as e:
         log(f"nativeLoader: libpacklight load error: {e}")
         return None

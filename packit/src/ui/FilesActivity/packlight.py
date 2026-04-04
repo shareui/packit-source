@@ -42,6 +42,28 @@ _TokenBuf     = _CToken     * _MAX_TOKENS
 _CharRangeBuf = _CCharRange * _MAX_TOKENS
 
 
+def _setupArgtypes(lib):
+    tokenizeSig = [
+        ctypes.c_char_p,
+        ctypes.c_uint32,
+        ctypes.POINTER(_CToken),
+        ctypes.c_uint32,
+    ]
+    for name in ("packlight_json", "packlight_python", "packlight_java", "packlight_kotlin"):
+        fn = getattr(lib, name)
+        fn.argtypes = tokenizeSig
+        fn.restype = ctypes.c_uint32
+    lib.packlight_tokens_to_chars.argtypes = [
+        ctypes.c_char_p,
+        ctypes.c_uint32,
+        ctypes.POINTER(_CToken),
+        ctypes.c_uint32,
+        ctypes.POINTER(_CCharRange),
+        ctypes.c_uint32,
+    ]
+    lib.packlight_tokens_to_chars.restype = ctypes.c_uint32
+
+
 def _loadLib():
     global _lib
     if _lib is not None:
@@ -49,6 +71,7 @@ def _loadLib():
     from ...nativeLoader import loadPackLight
     _lib = loadPackLight()
     if _lib is not None:
+        _setupArgtypes(_lib)
         log("packlight: libpacklight.so loaded")
     return _lib
 
@@ -75,7 +98,6 @@ def _resolveColors():
 
 
 def _applySpans(spannable, tokBuf, ranges, cnt, colors, offset=0):
-    # runs on UI thread — only setSpan calls, no byte walking
     try:
         from android.text.style import ForegroundColorSpan
         EXCL_EXCL = 0x11
@@ -93,7 +115,6 @@ def _applySpans(spannable, tokBuf, ranges, cnt, colors, offset=0):
 
 
 def tokenize(text: str, tokenizeFn):
-    # runs on background thread — tokenize + char mapping, no Python UTF-8 walk
     try:
         lib = _loadLib()
         if lib is None:
