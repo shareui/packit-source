@@ -23,32 +23,14 @@ def _load_native() -> bool:
     except Exception:
         pass
 
-    so_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'res', 'native', 'libsearch.so')
-    so_path = os.path.normpath(so_path)
-
-    try:
-        lib = ctypes.CDLL(so_path)
-
-        lib.search_build_index.restype  = ctypes.c_int
-        lib.search_build_index.argtypes = [ctypes.c_char_p]
-
-        # c_void_p keeps the raw pointer so we can pass it to search_free_str
-        lib.search_score.restype  = ctypes.c_void_p
-        lib.search_score.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_char_p,
-                                     ctypes.c_int, ctypes.c_int]
-
-        lib.search_free_index.restype  = None
-        lib.search_free_index.argtypes = [ctypes.c_int]
-
-        lib.search_free_str.restype  = None
-        lib.search_free_str.argtypes = [ctypes.c_void_p]
-
-        _lib = lib
-        log("search: native libsearch.so loaded successfully")
-        return True
-    except Exception as e:
-        log(f"search: failed to load libsearch.so, using python fallback: {e}")
+    from ....nativeLoader import loadSearch
+    lib = loadSearch()
+    if lib is None:
+        log("search: failed to load libsearch.so, using python fallback")
         return False
+    _lib = lib
+    log("search: native libsearch.so loaded successfully")
+    return True
 
 # native index wrapper
 

@@ -20,7 +20,7 @@ OFFICIAL_REPO_URL = "https://raw.githubusercontent.com/shareui/packit/refs/heads
 
 
 def _get_cache_dir() -> str:
-    from .utils._paths import getReposCacheDir
+    from .utils.paths import getReposCacheDir
     return getReposCacheDir()
 
 
@@ -48,7 +48,7 @@ class RepositoryManager:
             pass
     
     def _fetch_and_save_repomap(self, url: str) -> dict | None:
-        """Fetch repomap.json from url, save to packitCache/{rm_rid}.json, return repometa dict."""
+        """Fetch repomap.json from url, save to packit/{rm_rid}.json, return repometa dict."""
         try:
             r = requests.get(url, timeout=15, headers=_HEADERS)
             if r.status_code != 200:
@@ -75,7 +75,7 @@ class RepositoryManager:
             return None
 
     def _get_temp_dir(self) -> str:
-        from .utils._paths import getTempDir
+        from .utils.paths import getTempDir
         return getTempDir()
 
     def _cleanup_temp_dir(self):

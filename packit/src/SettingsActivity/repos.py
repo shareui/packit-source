@@ -350,7 +350,7 @@ class RepositoriesSettings:
             def task():
                 try:
                     repos = self.repoManager.getRepositories()
-                    from ..utils._paths import getReposCacheDir
+                    from ..utils.paths import getReposCacheDir
                     cache_dir = getReposCacheDir()
                     os.makedirs(cache_dir, exist_ok=True)
                     changed = False

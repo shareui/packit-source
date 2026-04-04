@@ -718,5 +718,10 @@
   "clear_ignore_list_cancel": "Cancel",
   "clear_ignore_list_done": "List of ignored updates has been cleared.",
   "clear_ignore_list_specific_done": "Successfully removed!",
-  "clear_ignore_list_remove": "Remove"
+  "clear_ignore_list_remove": "Remove",
+  "file_system_settings_header": "File system settings",
+  "highlight_syntax": "Highlight syntax",
+  "highlight_syntax_subtext": "It helps navigate the file. But it can lead to crashes on large files.",
+  "hidden_files": "Hidden files",
+  "hidden_files_subtext": "Shows files or folders that start with ."
 }

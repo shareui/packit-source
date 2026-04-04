@@ -15,7 +15,7 @@ except Exception as e:
 
 
 def _get_configs_dir() -> str:
-    from ._paths import getConfigsDir
+    from .paths import getConfigsDir
     return getConfigsDir()
 
 
@@ -24,7 +24,7 @@ def _get_config_path() -> str:
 
 
 def _get_cache_dir() -> str:
-    from ._paths import getCacheRoot
+    from .paths import getCacheRoot
     return getCacheRoot()
 
 

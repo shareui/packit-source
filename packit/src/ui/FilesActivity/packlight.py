@@ -3,7 +3,7 @@ import os
 
 from android_utils import log
 
-# token types — must match packlight.h
+# token types
 _TK_KEYWORD   = 1
 _TK_STRING    = 2
 _TK_NUMBER    = 3
@@ -46,32 +46,10 @@ def _loadLib():
     global _lib
     if _lib is not None:
         return _lib
-    soPath = os.path.join(
-        os.path.dirname(__file__), "..", "..", "..", "res", "native", "libpacklight.so"
-    )
-    soPath = os.path.normpath(soPath)
-    try:
-        _lib = ctypes.CDLL(soPath)
-        _lib.packlight_json.argtypes = [
-            ctypes.c_char_p, ctypes.c_uint32,
-            ctypes.POINTER(_CToken), ctypes.c_uint32,
-        ]
-        _lib.packlight_json.restype = ctypes.c_uint32
-        _lib.packlight_python.argtypes = [
-            ctypes.c_char_p, ctypes.c_uint32,
-            ctypes.POINTER(_CToken), ctypes.c_uint32,
-        ]
-        _lib.packlight_python.restype = ctypes.c_uint32
-        _lib.packlight_tokens_to_chars.argtypes = [
-            ctypes.c_char_p, ctypes.c_uint32,
-            ctypes.POINTER(_CToken), ctypes.c_uint32,
-            ctypes.POINTER(_CCharRange), ctypes.c_uint32,
-        ]
-        _lib.packlight_tokens_to_chars.restype = ctypes.c_uint32
+    from ...nativeLoader import loadPackLight
+    _lib = loadPackLight()
+    if _lib is not None:
         log("packlight: libpacklight.so loaded")
-    except Exception as e:
-        log(f"packlight: load error: {e}")
-        _lib = None
     return _lib
 
 
@@ -146,3 +124,18 @@ def tokenizePython(text: str):
     if lib is None:
         return None
     return tokenize(text, lib.packlight_python)
+
+
+def tokenizeJava(text: str):
+    lib = _loadLib()
+    if lib is None:
+        return None
+    return tokenize(text, lib.packlight_java)
+
+
+def tokenizeKotlin(text: str):
+    lib = _loadLib()
+    if lib is None:
+        return None
+    return tokenize(text, lib.packlight_kotlin)
+

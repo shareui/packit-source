@@ -23,11 +23,26 @@ from .ChatActivity.export.DecryptorBottomSheet import setup_packit_file_hook
 from android_utils import log
 
 CHECK_PATHS = True
+RENAME_PACKITCACHE = True
+
+
+def _migrate_packitcache():
+    import os
+    try:
+        from .utils.paths import _filesDir
+        base = _filesDir()
+        old = base + "/packitCache"
+        new = base + "/packit"
+        if os.path.exists(old) and not os.path.exists(new):
+            os.rename(old, new)
+            log("PackIt: renamed packitCache -> packit")
+    except Exception as e:
+        log(f"PackIt: rename packitCache error: {e}")
 
 
 def _check_paths():
     try:
-        from .utils._paths import (
+        from .utils.paths import (
             getCacheRoot, getConfigsDir, getReposCacheDir,
             getTempDir, getPluginsDir, getElyxArchivesDir, getBitHashSoPath,
         )
@@ -71,8 +86,13 @@ class PackItPlugin(BasePlugin):
         log("PackIt initialized!")
     
     def on_plugin_load(self):
+        if RENAME_PACKITCACHE:
+            _migrate_packitcache()
         if CHECK_PATHS:
             _check_paths()
+        from .nativeLoader import CHECK_SO_PATHS, checkSoPaths
+        if CHECK_SO_PATHS:
+            checkSoPaths()
         LocalConfig.init()
         try:
             from .utils.installIndex import purge_missing
