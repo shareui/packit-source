@@ -7,6 +7,8 @@
 // forward declarations from language modules
 uint32_t pl_tokenize_json(const char* src, uint32_t src_len, Token* out, uint32_t out_cap);
 uint32_t pl_tokenize_python(const char* src, uint32_t src_len, Token* out, uint32_t out_cap);
+uint32_t pl_tokenize_java(const char* src, uint32_t src_len, Token* out, uint32_t out_cap);
+uint32_t pl_tokenize_kotlin(const char* src, uint32_t src_len, Token* out, uint32_t out_cap);
 
 extern "C" {
 
@@ -22,6 +24,20 @@ PL_API uint32_t packlight_python(
     Token* out_tokens, uint32_t out_cap
 ) {
     return pl_tokenize_python(src, src_len, out_tokens, out_cap);
+}
+
+PL_API uint32_t packlight_java(
+    const char* src, uint32_t src_len,
+    Token* out_tokens, uint32_t out_cap
+) {
+    return pl_tokenize_java(src, src_len, out_tokens, out_cap);
+}
+
+PL_API uint32_t packlight_kotlin(
+    const char* src, uint32_t src_len,
+    Token* out_tokens, uint32_t out_cap
+) {
+    return pl_tokenize_kotlin(src, src_len, out_tokens, out_cap);
 }
 
 // convert token byte offsets to char index ranges in a single utf-8 walk
