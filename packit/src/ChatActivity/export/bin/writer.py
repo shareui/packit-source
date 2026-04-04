@@ -20,7 +20,7 @@ _FILE_NAMES = {
 
 
 def _get_configs_dir() -> str:
-    from ....utils._paths import getConfigsDir
+    from ....utils.paths import getConfigsDir
     return getConfigsDir()
 
 
@@ -50,29 +50,8 @@ def _get_install_ts() -> int:
 
 
 def _get_lib():
-    so_path = os.path.join(
-        os.path.dirname(__file__),
-        "../../../../res/native/libexport.so"
-    )
-    so_path = os.path.normpath(so_path)
-    lib = ctypes.CDLL(so_path)
-    lib.packit_write_file.restype  = ctypes.c_int
-    lib.packit_write_file.argtypes = [
-        ctypes.c_int64, ctypes.c_uint32, ctypes.c_uint32,
-        ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p,
-    ]
-    lib.packit_read_file.restype  = ctypes.c_int
-    lib.packit_read_file.argtypes = [
-        ctypes.c_char_p, ctypes.c_int64, ctypes.c_uint32,
-        ctypes.POINTER(ctypes.c_char_p), ctypes.POINTER(ctypes.c_size_t),
-        ctypes.POINTER(ctypes.c_char_p), ctypes.POINTER(ctypes.c_size_t),
-        ctypes.POINTER(ctypes.c_int64),  ctypes.POINTER(ctypes.c_uint32),
-    ]
-    lib.packit_free_buf.restype  = None
-    lib.packit_free_buf.argtypes = [ctypes.c_char_p]
-    lib.packit_last_error.restype  = ctypes.c_char_p
-    lib.packit_last_error.argtypes = []
-    return lib
+    from ....nativeLoader import loadExport
+    return loadExport()
 
 
 def _read_achievements_block() -> str:

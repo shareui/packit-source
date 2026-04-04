@@ -18,7 +18,7 @@ import os
 
 
 def _get_cache_dir() -> str:
-    from ..utils._paths import getCacheRoot
+    from ..utils.paths import getCacheRoot
     return getCacheRoot()
 
 

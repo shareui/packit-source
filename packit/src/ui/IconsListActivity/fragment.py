@@ -286,7 +286,7 @@ class InstallIconsUI:
                                 import android_utils as _au; _au.log(f"import ApplicationLoader failed: {e}")
                                 from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
                             import os
-                            from ...utils._paths import getRepoCachePath
+                            from ...utils.paths import getRepoCachePath
                             cache_path = getRepoCachePath(repo_id)
                             log(f"IconList._open_all_repos_icons: cache_path='{cache_path}' exists={os.path.exists(cache_path)}")
                             if os.path.exists(cache_path):
@@ -348,7 +348,7 @@ class InstallIconsUI:
                         import android_utils as _au; _au.log(f"import ApplicationLoader failed: {e}")
                         from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
                     import os
-                    from ...utils._paths import getRepoCachePath
+                    from ...utils.paths import getRepoCachePath
                     cache_path = getRepoCachePath(repo_id)
                     log(f"IconList._open_repo_icons: cache_path='{cache_path}' exists={os.path.exists(cache_path)}")
                     if os.path.exists(cache_path):

@@ -206,7 +206,7 @@ def _get_plugin_cache_path(pkg: str, filename: str) -> str:
     # cache is isolated per hash method
     method = getHashMethod()
     subdir = "BitHash" if method == METHOD_BITHASH else "sha256"
-    from .utils._paths import getPluginCacheDir
+    from .utils.paths import getPluginCacheDir
     cache_dir = getPluginCacheDir(subdir)
     os.makedirs(cache_dir, exist_ok=True)
     return os.path.join(cache_dir, filename)
@@ -270,7 +270,7 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
 
     def task():
         try:
-            from .utils._paths import getPluginsDir
+            from .utils.paths import getPluginsDir
             plugins_dir = getPluginsDir()
             try:
                 os.makedirs(plugins_dir, exist_ok=True)
@@ -431,7 +431,7 @@ def install_icon_pack(icon_info: dict):
                 run_on_ui_thread(lambda: BulletinHelper.show_error(f"Download failed: HTTP {r.status_code}"))
                 return
 
-            from .utils._paths import getIconPackTmpPath
+            from .utils.paths import getIconPackTmpPath
             tmp_path = getIconPackTmpPath(pack_id)
 
             content_length = r.headers.get("content-length")

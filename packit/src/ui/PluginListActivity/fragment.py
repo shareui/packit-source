@@ -502,7 +502,7 @@ class InstallUI:
                                 import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
                                 from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
                             import os
-                            from ...utils._paths import getRepoCachePath
+                            from ...utils.paths import getRepoCachePath
                             cache_path = getRepoCachePath(repo_id)
                             log(f"installUI: cache_path={cache_path} exists={os.path.exists(cache_path)}")
                             if os.path.exists(cache_path):
@@ -572,7 +572,7 @@ class InstallUI:
                         import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
                         from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
                     import os
-                    from ...utils._paths import getRepoCachePath
+                    from ...utils.paths import getRepoCachePath
                     cache_path = getRepoCachePath(repo_id)
                     log(f"installUI: single cache_path={cache_path} exists={os.path.exists(cache_path)}")
                     if os.path.exists(cache_path):

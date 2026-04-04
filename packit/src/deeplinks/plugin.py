@@ -21,7 +21,7 @@ _REQUIRED = {"plugin", "repo"}
 
 
 def _getCachePath(repoId: str) -> str:
-    from ..utils._paths import getRepoCachePath
+    from ..utils.paths import getRepoCachePath
     return getRepoCachePath(repoId)
 
 

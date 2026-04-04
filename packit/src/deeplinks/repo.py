@@ -41,7 +41,7 @@ _REPO_ADD_ALL = _REPO_ADD_REQUIRED | _REPO_ADD_OPTIONAL
 
 
 def _get_cache_dir() -> str:
-    from ..utils._paths import getReposCacheDir
+    from ..utils.paths import getReposCacheDir
     return getReposCacheDir()
 
 

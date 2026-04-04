@@ -42,12 +42,12 @@ except Exception as e:
 
 
 def _get_index_path(pkg: str, rm_rid: str) -> str:
-    from ...utils._paths import getRepoIndexPath
+    from ...utils.paths import getRepoIndexPath
     return getRepoIndexPath(rm_rid)
 
 
 def _get_repo_cache_path(pkg: str, rm_rid: str) -> str:
-    from ...utils._paths import getRepoCachePath
+    from ...utils.paths import getRepoCachePath
     return getRepoCachePath(rm_rid)
 
 

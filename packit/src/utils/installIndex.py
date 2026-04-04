@@ -11,7 +11,7 @@ _pending = None
 
 
 def _get_index_path(rm_rid: str) -> str:
-    from .utils._paths import getRepoIndexPath
+    from .paths import getRepoIndexPath
     return getRepoIndexPath(rm_rid)
 
 
@@ -143,7 +143,7 @@ def commit_pending():
         return
 
     try:
-        from ._paths import getPluginsDir, getRepoIndexPath
+        from .paths import getPluginsDir, getRepoIndexPath
     except Exception as e:
         log(f"installIndex: cannot import paths: {e}")
         return
@@ -217,7 +217,7 @@ def commit_elyx_pending(plugin_info: dict, rm_rid: str):
         return
 
     try:
-        from ._paths import getElyxArchivesDir
+        from .paths import getElyxArchivesDir
     except Exception as e:
         log(f"installIndex.elyx: cannot import paths: {e}")
         return

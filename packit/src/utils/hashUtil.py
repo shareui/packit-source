@@ -23,16 +23,10 @@ def _getBitHashLib():
     if _libLoaded:
         return _lib
     _libLoaded = True
-    try:
-        from ._paths import getBitHashSoPath
-        soPath = getBitHashSoPath()
-        _lib = ctypes.CDLL(soPath)
-        _lib.bitHash_oneshot.restype = ctypes.c_uint64
-        _lib.bitHash_oneshot.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_uint64]
+    from ..nativeLoader import loadBitHash
+    _lib = loadBitHash()
+    if _lib is not None:
         log("hashutil: libbithash.so loaded successfully!")
-    except Exception as e:
-        log(f"hashutil: libbithash load error: {e}")
-        _lib = None
     return _lib
 
 

@@ -1199,7 +1199,7 @@ class OtherSettings:
             log(f"OtherSettings: _open_files_browser error: {e}")
 
     def _getCacheDir(self) -> str:
-        from ..utils._paths import getCacheRoot
+        from ..utils.paths import getCacheRoot
         return getCacheRoot()
 
     def _killProcess(self):
@@ -1260,8 +1260,8 @@ class OtherSettings:
 
     def _onClearPluginCacheClick(self, view):
         try:
-            from ..utils._paths import getCacheRoot
-            plugin_cache_dir = getCacheRoot() + "/pluginCache"
+            from ..utils.paths import getCacheRoot
+            plugin_cache_dir = getCacheRoot() + "/.cache/plugins"
             if os.path.exists(plugin_cache_dir):
                 shutil.rmtree(plugin_cache_dir)
                 log("other: plugin cache cleared")
@@ -1507,7 +1507,7 @@ class OtherSettings:
             openDirView = _buildTextSubtextCellIconRight(
                 ctx,
                 text="Open Directory",
-                subtext="Browse packitCache files and folders",
+                subtext="Browse packit files and folders",
                 icon="msg_folders",
                 on_click=lambda v: self._open_files_browser()
             )
@@ -1559,8 +1559,8 @@ class OtherSettings:
                     red=True
                 ))
 
-            from ..utils._paths import getCacheRoot
-            pluginCacheDir = getCacheRoot() + "/pluginCache"
+            from ..utils.paths import getCacheRoot
+            pluginCacheDir = getCacheRoot() + "/.cache/plugins"
             pluginCacheCard = _buildCacheCard(ctx, pluginCacheDir, self._onClearPluginCacheClick, title=strings.clear_plugin_cache)
             if pluginCacheCard is not None:
                 items.append(Custom(view=pluginCacheCard))
@@ -1586,5 +1586,19 @@ class OtherSettings:
             ))
 
         items.append(Divider(text=strings.cache_header_desc))
+
+        items.append(Header(text=strings.file_system_settings_header))
+        items.append(Switch(
+            key="highlight_syntax",
+            text=strings.highlight_syntax,
+            subtext=strings.highlight_syntax_subtext,
+            default=True
+        ))
+        items.append(Switch(
+            key="hidden_files",
+            text=strings.hidden_files,
+            subtext=strings.hidden_files_subtext,
+            default=False
+        ))
 
         return items

@@ -26,7 +26,7 @@ _INSTALL_ALL = _INSTALL_REQUIRED | _INSTALL_OPTIONAL
 
 
 def _getCachePath(repoId: str) -> str:
-    from ..utils._paths import getRepoCachePath
+    from ..utils.paths import getRepoCachePath
     return getRepoCachePath(repoId)
 
 

@@ -132,7 +132,7 @@ def _format_size(size):
 
 def _get_cache_root():
     try:
-        from ...utils._paths import getCacheRoot
+        from ...utils.paths import getCacheRoot
         return getCacheRoot()
     except Exception as e:
         log(f"filesActivity: _get_cache_root error: {e}")
@@ -142,7 +142,14 @@ def _get_cache_root():
 def _list_dir(path):
     # returns (dirs, files) sorted by name
     try:
+        from elyx import settings
+        showHidden = settings.get("hidden_files", False)
+    except Exception:
+        showHidden = False
+    try:
         entries = os.listdir(path)
+        if not showHidden:
+            entries = [e for e in entries if not e.startswith(".")]
         dirs = sorted([e for e in entries if os.path.isdir(os.path.join(path, e))])
         files = sorted([e for e in entries if os.path.isfile(os.path.join(path, e))])
         return dirs, files
@@ -208,9 +215,9 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
         current_path = self._stack[-1]
         if current_path == self._root:
             name = os.path.basename(self._root)
-            if name == "packitCache":
-                return "../packitCache"
-            return f"../packitCache/{name}" if name else "../packitCache"
+            if name == "packit":
+                return "../packit"
+            return f"../packit/{name}" if name else "../packit"
         return os.path.basename(current_path)
 
     def onBackPressed(self):
@@ -325,10 +332,10 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
 
     def _rel_path(self, path):
         root_name = os.path.basename(self._root)
-        if root_name == "packitCache":
-            prefix = "../packitCache"
+        if root_name == "packit":
+            prefix = "../packit"
         else:
-            prefix = f"../packitCache/{root_name}" if root_name else "../packitCache"
+            prefix = f"../packit/{root_name}" if root_name else "../packit"
         if path == self._root:
             return prefix
         rel = os.path.relpath(path, self._root)
@@ -352,10 +359,10 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
         t = self._theme
 
         root_name = os.path.basename(self._root)
-        if root_name == "packitCache":
-            prefix = "../packitCache"
+        if root_name == "packit":
+            prefix = "../packit"
         else:
-            prefix = f"../packitCache/{root_name}" if root_name else "../packitCache"
+            prefix = f"../packit/{root_name}" if root_name else "../packit"
         segments = [(prefix, self._root)]
         if len(self._stack) > 1:
             rel_parts = os.path.relpath(self._stack[-1], self._root).split(os.sep)
@@ -1009,10 +1016,10 @@ def show_files_browser(plugin=None):
         frag.presentFragment(new_frag)
         try:
             root_name = os.path.basename(root)
-            if root_name == "packitCache":
-                title = "../packitCache"
+            if root_name == "packit":
+                title = "../packit"
             else:
-                title = f"../packitCache/{root_name}" if root_name else "../packitCache"
+                title = f"../packit/{root_name}" if root_name else "../packit"
             new_frag.setTitle(title, False, 0)
             action_bar = new_frag.getActionBar()
             if action_bar:

@@ -38,7 +38,7 @@ ACHIEVEMENTS = _load_achievements()
 
 
 def _get_configs_dir() -> str:
-    from ....utils._paths import getConfigsDir
+    from ....utils.paths import getConfigsDir
     return getConfigsDir()
 
 
@@ -66,68 +66,11 @@ def _get_current_account_id() -> str:
         return "0"
 
 def _load_lib():
-    try:
-        so_path = os.path.normpath(os.path.join(
-            os.path.dirname(__file__), "../../../../res/native/libpackitdb.so"
-        ))
-        log(f"packitdb: loading from {so_path}, exists={os.path.exists(so_path)}")
-        lib = ctypes.CDLL(so_path)
-        vp  = ctypes.c_void_p
-        cp  = ctypes.c_char_p
-        i64 = ctypes.c_int64
-        u32 = ctypes.c_uint32
-        sz  = ctypes.c_size_t
-        ci  = ctypes.c_int
-        u8p = ctypes.POINTER(ctypes.c_uint8)
-        u32p = ctypes.POINTER(ctypes.c_uint32)
-
-        lib.packdb_write_raw.restype = ci
-        lib.packdb_write_raw.argtypes = [cp, cp, u8p, u32]
-
-        lib.packdb_read_raw.restype = ci
-        lib.packdb_read_raw.argtypes = [cp, cp, u8p, u32p]
-
-        lib.packdb_open_from_payload.restype = vp
-        lib.packdb_open_from_payload.argtypes = [cp, cp, u8p, u32]
-
-        lib.packdb_serialize_to.restype = ci
-        lib.packdb_serialize_to.argtypes = [vp, u8p, u32p]
-
-        lib.packdb_open.restype = vp
-        lib.packdb_open.argtypes = [cp, cp]
-
-        lib.packdb_close.restype = ci
-        lib.packdb_close.argtypes = [vp]
-
-        lib.packdb_get.restype = i64
-        lib.packdb_get.argtypes = [vp, cp, i64]
-
-        lib.packdb_set.restype = ci
-        lib.packdb_set.argtypes = [vp, cp, i64]
-
-        lib.packdb_increment.restype = i64
-        lib.packdb_increment.argtypes = [vp, cp, i64]
-
-        lib.packdb_award_has.restype = ci
-        lib.packdb_award_has.argtypes = [vp, cp]
-
-        lib.packdb_award_add.restype = ci
-        lib.packdb_award_add.argtypes = [vp, cp]
-
-        lib.packdb_award_list.restype = ci
-        lib.packdb_award_list.argtypes = [vp, cp, sz]
-
-        lib.packdb_award_count.restype = ci
-        lib.packdb_award_count.argtypes = [vp]
-
-        lib.packdb_entry_count.restype = ci
-        lib.packdb_entry_count.argtypes = [vp]
-
+    from ....nativeLoader import loadPackitDb
+    lib = loadPackitDb()
+    if lib is not None:
         log("packitdb: libpackitdb loaded ok")
-        return lib
-    except Exception as e:
-        log(f"packitdb: load failed: {e}")
-        return None
+    return lib
 
 _lib = _load_lib()
 

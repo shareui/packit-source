@@ -19,7 +19,7 @@ _lock = threading.Lock()
 
 
 def _get_cache_path() -> str:
-    from ..utils._paths import getCacheRoot
+    from ..utils.paths import getCacheRoot
     cache_dir = getCacheRoot()
     os.makedirs(cache_dir, exist_ok=True)
     return os.path.join(cache_dir, _CACHE_FILENAME)

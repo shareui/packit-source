@@ -424,8 +424,14 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
         self._startHighlight()
 
     def _startHighlight(self):
+        try:
+            from elyx import settings
+            if not settings.get("highlight_syntax", True):
+                return
+        except Exception:
+            pass
         ext = os.path.splitext(self._path)[1].lower()
-        if ext not in (".json", ".py", ".plugin"):
+        if ext not in (".json", ".py", ".plugin", ".java", ".kt"):
             return
         self._highlight_cancelled = False
         from client_utils import run_on_queue
@@ -434,12 +440,16 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
     def _highlightBg(self, ext: str):
         # runs on background thread — tokenize + char mapping in C, no Python UTF-8 walk
         try:
-            from .packlight import tokenizeJson, tokenizePython, _resolveColors, _applySpans
+            from .packlight import tokenizeJson, tokenizePython, tokenizeJava, tokenizeKotlin, _resolveColors, _applySpans
             if self._highlight_cancelled:
                 return
             text = self._text
             if ext == ".json":
                 result = tokenizeJson(text)
+            elif ext == ".java":
+                result = tokenizeJava(text)
+            elif ext == ".kt":
+                result = tokenizeKotlin(text)
             else:
                 result = tokenizePython(text)
             if result is None or self._highlight_cancelled:
