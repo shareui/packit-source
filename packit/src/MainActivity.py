@@ -12,7 +12,7 @@ from .SettingsActivity.contributors import ContributorsSettings
 from .SettingsActivity.profile import ProfileSettings
 from ui.bulletin import BulletinHelper
 from base_plugin import BasePlugin, MethodHook
-from android_utils import run_on_ui_thread
+from android_utils import run_on_ui_thread, log
 from hook_utils import find_class, get_private_field
 try:
     from org.telegram.ui.ActionBar import Theme, BottomSheet
@@ -159,6 +159,15 @@ class SettingsBuilder:
                 except:
                     pass
 
+            def _on_sticker_long_click():
+                try:
+                    from .SettingsActivity.debugItems import show_debug_menu
+                    show_debug_menu()
+                except Exception as _e:
+                    log(f"MainActivity: sticker long click error: {_e}")
+                return True
+
+            imageView.setOnLongClickListener(OnLongClickListener(lambda v: _on_sticker_long_click()))
             main_layout.addView(imageView, LayoutHelper.createLinear(130, 130, Gravity.CENTER, 0, 0, 0, 16))
             text_container = LinearLayout(context)
             text_container.setOrientation(LinearLayout.VERTICAL)
