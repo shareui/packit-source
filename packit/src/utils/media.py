@@ -27,6 +27,12 @@ def playSound(soundPath: str, soundKey: str = None, check_pending: bool = True, 
         log(f"media: sound file not found: {soundPath}")
         return
 
+    vol_pct = settings.get("sfx_volume", 100)
+    try:
+        vol = max(0.0, min(1.0, int(vol_pct) / 100.0))
+    except Exception:
+        vol = 1.0
+
     player = MediaPlayer()
     try:
         player.setAudioStreamType(AudioManager.STREAM_MUSIC)
@@ -42,6 +48,7 @@ def playSound(soundPath: str, soundKey: str = None, check_pending: bool = True, 
         return
 
     try:
+        player.setVolume(vol, vol)
         player.start()
     except Exception as e:
         log(f"media: failed to start player: {e}")

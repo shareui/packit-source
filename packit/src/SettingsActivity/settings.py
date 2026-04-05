@@ -41,6 +41,22 @@ from dataclasses import dataclass, field
 from ..ui.FontPickerBottomSheet import showFontPicker
 from ..ui.FontManager import getSelectedFilename
 
+def _reload_plugin_settings():
+    try:
+        from com.exteragram.messenger.plugins import PluginsController
+        PluginsController.getInstance().loadPluginSettings("shareui_packit")
+    except Exception as e:
+        log(f"settings: reload failed: {e}")
+
+def _fmt_inline_str(template):
+    # replaces {cmd} in template with the current inline command setting
+    try:
+        from elyx import settings as _s
+        cmd = _s.get("inline_search_command", ".packit").strip() or ".packit"
+    except Exception:
+        cmd = ".packit"
+    return template.replace("{cmd}", cmd)
+
 def _getCacheInfo(cacheDir):
     # returns (human readb size str, file count)
     try:
@@ -1026,6 +1042,59 @@ class OtherSettings:
     def __init__(self, chat_button=None, plugin=None):
         self.chat_button = chat_button
         self.plugin = plugin
+        self._es_expanded_states = {}
+
+    def _es_is_expanded(self, key):
+        return self._es_expanded_states.get(key, False)
+
+    def _es_toggle_and_reload(self, key):
+        self._es_expanded_states[key] = not self._es_expanded_states.get(key, False)
+        from elyx import settings as _s
+        _s.set("_es_dummy", not _s.get("_es_dummy", False), reload_settings=True)
+
+    def _make_expandable_switch(self, key, text, children):
+        try:
+            from org.telegram.ui.Components import UItem
+            from android_utils import OnClickListener as _OCL
+            from elyx import settings as _s
+            checked_count = sum(1 for ck, cd in children if _s.get(ck, cd))
+            total_count = len(children)
+            subtext = f"{checked_count}/{total_count}"
+            is_checked = checked_count > 0
+            is_expanded = self._es_is_expanded(key)
+
+            def switch_click(view, ch=children):
+                currently_any = any(_s.get(ck, cd) for ck, cd in ch)
+                new_val = not currently_any
+                for ck, _ in ch:
+                    _s.set(ck, new_val, reload_settings=False)
+                _s.set("_es_dummy", not _s.get("_es_dummy", False), reload_settings=True)
+
+            item = UItem.asExteraExpandableSwitch(hash(key) & 0x7FFFFFFF, text, subtext, _OCL(switch_click))
+            item.setChecked(is_checked)
+            item.setCollapsed(not is_expanded)
+            return Custom(item=item, on_click=lambda v, k=key: self._es_toggle_and_reload(k))
+        except Exception as e:
+            log(f"OtherSettings: _make_expandable_switch error: {e}")
+            return None
+
+    def _make_es_child(self, key, text, default=False):
+        try:
+            from org.telegram.ui.Components import UItem
+            from elyx import settings as _s
+            is_checked = _s.get(key, default)
+            item = UItem.asRoundCheckbox(hash(key) & 0x7FFFFFFF, text)
+            item.setChecked(is_checked)
+            item.pad()
+
+            def on_click(view, k=key, d=default):
+                _s.set(k, not _s.get(k, d), reload_settings=False)
+                _s.set("_es_dummy", not _s.get("_es_dummy", False), reload_settings=True)
+
+            return Custom(item=item, on_click=on_click)
+        except Exception as e:
+            log(f"OtherSettings: _make_es_child error: {e}")
+            return None
 
     def _build_dialogs_btn_item(self, ctx):
         try:
@@ -1095,7 +1164,92 @@ class OtherSettings:
             icon="msg_sendfile",
         )
 
-    def _build_search_engine_item_v3(self, ctx):
+    def _build_sfx_volume_slider(self, ctx):
+        # slider 0-100 for sfx_volume setting, shown as a separate row under sfx section
+        try:
+            if not ctx:
+                return None
+            from elyx import settings as _s
+            from org.telegram.messenger import AndroidUtilities
+            from org.telegram.ui.ActionBar import Theme
+            from org.telegram.ui.Components import LayoutHelper
+            from android.widget import LinearLayout, TextView, SeekBar
+            from android.util import TypedValue
+            from android.view import Gravity
+            from java import dynamic_proxy
+
+            dp = AndroidUtilities.dp
+
+            wrapper = LinearLayout(ctx)
+            wrapper.setOrientation(LinearLayout.VERTICAL)
+            wrapper.setPadding(dp(21), dp(8), dp(21), dp(8))
+            wrapper.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite))
+
+            labelRow = LinearLayout(ctx)
+            labelRow.setOrientation(LinearLayout.HORIZONTAL)
+            labelRow.setGravity(Gravity.CENTER_VERTICAL)
+            wrapper.addView(labelRow, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 6))
+
+            labelView = TextView(ctx)
+            labelView.setText(str(strings.sfx_volume))
+            labelView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
+            labelView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+            labelRow.addView(labelView, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+
+            current_vol = 100
+            try:
+                current_vol = int(_s.get("sfx_volume", 100))
+            except Exception:
+                pass
+
+            def _vol_label(v):
+                if v == 0:
+                    return str(strings["sfx_volume_off"])
+                if v == 100:
+                    return str(strings["sfx_volume_maximum"])
+                return f"{v}%"
+
+            valueView = TextView(ctx)
+            valueView.setText(_vol_label(current_vol))
+            valueView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            valueView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+            labelRow.addView(valueView, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL))
+
+            seekBar = SeekBar(ctx)
+            seekBar.setMax(100)
+            seekBar.setProgress(current_vol)
+
+            try:
+                from android.graphics import PorterDuff, PorterDuffColorFilter
+                accent = Theme.getColor(Theme.key_featuredStickers_addButton)
+                seekBar.getProgressDrawable().setColorFilter(PorterDuffColorFilter(accent, PorterDuff.Mode.SRC_IN))
+                seekBar.getThumb().setColorFilter(PorterDuffColorFilter(accent, PorterDuff.Mode.SRC_IN))
+            except Exception:
+                pass
+
+            class _ChangeListener(dynamic_proxy(SeekBar.OnSeekBarChangeListener)):
+                def onProgressChanged(self_l, sb, progress, fromUser):
+                    try:
+                        _s.set("sfx_volume", progress, reload_settings=False)
+                        valueView.setText(_vol_label(progress))
+                    except Exception:
+                        pass
+
+                def onStartTrackingTouch(self_l, sb):
+                    pass
+
+                def onStopTrackingTouch(self_l, sb):
+                    pass
+
+            seekBar.setOnSeekBarChangeListener(_ChangeListener())
+            wrapper.addView(seekBar, LayoutHelper.createLinear(-1, -2))
+
+            return Custom(view=wrapper)
+        except Exception as e:
+            log(f"other: _build_sfx_volume_slider error: {e}")
+            return None
+
+
         try:
             if ctx:
                 view = _buildSearchEngineToggle(ctx, key="search_engine", default=0)
@@ -1428,16 +1582,61 @@ class OtherSettings:
             ),
             Divider(text=strings.navigation_header_desc),
             Header(text=strings.sfx_header),
-            Switch(key="sfx_install", text=strings.sfx_install, default=False, icon="msg_download", link_alias="sfx_install"),
-            Switch(key="sfx_copy_link", text=strings.sfx_copy_link, default=False, icon="msg_link", link_alias="sfx_copy_link"),
-            Switch(key="sfx_search", text=strings.sfx_search, default=False, icon="msg_search", link_alias="sfx_search"),
-            Switch(key="sfx_clear_search", text=strings.sfx_clear_search, default=False, icon="msg_close", link_alias="sfx_clear_search"),
-            Switch(key="sfx_achievement", text=strings.sfx_achievement, default=True, icon="msg_gift_premium", link_alias="sfx_achievement"),
+            self._make_expandable_switch("sfx_enabled", strings.sfx_header, [
+                ("sfx_install", False),
+                ("sfx_copy_link", False),
+                ("sfx_search", False),
+                ("sfx_clear_search", False),
+                ("sfx_achievement", True),
+            ]),
+            self._make_es_child("sfx_install", strings.sfx_install, False) if self._es_is_expanded("sfx_enabled") else None,
+            self._make_es_child("sfx_copy_link", strings.sfx_copy_link, False) if self._es_is_expanded("sfx_enabled") else None,
+            self._make_es_child("sfx_search", strings.sfx_search, False) if self._es_is_expanded("sfx_enabled") else None,
+            self._make_es_child("sfx_clear_search", strings.sfx_clear_search, False) if self._es_is_expanded("sfx_enabled") else None,
+            self._make_es_child("sfx_achievement", strings.sfx_achievement, True) if self._es_is_expanded("sfx_enabled") else None,
+            self._build_sfx_volume_slider(ctx),
             Divider(text=strings.sfx_header_desc),
             Header(text=strings.components_header),
             self._build_search_engine_item(ctx),    
             self._build_hash_function_item(ctx),
             Divider(),
+            Header(text=strings.inline_search_header),
+            Input(
+                key="inline_search_command",
+                text=strings.inline_search_command,
+                default=".packit",
+                icon="msg_edit",
+                on_change=lambda v: _reload_plugin_settings()
+            ),
+            self._make_expandable_switch("inline_send_enabled", strings.inline_send_header, [
+                ("inline_send_name", True),
+                ("inline_send_version", True),
+                ("inline_send_author", True),
+                ("inline_send_description", True),
+                ("inline_send_install", True),
+            ]),
+            self._make_es_child("inline_send_name", strings.inline_send_name, True) if self._es_is_expanded("inline_send_enabled") else None,
+            self._make_es_child("inline_send_version", strings.inline_send_version, True) if self._es_is_expanded("inline_send_enabled") else None,
+            self._make_es_child("inline_send_author", strings.inline_send_author, True) if self._es_is_expanded("inline_send_enabled") else None,
+            self._make_es_child("inline_send_description", strings.inline_send_description, True) if self._es_is_expanded("inline_send_enabled") else None,
+            self._make_es_child("inline_send_install", strings.inline_send_install, True) if self._es_is_expanded("inline_send_enabled") else None,
+            Switch(
+                key="inline_search_double_space",
+                text=strings.inline_search_double_space,
+                subtext=_fmt_inline_str(str(strings.inline_search_double_space_desc)),
+                default=False,
+                icon="msg_search",
+                link_alias="inline_search_double_space"
+            ),
+            Switch(
+                key="inline_search_clear_field",
+                text=strings.inline_search_clear_field,
+                subtext=strings.inline_search_clear_field_desc,
+                default=False,
+                icon="msg_clear",
+                link_alias="inline_search_clear_field"
+            ),
+            Divider(text=_fmt_inline_str(str(strings.inline_search_divider))),
             Header(text=strings.misc_header),
             Switch(
                 key="show_startup_status",

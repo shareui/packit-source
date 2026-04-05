@@ -346,6 +346,27 @@ def _handleInstallPlugin(repo: dict, pluginId: str, versionId: str = ""):
             log(f"deeplinks.install: fetch error: {e}")
             run_on_ui_thread(lambda: BulletinHelper.show_error("An error occurred while loading plugin"))
 
+    if versionId:
+        def _show_loading_bulletin():
+            try:
+                from hook_utils import find_class as _fc
+                BulletinFactory = _fc("org.telegram.ui.Components.BulletinFactory")
+                R_tg = _fc("org.telegram.messenger.R")
+                frag = get_last_fragment()
+                container = frag.getParentActivity().getWindow().getDecorView()
+                resource_provider = None
+                try:
+                    resource_provider = frag.getResourceProvider()
+                except Exception:
+                    pass
+                BulletinFactory.of(container, resource_provider).createSimpleBulletin(
+                    R_tg.raw.chats_infotip,
+                    str(strings["dl_install_version_loading"]).format(versionId)
+                ).show()
+            except Exception as e:
+                log(f"deeplinks.install: loading bulletin error: {e}")
+        run_on_ui_thread(_show_loading_bulletin)
+
     run_on_queue(task)
 
 
