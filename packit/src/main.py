@@ -20,12 +20,14 @@ from .SettingsActivity.service.settingsActivityHook import setup_settings_activi
 from .DialogsActivity.pillWidget import setup_pill_widget
 from .ui.PluginListActivity.service.InstallDismissHook import setup_install_dismiss_hook
 from .ChatActivity.export.DecryptorBottomSheet import setup_packit_file_hook
-from .ChatActivity.plugin_autocomplete import (
+from .ChatActivity.pluginAutocomplete import (
     setup_packit_autocomplete,
     _packit_get_class,
     _packit_hook_enter_view_constructor,
     _packit_attach_text_watcher,
     _packit_load_plugins_from_cache,
+    _packit_show_loading_popup,
+    _packit_search_in_background,
     _packit_show_matching_plugins,
     _packit_show_plugins_popup,
     _packit_hide_popup,
@@ -247,6 +249,8 @@ PackItPlugin._packit_get_class = _packit_get_class
 PackItPlugin._packit_hook_enter_view_constructor = _packit_hook_enter_view_constructor
 PackItPlugin._packit_attach_text_watcher = _packit_attach_text_watcher
 PackItPlugin._packit_load_plugins_from_cache = _packit_load_plugins_from_cache
+PackItPlugin._packit_show_loading_popup = _packit_show_loading_popup
+PackItPlugin._packit_search_in_background = _packit_search_in_background
 PackItPlugin._packit_show_matching_plugins = _packit_show_matching_plugins
 PackItPlugin._packit_show_plugins_popup = _packit_show_plugins_popup
 PackItPlugin._packit_hide_popup = _packit_hide_popup
