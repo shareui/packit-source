@@ -369,17 +369,8 @@ def _packit_show_plugins_popup(self, plugins):
                                         ev = enter_view
                                         msg_field = get_private_field(ev, "messageEditText")
                                         if msg_field:
-                                            clear_field = False
-                                            cmd = ".packit"
-                                            try:
-                                                from elyx import settings as _s
-                                                clear_field = _s.get("inline_search_clear_field", False)
-                                                cmd = _s.get("inline_search_command", ".packit").strip() or ".packit"
-                                            except Exception:
-                                                pass
-                                            new_text = "" if clear_field else cmd + " "
-                                            msg_field.setText(new_text)
-                                            msg_field.setSelection(msg_field.getText().length())
+                                            msg_field.setText("")
+                                            msg_field.setSelection(0)
                                     except Exception as e:
                                         log(f"Packit click action error: {e}")
 
