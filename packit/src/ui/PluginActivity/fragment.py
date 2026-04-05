@@ -100,6 +100,7 @@ except Exception:
 
 
 _STICKER_RETRY_DELAY = 1.5
+_STICKER_MAX_RETRIES = 5
 
 
 def _resolve_icon(name):
@@ -135,17 +136,28 @@ def _try_load_sticker(iv, icon_str, size_dp):
                 None, None, 0, 1
             )
             return True
+        # pack not cached — request load from network
+        try:
+            mdc.loadStickersByEmojiOrName(pack_name, False, False)
+        except Exception:
+            pass
         return False
     except Exception as e:
         log(f"pluginProfile: _try_load_sticker error: {e}")
         return False
 
 
-def _schedule_sticker_retry(iv, icon_str, size_dp, alive_ref):
-    # alive_ref is a list[bool] shared with the fragment; set to False on destroy
+def _schedule_sticker_retry(iv, icon_str, size_dp, alive_ref, attempt=0):
+    if attempt >= _STICKER_MAX_RETRIES:
+        return
+
     def _retry():
-        if alive_ref[0]:
-            _try_load_sticker(iv, icon_str, size_dp)
+        if not alive_ref[0]:
+            return
+        loaded = _try_load_sticker(iv, icon_str, size_dp)
+        if not loaded:
+            _schedule_sticker_retry(iv, icon_str, size_dp, alive_ref, attempt + 1)
+
     threading.Timer(_STICKER_RETRY_DELAY, lambda: run_on_ui_thread(_retry)).start()
 
 
@@ -322,7 +334,9 @@ def _show_plugin_menu(act, p, anchor_view, repo_id: str = ""):
         icon_translate = getattr(R_tg.drawable, 'msg_replace',   0)
         icon_report    = getattr(R_tg.drawable, 'msg_report',    0)
 
-        create_menu_item(icon_copy,      str(strings["copy_link"]), lambda: copy_plugin_link(p, repo_id or str(p.get("id") or ""), None))
+        import os as _os
+        _copy_sound = _os.path.join(_os.path.dirname(__file__), "../../../res/sounds/copy-link.mp3")
+        create_menu_item(icon_copy,      str(strings["copy_link"]), lambda: copy_plugin_link(p, repo_id or str(p.get("id") or ""), _copy_sound))
         create_menu_item(icon_share,     str(strings["share"]),     lambda: share_plugin_file(p, str(p.get("name") or p.get("id") or ""), act))
         create_menu_item(icon_code,      str(strings["code"]),      lambda: view_plugin_code(p, act))
         create_menu_item(icon_download,  str(strings["download"]),  lambda: download_plugin_file(p))
@@ -806,6 +820,14 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                         pass
 
                     def _finish(ok):
+                        if ok:
+                            try:
+                                import os as _os
+                                from ...utils.media import playSound
+                                _snd = _os.path.join(_os.path.dirname(__file__), "../../../res/sounds/install.mp3")
+                                playSound(_snd, "sfx_install")
+                            except Exception:
+                                pass
                         if on_finish_override:
                             run_on_ui_thread(lambda: on_finish_override(ok))
                         else:
@@ -898,7 +920,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                         _do_install(versioned, _install_ui, _all, _btn, _label, _btn_text_color, _act)
                         return
                     _show_version_picker(_act, _p, _install_ui, _all, _btn, _label, _btn_text_color, _do_install,
-                                         on_cancel=lambda: run_on_ui_thread(lambda: _set_loading(_btn, _label, _btn_text_color, _act, False)))
+                                         on_cancel=lambda: run_on_ui_thread(lambda: _set_loading(_btn, _label, _btn_text_color, _act, False)), repo_id=self.repo_id)
 
                 install_btn.setOnClickListener(OnClickListener(onInstallClick))
 

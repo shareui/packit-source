@@ -3,7 +3,7 @@ import json
 import weakref
 import requests
 from base_plugin import MethodHook
-from client_utils import get_last_fragment
+from client_utils import get_last_fragment, run_on_queue
 from hook_utils import find_class, get_private_field
 from android_utils import run_on_ui_thread, log
 from java import dynamic_proxy, jclass
@@ -12,16 +12,13 @@ from markdown_utils import parse_markdown
 from org.telegram.tgnet import TLRPC
 from org.telegram.ui.Components import RecyclerListView
 
-
 def _get_cache_dir():
     from ..utils.paths import getReposCacheDir
     return getReposCacheDir()
 
-
 def _get_repo_cache_path(repo_id):
     from ..utils.paths import getRepoCachePath
     return getRepoCachePath(repo_id)
-
 
 class _PackitAutocompleteHook(MethodHook):
     def __init__(self, plugin):
@@ -44,12 +41,10 @@ class _PackitAutocompleteHook(MethodHook):
         except Exception as e:
             log(f"PackitAutocompleteHook error: {e}")
 
-
 def _packit_get_class(self, class_name):
     if class_name not in self._packit_class_cache:
         self._packit_class_cache[class_name] = find_class(class_name)
     return self._packit_class_cache[class_name]
-
 
 def _packit_hook_enter_view_constructor(self):
     try:
@@ -71,7 +66,6 @@ def _packit_hook_enter_view_constructor(self):
         self.packit_hook_constructor_ref = self.hook_method(constructor, _PackitAutocompleteHook(self))
     except Exception as e:
         log(f"Packit hook constructor error: {e}")
-
 
 def _packit_attach_text_watcher(self, enter_view):
     try:
@@ -96,10 +90,41 @@ def _packit_attach_text_watcher(self, enter_view):
                     return
                 try:
                     text = str(editable.toString()) if editable else ""
-                    if text.startswith(".packit "):
-                        search_key = text[8:].lower().strip()
-                        plugin._packit_show_matching_plugins(search_key)
+
+                    # double space trigger: field contains exactly two spaces
+                    try:
+                        from elyx import settings as _s
+                        ds_enabled = _s.get("inline_search_double_space", False)
+                        if ds_enabled:
+                            if text == "  ":
+                                cmd = _s.get("inline_search_command", ".packit").strip() or ".packit"
+                                log(f"packit_autocomplete: double space triggered, replacing with {cmd}")
+                                editable.replace(0, editable.length(), cmd + " ")
+                                return
+                    except Exception as e:
+                        log(f"packit_autocomplete: double_space error: {e}")
+
+                    try:
+                        from elyx import settings as _s
+                        cmd = _s.get("inline_search_command", ".packit").strip() or ".packit"
+                    except Exception:
+                        cmd = ".packit"
+                    # normalize "{cmd[0]} {cmd[1:]}" typo (space after first char) → cmd
+                    if len(cmd) > 1:
+                        spaced_prefix = cmd[0] + " " + cmd[1:]
+                        if text.startswith(spaced_prefix):
+                            text = cmd + text[len(spaced_prefix):]
+                    prefix = cmd + " "
+                    if text.startswith(prefix):
+                        search_key = text[len(prefix):].lower().strip()
+                        token = object()
+                        plugin._packit_search_token = token
+                        plugin._packit_show_loading_popup()
+                        def do_search():
+                            plugin._packit_search_in_background(search_key, token)
+                        run_on_queue(do_search)
                     else:
+                        plugin._packit_search_token = None
                         plugin._packit_hide_popup()
                 except Exception as e:
                     log(f"Packit text watcher error: {e}")
@@ -169,6 +194,70 @@ def _packit_load_plugins_from_cache(self):
         log(f"Packit load plugins from cache error: {e}")
     
     return plugins_list
+
+
+def _packit_show_loading_popup(self):
+    try:
+        # shows a single "Loading..." row so the user sees feedback immediately
+        loading_placeholder = [{"name": "Loading...", "description": "", "_loading": True}]
+        run_on_ui_thread(lambda: self._packit_show_plugins_popup(loading_placeholder))
+    except Exception as e:
+        log(f"Packit show loading popup error: {e}")
+
+
+def _packit_search_in_background(self, search_key, token):
+    try:
+        all_plugins = self._packit_load_plugins_from_cache()
+
+        # token mismatch means the user already typed something new
+        if self._packit_search_token is not token:
+            return
+
+        if not all_plugins:
+            run_on_ui_thread(lambda: self._packit_hide_popup())
+            return
+
+        if not search_key:
+            result = all_plugins[:10]
+            run_on_ui_thread(lambda: self._packit_show_plugins_popup(result))
+            return
+
+        from ..ui.PluginListActivity.service.SearchEngine import build_index, score as search_score
+
+        index = build_index(all_plugins)
+
+        isRussian = False
+        try:
+            from java.util import Locale
+            isRussian = Locale.getDefault().getLanguage() == "ru"
+        except Exception:
+            pass
+
+        scored = []
+        for plugin in all_plugins:
+            fuzzy = False
+            try:
+                from elyx import settings as _s
+                fuzzy = _s.get("fuzzy_search", False)
+            except Exception:
+                pass
+            s = search_score(plugin, search_key, index, isRussian, fuzzy=fuzzy)
+            if s[0] < 6:
+                scored.append((s, plugin))
+        scored.sort(key=lambda x: x[0])
+
+        if self._packit_search_token is not token:
+            return
+
+        if not scored:
+            not_found = [{"name": "Plugin not found :(", "description": "", "_loading": True}]
+            run_on_ui_thread(lambda: self._packit_show_plugins_popup(not_found))
+            return
+
+        result = [p for _, p in scored[:10]]
+        run_on_ui_thread(lambda: self._packit_show_plugins_popup(result))
+    except Exception as e:
+        log(f"Packit search in background error: {e}")
 
 
 def _packit_show_matching_plugins(self, search_key):
@@ -254,9 +343,11 @@ def _packit_show_plugins_popup(self, plugins):
             new_result_help.add(desc)
         
         bot_adapter.notifyDataSetChanged()
-        
+
         plugin_ref = weakref.ref(self)
-        
+        # ordered list for index-based lookup (long click uses position)
+        plugins_by_index = list(plugins[:10])
+
         class ClickListener(dynamic_proxy(RecyclerListView.OnItemClickListener)):
             def onItemClick(self, view, position):
                 plugin = plugin_ref()
@@ -266,23 +357,71 @@ def _packit_show_plugins_popup(self, plugins):
                     if hasattr(view, 'getCommand'):
                         command = view.getCommand()
                         plugin_data = plugin.packit_current_plugins.get(str(command))
-                        if plugin_data:
+                        if plugin_data and not plugin_data.get("_loading"):
                             plugin_id = plugin_data.get("id")
                             repo_id = plugin_data.get("repo_id")
-                            
+
                             if plugin_id and repo_id:
                                 def ui_actions():
                                     try:
                                         plugin._packit_send_plugin_info(plugin_data)
                                         bot_container.dismiss()
+                                        ev = enter_view
+                                        msg_field = get_private_field(ev, "messageEditText")
+                                        if msg_field:
+                                            clear_field = False
+                                            cmd = ".packit"
+                                            try:
+                                                from elyx import settings as _s
+                                                clear_field = _s.get("inline_search_clear_field", False)
+                                                cmd = _s.get("inline_search_command", ".packit").strip() or ".packit"
+                                            except Exception:
+                                                pass
+                                            new_text = "" if clear_field else cmd + " "
+                                            msg_field.setText(new_text)
+                                            msg_field.setSelection(msg_field.getText().length())
                                     except Exception as e:
                                         log(f"Packit click action error: {e}")
-                                
+
                                 run_on_ui_thread(ui_actions)
                 except Exception as e:
                     log(f"Packit click listener error: {e}")
-        
+
+        class LongClickListener(dynamic_proxy(RecyclerListView.OnItemLongClickListener)):
+            def onItemClick(self, view, position):
+                plugin = plugin_ref()
+                if not plugin:
+                    return True
+                try:
+                    if position < 0 or position >= len(plugins_by_index):
+                        return True
+                    plugin_data = plugins_by_index[position]
+                    if plugin_data.get("_loading"):
+                        return True
+                    repo_id = plugin_data.get("repo_id", "")
+
+                    def open_profile():
+                        try:
+                            from ..ui.PluginListActivity.fragment import InstallUI
+                            from ..ui.PluginActivity.fragment import show_plugin_profile
+
+                            class _FakePlugin:
+                                def __init__(self, rm):
+                                    self.repoManager = rm
+
+                            install_ui = InstallUI(_FakePlugin(plugin.repoManager))
+                            bot_container.dismiss()
+                            show_plugin_profile(plugin_data, install_ui, plugins_by_index, repo_id=repo_id)
+                        except Exception as e:
+                            log(f"Packit long click open profile error: {e}")
+
+                    run_on_ui_thread(open_profile)
+                except Exception as e:
+                    log(f"Packit long click listener error: {e}")
+                return True
+
         bot_container.listView.setOnItemClickListener(ClickListener())
+        bot_container.listView.setOnItemLongClickListener(LongClickListener())
         
         try:
             from android.widget import LinearLayout
@@ -290,18 +429,16 @@ def _packit_show_plugins_popup(self, plugins):
             if parent and isinstance(parent, LinearLayout):
                 parent.setPadding(0, 4, 0, 0)
             try:
-                import android.graphics
-                enter_view_rect = android.graphics.Rect()
-                enter_view.getGlobalVisibleRect(enter_view_rect)
-                enter_view_width = enter_view_rect.width()
-                container_params = bot_container.getLayoutParams()
-                if container_params:
-                    container_params.width = enter_view_width
-                    bot_container.setLayoutParams(container_params)
-                    list_params = bot_container.listView.getLayoutParams()
-                    if list_params:
-                        list_params.width = enter_view_width
-                        bot_container.listView.setLayoutParams(list_params)
+                enter_view_width = enter_view.getWidth()
+                if enter_view_width > 0:
+                    container_params = bot_container.getLayoutParams()
+                    if container_params:
+                        container_params.width = enter_view_width
+                        bot_container.setLayoutParams(container_params)
+                        list_params = bot_container.listView.getLayoutParams()
+                        if list_params:
+                            list_params.width = enter_view_width
+                            bot_container.listView.setLayoutParams(list_params)
             except Exception as e:
                 log(f"Packit resize popup error: {e}")
             bot_container.requestLayout()
@@ -376,13 +513,37 @@ def _packit_send_plugin_info(self, plugin_data):
             log("Packit: Could not get chat_id for sending plugin info")
             return
 
+        # resolve forum topic if the chat is a forum
+        topic_msg_obj = None
+        try:
+            if frag.isTopic:
+                topic_id = frag.getTopicId()
+                if topic_id:
+                    from org.telegram.messenger import MessageObject as MsgObj
+                    mc = frag.getMessagesController()
+                    topic = mc.getTopicsController().findTopic(-chat_id, topic_id)
+                    if topic is not None and topic.topicStartMessage is not None:
+                        topic_msg_obj = MsgObj(frag.getCurrentAccount(), topic.topicStartMessage, False, False)
+                        topic_msg_obj.isTopicMainMessage = True
+        except Exception as e:
+            log(f"Packit: topic resolve error: {e}")
+
         plugin_id = plugin_data.get("id", "unknown")
         repo_id = plugin_data.get("repo_id", "unknown")
         name = plugin_data.get("name", "Unknown Plugin")
         version = plugin_data.get("version", "")
         author = plugin_data.get("author", "")
         description = plugin_data.get("description", "")
-        
+
+        try:
+            from elyx import settings as _s
+            show_version = _s.get("inline_send_version", True)
+            show_author = _s.get("inline_send_author", True)
+            show_description = _s.get("inline_send_description", True)
+            show_install = _s.get("inline_send_install", True)
+        except Exception:
+            show_version = show_author = show_description = show_install = True
+
         entities = []
         message_parts = []
         current_offset = 0
@@ -390,69 +551,85 @@ def _packit_send_plugin_info(self, plugin_data):
         plugin_link = f"tg://packit?plugin={plugin_id}&repo={repo_id}"
         name_text = name
         message_parts.append(name_text)
-        
+
         entity_name = TLRPC.TL_messageEntityTextUrl()
         entity_name.offset = current_offset
         entity_name.length = len(name_text)
         entity_name.url = plugin_link
         entities.append(entity_name)
-        
+
+        entity_name_bold = TLRPC.TL_messageEntityBold()
+        entity_name_bold.offset = current_offset
+        entity_name_bold.length = len(name_text)
+        entities.append(entity_name_bold)
+
         current_offset += len(name_text)
-        
-        if version:
+
+        if show_version and version:
             version_text = f" (v{version})"
             message_parts.append(version_text)
             current_offset += len(version_text)
-        
+
         message_parts.append("\n")
         current_offset += 1
-        
-        if author:
+
+        if show_author and author:
             by_text = "by "
             message_parts.append(by_text)
             current_offset += len(by_text)
             author_text = author
             message_parts.append(author_text)
-            
-            if author.startswith("@"):
-                entity_author = TLRPC.TL_messageEntityTextUrl()
-                entity_author.offset = current_offset
-                entity_author.length = len(author_text)
-                entity_author.url = f"https://t.me/{author[1:]}"
-                entities.append(entity_author)
-            
             current_offset += len(author_text)
             message_parts.append("\n")
             current_offset += 1
 
-        message_parts.append("\n")
-        current_offset += 1
-        
-        if description:
+        desc_quote_start = current_offset
+
+        if show_description and description:
             parsed_desc = parse_markdown(description)
             desc_text = parsed_desc.text
-            
+
             for ent in parsed_desc.entities:
                 tl_entity = ent.to_tlrpc_object()
                 tl_entity.offset = current_offset + ent.offset
                 entities.append(tl_entity)
-            
+
             message_parts.append(desc_text)
             current_offset += len(desc_text)
-            message_parts.append("\n\n")
-            current_offset += 2
+            message_parts.append("\n")
+            current_offset += 1
 
-        install_text = "Install"
-        install_link = f"tg://packit?install&repo={repo_id}&plugin={plugin_id}"
-        if version:
-            install_link += f"&version={version}"
-        
-        message_parts.append(install_text)
-        entity_install = TLRPC.TL_messageEntityTextUrl()
-        entity_install.offset = current_offset
-        entity_install.length = len(install_text)
-        entity_install.url = install_link
-        entities.append(entity_install)
+            entity_blockquote = TLRPC.TL_messageEntityBlockquote()
+            entity_blockquote.offset = desc_quote_start
+            entity_blockquote.length = current_offset - desc_quote_start
+            entities.append(entity_blockquote)
+
+        if show_install:
+            install_text = "Install"
+            install_link = f"tg://packit?install&repo={repo_id}&plugin={plugin_id}"
+            if version:
+                install_link += f"&version={version}"
+
+            message_parts.append(install_text)
+            entity_install = TLRPC.TL_messageEntityTextUrl()
+            entity_install.offset = current_offset
+            entity_install.length = len(install_text)
+            entity_install.url = install_link
+            entities.append(entity_install)
+            current_offset += len(install_text)
+
+            via_sep = " via "
+            message_parts.append(via_sep)
+            current_offset += len(via_sep)
+
+            packit_text = "PackIt"
+            message_parts.append(packit_text)
+            entity_via = TLRPC.TL_messageEntityTextUrl()
+            entity_via.offset = current_offset
+            entity_via.length = len(packit_text)
+            entity_via.url = "https://t.me/packitGround/8"
+            entities.append(entity_via)
+
         message_text = "".join(message_parts)
         
         try:
@@ -461,22 +638,23 @@ def _packit_send_plugin_info(self, plugin_data):
                 "peer": chat_id,
                 "message": message_text,
                 "entities": entities,
-                "no_webpage": True
+                "searchLinks": False
             }
+            if topic_msg_obj is not None:
+                message_data["replyToMsg"] = topic_msg_obj
+                message_data["replyToTopMsg"] = topic_msg_obj
             send_message(message_data)
         except Exception:
             try:
-                import time
-                from org.telegram.messenger import SendMessagesHelper
-                message = TLRPC.TL_message()
-                message.message = message_text
-                message.dialog_id = chat_id
-                message.date = int(time.time())
-                message.out = True
-                message.flags = 2
-                if entities:
-                    message.entities = entities
-                SendMessagesHelper.getInstance().sendMessage(message)
+                from org.telegram.messenger import SendMessagesHelper as SMH
+                smh = SMH.getInstance(frag.getCurrentAccount())
+                params = SMH.SendMessageParams.of(message_text, chat_id)
+                params.entities = entities
+                params.searchLinks = False
+                if topic_msg_obj is not None:
+                    params.replyToMsg = topic_msg_obj
+                    params.replyToTopMsg = topic_msg_obj
+                smh.sendMessage(params)
             except Exception as e2:
                 log(f"Packit send plugin info fallback error: {e2}")
     except Exception as e:
@@ -491,6 +669,7 @@ def setup_packit_autocomplete(plugin):
         plugin.packit_attached_views = set()
         plugin.packit_custom_container = None
         plugin.packit_current_plugins = {}
+        plugin._packit_search_token = None
         
         plugin._packit_hook_enter_view_constructor()
         log("Packit autocomplete setup complete")

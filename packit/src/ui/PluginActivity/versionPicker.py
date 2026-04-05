@@ -1,5 +1,6 @@
 import threading
-from android_utils import log, run_on_ui_thread, OnClickListener
+from android_utils import log, run_on_ui_thread, OnClickListener, OnLongClickListener
+from client_utils import get_last_fragment
 try:
     from elyx import strings
 except Exception as e:
@@ -46,7 +47,7 @@ def _build_version_entries(plugin):
     return entries
 
 
-def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_text_color, do_install, on_cancel=None):
+def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_text_color, do_install, on_cancel=None, repo_id=""):
     try:
         from org.telegram.ui.ActionBar import Theme
         from org.telegram.ui.Components import LayoutHelper
@@ -602,6 +603,42 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
                             log(f"version_picker: unavail hint error: {e}")
                     return _on_unavail_click
                 row.setOnClickListener(OnClickListener(_make_hint()))
+
+            def _make_long_click(_e=entry, _row=row):
+                def _on_long_click(v):
+                    try:
+                        plugin_id = str(plugin.get("id") or "")
+                        ver = str(_e["version"])
+                        link = f"tg://packit?install&repo={repo_id}&plugin={plugin_id}&version={ver}"
+                        from android.content import ClipData
+                        clipboard = act.getSystemService(act.CLIPBOARD_SERVICE)
+                        clipboard.setPrimaryClip(ClipData.newPlainText("packit_link", link))
+                        try:
+                            from hook_utils import find_class as _fc
+                            BulletinFactory = _fc("org.telegram.ui.Components.BulletinFactory")
+                            frag = get_last_fragment()
+                            container = decor
+                            resource_provider = None
+                            try:
+                                resource_provider = frag.getResourceProvider()
+                            except Exception:
+                                pass
+                            from hook_utils import find_class as _fc2
+                            R_tg = _fc2("org.telegram.messenger.R")
+                            icon_raw = getattr(R_tg.raw, "copy", getattr(R_tg.raw, "msg_copy", 0))
+                            BulletinFactory.of(container, resource_provider).createSimpleBulletin(
+                                icon_raw,
+                                "The link with the version has been copied to the clipboard!"
+                            ).show()
+                        except Exception as be:
+                            log(f"version_picker: bulletin error: {be}")
+                        return True
+                    except Exception as e:
+                        log(f"version_picker: long click error: {e}")
+                        return False
+                return _on_long_click
+
+            row.setOnLongClickListener(OnLongClickListener(_make_long_click()))
 
             row.addView(row_tv, FrameLayout.LayoutParams(-1, -2))
             row_lp = LinearLayout.LayoutParams(-1, -2)
