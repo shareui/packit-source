@@ -26,8 +26,13 @@ def show_debug_menu():
         if not act:
             return
 
+        def _trigger_startup_sheet():
+            from ..ui.pluginsUpdates.startupSheet import check_and_show_startup_updates
+            check_and_show_startup_updates()
+
         ITEMS = [
             ("Native error", _test_native_error),
+            ("Startup updates sheet", _trigger_startup_sheet),
         ]
 
         labels = jarray(JCharSequence)([item[0] for item in ITEMS])
