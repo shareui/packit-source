@@ -351,7 +351,8 @@ def show_deeplink_sheet(link_alias):
                     "name": "msg_edit",
                     "link": "msg_link",
                     "icon": "msg_folders",
-                    "icon_id": "msg_sticker"
+                    "icon_id": "msg_sticker",
+                    "version": "menu_premium_clock_remix"
                 }
 
                 for param in params:
