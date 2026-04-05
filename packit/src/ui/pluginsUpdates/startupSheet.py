@@ -1,11 +1,10 @@
 import threading
 import time
 
-from android.view import Gravity, MotionEvent, View
+from android.view import Gravity, View
 from android.widget import FrameLayout, LinearLayout, ScrollView, TextView, ImageView
 from android.util import TypedValue
 from android.graphics.drawable import GradientDrawable
-from java import dynamic_proxy
 from android_utils import log, run_on_ui_thread, OnClickListener
 from client_utils import get_last_fragment, run_on_queue
 
@@ -129,36 +128,34 @@ def _make_item_card(act, item: dict, plugin_ref, on_action):
         accent = 0xFF2196F3
         accent_pressed = accent
     try:
-        gray_bg = Theme.getColor(Theme.key_windowBackgroundGray)
+        card_bg = Theme.getColor(Theme.key_windowBackgroundGray)
     except Exception:
-        gray_bg = 0xFF303030
+        card_bg = 0xFF303030
 
-    icon_size_dp = 44
-
-    card_bg = GradientDrawable()
-    card_bg.setShape(GradientDrawable.RECTANGLE)
-    card_bg.setCornerRadius(dp(14))
-    try:
-        card_bg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite))
-    except Exception:
-        card_bg.setColor(0xFFFFFFFF)
-    try:
-        border_color = Theme.getColor(Theme.key_divider)
-    except Exception:
-        border_color = 0x33000000
-    card_bg.setStroke(dp(1), border_color)
+    expanded = [False]
 
     outer = LinearLayout(act)
     outer.setOrientation(LinearLayout.VERTICAL)
-    outer.setBackground(card_bg)
     outer.setClickable(True)
     outer.setFocusable(True)
-    outer.setPadding(dp(14), dp(12), dp(14), dp(12))
 
-    collapsed = LinearLayout(act)
-    collapsed.setOrientation(LinearLayout.HORIZONTAL)
-    collapsed.setGravity(Gravity.CENTER_VERTICAL)
+    border = GradientDrawable()
+    border.setShape(GradientDrawable.RECTANGLE)
+    border.setCornerRadius(dp(14))
+    border.setColor(card_bg)
+    try:
+        border.setStroke(dp(1), Theme.getColor(Theme.key_divider))
+    except Exception:
+        pass
+    outer.setBackground(border)
 
+    # header row: icon + name/version + state chip
+    header_row = LinearLayout(act)
+    header_row.setOrientation(LinearLayout.HORIZONTAL)
+    header_row.setGravity(Gravity.CENTER_VERTICAL)
+    header_row.setPadding(dp(14), dp(12), dp(14), dp(12))
+
+    icon_size_dp = 40
     show_icon = bool(icon_str and icon_str != "Unknown" and "/" in icon_str)
     if show_icon:
         try:
@@ -170,7 +167,7 @@ def _make_item_card(act, item: dict, plugin_ref, on_action):
                 pass
             icon_lp = LinearLayout.LayoutParams(dp(icon_size_dp), dp(icon_size_dp))
             icon_lp.rightMargin = dp(12)
-            collapsed.addView(icon_view, icon_lp)
+            header_row.addView(icon_view, icon_lp)
             loaded = _try_load_sticker(icon_view, icon_str, icon_size_dp)
             if not loaded:
                 _schedule_sticker_retry(icon_view, icon_str, icon_size_dp)
@@ -192,50 +189,15 @@ def _make_item_card(act, item: dict, plugin_ref, on_action):
     name_tv.setSingleLine(True)
     center_col.addView(name_tv, LayoutHelper.createLinear(-1, -2))
 
-    ver_tv = TextView(act)
-    ver_tv.setText(f"{local_v} \u2192 {repo_v}")
-    ver_tv.setTextColor(text_gray)
-    ver_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
-    center_col.addView(ver_tv, LayoutHelper.createLinear(-1, -2, 0, 2, 0, 0))
-
-    collapsed.addView(center_col, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
-
-    from hook_utils import find_class as _fc
-    try:
-        R_tg = _fc("org.telegram.messenger.R")
-        arrow_icon_id = getattr(R_tg.drawable, "arrow_more", 0)
-    except Exception:
-        arrow_icon_id = 0
-
-    chevron = ImageView(act)
-    chevron.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
-    if arrow_icon_id:
-        chevron.setImageResource(arrow_icon_id)
-    chevron.setColorFilter(text_gray)
-    collapsed.addView(chevron, LayoutHelper.createLinear(20, 20, Gravity.CENTER_VERTICAL, 8, 0, 0, 0))
-
-    outer.addView(collapsed, LayoutHelper.createLinear(-1, -2))
-
-    expanded = LinearLayout(act)
-    expanded.setOrientation(LinearLayout.VERTICAL)
-    expanded.setVisibility(View.GONE)
-
-    divider = View(act)
-    try:
-        divider.setBackgroundColor(Theme.getColor(Theme.key_divider))
-    except Exception:
-        divider.setBackgroundColor(0x33000000)
-    expanded.addView(divider, LayoutHelper.createLinear(-1, 1, 0, 10, 0, 10))
-
     ver_row = LinearLayout(act)
     ver_row.setOrientation(LinearLayout.HORIZONTAL)
     ver_row.setGravity(Gravity.CENTER_VERTICAL)
 
-    ver_full_tv = TextView(act)
-    ver_full_tv.setText(f"{local_v} \u2192 {repo_v}")
-    ver_full_tv.setTextColor(text_gray)
-    ver_full_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
-    ver_row.addView(ver_full_tv, LayoutHelper.createLinear(-2, -2))
+    ver_tv = TextView(act)
+    ver_tv.setText(f"{local_v} → {repo_v}")
+    ver_tv.setTextColor(text_gray)
+    ver_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
+    ver_row.addView(ver_tv, LayoutHelper.createLinear(-2, -2))
 
     if state:
         chip = _make_state_chip(act, state)
@@ -243,22 +205,45 @@ def _make_item_card(act, item: dict, plugin_ref, on_action):
         chip_lp.leftMargin = dp(6)
         ver_row.addView(chip, chip_lp)
 
-    expanded.addView(ver_row, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 4))
+    center_col.addView(ver_row, LayoutHelper.createLinear(-1, -2, 0, 2, 0, 0))
 
-    if repo_name:
-        repo_tv = TextView(act)
-        repo_tv.setText(f"{repo_name} repository")
-        repo_tv.setTextColor(text_gray)
-        repo_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
-        expanded.addView(repo_tv, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 10))
+    header_row.addView(center_col, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+
+    chevron = ImageView(act)
+    chevron.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+    try:
+        from hook_utils import find_class as _fc
+        R_tg = _fc("org.telegram.messenger.R")
+        chevron.setImageResource(getattr(R_tg.drawable, "arrow_more", 0))
+    except Exception:
+        pass
+    chevron.setColorFilter(text_gray)
+    header_row.addView(chevron, LayoutHelper.createLinear(20, 20, Gravity.CENTER_VERTICAL, 8, 0, 0, 0))
+
+    outer.addView(header_row, LayoutHelper.createLinear(-1, -2))
+
+    # divider
+    divider = View(act)
+    try:
+        divider.setBackgroundColor(Theme.getColor(Theme.key_divider))
+    except Exception:
+        divider.setBackgroundColor(0x33000000)
+    divider.setVisibility(View.GONE)
+    outer.addView(divider, LayoutHelper.createLinear(-1, 1, 14, 0, 14, 0))
+
+    # buttons area
+    btns = LinearLayout(act)
+    btns.setOrientation(LinearLayout.VERTICAL)
+    btns.setPadding(dp(14), dp(10), dp(14), dp(12))
+    btns.setVisibility(View.GONE)
+
+    btn_height = dp(42)
 
     update_btn = FrameLayout(act)
     update_btn.setClickable(True)
     update_btn.setFocusable(True)
-    update_btn.setBackground(
-        Theme.createSimpleSelectorRoundRectDrawable(dp(10), accent, accent_pressed)
-    )
-    update_btn.setPadding(0, dp(10), 0, dp(10))
+    update_btn_bg = [Theme.createSimpleSelectorRoundRectDrawable(dp(28), accent, accent_pressed)]
+    update_btn.setBackground(update_btn_bg[0])
 
     update_tv = TextView(act)
     update_tv.setText(str(strings.startup_updates_update))
@@ -266,22 +251,35 @@ def _make_item_card(act, item: dict, plugin_ref, on_action):
     update_tv.setGravity(Gravity.CENTER)
     update_tv.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
     try:
-        update_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+        update_tv.setTypeface(AndroidUtilities.bold())
     except Exception:
         pass
-    update_btn.addView(update_tv, FrameLayout.LayoutParams(-1, -2))
-    expanded.addView(update_btn, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 6))
+    update_btn.addView(update_tv, FrameLayout.LayoutParams(-1, -1))
 
-    ignore_btn_bg = GradientDrawable()
-    ignore_btn_bg.setShape(GradientDrawable.RECTANGLE)
-    ignore_btn_bg.setCornerRadius(dp(10))
-    ignore_btn_bg.setColor(gray_bg)
+    update_icon_iv = ImageView(act)
+    update_icon_iv.setScaleType(ImageView.ScaleType.CENTER)
+    update_icon_iv.setVisibility(View.GONE)
+    update_btn.addView(update_icon_iv, FrameLayout.LayoutParams(-1, -1))
+
+    update_lp = LinearLayout.LayoutParams(-1, btn_height)
+    update_lp.bottomMargin = dp(6)
+    btns.addView(update_btn, update_lp)
 
     ignore_btn = FrameLayout(act)
     ignore_btn.setClickable(True)
     ignore_btn.setFocusable(True)
-    ignore_btn.setBackground(ignore_btn_bg)
-    ignore_btn.setPadding(0, dp(10), 0, dp(10))
+    try:
+        ignore_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+            dp(28),
+            Theme.getColor(Theme.key_graySection),
+            Theme.getColor(Theme.key_listSelector)
+        ))
+    except Exception:
+        ignore_btn_bg = GradientDrawable()
+        ignore_btn_bg.setShape(GradientDrawable.RECTANGLE)
+        ignore_btn_bg.setCornerRadius(dp(28))
+        ignore_btn_bg.setColor(card_bg)
+        ignore_btn.setBackground(ignore_btn_bg)
 
     ignore_tv = TextView(act)
     ignore_tv.setText(str(strings.startup_updates_ignore))
@@ -289,106 +287,141 @@ def _make_item_card(act, item: dict, plugin_ref, on_action):
     ignore_tv.setGravity(Gravity.CENTER)
     ignore_tv.setTextColor(accent)
     try:
-        ignore_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+        ignore_tv.setTypeface(AndroidUtilities.bold())
     except Exception:
         pass
-    ignore_btn.addView(ignore_tv, FrameLayout.LayoutParams(-1, -2))
-    expanded.addView(ignore_btn, LayoutHelper.createLinear(-1, -2))
+    ignore_btn.addView(ignore_tv, FrameLayout.LayoutParams(-1, -1))
+    ignore_lp = LinearLayout.LayoutParams(-1, btn_height)
+    btns.addView(ignore_btn, ignore_lp)
 
-    outer.addView(expanded, LayoutHelper.createLinear(-1, -2))
+    outer.addView(btns, LayoutHelper.createLinear(-1, -2))
 
-    class _TouchListener(dynamic_proxy(View.OnTouchListener)):
-        def __init__(self): super().__init__()
-        def onTouch(self, v, event):
-            try:
-                action = event.getActionMasked()
-                if action == MotionEvent.ACTION_DOWN:
-                    v.animate().scaleX(0.97).scaleY(0.97).setDuration(100).start()
-                elif action in (MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL):
-                    v.animate().scaleX(1.0).scaleY(1.0).setDuration(200).start()
-            except Exception:
-                pass
-            return False
-
-    outer.setOnTouchListener(_TouchListener())
-
-    is_expanded = [False]
-
-    def _toggle(v=None):
-        is_expanded[0] = not is_expanded[0]
+    def _set_update_btn_state(state: str):
+        # state: "loading" | "done" | "idle"
         try:
-            chevron.animate().rotation(180.0 if is_expanded[0] else 0.0).setDuration(200).start()
-        except Exception:
-            chevron.setRotation(180.0 if is_expanded[0] else 0.0)
+            update_btn.setEnabled(state == "idle")
+            update_btn.setClickable(state == "idle")
+            if state == "idle":
+                update_tv.setVisibility(View.VISIBLE)
+                update_icon_iv.setVisibility(View.GONE)
+                update_icon_iv.setImageDrawable(None)
+                update_btn.setBackground(update_btn_bg[0])
+            elif state == "loading":
+                update_tv.setVisibility(View.GONE)
+                update_icon_iv.setVisibility(View.VISIBLE)
+                try:
+                    from org.telegram.ui.Components import CircularProgressDrawable
+                    icon_color = Theme.getColor(Theme.key_featuredStickers_buttonText)
+                    d = CircularProgressDrawable(icon_color)
+                    try:
+                        d.size = float(dp(20))
+                        d.thickness = float(dp(2))
+                    except Exception:
+                        pass
+                    update_icon_iv.setImageDrawable(d)
+                except Exception as e:
+                    log(f"startupSheet: spinner create error: {e}")
+                    update_tv.setVisibility(View.VISIBLE)
+                    update_icon_iv.setVisibility(View.GONE)
+            elif state == "done":
+                update_tv.setVisibility(View.GONE)
+                update_icon_iv.setVisibility(View.VISIBLE)
+                try:
+                    from hook_utils import find_class as _fc
+                    R_tg = _fc("org.telegram.messenger.R")
+                    check_icon_id = getattr(R_tg.drawable, "msg_select", 0)
+                except Exception:
+                    check_icon_id = 0
+                if check_icon_id:
+                    update_icon_iv.setImageResource(check_icon_id)
+                try:
+                    icon_color = Theme.getColor(Theme.key_featuredStickers_buttonText)
+                except Exception:
+                    icon_color = 0xFFFFFFFF
+                update_icon_iv.setColorFilter(icon_color)
+        except Exception as e:
+            log(f"startupSheet: _set_update_btn_state error: {e}")
 
-        if is_expanded[0]:
-            expanded.setAlpha(0.0)
-            expanded.setVisibility(View.VISIBLE)
-            expanded.measure(
+    update_btn.setOnClickListener(OnClickListener(lambda v: on_action("update", item, _set_update_btn_state)))
+    ignore_btn.setOnClickListener(OnClickListener(lambda v: on_action("ignore", item, None)))
+
+    def on_card_click(v):
+        expanded[0] = not expanded[0]
+        try:
+            chevron.animate().rotation(180.0 if expanded[0] else 0.0).setDuration(200).start()
+        except Exception:
+            chevron.setRotation(180.0 if expanded[0] else 0.0)
+        if expanded[0]:
+            divider.setVisibility(View.VISIBLE)
+            btns.setAlpha(0.0)
+            btns.setVisibility(View.VISIBLE)
+            btns.measure(
                 View.MeasureSpec.makeMeasureSpec(outer.getWidth(), View.MeasureSpec.AT_MOST),
-                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
             )
-            target_h = expanded.getMeasuredHeight()
-            expanded.getLayoutParams().height = 0
-            expanded.requestLayout()
+            target_h = btns.getMeasuredHeight()
+            btns.getLayoutParams().height = 0
+            btns.requestLayout()
             try:
                 from android.animation import ValueAnimator, Animator
+                from java import dynamic_proxy
 
-                class _UpdExp(dynamic_proxy(ValueAnimator.AnimatorUpdateListener)):
+                class _UpdateExpand(dynamic_proxy(ValueAnimator.AnimatorUpdateListener)):
                     def onAnimationUpdate(self, a):
-                        expanded.getLayoutParams().height = int(a.getAnimatedValue())
-                        expanded.requestLayout()
+                        btns.getLayoutParams().height = int(a.getAnimatedValue())
+                        btns.requestLayout()
 
-                class _EndExp(dynamic_proxy(Animator.AnimatorListener)):
+                class _EndExpand(dynamic_proxy(Animator.AnimatorListener)):
                     def onAnimationEnd(self, a, *args):
-                        expanded.getLayoutParams().height = -2
-                        expanded.requestLayout()
+                        btns.getLayoutParams().height = -2
+                        btns.requestLayout()
                     def onAnimationStart(self, a, *args): pass
                     def onAnimationCancel(self, a, *args): pass
                     def onAnimationRepeat(self, a, *args): pass
 
                 anim = ValueAnimator.ofInt(0, target_h)
                 anim.setDuration(220)
-                anim.addUpdateListener(_UpdExp())
-                anim.addListener(_EndExp())
+                anim.addUpdateListener(_UpdateExpand())
+                anim.addListener(_EndExpand())
                 anim.start()
-                expanded.animate().alpha(1.0).setDuration(220).start()
+                btns.animate().alpha(1.0).setDuration(220).start()
             except Exception:
-                expanded.getLayoutParams().height = -2
-                expanded.setAlpha(1.0)
-                expanded.requestLayout()
+                btns.getLayoutParams().height = -2
+                btns.setAlpha(1.0)
+                btns.requestLayout()
         else:
             try:
                 from android.animation import ValueAnimator, Animator
-                start_h = expanded.getMeasuredHeight()
+                from java import dynamic_proxy
+                start_h = btns.getMeasuredHeight()
 
-                class _UpdCol(dynamic_proxy(ValueAnimator.AnimatorUpdateListener)):
+                class _UpdateCollapse(dynamic_proxy(ValueAnimator.AnimatorUpdateListener)):
                     def onAnimationUpdate(self, a):
-                        expanded.getLayoutParams().height = int(a.getAnimatedValue())
-                        expanded.requestLayout()
+                        btns.getLayoutParams().height = int(a.getAnimatedValue())
+                        btns.requestLayout()
 
-                class _EndCol(dynamic_proxy(Animator.AnimatorListener)):
+                class _EndCollapse(dynamic_proxy(Animator.AnimatorListener)):
                     def onAnimationEnd(self, a, *args):
-                        expanded.setVisibility(View.GONE)
-                        expanded.getLayoutParams().height = -2
-                        expanded.setAlpha(1.0)
-                        expanded.requestLayout()
+                        btns.setVisibility(View.GONE)
+                        divider.setVisibility(View.GONE)
+                        btns.getLayoutParams().height = -2
+                        btns.setAlpha(1.0)
+                        btns.requestLayout()
                     def onAnimationStart(self, a, *args): pass
                     def onAnimationCancel(self, a, *args): pass
                     def onAnimationRepeat(self, a, *args): pass
 
                 anim = ValueAnimator.ofInt(start_h, 0)
                 anim.setDuration(180)
-                anim.addUpdateListener(_UpdCol())
-                anim.addListener(_EndCol())
+                anim.addUpdateListener(_UpdateCollapse())
+                anim.addListener(_EndCollapse())
                 anim.start()
-                expanded.animate().alpha(0.0).setDuration(180).start()
+                btns.animate().alpha(0.0).setDuration(180).start()
             except Exception:
-                expanded.setVisibility(View.GONE)
+                btns.setVisibility(View.GONE)
+                divider.setVisibility(View.GONE)
 
-    outer.setOnClickListener(OnClickListener(_toggle))
-    update_btn.setOnClickListener(OnClickListener(lambda v: on_action("update", item)))
-    ignore_btn.setOnClickListener(OnClickListener(lambda v: on_action("ignore", item)))
+    outer.setOnClickListener(OnClickListener(on_card_click))
 
     return outer
 
@@ -455,16 +488,48 @@ def _show_sheet(updates: list, plugin, on_sheet_closed=None):
         items_container.setOrientation(LinearLayout.VERTICAL)
         root.addView(items_container, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 12))
 
+        total_items = len(updates)
+        done_count = [0]
         acted_items = []
 
-        def _on_action(action: str, item: dict):
-            acted_items.append((action, item))
-            try:
-                sheet.dismiss()
-            except Exception:
-                pass
-            if on_sheet_closed:
-                on_sheet_closed(acted_items)
+        def _check_all_done():
+            log(f"startupSheet: _check_all_done done={done_count[0]} total={total_items}")
+            if done_count[0] >= total_items:
+                log("startupSheet: all items done, dismissing sheet")
+                try:
+                    sheet.dismiss()
+                except Exception as e:
+                    log(f"startupSheet: _check_all_done dismiss error: {e}")
+
+        def _on_action(action: str, item: dict, set_btn_state=None):
+            pid = item.get("id", "?")
+            log(f"startupSheet: _on_action action='{action}' plugin='{pid}'")
+            if action == "ignore":
+                acted_items.append((action, item, set_btn_state))
+                done_count[0] += 1
+                log(f"startupSheet: ignored '{pid}', done={done_count[0]}/{total_items}")
+                try:
+                    sheet.dismiss()
+                except Exception:
+                    pass
+                if on_sheet_closed:
+                    on_sheet_closed(acted_items)
+            elif action == "update":
+                original_set_state = set_btn_state
+
+                def _wrapped_set_state(state: str, _orig=original_set_state):
+                    log(f"startupSheet: btn_state='{state}' plugin='{pid}'")
+                    if _orig:
+                        _orig(state)
+                    if state == "done":
+                        done_count[0] += 1
+                        log(f"startupSheet: update done '{pid}', done={done_count[0]}/{total_items}")
+                        run_on_ui_thread(_check_all_done)
+
+                acted_items.append((action, item, _wrapped_set_state))
+                log(f"startupSheet: starting install for '{pid}'")
+                if on_sheet_closed:
+                    on_sheet_closed(acted_items)
 
         for item in updates:
             card = _make_item_card(act, item, plugin_ref, _on_action)
@@ -472,23 +537,26 @@ def _show_sheet(updates: list, plugin, on_sheet_closed=None):
             card_lp.bottomMargin = dp(8)
             items_container.addView(card, card_lp)
 
+        try:
+            accent_pressed = Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
+        except Exception:
+            accent_pressed = accent
+
         ignore_all_btn = FrameLayout(act)
         ignore_all_btn.setClickable(True)
         ignore_all_btn.setFocusable(True)
-        ia_bg = GradientDrawable()
-        ia_bg.setShape(GradientDrawable.RECTANGLE)
-        ia_bg.setCornerRadius(dp(12))
-        ia_bg.setColor(gray_bg)
-        ignore_all_btn.setBackground(ia_bg)
-        ignore_all_btn.setPadding(0, dp(12), 0, dp(12))
+        ignore_all_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+            dp(28), accent, accent_pressed
+        ))
+        ignore_all_btn.setPadding(0, dp(14), 0, dp(14))
 
         ignore_all_tv = TextView(act)
         ignore_all_tv.setText(str(strings.startup_updates_ignore_all))
-        ignore_all_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+        ignore_all_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
         ignore_all_tv.setGravity(Gravity.CENTER)
-        ignore_all_tv.setTextColor(accent)
+        ignore_all_tv.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
         try:
-            ignore_all_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+            ignore_all_tv.setTypeface(AndroidUtilities.bold())
         except Exception:
             pass
         ignore_all_btn.addView(ignore_all_tv, FrameLayout.LayoutParams(-1, -2))
@@ -504,25 +572,25 @@ def _show_sheet(updates: list, plugin, on_sheet_closed=None):
                 log(f"startupSheet: _ignore_all error: {e}")
 
         ignore_all_btn.setOnClickListener(OnClickListener(_ignore_all))
-        root.addView(ignore_all_btn, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 6))
+        root.addView(ignore_all_btn, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 8))
 
         close_btn = FrameLayout(act)
         close_btn.setClickable(True)
         close_btn.setFocusable(True)
-        cl_bg = GradientDrawable()
-        cl_bg.setShape(GradientDrawable.RECTANGLE)
-        cl_bg.setCornerRadius(dp(12))
-        cl_bg.setColor(gray_bg)
-        close_btn.setBackground(cl_bg)
-        close_btn.setPadding(0, dp(12), 0, dp(12))
+        close_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+            dp(28),
+            Theme.getColor(Theme.key_graySection),
+            Theme.getColor(Theme.key_listSelector)
+        ))
+        close_btn.setPadding(0, dp(14), 0, dp(14))
 
         close_tv = TextView(act)
         close_tv.setText(str(strings.startup_updates_close))
-        close_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+        close_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
         close_tv.setGravity(Gravity.CENTER)
-        close_tv.setTextColor(text_primary)
+        close_tv.setTextColor(accent)
         try:
-            close_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+            close_tv.setTypeface(AndroidUtilities.bold())
         except Exception:
             pass
         close_btn.addView(close_tv, FrameLayout.LayoutParams(-1, -2))
@@ -544,14 +612,24 @@ def _show_sheet(updates: list, plugin, on_sheet_closed=None):
 
 
 def _apply_actions_and_refresh(acted_items, plugin):
+    has_updates = False
+    has_ignores = False
     try:
-        for action, item in (acted_items or []):
+        for entry in (acted_items or []):
+            action, item = entry[0], entry[1]
+            set_btn_state = entry[2] if len(entry) > 2 else None
             if action == "ignore":
+                has_ignores = True
                 _ignore_until_next(None, item["id"], item.get("repo_id", ""), item.get("repo_version", ""))
             elif action == "update":
-                _do_install(item, plugin)
+                has_updates = True
+                _do_install(item, plugin, set_btn_state)
     except Exception as e:
         log(f"startupSheet: _apply_actions_and_refresh error: {e}")
+
+    # if only updates were triggered (no ignores), skip refresh — installs are async
+    if has_updates and not has_ignores:
+        return
 
     def task():
         try:
@@ -577,7 +655,7 @@ def _make_closed_handler(plugin):
     return on_closed
 
 
-def _do_install(item: dict, plugin):
+def _do_install(item: dict, plugin, set_btn_state=None):
     pid = item["id"]
     repo_id = item.get("repo_id", "")
     repos = _get_repos()
@@ -590,44 +668,152 @@ def _do_install(item: dict, plugin):
         log(f"startupSheet: _do_install repo '{repo_id}' not found")
         return
 
+    if set_btn_state:
+        run_on_ui_thread(lambda: set_btn_state("loading"))
+
     def task():
         try:
             from ...deeplinks.install import _resolvePluginsUrl
-            from ...core import install_plugin
+            from ...utils.paths import getPluginsDir
             import requests as _req
+            import os
+            from elyxcore import gen
+            from org.telegram.messenger import Utilities
+
+            Callback = gen(Utilities.Callback, "run")
 
             plugins_url = _resolvePluginsUrl(repo)
             if not plugins_url:
+                if set_btn_state:
+                    run_on_ui_thread(lambda: set_btn_state("idle"))
                 return
 
             r = _req.get(plugins_url, timeout=20, headers={"User-Agent": "PackIt/1.0"})
             if r.status_code != 200:
+                if set_btn_state:
+                    run_on_ui_thread(lambda: set_btn_state("idle"))
                 return
 
             data = r.json()
             plugins_raw = data.get("plugins", {})
             plugin_data = None
-            all_plugins = []
             if isinstance(plugins_raw, dict):
-                for _pid, info in plugins_raw.items():
-                    if isinstance(info, dict):
-                        all_plugins.append({"id": _pid, **info})
                 info = plugins_raw.get(pid)
                 if isinstance(info, dict):
                     plugin_data = {"id": pid, **info}
             elif isinstance(plugins_raw, list):
-                all_plugins = [p for p in plugins_raw if isinstance(p, dict)]
                 for p in plugins_raw:
                     if isinstance(p, dict) and p.get("id") == pid:
                         plugin_data = p
                         break
 
             if not plugin_data:
+                if set_btn_state:
+                    run_on_ui_thread(lambda: set_btn_state("idle"))
                 return
 
-            run_on_ui_thread(lambda: install_plugin(plugin_data, all_plugins=all_plugins, rm_rid=repo_id))
+            url = plugin_data.get("link") or plugin_data.get("raw")
+            if not url:
+                log(f"startupSheet: _do_install no link for '{pid}'")
+                if set_btn_state:
+                    run_on_ui_thread(lambda: set_btn_state("idle"))
+                return
+
+            plugins_dir = getPluginsDir()
+            try:
+                os.makedirs(plugins_dir, exist_ok=True)
+            except Exception:
+                pass
+
+            file_path = os.path.join(plugins_dir, f".temp_{pid}.plugin")
+            dl = _req.get(url, timeout=30, headers={"User-Agent": "PackIt/1.0"})
+            if dl.status_code != 200:
+                log(f"startupSheet: _do_install download failed for '{pid}': HTTP {dl.status_code}")
+                if set_btn_state:
+                    run_on_ui_thread(lambda: set_btn_state("idle"))
+                return
+            with open(file_path, "wb") as f:
+                f.write(dl.content)
+
+            is_elyx = False
+            try:
+                tags = plugin_data.get("tags") or []
+                is_elyx = any(
+                    isinstance(t, (list, tuple)) and len(t) > 0 and t[0] == "Elyx"
+                    for t in tags
+                )
+            except Exception as e:
+                log(f"startupSheet: _do_install tag check error for '{pid}': {e}")
+
+            log(f"startupSheet: _do_install is_elyx={is_elyx} for '{pid}'")
+
+            if is_elyx:
+                try:
+                    from zipfile import ZipFile
+                    from elyxcore import ElyxPlugin, ElyxEngine
+                    from ...utils.installIndex import commit_elyx_pending
+
+                    elyx_plugin = ElyxPlugin(plzip=ZipFile(file_path, "r"), raise_errors=False)
+
+                    def on_elyx_complete():
+                        log(f"startupSheet: elyx install complete for '{pid}'")
+                        try:
+                            commit_elyx_pending(plugin_data, repo_id)
+                        except Exception as e:
+                            log(f"startupSheet: commit_elyx_pending error for '{pid}': {e}")
+                        if set_btn_state:
+                            run_on_ui_thread(lambda: set_btn_state("done"))
+
+                    def on_elyx_error(error):
+                        log(f"startupSheet: elyx install error for '{pid}': {error}")
+                        if set_btn_state:
+                            run_on_ui_thread(lambda: set_btn_state("idle"))
+
+                    ElyxEngine.instance.load_from_archive(
+                        elyx_plugin, True, on_elyx_complete, on_elyx_error
+                    )
+                except Exception as e:
+                    log(f"startupSheet: _do_install elyx path error for '{pid}': {e}")
+                    if set_btn_state:
+                        run_on_ui_thread(lambda: set_btn_state("idle"))
+                return
+
+            plugin_id = pid
+            from com.exteragram.messenger.plugins import PluginsController
+            python_engine = PluginsController.engines.get("python")
+
+            # set_pending before install so commit_pending can write the index record
+            try:
+                from ...utils.installIndex import set_pending, commit_pending
+                set_pending(plugin_data, repo_id)
+            except Exception as e:
+                log(f"startupSheet: set_pending error: {e}")
+
+            def on_enabled(error):
+                if error:
+                    log(f"startupSheet: setPluginEnabled error for '{plugin_id}': {error}")
+                    if set_btn_state:
+                        run_on_ui_thread(lambda: set_btn_state("idle"))
+                    return
+                try:
+                    commit_pending()
+                except Exception as e:
+                    log(f"startupSheet: commit_pending error: {e}")
+                if set_btn_state:
+                    run_on_ui_thread(lambda: set_btn_state("done"))
+
+            def on_installed(error):
+                if not error:
+                    return python_engine.setPluginEnabled(plugin_id, True, Callback(on_enabled))
+                log(f"startupSheet: loadPluginFromFile error for '{plugin_id}': {error}")
+                if set_btn_state:
+                    run_on_ui_thread(lambda: set_btn_state("idle"))
+
+            run_on_ui_thread(lambda: python_engine.loadPluginFromFile(file_path, None, Callback(on_installed)))
         except Exception as e:
             log(f"startupSheet: _do_install task error for '{pid}': {e}")
+            if set_btn_state:
+                run_on_ui_thread(lambda: set_btn_state("idle"))
 
     run_on_queue(task)
 
