@@ -1,0 +1,5 @@
+libscl:
+    core: https://github.com/shareui/scl-c
+    wheel: https://github.com/shareui/scl
+bithash:
+    core: https://github.com/shareui/bithash
