@@ -1,8 +1,7 @@
-import os
 import threading
-import zipfile
 
-from ui.settings import Header, Text, Divider
+from ui.settings import Header, Text, Divider, Input
+from ui.alert import AlertDialogBuilder
 from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment
 from android_utils import log, run_on_ui_thread
@@ -14,98 +13,125 @@ except Exception as e:
     from ..utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 
-class UtilitiesSettings:
-    def _do_share_afp(self, selected_files, export_settings, export_locally):
+def _calcPluginsDirSize():
+    try:
+        import os
         try:
-            from java import jclass, dynamic_proxy
-            from java.io import File, FileOutputStream
-            from hook_utils import find_class
+            from file_utils import get_plugins_dir
+            plugins_dir = get_plugins_dir()
+        except Exception:
+            from org.telegram.messenger import ApplicationLoader
+            files_dir = ApplicationLoader.applicationContext.getFilesDir().getAbsolutePath()
+            plugins_dir = os.path.join(files_dir, "plugins")
 
+        total_bytes = 0
+        count = 0
+        for fname in os.listdir(plugins_dir):
+            if not fname.endswith((".py", ".plugin")) or fname.startswith(".temp"):
+                continue
             try:
-                from elyx import settings as elyxSettings
-                download_path = elyxSettings.get("download_path", "/storage/emulated/0/Download")
+                total_bytes += os.path.getsize(os.path.join(plugins_dir, fname))
+                count += 1
             except Exception:
-                download_path = "/storage/emulated/0/Download"
-
-            os.makedirs(download_path, exist_ok=True)
-            file_path = os.path.join(download_path, "empty.afp")
-
-            # create empty zip renamed to .afp
-            with zipfile.ZipFile(file_path, "w") as zf:
                 pass
+        return count, total_bytes
+    except Exception as e:
+        log(f"utilities._calcPluginsDirSize: {e}")
+        return 0, 0
 
-            def open_share():
-                try:
-                    ShareAlert = find_class("org.telegram.ui.Components.ShareAlert")
-                    fragment = get_last_fragment()
-                    if not fragment:
-                        return
 
-                    ShareDelegateClass = jclass("org.telegram.ui.Components.ShareAlert$ShareAlertDelegate")
-                    _fragment = fragment
+def _formatSize(total_bytes):
+    if total_bytes >= 1024 * 1024:
+        return f"{total_bytes / (1024 * 1024):.2f} MB"
+    return f"{total_bytes / 1024:.2f} KB"
 
-                    class ShareDelegate(dynamic_proxy(ShareDelegateClass)):
-                        def __init__(self):
-                            super().__init__()
 
-                        def didShare(self):
-                            def _show_bulletin():
-                                try:
-                                    from org.telegram.messenger import R as R_tg
-                                    BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
-                                    container = _fragment.getParentActivity().getWindow().getDecorView()
-                                    rp = _fragment.getResourceProvider()
-                                    BulletinFactory.of(container, rp).createSimpleBulletin(R_tg.raw.voip_invite, strings["utilities_afp_shared"]).show()
-                                except Exception as e:
-                                    log(f"utilities.ShareDelegate.didShare: {e}")
-                            run_on_ui_thread(_show_bulletin)
+class UtilitiesSettings:
+    def __init__(self):
+        self._archive_name = "plugins"
+        self._export_subtext = str(strings["utilities_export_subtext_loading"])
+        self._size_loaded = False
+        threading.Thread(target=self._loadSubtextInBackground, daemon=True).start()
 
-                        def didCopy(self):
-                            return False
-
-                    temp_file = File(file_path)
-                    share_alert = ShareAlert(
-                        fragment.getParentActivity(),
-                        None, None,
-                        temp_file.getAbsolutePath(),
-                        None, None,
-                        False, None, None,
-                        False, False, False,
-                        None, None
-                    )
-                    share_alert.setDelegate(ShareDelegate())
-                    fragment.showDialog(share_alert)
-                except Exception as e:
-                    log(f"utilities._do_share_afp.open_share: {e}")
-                    BulletinHelper.show_error(strings["utilities_afp_error"])
-
-            run_on_ui_thread(open_share)
+    def _loadSubtextInBackground(self):
+        try:
+            count, total_bytes = _calcPluginsDirSize()
+            size_str = _formatSize(total_bytes)
+            self._export_subtext = (
+                str(strings["utilities_export_subtext"])
+                .replace("{count}", str(count))
+                .replace("{size}", size_str)
+            )
+            self._size_loaded = True
+            self._reloadSettings()
         except Exception as e:
-            log(f"utilities._do_share_afp: {e}")
-            run_on_ui_thread(lambda: BulletinHelper.show_error(strings["utilities_afp_error"]))
+            log(f"utilities._loadSubtextInBackground: {e}")
+
+    def _reloadSettings(self):
+        try:
+            from com.exteragram.messenger.plugins import PluginsController
+            PluginsController.getInstance().loadPluginSettings("shareui_packit")
+        except Exception as e:
+            log(f"utilities._reloadSettings: {e}")
 
     def _on_export(self, selected_files, export_settings, export_locally):
-        t = threading.Thread(
-            target=self._do_share_afp,
-            args=(selected_files, export_settings, export_locally),
-            daemon=True
-        )
-        t.start()
+        from .service.pluginsExport import buildArchive
+        archive_name = self._archive_name.strip() or "plugins"
+        buildArchive(selected_files, export_settings, export_locally, archive_name)
 
     def _share_afp(self, view):
-        try:
-            from ..ui.ExportBottomSheet import show as showExportSheet
-            showExportSheet(self._on_export)
-        except Exception as e:
-            log(f"utilities._share_afp: {e}")
+        fragment = get_last_fragment()
+        if not fragment:
+            return
+        act = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
+        if not act:
+            return
+
+        dlg_ref = [None]
+
+        def show_spinner():
+            try:
+                loading = AlertDialogBuilder(act, AlertDialogBuilder.ALERT_TYPE_SPINNER)
+                loading.set_cancelable(False)
+                dlg_ref[0] = loading.create()
+                dlg_ref[0].show()
+            except Exception as e:
+                log(f"utilities._share_afp: show_spinner error: {e}")
+
+        def dismiss_spinner():
+            try:
+                if dlg_ref[0]:
+                    dlg_ref[0].dismiss()
+            except Exception as e:
+                log(f"utilities._share_afp: dismiss_spinner error: {e}")
+
+        def load_and_show():
+            try:
+                from ..ui.ExportBottomSheet import loadPlugins, show as showExportSheet
+                plugins = loadPlugins()
+                run_on_ui_thread(lambda: (dismiss_spinner(), showExportSheet(plugins, self._on_export)))
+            except Exception as e:
+                log(f"utilities._share_afp: load_and_show error: {e}")
+                run_on_ui_thread(lambda: (dismiss_spinner(), BulletinHelper.show_error(strings["utilities_afp_error"])))
+
+        run_on_ui_thread(show_spinner)
+        threading.Thread(target=load_and_show, daemon=True).start()
 
     def build(self):
         return [
             Header(text=strings["utilities_header"]),
             Text(
                 text=strings["utilities_share_afp"],
-                icon="msg_unarchive",
+                subtext=self._export_subtext,
+                icon="msg_shareout",
                 on_click=self._share_afp
             ),
-            Divider(),
+            Input(
+                key="utilities_archive_name",
+                text=strings["utilities_archive_name_label"],
+                default="plugins",
+                icon="menu_tag_rename",
+                on_change=lambda v: setattr(self, "_archive_name", v)
+            ),
+            Divider(text=strings["utilities_afp_divider"]),
         ]

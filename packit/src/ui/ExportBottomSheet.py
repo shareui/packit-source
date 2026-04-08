@@ -5,8 +5,10 @@ import traceback
 import ctypes
 
 from android.widget import LinearLayout, TextView, FrameLayout, ImageView, ScrollView
-from android.view import View, Gravity
+from android.view import View, Gravity, MotionEvent
 from android.graphics.drawable import GradientDrawable
+from android.graphics import Color
+from java import dynamic_proxy
 from android.util import TypedValue
 from android_utils import log, run_on_ui_thread, OnClickListener
 from client_utils import get_last_fragment
@@ -44,9 +46,15 @@ except Exception as e:
     import android_utils as _au; _au.log(f"ExportBottomSheet: import elyx failed: {e}")
     strings = None
 
+try:
+    from ui.bulletin import BulletinHelper
+except Exception as e:
+    import android_utils as _au; _au.log(f"ExportBottomSheet: import BulletinHelper failed: {e}")
+    BulletinHelper = None
+
 
 def _c(color: int) -> int:
-    # converts unsigned ARGB int to signed int32 for Java interop
+    # ebani chocoпай
     return ctypes.c_int32(color).value
 
 
@@ -106,7 +114,6 @@ def _scheduleStickerRetry(iv, icon_str: str, size_dp: int):
 
 
 def _readPluginMeta(filepath):
-    # reads __id__, __name__, __version__ from first 5kb of plugin file
     meta = {}
     try:
         with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
@@ -138,7 +145,7 @@ def _readPluginMeta(filepath):
     return meta
 
 
-def _loadPlugins():
+def loadPlugins():
     # returns list of (filename, name, version, icon)
     try:
         from file_utils import get_plugins_dir
@@ -149,7 +156,7 @@ def _loadPlugins():
             files_dir = ApplicationLoader.applicationContext.getFilesDir().getAbsolutePath()
             plugins_dir = os.path.join(files_dir, "plugins")
         except Exception as e:
-            log(f"ExportBottomSheet._loadPlugins: cannot resolve plugins dir: {e}\n{traceback.format_exc()}")
+            log(f"ExportBottomSheet.loadPlugins: cannot resolve plugins dir: {e}\n{traceback.format_exc()}")
             return []
 
     result = []
@@ -166,7 +173,7 @@ def _loadPlugins():
             icon = meta.get("__icon__") or ""
             result.append((fname, name, version, icon))
     except Exception as e:
-        log(f"ExportBottomSheet._loadPlugins: {e}\n{traceback.format_exc()}")
+        log(f"ExportBottomSheet.loadPlugins: {e}\n{traceback.format_exc()}")
     return result
 
 
@@ -178,7 +185,6 @@ def _animateChevron(chevron, expanded):
 
 
 def _createSectionHeader(act, title, on_toggle):
-    # clickable row: title left, arrow_more right (rotates 180 when expanded)
     row = LinearLayout(act)
     row.setOrientation(LinearLayout.HORIZONTAL)
     row.setGravity(Gravity.CENTER_VERTICAL)
@@ -219,14 +225,11 @@ def _createSectionHeader(act, title, on_toggle):
 
 
 def _makeCheckbox2(act, checked):
-    # creates a TG-native CheckBox2 (21dp), checked without animation on creation
     try:
         from org.telegram.ui.Components import CheckBox2
         cb = CheckBox2(act, 21)
         cb.setColor(Theme.key_radioBackgroundChecked, Theme.key_radioBackground, Theme.key_checkboxCheck)
         cb.setDrawUnchecked(True)
-        # backgroundType=14 draws unchecked circle using background2ColorKey (key_radioBackground),
-        # which matches standard TG dialog checkboxes
         cb.setDrawBackgroundAsArc(14)
         cb.setChecked(checked, False)
         return cb
@@ -298,7 +301,7 @@ def _createCheckRow(act, label, version_str, icon_str, checked, on_change):
         on_change(state["checked"])
 
     row.setOnClickListener(OnClickListener(click))
-    return row, state
+    return row, state, cb
 
 
 def _createOptionRow(act, label, checked, on_change):
@@ -387,7 +390,7 @@ def _createDivider(act):
     return d
 
 
-def show(on_export):
+def show(plugins, on_export):
     # on_export(selected_files: list[str], export_settings: bool, export_locally: bool)
     fragment = get_last_fragment()
     if not fragment:
@@ -398,22 +401,14 @@ def show(on_export):
 
     def _show():
         try:
-            plugins = _loadPlugins()
             count = len(plugins)
 
             sheet = BottomSheet(act, False, fragment.getResourceProvider())
             sheet.setApplyBottomPadding(False)
             sheet.setApplyTopPadding(False)
 
-            scroll = ScrollView(act)
-            scroll.setNestedScrollingEnabled(True)
-
-            root = LinearLayout(act)
-            root.setOrientation(LinearLayout.VERTICAL)
-            root.setPadding(
-                AndroidUtilities.dp(20), AndroidUtilities.dp(16),
-                AndroidUtilities.dp(20), AndroidUtilities.dp(8)
-            )
+            outer = LinearLayout(act)
+            outer.setOrientation(LinearLayout.VERTICAL)
             try:
                 bg = GradientDrawable()
                 bg.setShape(GradientDrawable.RECTANGLE)
@@ -423,13 +418,16 @@ def show(on_export):
                     0, 0, 0, 0,
                 ])
                 bg.setColor(Theme.getColor(Theme.key_dialogBackground))
-                root.setBackground(bg)
+                outer.setBackground(bg)
             except Exception:
                 try:
-                    root.setBackgroundColor(Theme.getColor(Theme.key_dialogBackground))
+                    outer.setBackgroundColor(Theme.getColor(Theme.key_dialogBackground))
                 except Exception:
                     pass
 
+            pad_h = 20
+
+            # header
             title_tv = TextView(act)
             title_tv.setText(str(strings["utilities_export_title"]))
             title_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20)
@@ -438,7 +436,6 @@ def show(on_export):
                 title_tv.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
             except Exception:
                 pass
-            root.addView(title_tv, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 2))
 
             if count == 0:
                 subtitle = str(strings["utilities_export_subtitle_zero"])
@@ -450,23 +447,66 @@ def show(on_export):
             subtitle_tv = TextView(act)
             subtitle_tv.setText(subtitle)
             subtitle_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            subtitle_tv.setSingleLine(True)
             try:
                 subtitle_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
             except Exception:
                 pass
-            root.addView(subtitle_tv, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 16))
 
-            root.addView(_createDivider(act), LayoutHelper.createLinear(-1, 1, 0, 0, 0, 12))
+            title_col = LinearLayout(act)
+            title_col.setOrientation(LinearLayout.VERTICAL)
+            title_col.addView(title_tv, LayoutHelper.createLinear(-2, -2))
+            title_col.addView(subtitle_tv, LayoutHelper.createLinear(-2, -2, 0, 4, 0, 0))
+
+            toggle_btn = FrameLayout(act)
+            toggle_btn_size = AndroidUtilities.dp(28)
+            try:
+                toggle_btn.setBackground(Theme.createSelectorDrawable(
+                    Theme.getColor(Theme.key_listSelector), 1, AndroidUtilities.dp(14)
+                ))
+            except Exception:
+                toggle_btn.setClickable(True)
+                toggle_btn.setFocusable(True)
+            toggle_btn.setClickable(True)
+            toggle_btn.setFocusable(True)
+
+            toggle_iv = ImageView(act)
+            toggle_iv.setScaleType(ImageView.ScaleType.CENTER)
+            _toggle_icon = _resolveIcon("msg_photo_settings")
+            if _toggle_icon is not None:
+                toggle_iv.setImageResource(_toggle_icon)
+            try:
+                toggle_iv.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+            except Exception:
+                pass
+            toggle_btn.addView(toggle_iv, FrameLayout.LayoutParams(
+                AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER
+            ))
+
+            title_frame = FrameLayout(act)
+            title_frame.addView(title_col, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ))
+            toggle_lp = FrameLayout.LayoutParams(
+                toggle_btn_size, toggle_btn_size,
+                Gravity.TOP | Gravity.END
+            )
+            title_frame.addView(toggle_btn, toggle_lp)
+
+            outer.addView(title_frame, LayoutHelper.createLinear(-1, -2, pad_h, 16, pad_h, 16))
+            outer.addView(_createDivider(act), LayoutHelper.createLinear(-1, 1))
 
             # plugins section
             plugin_states = {}
-            plugins_container = LinearLayout(act)
-            plugins_container.setOrientation(LinearLayout.VERTICAL)
-            plugins_container.setVisibility(View.GONE)
+            plugin_checkboxes = {}
 
             def _updateSubtitle():
                 n = sum(1 for st in plugin_states.values() if st.get("checked", True))
+                total = len(plugin_states)
                 if n == 0:
+                    text = str(strings["utilities_export_subtitle_none"])
+                elif n == total:
                     text = str(strings["utilities_export_subtitle_zero"])
                 elif n == 1:
                     text = str(strings["utilities_export_subtitle_one"])
@@ -474,39 +514,113 @@ def show(on_export):
                     text = str(strings["utilities_export_subtitle"]).replace("{count}", str(n))
                 subtitle_tv.setText(text)
 
+            # plugins_list goes inside a ScrollView with capped height
+            plugins_list = LinearLayout(act)
+            plugins_list.setOrientation(LinearLayout.VERTICAL)
+
             for fname, name, version, icon in plugins:
-                row, state = _createCheckRow(act, name, version, icon, True, lambda c: _updateSubtitle())
+                row, state, cb = _createCheckRow(act, name, version, icon, True, lambda c: _updateSubtitle())
                 plugin_states[fname] = state
-                plugins_container.addView(row, LayoutHelper.createLinear(-1, -2))
+                plugin_checkboxes[fname] = cb
+                plugins_list.addView(row, LayoutHelper.createLinear(-1, -2))
+
+            def _onToggleAll(v):
+                for fn, st in plugin_states.items():
+                    st["checked"] = not st["checked"]
+                    cb_ref = plugin_checkboxes.get(fn)
+                    if cb_ref is not None:
+                        cb_ref.setChecked(st["checked"], True)
+                _updateSubtitle()
+
+            toggle_btn.setOnClickListener(OnClickListener(_onToggleAll))
+
+            # ScrollView wraps only the plugin list, capped at 5 rows
+            plugin_row_px = AndroidUtilities.dp(54)
+            plugins_scroll = ScrollView(act)
+            plugins_scroll.setNestedScrollingEnabled(True)
+            plugins_scroll.setVerticalScrollBarEnabled(False)
+            plugins_scroll.addView(plugins_list)
+
+            # fix: prevent bottom sheet from stealing scroll gesture when list is at top/bottom edge
+            class _ScrollTouchListener(dynamic_proxy(View.OnTouchListener)):
+                def __init__(self):
+                    super().__init__()
+                def onTouch(self, v, event):
+                    try:
+                        action = event.getActionMasked()
+                        if action == MotionEvent.ACTION_DOWN:
+                            v.getParent().requestDisallowInterceptTouchEvent(True)
+                        elif action in (MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL):
+                            v.getParent().requestDisallowInterceptTouchEvent(False)
+                    except Exception:
+                        pass
+                    return False
+
+            plugins_scroll.setOnTouchListener(_ScrollTouchListener())
+
+            scroll_height_px = min(len(plugins), 5) * plugin_row_px
+
+            # container: FrameLayout holds scroll + top/bottom gradient overlays
+            fade_height_dp = 16
+            plugins_wrap = FrameLayout(act)
+            plugins_wrap.setVisibility(View.GONE)
+            plugins_wrap.addView(
+                plugins_scroll,
+                FrameLayout.LayoutParams(-1, scroll_height_px)
+            )
+
+            try:
+                bg_color = Theme.getColor(Theme.key_dialogBackground)
+                transparent = Color.argb(0, (bg_color >> 16) & 0xFF, (bg_color >> 8) & 0xFF, bg_color & 0xFF)
+
+                top_fade = FrameLayout(act)
+                top_grd = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, [bg_color, transparent])
+                top_fade.setBackground(top_grd)
+                top_fade.setClickable(False)
+                plugins_wrap.addView(
+                    top_fade,
+                    FrameLayout.LayoutParams(-1, AndroidUtilities.dp(fade_height_dp), Gravity.TOP)
+                )
+
+                bottom_fade = FrameLayout(act)
+                bottom_grd = GradientDrawable(GradientDrawable.Orientation.BOTTOM_TOP, [bg_color, transparent])
+                bottom_fade.setBackground(bottom_grd)
+                bottom_fade.setClickable(False)
+                plugins_wrap.addView(
+                    bottom_fade,
+                    FrameLayout.LayoutParams(-1, AndroidUtilities.dp(fade_height_dp), Gravity.BOTTOM)
+                )
+            except Exception as e:
+                log(f"ExportBottomSheet: gradient overlay error: {e}")
+
+            plugins_wrap_lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                scroll_height_px
+            )
+            plugins_wrap_lp.leftMargin = AndroidUtilities.dp(pad_h)
+            plugins_wrap_lp.rightMargin = AndroidUtilities.dp(pad_h)
 
             plugins_header = _createSectionHeader(
                 act,
                 str(strings["utilities_export_plugins_section"]),
-                lambda expanded: plugins_container.setVisibility(View.VISIBLE if expanded else View.GONE)
+                lambda expanded: plugins_wrap.setVisibility(View.VISIBLE if expanded else View.GONE)
             )
-            root.addView(plugins_header, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 4))
-            root.addView(plugins_container, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8))
+            outer.addView(plugins_header, LayoutHelper.createLinear(-1, -2, pad_h, 0, pad_h, 0))
+            outer.addView(plugins_wrap, plugins_wrap_lp)
 
-            root.addView(_createDivider(act), LayoutHelper.createLinear(-1, 1, 0, 0, 0, 12))
+            outer.addView(_createDivider(act), LayoutHelper.createLinear(-1, 1))
 
-            # export settings section
             settings_container = LinearLayout(act)
             settings_container.setOrientation(LinearLayout.VERTICAL)
             settings_container.setVisibility(View.GONE)
 
             settings_row, export_settings_state = _createOptionRow(
-                act,
-                str(strings["utilities_export_plugin_settings"]),
-                False,
-                lambda c: None
+                act, str(strings["utilities_export_plugin_settings"]), False, lambda c: None
             )
             settings_container.addView(settings_row, LayoutHelper.createLinear(-1, -2))
 
             locally_row, export_locally_state = _createOptionRow(
-                act,
-                str(strings["utilities_export_locally"]),
-                True,
-                lambda c: None
+                act, str(strings["utilities_export_locally"]), True, lambda c: None
             )
             settings_container.addView(locally_row, LayoutHelper.createLinear(-1, -2))
 
@@ -515,30 +629,34 @@ def show(on_export):
                 str(strings["utilities_export_settings_section"]),
                 lambda expanded: settings_container.setVisibility(View.VISIBLE if expanded else View.GONE)
             )
-            root.addView(settings_header, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 4))
-            root.addView(settings_container, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8))
+            outer.addView(settings_header, LayoutHelper.createLinear(-1, -2, pad_h, 0, pad_h, 0))
+            outer.addView(settings_container, LayoutHelper.createLinear(-1, -2, pad_h, 0, pad_h, 0))
 
-            root.addView(_createDivider(act), LayoutHelper.createLinear(-1, 1, 0, 0, 0, 16))
+            outer.addView(_createDivider(act), LayoutHelper.createLinear(-1, 1, 0, 8, 0, 0))
 
+            # buttons
             def _onExport():
                 selected = [fname for fname, _n, _v, _i in plugins if plugin_states.get(fname, {}).get("checked", True)]
+                if not selected:
+                    sheet.dismiss()
+                    BulletinHelper.show_error(strings["utilities_export_empty"])
+                    return
                 incl_settings = export_settings_state.get("checked", False)
                 locally = export_locally_state.get("checked", True)
                 sheet.dismiss()
                 on_export(selected, incl_settings, locally)
 
             export_btn = _createButton(act, str(strings["utilities_export_btn"]), True, _onExport)
-            root.addView(export_btn, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8))
+            outer.addView(export_btn, LayoutHelper.createLinear(-1, -2, pad_h, 8, pad_h, 8))
 
             close_btn = _createButton(act, str(strings["close_button"]), False, lambda: sheet.dismiss())
-            root.addView(close_btn, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8))
+            outer.addView(close_btn, LayoutHelper.createLinear(-1, -2, pad_h, 0, pad_h, 8))
 
-            scroll.addView(root)
-            sheet.setCustomView(scroll)
+            sheet.setCustomView(outer)
 
             try:
                 from .viewUtils import applyFontToTree
-                applyFontToTree(root)
+                applyFontToTree(outer)
             except Exception:
                 pass
 
