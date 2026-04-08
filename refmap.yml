@@ -2,4 +2,3 @@ metainfo: packit/meta.yml
 main: packit/src/main.py
 strings: packit/locales
 assets: packit/res
-wheels: packit/wheels
