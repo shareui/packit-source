@@ -10,6 +10,7 @@ from .SettingsActivity.settings import OtherSettings
 from .SettingsActivity.docs import DocumentationSettings
 from .SettingsActivity.contributors import ContributorsSettings
 from .SettingsActivity.profile import ProfileSettings
+from .SettingsActivity.utilities import UtilitiesSettings
 from ui.bulletin import BulletinHelper
 from base_plugin import BasePlugin, MethodHook
 from android_utils import run_on_ui_thread, log
@@ -71,6 +72,7 @@ class SettingsBuilder:
         self.documentationSettings = DocumentationSettings()
         self.contributorsSettings = ContributorsSettings()
         self.profileSettings = ProfileSettings()
+        self.utilitiesSettings = UtilitiesSettings()
 
     def _setup_settings_header_hook(self):
         try:
@@ -303,6 +305,12 @@ class SettingsBuilder:
                 text=strings.profile,
                 icon="msg_contacts",
                 create_sub_fragment=self.profileSettings.build
+            ),
+            
+            Text(
+                text=strings.utilities,
+                icon="msg_work",
+                create_sub_fragment=self.utilitiesSettings.build
             ),
             
             Text(
