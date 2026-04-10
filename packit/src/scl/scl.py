@@ -24,12 +24,13 @@ def version():
 
 def parse(src, opts=None):
     # precondition: src is str or bytes
+    import ctypes
     nativeOpts = opts.toNative() if opts is not None else None
     r = _native.parseStr(src, nativeOpts)
 
     ok  = r.ok
     doc = r.doc
-    msg = r.error.decode() if (not r.ok and r.error) else None
+    msg = ctypes.string_at(r.error).decode() if (not r.ok and r.error) else None
 
     warnings = []
     if r.warningCount > 0 and r.warnings:
@@ -41,18 +42,19 @@ def parse(src, opts=None):
     _native.freeResult(r)
 
     if not ok:
-        raise ParseError(msg or "parse failed")
+        raise ParseError(msg or f"parse failed (ok={ok}, doc={doc}, error field was empty)")
 
     return Doc(doc, warnings)
 
 def parseFile(path, opts=None):
     # precondition: path is str
+    import ctypes
     nativeOpts = opts.toNative() if opts is not None else None
     r = _native.parseFile(path, nativeOpts)
 
     ok  = r.ok
     doc = r.doc
-    msg = r.error.decode() if (not r.ok and r.error) else None
+    msg = ctypes.string_at(r.error).decode() if (not r.ok and r.error) else None
 
     warnings = []
     if r.warningCount > 0 and r.warnings:
@@ -64,6 +66,6 @@ def parseFile(path, opts=None):
     _native.freeResult(r)
 
     if not ok:
-        raise ParseError(msg or "parse failed")
+        raise ParseError(msg or f"parse failed (ok={ok}, doc={doc}, error field was empty)")
 
     return Doc(doc, warnings)

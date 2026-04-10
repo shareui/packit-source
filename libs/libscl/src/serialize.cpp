@@ -202,10 +202,12 @@ scl_str_t sclSerialize(scl_doc_t *doc) {
             if (v->as.list.count > 0) {
                 scl_value_t *first = v->as.list.items[0];
                 const char *et = "string";
-                if (first->type == SCL_TYPE_INT)    et = "int";
+                if (first->type == SCL_TYPE_INT)         et = "int";
                 else if (first->type == SCL_TYPE_UINT)   et = "uint";
                 else if (first->type == SCL_TYPE_FLOAT)  et = "float";
                 else if (first->type == SCL_TYPE_BOOL)   et = "bool";
+                else if (first->type == SCL_TYPE_STRUCT) et = "struct open {}";
+                else if (first->type == SCL_TYPE_MAP)    et = "struct open {}";
                 out << "[" << et << "]";
             } else {
                 out << "[string]";

@@ -643,6 +643,10 @@ def show(plugins, on_export):
                     return
                 incl_settings = export_settings_state.get("checked", False)
                 locally = export_locally_state.get("checked", True)
+                if not locally:
+                    sheet.dismiss()
+                    BulletinHelper.show_error(strings["not_ready_yet"])
+                    return
                 sheet.dismiss()
                 on_export(selected, incl_settings, locally)
 
