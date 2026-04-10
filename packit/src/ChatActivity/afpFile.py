@@ -76,6 +76,8 @@ class _AfpFileHandler(MethodHook):
             log(f"afpFile: type read error: {e}")
             return
 
+        plugins = []
+
         if afp_type == "local":
             local_path = os.path.join(tmp_dir, "local.scl")
             if not os.path.isfile(local_path):
@@ -84,10 +86,32 @@ class _AfpFileHandler(MethodHook):
                 try:
                     with open(local_path, "r", encoding="utf-8") as f:
                         local_src = f.read()
-                    parse(local_src, parseOpts)
+                    local_doc = parse(local_src, parseOpts)
                     log("afpFile: local metadata read successfully")
+                    plugins_val = local_doc["plugins"]
+                    if plugins_val is not None:
+                        i = 0
+                        while True:
+                            entry = plugins_val[i]
+                            if entry is None:
+                                break
+                            info = {"name": "", "version": "", "icon": ""}
+                            name_val = entry["name"]
+                            ver_val = entry["version"]
+                            icon_val = entry["icon"]
+                            if name_val is not None:
+                                info["name"] = name_val.asString()
+                            if ver_val is not None:
+                                info["version"] = ver_val.asString()
+                            if icon_val is not None:
+                                info["icon"] = icon_val.asString()
+                            plugins.append(info)
+                            i += 1
                 except Exception as e:
                     log(f"afpFile: local.scl parse error: {e}")
+
+        if not plugins:
+            plugins = [{"name": "", "version": "", "icon": ""}]
 
         try:
             count_val = config_doc["count"]
@@ -98,6 +122,13 @@ class _AfpFileHandler(MethodHook):
             log(f"afpFile: plugin count read successfully: {count}")
         except Exception as e:
             log(f"afpFile: count read error: {e}")
+            return
+
+        try:
+            from .ImportBottomSheet import show as showImportSheet
+            showImportSheet(plugins, count)
+        except Exception as e:
+            log(f"afpFile: show ImportBottomSheet error: {e}")
 
 
 def setup_afp_file_hook(plugin) -> list:

@@ -1,0 +1,573 @@
+import traceback
+import threading
+from android_utils import log, run_on_ui_thread
+from android.view import Gravity, View, MotionEvent, VelocityTracker
+from android.widget import FrameLayout, LinearLayout, TextView
+from android.util import TypedValue
+from android.animation import ValueAnimator, Animator
+from android.graphics.drawable import GradientDrawable
+from android.graphics import Color
+from java import dynamic_proxy
+
+
+def _load_sticker(iv, icon_str: str, size_dp: int) -> bool:
+    try:
+        if not icon_str or "/" not in icon_str:
+            return False
+        from org.telegram.messenger import MediaDataController, ImageLocation
+        pack_name, index_str = icon_str.split("/", 1)
+        sticker_index = int(index_str)
+        mdc = MediaDataController.getInstance(0)
+        ss = None
+        try:
+            ss = mdc.getStickerSetByName(pack_name)
+        except Exception:
+            pass
+        if not ss:
+            try:
+                ss = mdc.getStickerSetByEmojiOrName(pack_name)
+            except Exception:
+                pass
+        if ss and getattr(ss, "documents", None) and ss.documents.size() > sticker_index:
+            doc = ss.documents.get(sticker_index)
+            iv.setImage(
+                ImageLocation.getForDocument(doc),
+                f"{size_dp}_{size_dp}",
+                None, None, 0, 1
+            )
+            return True
+        try:
+            mdc.loadStickersByEmojiOrName(pack_name, False, False)
+        except Exception:
+            pass
+        return False
+    except Exception as e:
+        log(f"ImportBottomSheet._load_sticker: {e}")
+        return False
+
+
+def _schedule_sticker_retry(iv, icon_str: str, size_dp: int):
+    import time
+    def _retry():
+        for delay in (0.5, 1.0, 2.0, 3.0):
+            time.sleep(delay)
+            try:
+                result = [False]
+                run_on_ui_thread(lambda: result.__setitem__(0, _load_sticker(iv, icon_str, size_dp)))
+                if result[0]:
+                    return
+            except Exception:
+                pass
+    threading.Thread(target=_retry, daemon=True).start()
+
+
+def _make_icon_view(activity, icon_str: str, size_dp: int):
+    from org.telegram.ui.Components import BackupImageView
+    from org.telegram.messenger import AndroidUtilities
+    if not icon_str or "/" not in icon_str:
+        return None
+    try:
+        iv = BackupImageView(activity)
+        iv.setRoundRadius(AndroidUtilities.dp(24))
+        try:
+            iv.getImageReceiver().setCrossfadeWithOldImage(True)
+        except Exception:
+            pass
+        if not _load_sticker(iv, icon_str, size_dp):
+            _schedule_sticker_retry(iv, icon_str, size_dp)
+        return iv
+    except Exception as e:
+        log(f"ImportBottomSheet._make_icon_view: {e}")
+        return None
+
+
+def show(plugins: list, count: int):
+    # plugins: list of dicts with keys name, version, icon
+    from client_utils import get_last_fragment
+    fragment = get_last_fragment()
+    if not fragment:
+        return
+
+    def _show():
+        try:
+            from elyx import strings
+            from org.telegram.ui.ActionBar import BottomSheet, Theme
+            from org.telegram.ui.Components import LayoutHelper
+            from org.telegram.messenger import AndroidUtilities
+
+            activity = fragment.getParentActivity()
+            if not activity:
+                return
+
+            sheet = BottomSheet(activity, False, fragment.getResourceProvider())
+            sheet.fixNavigationBar()
+
+            pad_h = AndroidUtilities.dp(16)
+            pad_top = AndroidUtilities.dp(20)
+
+            size_dp = 112
+            # slot = icon + gap of ~1 icon width so neighbors are barely visible
+            slot_dp = int(size_dp * 1.8)
+
+            try:
+                gray_color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+            except Exception:
+                gray_color = 0xFF888888
+
+            try:
+                text_color = Theme.getColor(Theme.key_windowBackgroundWhiteBlackText)
+            except Exception:
+                text_color = 0xFF000000
+
+            n = len(plugins)
+
+            # carousel state
+            state = {"index": 0, "offset": 0.0, "anim": None}
+
+            # outer wrapper: everything except the static buttons
+            # touch covers entire this area
+            outer = FrameLayout(activity)
+
+            # content column: icon row + name + version + spacer + hint
+            # clipping is disabled so adjacent icons bleed into chevron/button zones
+            content_col = LinearLayout(activity)
+            content_col.setOrientation(LinearLayout.VERTICAL)
+            content_col.setGravity(Gravity.CENTER_HORIZONTAL)
+            content_col.setClipChildren(False)
+            content_col.setClipToPadding(False)
+
+            outer_lp = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            )
+            outer.addView(content_col, outer_lp)
+
+            icon_row = FrameLayout(activity)
+            icon_row.setClipChildren(False)
+            icon_row.setClipToPadding(False)
+            lp_row = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                AndroidUtilities.dp(size_dp)
+            )
+            lp_row.topMargin = pad_top
+            content_col.addView(icon_row, lp_row)
+
+            icon_views = []
+            slot_px_init = float(AndroidUtilities.dp(slot_dp))
+            for i, info in enumerate(plugins):
+                iv = _make_icon_view(activity, info.get("icon") or "", size_dp)
+                lp_iv = FrameLayout.LayoutParams(
+                    AndroidUtilities.dp(size_dp),
+                    AndroidUtilities.dp(size_dp),
+                    Gravity.CENTER
+                )
+                if iv is not None:
+                    iv.setTranslationX(float(i) * slot_px_init)
+                    icon_row.addView(iv, lp_iv)
+                icon_views.append(iv)
+
+            label_row = FrameLayout(activity)
+            label_row.setClipChildren(False)
+            label_row.setClipToPadding(False)
+            lp_labels = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            lp_labels.topMargin = AndroidUtilities.dp(12)
+            content_col.addView(label_row, lp_labels)
+
+            label_views = []
+            for i, info in enumerate(plugins):
+                label_block = LinearLayout(activity)
+                label_block.setOrientation(LinearLayout.VERTICAL)
+                label_block.setGravity(Gravity.CENTER_HORIZONTAL)
+
+                name_tv = TextView(activity)
+                name_tv.setGravity(Gravity.CENTER_HORIZONTAL)
+                name_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18)
+                name_tv.setText(info.get("name") or "")
+                try:
+                    name_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+                    name_tv.setTextColor(text_color)
+                except Exception:
+                    pass
+                lp_name = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                lp_name.leftMargin = pad_h
+                lp_name.rightMargin = pad_h
+                label_block.addView(name_tv, lp_name)
+
+                ver_tv = TextView(activity)
+                ver_tv.setGravity(Gravity.CENTER_HORIZONTAL)
+                ver_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+                version_str = info.get("version") or ""
+                ver_tv.setText(f"v{version_str}" if version_str else "")
+                try:
+                    ver_tv.setTextColor(gray_color)
+                except Exception:
+                    pass
+                lp_ver = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                lp_ver.topMargin = AndroidUtilities.dp(4)
+                lp_ver.leftMargin = pad_h
+                lp_ver.rightMargin = pad_h
+                label_block.addView(ver_tv, lp_ver)
+
+                lp_block = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    Gravity.CENTER_HORIZONTAL
+                )
+                label_block.setTranslationX(float(i) * slot_px_init)
+                label_row.addView(label_block, lp_block)
+                label_views.append(label_block)
+
+            # spacer
+            spacer = View(activity)
+            content_col.addView(spacer, LayoutHelper.createLinear(-1, 16))
+
+            # hint
+            hint_tv = TextView(activity)
+            hint_text = str(strings["afp_import_hint"]).replace("{0}", str(count))
+            hint_tv.setText(hint_text)
+            hint_tv.setGravity(Gravity.CENTER_HORIZONTAL)
+            hint_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            try:
+                hint_tv.setTextColor(gray_color)
+            except Exception:
+                pass
+            lp_hint = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            lp_hint.leftMargin = pad_h
+            lp_hint.rightMargin = pad_h
+            content_col.addView(hint_tv, lp_hint)
+
+            # horizontal fade overlays on both sides of icon_row
+            try:
+                bg_color = Theme.getColor(Theme.key_dialogBackground)
+                transparent = Color.argb(0, (bg_color >> 16) & 0xFF, (bg_color >> 8) & 0xFF, bg_color & 0xFF)
+                fade_w_dp = 44
+
+                left_fade = FrameLayout(activity)
+                left_grd = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, [bg_color, transparent])
+                left_fade.setBackground(left_grd)
+                left_fade.setClickable(False)
+                left_fade.setFocusable(False)
+                lp_lf = FrameLayout.LayoutParams(
+                    AndroidUtilities.dp(fade_w_dp),
+                    AndroidUtilities.dp(size_dp),
+                    Gravity.START | Gravity.TOP
+                )
+                lp_lf.topMargin = pad_top
+                outer.addView(left_fade, lp_lf)
+
+                right_fade = FrameLayout(activity)
+                right_grd = GradientDrawable(GradientDrawable.Orientation.RIGHT_LEFT, [bg_color, transparent])
+                right_fade.setBackground(right_grd)
+                right_fade.setClickable(False)
+                right_fade.setFocusable(False)
+                lp_rf = FrameLayout.LayoutParams(
+                    AndroidUtilities.dp(fade_w_dp),
+                    AndroidUtilities.dp(size_dp),
+                    Gravity.END | Gravity.TOP
+                )
+                lp_rf.topMargin = pad_top
+                outer.addView(right_fade, lp_rf)
+            except Exception as e:
+                log(f"ImportBottomSheet: fade overlay error: {e}")
+            # shrink factor per slot away from center (0.12 = 12% per step, min 0.6)
+            scale_per_slot = 0.12
+
+            def applyOffset(offset_px: float):
+                slot_px = float(AndroidUtilities.dp(slot_dp))
+                cur = state["index"]
+                center = cur + offset_px / slot_px
+                for i, iv in enumerate(icon_views):
+                    if iv is None:
+                        continue
+                    iv.setTranslationX((i - cur) * slot_px - offset_px)
+                    dist = abs(i - center)
+                    s = max(0.6, 1.0 - scale_per_slot * dist)
+                    iv.setScaleX(s)
+                    iv.setScaleY(s)
+                for i, lb in enumerate(label_views):
+                    lb.setTranslationX((i - cur) * slot_px - offset_px)
+                    dist = abs(i - center)
+                    s = max(0.6, 1.0 - scale_per_slot * dist)
+                    lb.setScaleX(s)
+                    lb.setScaleY(s)
+
+            applyOffset(0.0)
+
+            def snapTo(target_idx: int, vel_px: float):
+                if state["anim"] is not None:
+                    try:
+                        state["anim"].cancel()
+                    except Exception:
+                        pass
+                    state["anim"] = None
+
+                slot_px = float(AndroidUtilities.dp(slot_dp))
+                cur = state["index"]
+                start_offset = state["offset"]
+                end_offset = float(target_idx - cur) * slot_px
+
+                anim = ValueAnimator.ofFloat(start_offset, end_offset)
+
+                class _Update(dynamic_proxy(ValueAnimator.AnimatorUpdateListener)):
+                    def __init__(self): super().__init__()
+                    def onAnimationUpdate(self, va):
+                        v = float(va.getAnimatedValue())
+                        state["offset"] = v
+                        applyOffset(v)
+
+                class _End(dynamic_proxy(Animator.AnimatorListener)):
+                    def __init__(self): super().__init__()
+                    def onAnimationEnd(self, a, *args):
+                        state["index"] = target_idx
+                        state["offset"] = 0.0
+                        applyOffset(0.0)
+                        state["anim"] = None
+                    def onAnimationStart(self, a, *args): pass
+                    def onAnimationCancel(self, a, *args): pass
+                    def onAnimationRepeat(self, a, *args): pass
+
+                anim.addUpdateListener(_Update())
+                anim.addListener(_End())
+
+                dist = abs(end_offset - start_offset)
+                slot_px_d = float(AndroidUtilities.dp(slot_dp))
+                max_off_d = float(n - 1 - cur) * slot_px_d
+                min_off_d = -float(cur) * slot_px_d
+                is_rubber = start_offset > max_off_d or start_offset < min_off_d
+                if is_rubber:
+                    dur = 320
+                elif abs(vel_px) > 100:
+                    dur = max(150, min(380, int(dist / abs(vel_px) * 1000)))
+                else:
+                    dur = 260
+
+                from android.view.animation import DecelerateInterpolator
+                anim.setDuration(dur)
+                anim.setInterpolator(DecelerateInterpolator(1.8))
+                anim.start()
+                state["anim"] = anim
+
+            # touch on entire outer area
+            touch_state = {
+                "down_x": 0.0,
+                "down_y": 0.0,
+                "tracking": False,
+                "vt": None,
+            }
+
+            class _TouchListener(dynamic_proxy(View.OnTouchListener)):
+                def __init__(self): super().__init__()
+
+                def onTouch(self, v, ev):
+                    action = ev.getAction()
+
+                    if action == MotionEvent.ACTION_DOWN:
+                        auto_state["active"] = False
+                        touch_state["down_x"] = ev.getX()
+                        touch_state["down_y"] = ev.getY()
+                        touch_state["tracking"] = False
+                        vt = VelocityTracker.obtain()
+                        touch_state["vt"] = vt
+                        touch_state["at_edge"] = False
+                        vt.addMovement(ev)
+                        if state["anim"] is not None:
+                            try:
+                                state["anim"].cancel()
+                            except Exception:
+                                pass
+                            state["anim"] = None
+                        return True
+
+                    elif action == MotionEvent.ACTION_MOVE:
+                        vt = touch_state["vt"]
+                        if vt is not None:
+                            vt.addMovement(ev)
+                        dx = ev.getX() - touch_state["down_x"]
+                        dy = ev.getY() - touch_state["down_y"]
+                        if not touch_state["tracking"]:
+                            if abs(dx) > abs(dy) and abs(dx) > AndroidUtilities.dp(6):
+                                touch_state["tracking"] = True
+                                touch_state["down_x"] = ev.getX()
+                            return True
+                        state["offset"] -= dx
+                        touch_state["down_x"] = ev.getX()
+                        slot_px = float(AndroidUtilities.dp(slot_dp))
+                        max_off = float(n - 1 - state["index"]) * slot_px
+                        min_off = -float(state["index"]) * slot_px
+                        raw = state["offset"]
+                        # rubber band: resistance grows with overscroll distance
+                        if raw > max_off:
+                            over = raw - max_off
+                            import math
+                            limit = float(AndroidUtilities.dp(slot_dp)) * 0.55
+                            damped = limit * (1.0 - math.exp(-over / limit))
+                            state["offset"] = max_off + damped
+                            if not touch_state.get("at_edge"):
+                                touch_state["at_edge"] = True
+                                try:
+                                    v.performHapticFeedback(3)
+                                except Exception:
+                                    pass
+                        elif raw < min_off:
+                            over = min_off - raw
+                            import math
+                            limit = float(AndroidUtilities.dp(slot_dp)) * 0.55
+                            damped = limit * (1.0 - math.exp(-over / limit))
+                            state["offset"] = min_off - damped
+                            if not touch_state.get("at_edge"):
+                                touch_state["at_edge"] = True
+                                try:
+                                    v.performHapticFeedback(3)
+                                except Exception:
+                                    pass
+                        else:
+                            state["offset"] = raw
+                            touch_state["at_edge"] = False
+                            touch_state["edge_ticks"] = 0
+                        applyOffset(state["offset"])
+                        return True
+
+                    elif action in (MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL):
+                        vt = touch_state["vt"]
+                        vel_x = 0.0
+                        if vt is not None:
+                            vt.computeCurrentVelocity(1000)
+                            vel_x = float(vt.getXVelocity())
+                            vt.recycle()
+                            touch_state["vt"] = None
+
+                        if not touch_state["tracking"]:
+                            touch_state["tracking"] = False
+                            return False
+
+                        touch_state["tracking"] = False
+
+                        slot_px = float(AndroidUtilities.dp(slot_dp))
+                        cur = state["index"]
+                        offset = state["offset"]
+
+                        fling_thresh = float(AndroidUtilities.dp(400))
+                        if vel_x < -fling_thresh:
+                            target = min(n - 1, cur + 1)
+                        elif vel_x > fling_thresh:
+                            target = max(0, cur - 1)
+                        else:
+                            target = max(0, min(n - 1, int(round(cur + offset / slot_px))))
+
+                        snapTo(target, vel_x)
+                        return True
+
+                    return False
+
+            outer.setOnTouchListener(_TouchListener())
+
+            # auto-scroll: starts after 1s if n > 1 and user never touched
+            auto_state = {"active": True, "thread": None, "direction": 1}
+
+            def _auto_scroll():
+                import time
+                time.sleep(1.0)
+                if not auto_state["active"] or n < 2:
+                    return
+                while auto_state["active"]:
+                    time.sleep(1.5)
+                    if not auto_state["active"]:
+                        break
+
+                    def _step():
+                        if not auto_state["active"]:
+                            return
+                        cur = state["index"]
+                        d = auto_state["direction"]
+                        target = cur + d
+                        if target >= n:
+                            auto_state["direction"] = -1
+                            target = cur - 1
+                        elif target < 0:
+                            auto_state["direction"] = 1
+                            target = cur + 1
+                        if 0 <= target < n:
+                            snapTo(target, 0.0)
+
+                    run_on_ui_thread(_step)
+
+            if n > 1:
+                t = threading.Thread(target=_auto_scroll, daemon=True)
+                auto_state["thread"] = t
+                t.start()
+
+            # root: outer (carousel + chevrons overlay) + static buttons
+            root = LinearLayout(activity)
+            root.setOrientation(LinearLayout.VERTICAL)
+
+            root.addView(outer, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ))
+
+            # import button
+            try:
+                from org.telegram.ui.Stories.recorder import ButtonWithCounterView
+                import_btn = ButtonWithCounterView(activity, True, fragment.getResourceProvider())
+                import_btn.setRound()
+                import_btn.setText(str(strings["afp_import_btn"]), False)
+
+                class _ImportClick(dynamic_proxy(View.OnClickListener)):
+                    def onClick(self, v):
+                        sheet.dismiss()
+
+                import_btn.setOnClickListener(_ImportClick())
+                import_lp = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    AndroidUtilities.dp(48)
+                )
+                import_lp.topMargin = AndroidUtilities.dp(16)
+                import_lp.leftMargin = pad_h
+                import_lp.rightMargin = pad_h
+                root.addView(import_btn, import_lp)
+            except Exception as e:
+                log(f"ImportBottomSheet: import btn error: {e}")
+
+            # close button
+            try:
+                from org.telegram.ui.Stories.recorder import ButtonWithCounterView
+                close_btn = ButtonWithCounterView(activity, False, fragment.getResourceProvider())
+                close_btn.setRound()
+                close_btn.setNeutral()
+                close_btn.setText(str(strings["close_button"]), False)
+
+                class _CloseClick(dynamic_proxy(View.OnClickListener)):
+                    def onClick(self, v):
+                        sheet.dismiss()
+
+                close_btn.setOnClickListener(_CloseClick())
+                close_lp = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    AndroidUtilities.dp(48)
+                )
+                close_lp.topMargin = AndroidUtilities.dp(8)
+                close_lp.leftMargin = pad_h
+                close_lp.rightMargin = pad_h
+                root.addView(close_btn, close_lp)
+            except Exception as e:
+                log(f"ImportBottomSheet: close btn error: {e}")
+
+            sheet.setCustomView(root)
+            sheet.show()
+
+        except Exception as e:
+            log(f"ImportBottomSheet.show: {e}\n{traceback.format_exc()}")
+
+    run_on_ui_thread(_show)
