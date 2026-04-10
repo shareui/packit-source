@@ -21,7 +21,7 @@ class SclResult(ctypes.Structure):
     _fields_ = [
         ("ok",           ctypes.c_bool),
         ("doc",          ctypes.c_void_p),
-        ("error",        ctypes.c_char_p),
+        ("error",        ctypes.c_void_p),  # keep as raw ptr; c_char_p would lose the malloc address
         ("warnings",     ctypes.POINTER(ctypes.c_char_p)),
         ("warningCount", ctypes.c_size_t),
     ]
@@ -46,6 +46,8 @@ class SclParseOpts(ctypes.Structure):
 _lib.scl_version.argtypes = [ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int)]
 _lib.scl_version.restype  = None
 
+# SclResult is 40 bytes; on ARM64 large structs are returned via x8 register,
+# not as a hidden first argument. ctypes handles this correctly when restype=Structure.
 _lib.scl_parse_str.argtypes = [ctypes.c_char_p]
 _lib.scl_parse_str.restype  = SclResult
 
@@ -198,7 +200,7 @@ def parseFile(path, opts=None):
 
 def freeResult(result):
     if result.error:
-        _libc.free(ctypes.cast(result.error, ctypes.c_void_p))
+        _libc.free(result.error)
         result.error = None
     _lib.scl_result_free_warnings(ctypes.byref(result))
 

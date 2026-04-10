@@ -1,0 +1,123 @@
+import threading
+import traceback
+import zipfile
+
+from base_plugin import MethodHook
+from hook_utils import find_class
+from android_utils import log
+from java.lang import Integer
+
+
+class _AfpFileHandler(MethodHook):
+    def __init__(self, plugin):
+        self.lib = plugin
+
+    def before_hooked_method(self, param):
+        try:
+            filename = str(param.args[1])
+            if filename.split(".")[-1] != "afp":
+                return
+
+            param.setResult(False)
+            file_path = str(param.args[0].getAbsolutePath())
+            threading.Thread(target=self._read, args=(file_path,), daemon=True).start()
+        except Exception as e:
+            log(f"afpFile: before_hooked_method error: {e}")
+
+    def _read(self, file_path: str):
+        from ..scl.scl import parse
+        from ..scl.opts import ParseOpts
+        from ..utils.paths import getTempDir
+        import os
+        import shutil
+
+        parseOpts = ParseOpts()
+
+        tmp_dir = os.path.join(getTempDir(), "afp_preview")
+
+        try:
+            if os.path.exists(tmp_dir):
+                shutil.rmtree(tmp_dir)
+            os.makedirs(tmp_dir, exist_ok=True)
+        except Exception as e:
+            log(f"afpFile: tmp_dir setup error: {e}")
+            return
+
+        try:
+            with zipfile.ZipFile(file_path, "r") as zf:
+                zf.extractall(tmp_dir)
+        except Exception as e:
+            log(f"afpFile: unzip error: {e}")
+            return
+
+        config_path = os.path.join(tmp_dir, "config.scl")
+        if not os.path.isfile(config_path):
+            log("afpFile: config.scl not found in archive")
+            return
+
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                config_src = f.read()
+            log(f"afpFile: config.scl content: {repr(config_src[:120])}")
+            config_doc = parse(config_src, parseOpts)
+            log(f"afpFile: config.scl parsed ok, warnings={config_doc.warnings}")
+        except Exception as e:
+            log(f"afpFile: config.scl parse error: {e}")
+            return
+
+        try:
+            type_val = config_doc["type"]
+            if type_val is None:
+                log("afpFile: type field missing in config.scl")
+                return
+            afp_type = type_val.asString()
+            log(f"afpFile: type read successfully: {afp_type}")
+        except Exception as e:
+            log(f"afpFile: type read error: {e}")
+            return
+
+        if afp_type == "local":
+            local_path = os.path.join(tmp_dir, "local.scl")
+            if not os.path.isfile(local_path):
+                log("afpFile: local.scl not found")
+            else:
+                try:
+                    with open(local_path, "r", encoding="utf-8") as f:
+                        local_src = f.read()
+                    parse(local_src, parseOpts)
+                    log("afpFile: local metadata read successfully")
+                except Exception as e:
+                    log(f"afpFile: local.scl parse error: {e}")
+
+        try:
+            count_val = config_doc["count"]
+            if count_val is None:
+                log("afpFile: count field missing in config.scl")
+                return
+            count = count_val.asInt()
+            log(f"afpFile: plugin count read successfully: {count}")
+        except Exception as e:
+            log(f"afpFile: count read error: {e}")
+
+
+def setup_afp_file_hook(plugin) -> list:
+    hooks = []
+    try:
+        method = [
+            i for i in (
+                find_class("org.telegram.messenger.AndroidUtilities")
+                .getClass()
+                .getDeclaredMethods()
+            )
+            if repr(i) == (
+                "<java.lang.reflect.Method 'public static boolean org.telegram.messenger.AndroidUtilities.openForView"
+                "(java.io.File,java.lang.String,java.lang.String,android.app.Activity,"
+                "org.telegram.ui.ActionBar.Theme$ResourcesProvider,boolean)'>"
+            )
+        ][0]
+
+        hooks.append(plugin.hook_method(method, _AfpFileHandler(plugin), Integer.MAX_VALUE))
+        log("afpFile: hook registered")
+    except Exception as e:
+        log(f"afpFile: setup error: {e}")
+    return hooks

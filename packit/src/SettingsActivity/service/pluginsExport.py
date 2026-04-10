@@ -50,7 +50,7 @@ def _readPluginMeta(filepath: str) -> dict:
             for node in ast.walk(tree):
                 if isinstance(node, ast.Assign):
                     for target in node.targets:
-                        if isinstance(target, ast.Name) and target.id in ("__id__", "__name__", "__version__", "__min_version__", "__app_version__", "__sdk_version__"):
+                        if isinstance(target, ast.Name) and target.id in ("__id__", "__name__", "__version__", "__min_version__", "__app_version__", "__sdk_version__", "__icon__"):
                             if isinstance(node.value, (ast.Constant, ast.Str)):
                                 meta[target.id] = node.value.value if isinstance(node.value, ast.Constant) else node.value.s
         except Exception:
@@ -61,6 +61,7 @@ def _readPluginMeta(filepath: str) -> dict:
                 "__min_version__": r'^__min_version__\s*=\s*[\'"]([^\'"]+)[\'"]',
                 "__app_version__": r'^__app_version__\s*=\s*[\'"]([^\'"]+)[\'"]',
                 "__sdk_version__": r'^__sdk_version__\s*=\s*[\'"]([^\'"]+)[\'"]',
+                "__icon__": r'^__icon__\s*=\s*[\'"]([^\'"]+)[\'"]',
             }
             for key, pattern in patterns.items():
                 m = re.search(pattern, content, re.MULTILINE)
@@ -98,6 +99,7 @@ def _buildLocalScl(selected_files: list, plugins_dir: str) -> str:
         min_ver = meta.get("__min_version__") or None
         app_ver = meta.get("__app_version__") or None
         sdk_ver = meta.get("__sdk_version__") or None
+        icon = meta.get("__icon__") or None
 
         if app_ver:
             app_version_val = app_ver
@@ -116,6 +118,8 @@ def _buildLocalScl(selected_files: list, plugins_dir: str) -> str:
             entry.set("app_version", app_version_val)
         if sdk_ver is not None:
             entry.set("sdk_version", sdk_ver)
+        if icon is not None:
+            entry.set("icon", icon)
         listBuilder.append(entry.build())
 
     doc.set("plugins", listBuilder.build())
