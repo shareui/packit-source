@@ -18,26 +18,34 @@ class _AfpFileHandler(MethodHook):
             if filename.split(".")[-1] != "afp":
                 return
 
-            param.setResult(False)
             file_path = str(param.args[0].getAbsolutePath())
-            threading.Thread(target=self._read, args=(file_path,), daemon=True).start()
+            param.setResult(False)
+            threading.Thread(target=self._read, args=(file_path, filename), daemon=True).start()
         except Exception as e:
             log(f"afpFile: before_hooked_method error: {e}")
 
-    def _read(self, file_path: str):
+    def _read(self, file_path: str, filename: str):
         from ..scl.scl import parse
         from ..scl.opts import ParseOpts
         from ..utils.paths import getTempDir
         import os
         import shutil
+        import time
 
         parseOpts = ParseOpts()
 
-        tmp_dir = os.path.join(getTempDir(), "afp_preview")
+        ts = int(time.time())
+        base_name = filename.rsplit(".", 1)[0]
+        tmp_dir = os.path.join(getTempDir(), f"afp_preview_{base_name}_{ts}")
 
         try:
-            if os.path.exists(tmp_dir):
-                shutil.rmtree(tmp_dir)
+            tmp_parent = getTempDir()
+            for entry in os.listdir(tmp_parent):
+                if entry.startswith("afp_preview_"):
+                    try:
+                        shutil.rmtree(os.path.join(tmp_parent, entry))
+                    except Exception:
+                        pass
             os.makedirs(tmp_dir, exist_ok=True)
         except Exception as e:
             log(f"afpFile: tmp_dir setup error: {e}")
@@ -58,9 +66,7 @@ class _AfpFileHandler(MethodHook):
         try:
             with open(config_path, "r", encoding="utf-8") as f:
                 config_src = f.read()
-            log(f"afpFile: config.scl content: {repr(config_src[:120])}")
             config_doc = parse(config_src, parseOpts)
-            log(f"afpFile: config.scl parsed ok, warnings={config_doc.warnings}")
         except Exception as e:
             log(f"afpFile: config.scl parse error: {e}")
             return
@@ -71,7 +77,6 @@ class _AfpFileHandler(MethodHook):
                 log("afpFile: type field missing in config.scl")
                 return
             afp_type = type_val.asString()
-            log(f"afpFile: type read successfully: {afp_type}")
         except Exception as e:
             log(f"afpFile: type read error: {e}")
             return
@@ -87,7 +92,6 @@ class _AfpFileHandler(MethodHook):
                     with open(local_path, "r", encoding="utf-8") as f:
                         local_src = f.read()
                     local_doc = parse(local_src, parseOpts)
-                    log("afpFile: local metadata read successfully")
                     plugins_val = local_doc["plugins"]
                     if plugins_val is not None:
                         i = 0
@@ -119,7 +123,6 @@ class _AfpFileHandler(MethodHook):
                 log("afpFile: count field missing in config.scl")
                 return
             count = count_val.asInt()
-            log(f"afpFile: plugin count read successfully: {count}")
         except Exception as e:
             log(f"afpFile: count read error: {e}")
             return

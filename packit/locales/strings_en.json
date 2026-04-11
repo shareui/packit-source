@@ -764,5 +764,7 @@
     "utilities_export_subtext_loading": "Loading...",
     "utilities_export_subtext": "{count} plugins • {size}",
     "afp_import_btn": "Import",
+    "afp_import_all": "all",
+    "afp_import_still_all": "Still import all",
     "afp_import_hint": "{0} plugins will be imported into your client, continue?"
 }
