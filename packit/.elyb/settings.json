@@ -1,0 +1,7 @@
+{
+  "pluginRoot": ".",
+  "refmap": "../refmap.yml",
+  "outputDir": "builds",
+  "zipFormat": "zip",
+  "optionalAssets": []
+}

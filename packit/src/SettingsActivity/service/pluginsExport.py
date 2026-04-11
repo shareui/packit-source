@@ -198,8 +198,11 @@ def buildArchive(selected_files: list, export_settings: bool, export_locally: bo
                 local_cfg_path = _resolveLocalConfigPath()
 
                 os.makedirs(download_path, exist_ok=True)
+                import random
+                import string
                 safe_name = "".join(c for c in archive_name if c.isalnum() or c in "-_") or "plugins"
-                file_path = os.path.join(download_path, f"{safe_name}.afp")
+                suffix = "".join(random.choices(string.ascii_lowercase, k=4))
+                file_path = os.path.join(download_path, f"{safe_name}-{suffix}.afp")
 
                 with zipfile.ZipFile(file_path, "w") as zf:
                     # config.scl at archive root

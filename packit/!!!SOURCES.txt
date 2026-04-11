@@ -1,0 +1,5 @@
+In release builds, files are compiled in .pyc:
+
+The files are compiled into .pyc to increase the popularity of the GitHub repository. 
+The plugin source code is located at: https://github.com/shareui/packit-source/tree/main/packit
+The source code for the native part (.so) is located at https://github.com/shareui/packit-source/tree/main/libs

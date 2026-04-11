@@ -152,19 +152,117 @@ def show(plugins: list, count: int):
             lp_row.topMargin = pad_top
             content_col.addView(icon_row, lp_row)
 
+            # icon_views holds the container (FrameLayout with iv + checkbox inside)
             icon_views = []
+            icon_checkboxes = []
             slot_px_init = float(AndroidUtilities.dp(slot_dp))
+
+            cb_size_dp = 21
+            # negative margin so half the checkbox overhangs the icon edge
+            cb_margin_dp = -(cb_size_dp // 2)
+
             for i, info in enumerate(plugins):
                 iv = _make_icon_view(activity, info.get("icon") or "", size_dp)
-                lp_iv = FrameLayout.LayoutParams(
+
+                # container holds icon + checkbox, moves as one unit
+                container = FrameLayout(activity)
+                container.setClipChildren(False)
+                container.setClipToPadding(False)
+
+                lp_container = FrameLayout.LayoutParams(
                     AndroidUtilities.dp(size_dp),
                     AndroidUtilities.dp(size_dp),
                     Gravity.CENTER
                 )
+                container.setTranslationX(float(i) * slot_px_init)
+
                 if iv is not None:
-                    iv.setTranslationX(float(i) * slot_px_init)
-                    icon_row.addView(iv, lp_iv)
-                icon_views.append(iv)
+                    iv_lp = FrameLayout.LayoutParams(
+                        AndroidUtilities.dp(size_dp),
+                        AndroidUtilities.dp(size_dp),
+                        Gravity.CENTER
+                    )
+                    container.addView(iv, iv_lp)
+                else:
+                    # fallback: circle 20% smaller than icon, msg_plugins inside (5% smaller than circle)
+                    circle_dp = int(size_dp * 0.8)
+                    icon_dp = int(circle_dp * 0.85)
+                    try:
+                        from org.telegram.ui.ActionBar import Theme
+                        from android.widget import ImageView
+                        from android.graphics import PorterDuff
+                        from org.telegram.messenger import R as R_tg
+
+                        try:
+                            circle_color = Theme.getColor(Theme.key_featuredStickers_addButton)
+                        except Exception as e:
+                            log(f"ImportBottomSheet: fallback circle color error: {e}")
+                            circle_color = 0xFF4A90D9
+
+                        circle_bg = GradientDrawable()
+                        circle_bg.setShape(GradientDrawable.OVAL)
+                        circle_bg.setColor(circle_color)
+
+                        circle_view = FrameLayout(activity)
+                        circle_view.setBackground(circle_bg)
+
+                        icon_view = ImageView(activity)
+                        icon_view.setScaleType(ImageView.ScaleType.FIT_CENTER)
+
+                        try:
+                            icon_view.setImageResource(R_tg.drawable.msg_plugins)
+                        except Exception as e:
+                            log(f"ImportBottomSheet: fallback setImageResource error: {e}")
+
+                        try:
+                            icon_color = Theme.getColor(Theme.key_featuredStickers_buttonText)
+                            icon_view.setColorFilter(icon_color, PorterDuff.Mode.SRC_IN)
+                        except Exception as e:
+                            log(f"ImportBottomSheet: fallback setColorFilter error: {e}")
+
+                        icon_lp = FrameLayout.LayoutParams(
+                            AndroidUtilities.dp(icon_dp),
+                            AndroidUtilities.dp(icon_dp),
+                            Gravity.CENTER
+                        )
+                        circle_view.addView(icon_view, icon_lp)
+
+                        circle_lp = FrameLayout.LayoutParams(
+                            AndroidUtilities.dp(circle_dp),
+                            AndroidUtilities.dp(circle_dp),
+                            Gravity.CENTER
+                        )
+                        container.addView(circle_view, circle_lp)
+                    except Exception as e:
+                        log(f"ImportBottomSheet: fallback icon error: {e}")
+
+                cb = None
+                try:
+                    from org.telegram.ui.Components import CheckBox2
+                    cb = CheckBox2(activity, cb_size_dp)
+                    cb.setColor(
+                        Theme.key_radioBackgroundChecked,
+                        Theme.key_radioBackground,
+                        Theme.key_checkboxCheck
+                    )
+                    cb.setDrawUnchecked(True)
+                    cb.setDrawBackgroundAsArc(14)
+                    cb.setChecked(True, False)
+                    cb.setAlpha(0.0)
+                    cb_lp = FrameLayout.LayoutParams(
+                        AndroidUtilities.dp(cb_size_dp),
+                        AndroidUtilities.dp(cb_size_dp),
+                        Gravity.BOTTOM | Gravity.END
+                    )
+                    cb_lp.bottomMargin = AndroidUtilities.dp(cb_margin_dp)
+                    cb_lp.rightMargin = AndroidUtilities.dp(cb_margin_dp)
+                    container.addView(cb, cb_lp)
+                except Exception as e:
+                    log(f"ImportBottomSheet: checkbox create error: {e}")
+
+                icon_row.addView(container, lp_container)
+                icon_views.append(container)
+                icon_checkboxes.append(cb)
 
             label_row = FrameLayout(activity)
             label_row.setClipChildren(False)
@@ -232,8 +330,6 @@ def show(plugins: list, count: int):
 
             # hint
             hint_tv = TextView(activity)
-            hint_text = str(strings["afp_import_hint"]).replace("{0}", str(count))
-            hint_tv.setText(hint_text)
             hint_tv.setGravity(Gravity.CENTER_HORIZONTAL)
             hint_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
             try:
@@ -288,14 +384,12 @@ def show(plugins: list, count: int):
                 slot_px = float(AndroidUtilities.dp(slot_dp))
                 cur = state["index"]
                 center = cur + offset_px / slot_px
-                for i, iv in enumerate(icon_views):
-                    if iv is None:
-                        continue
-                    iv.setTranslationX((i - cur) * slot_px - offset_px)
+                for i, container in enumerate(icon_views):
+                    container.setTranslationX((i - cur) * slot_px - offset_px)
                     dist = abs(i - center)
                     s = max(0.6, 1.0 - scale_per_slot * dist)
-                    iv.setScaleX(s)
-                    iv.setScaleY(s)
+                    container.setScaleX(s)
+                    container.setScaleY(s)
                 for i, lb in enumerate(label_views):
                     lb.setTranslationX((i - cur) * slot_px - offset_px)
                     dist = abs(i - center)
@@ -304,6 +398,42 @@ def show(plugins: list, count: int):
                     lb.setScaleY(s)
 
             applyOffset(0.0)
+
+            # selection mode state
+            sel_state = {"active": False, "checked": [True] * n}
+
+            def updateHintText():
+                if sel_state["active"]:
+                    hint_count = sum(1 for c in sel_state["checked"] if c)
+                else:
+                    hint_count = count
+                hint_tv.setText(str(strings["afp_import_hint"]).replace("{0}", str(hint_count)))
+
+            updateHintText()
+
+            def enterSelectionMode(idx: int):
+                sel_state["active"] = True
+                for i in range(n):
+                    sel_state["checked"][i] = (i == idx)
+                for i, cb in enumerate(icon_checkboxes):
+                    if cb is None:
+                        continue
+                    cb.setChecked(sel_state["checked"][i], False)
+                    cb.animate().alpha(1.0).setDuration(150).start()
+
+            def exitSelectionMode():
+                sel_state["active"] = False
+                for cb in icon_checkboxes:
+                    if cb is not None:
+                        cb.animate().alpha(0.0).setDuration(150).start()
+
+            def toggleCheck(idx: int):
+                if not (0 <= idx < n):
+                    return
+                sel_state["checked"][idx] = not sel_state["checked"][idx]
+                cb = icon_checkboxes[idx] if idx < len(icon_checkboxes) else None
+                if cb is not None:
+                    cb.setChecked(sel_state["checked"][idx], True)
 
             def snapTo(target_idx: int, vel_px: float):
                 if state["anim"] is not None:
@@ -365,7 +495,11 @@ def show(plugins: list, count: int):
                 "down_y": 0.0,
                 "tracking": False,
                 "vt": None,
+                "long_timer": None,
+                "long_fired": False,
             }
+
+            LONG_PRESS_MS = 1000
 
             class _TouchListener(dynamic_proxy(View.OnTouchListener)):
                 def __init__(self): super().__init__()
@@ -378,6 +512,8 @@ def show(plugins: list, count: int):
                         touch_state["down_x"] = ev.getX()
                         touch_state["down_y"] = ev.getY()
                         touch_state["tracking"] = False
+                        touch_state["long_fired"] = False
+                        touch_state["pressed_idx"] = state["index"]
                         vt = VelocityTracker.obtain()
                         touch_state["vt"] = vt
                         touch_state["at_edge"] = False
@@ -388,6 +524,44 @@ def show(plugins: list, count: int):
                             except Exception:
                                 pass
                             state["anim"] = None
+
+                        import threading as _th
+                        import time as _time
+
+                        # token per gesture — prevents stale timer from firing
+                        token = object()
+                        touch_state["long_token"] = token
+                        touch_state["long_activated"] = False
+                        touch_state["drag_select_active"] = False
+                        touch_state["drag_select_dx"] = 0.0
+                        touch_state["drag_select_origin_x"] = ev.getX()
+                        touch_state["drag_scroll_running"] = False
+
+                        def _timer_thread():
+                            _time.sleep(LONG_PRESS_MS / 1000.0)
+                            cur_token = touch_state.get("long_token")
+                            if cur_token is not token:
+                                return
+                            if touch_state["tracking"]:
+                                return
+                            touch_state["long_activated"] = True
+
+                            def _on_ui():
+                                try:
+                                    v.performHapticFeedback(1)
+                                except Exception:
+                                    pass
+                                if sel_state["active"]:
+                                    exitSelectionMode()
+                                else:
+                                    idx = touch_state.get("pressed_idx", state["index"])
+                                    enterSelectionMode(idx)
+
+                            run_on_ui_thread(_on_ui)
+
+                        t = _th.Thread(target=_timer_thread, daemon=True)
+                        touch_state["long_timer"] = t
+                        t.start()
                         return True
 
                     elif action == MotionEvent.ACTION_MOVE:
@@ -396,9 +570,69 @@ def show(plugins: list, count: int):
                             vt.addMovement(ev)
                         dx = ev.getX() - touch_state["down_x"]
                         dy = ev.getY() - touch_state["down_y"]
+
+                        # drag-select mode: long press already fired, finger now dragging
+                        if touch_state.get("long_activated") and sel_state["active"] and not touch_state["tracking"]:
+                            drag_dx = ev.getX() - touch_state.get("drag_select_origin_x", touch_state["down_x"])
+                            touch_state["drag_select_dx"] = drag_dx
+                            touch_state["drag_select_active"] = True
+                            # start scroll thread once
+                            if not touch_state.get("drag_scroll_running"):
+                                touch_state["drag_scroll_running"] = True
+                                import threading as _dth
+                                import time as _dtime
+                                import math as _dmath
+
+                                def _drag_scroll():
+                                    last_idx = state["index"]
+                                    # mark starting plugin as selected
+                                    run_on_ui_thread(lambda: _select_current())
+                                    while touch_state.get("drag_select_active"):
+                                        ddx = touch_state.get("drag_select_dx", 0.0)
+                                        if abs(ddx) < AndroidUtilities.dp(12):
+                                            _dtime.sleep(0.05)
+                                            continue
+                                        # speed: max 1 step per ~56ms at full drag, slowest ~420ms (+30%)
+                                        slot_px = float(AndroidUtilities.dp(slot_dp))
+                                        max_drag = slot_px * 2.0
+                                        ratio = min(1.0, abs(ddx) / max_drag)
+                                        interval = (0.6 - ratio * 0.52) * 0.7
+                                        _dtime.sleep(interval)
+                                        if not touch_state.get("drag_select_active"):
+                                            break
+                                        direction = 1 if ddx > 0 else -1
+
+                                        def _step(d=direction):
+                                            cur = state["index"]
+                                            target = cur + d
+                                            if 0 <= target < n:
+                                                snapTo(target, 0.0)
+                                                sel_state["checked"][target] = not sel_state["checked"][target]
+                                                cb = icon_checkboxes[target] if target < len(icon_checkboxes) else None
+                                                if cb is not None:
+                                                    cb.setChecked(sel_state["checked"][target], True)
+                                                updateImportBtnText(True)
+                                                updateHintText()
+                                        run_on_ui_thread(_step)
+                                    touch_state["drag_scroll_running"] = False
+
+                                def _select_current():
+                                    ci = state["index"]
+                                    if 0 <= ci < n:
+                                        sel_state["checked"][ci] = True
+                                        cb = icon_checkboxes[ci] if ci < len(icon_checkboxes) else None
+                                        if cb is not None:
+                                            cb.setChecked(True, True)
+                                        updateImportBtnText(True)
+                                        updateHintText()
+
+                                _dth.Thread(target=_drag_scroll, daemon=True).start()
+                            return True
+
                         if not touch_state["tracking"]:
-                            if abs(dx) > abs(dy) and abs(dx) > AndroidUtilities.dp(6):
+                            if abs(dx) > abs(dy) and abs(dx) > AndroidUtilities.dp(8):
                                 touch_state["tracking"] = True
+                                touch_state["long_token"] = None
                                 touch_state["down_x"] = ev.getX()
                             return True
                         state["offset"] -= dx
@@ -407,7 +641,6 @@ def show(plugins: list, count: int):
                         max_off = float(n - 1 - state["index"]) * slot_px
                         min_off = -float(state["index"]) * slot_px
                         raw = state["offset"]
-                        # rubber band: resistance grows with overscroll distance
                         if raw > max_off:
                             over = raw - max_off
                             import math
@@ -440,6 +673,15 @@ def show(plugins: list, count: int):
                         return True
 
                     elif action in (MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL):
+                        was_tracking = touch_state["tracking"]
+                        was_long_activated = touch_state.get("long_activated", False)
+                        was_drag_select = touch_state.get("drag_select_active", False)
+                        # stop drag-select scroll thread
+                        touch_state["drag_select_active"] = False
+                        # cancel token only on drag — short tap must let timer finish naturally
+                        if was_tracking:
+                            touch_state["long_token"] = None
+
                         vt = touch_state["vt"]
                         vel_x = 0.0
                         if vt is not None:
@@ -448,11 +690,19 @@ def show(plugins: list, count: int):
                             vt.recycle()
                             touch_state["vt"] = None
 
-                        if not touch_state["tracking"]:
-                            touch_state["tracking"] = False
-                            return False
-
                         touch_state["tracking"] = False
+
+                        if was_drag_select:
+                            # snap to whichever icon carousel landed on
+                            snapTo(state["index"], 0.0)
+                            return True
+
+                        if not was_tracking:
+                            # short tap only — long press already handled on detection, not on release
+                            if sel_state["active"] and not was_long_activated:
+                                touch_state["long_token"] = None
+                                toggleCheck(state["index"])
+                            return False
 
                         slot_px = float(AndroidUtilities.dp(slot_dp))
                         cur = state["index"]
@@ -522,9 +772,50 @@ def show(plugins: list, count: int):
                 from org.telegram.ui.Stories.recorder import ButtonWithCounterView
                 import_btn = ButtonWithCounterView(activity, True, fragment.getResourceProvider())
                 import_btn.setRound()
-                import_btn.setText(str(strings["afp_import_btn"]), False)
+                import_btn_ref = [import_btn]
+
+                def updateImportBtnText(animated: bool):
+                    btn = import_btn_ref[0]
+                    if btn is None:
+                        return
+                    if sel_state["active"]:
+                        checked_count = sum(1 for c in sel_state["checked"] if c)
+                        if checked_count == n:
+                            btn.setText(str(strings["afp_import_still_all"]), animated)
+                        else:
+                            btn.setText(f"{str(strings['afp_import_btn'])} ({checked_count})", animated)
+                    else:
+                        btn.setText(f"{str(strings['afp_import_btn'])} {str(strings['afp_import_all'])}", animated)
+
+                # patch enterSelectionMode and exitSelectionMode to update button
+                _orig_enter = enterSelectionMode
+                _orig_exit = exitSelectionMode
+                _orig_toggle = toggleCheck
+
+                def enterSelectionMode(idx: int):
+                    _orig_enter(idx)
+                    updateImportBtnText(True)
+                    updateHintText()
+
+                def exitSelectionMode():
+                    _orig_exit()
+                    updateImportBtnText(True)
+                    updateHintText()
+
+                def toggleCheck(idx: int):
+                    _orig_toggle(idx)
+                    if sel_state["active"]:
+                        if sum(1 for c in sel_state["checked"] if c) == 0:
+                            touch_state["long_token"] = None
+                            exitSelectionMode()
+                        else:
+                            updateImportBtnText(True)
+                            updateHintText()
+
+                updateImportBtnText(False)
 
                 class _ImportClick(dynamic_proxy(View.OnClickListener)):
+                    def __init__(self): super().__init__()
                     def onClick(self, v):
                         sheet.dismiss()
 
@@ -549,6 +840,7 @@ def show(plugins: list, count: int):
                 close_btn.setText(str(strings["close_button"]), False)
 
                 class _CloseClick(dynamic_proxy(View.OnClickListener)):
+                    def __init__(self): super().__init__()
                     def onClick(self, v):
                         sheet.dismiss()
 
