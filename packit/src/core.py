@@ -543,6 +543,142 @@ def install_icon_pack(icon_info: dict):
     threading.Thread(target=task, daemon=True).start()
 
 
+def install_plugin_silent(file_path: str, plugin_data: dict, repo_id: str, on_complete=None, on_error=None):
+    # installs a plugin from a local file without showing the standard install dialog.
+    # for elyx plugins: uses ElyxEngine.instance.load_from_archive.
+    # for regular plugins: uses python_engine.loadPluginFromFile + setPluginEnabled.
+    # on_complete() and on_error(error) are called on background thread (not UI thread).
+    pid = str(plugin_data.get("id") or "")
+
+    is_elyx = False
+    try:
+        tags = plugin_data.get("tags") or []
+        is_elyx = any(
+            isinstance(t, (list, tuple)) and len(t) > 0 and t[0] == "Elyx"
+            for t in tags
+        )
+    except Exception as e:
+        log(f"core.install_plugin_silent: tag check error for '{pid}': {e}")
+
+    log(f"core.install_plugin_silent: is_elyx={is_elyx} for '{pid}'")
+
+    if is_elyx:
+        try:
+            from zipfile import ZipFile
+            from elyxcore import ElyxPlugin, ElyxEngine
+            from .utils.installIndex import commit_elyx_pending
+
+            elyx_plugin = ElyxPlugin(plzip=ZipFile(file_path, "r"), raise_errors=False)
+
+            def _elyx_complete():
+                log(f"core.install_plugin_silent: elyx install complete for '{pid}'")
+                try:
+                    commit_elyx_pending(plugin_data, repo_id)
+                except Exception as e:
+                    log(f"core.install_plugin_silent: commit_elyx_pending error for '{pid}': {e}")
+                if on_complete:
+                    try:
+                        on_complete()
+                    except Exception as e:
+                        log(f"core.install_plugin_silent: on_complete error for '{pid}': {e}")
+
+            def _elyx_error(error):
+                log(f"core.install_plugin_silent: elyx install error for '{pid}': {error}")
+                if on_error:
+                    try:
+                        on_error(error)
+                    except Exception as e:
+                        log(f"core.install_plugin_silent: on_error error for '{pid}': {e}")
+
+            ElyxEngine.instance.load_from_archive(elyx_plugin, True, _elyx_complete, _elyx_error)
+        except Exception as e:
+            log(f"core.install_plugin_silent: elyx path error for '{pid}': {e}")
+            if on_error:
+                try:
+                    on_error(e)
+                except Exception:
+                    pass
+        return
+
+    try:
+        from elyxcore import gen
+        from org.telegram.messenger import Utilities
+        from .utils.installIndex import set_pending, commit_pending
+
+        Callback = gen(Utilities.Callback, "run")
+        python_engine = PluginsController.engines.get("python")
+
+        try:
+            set_pending(plugin_data, repo_id)
+        except Exception as e:
+            log(f"core.install_plugin_silent: set_pending error for '{pid}': {e}")
+
+        def _on_enabled(error):
+            if error:
+                log(f"core.install_plugin_silent: setPluginEnabled error for '{pid}': {error}")
+                if on_error:
+                    try:
+                        on_error(error)
+                    except Exception:
+                        pass
+                return
+            try:
+                commit_pending()
+            except Exception as e:
+                log(f"core.install_plugin_silent: commit_pending error for '{pid}': {e}")
+            if on_complete:
+                try:
+                    on_complete()
+                except Exception as e:
+                    log(f"core.install_plugin_silent: on_complete error for '{pid}': {e}")
+
+        def _on_installed(error):
+            if not error:
+                return python_engine.setPluginEnabled(pid, True, Callback(_on_enabled))
+            log(f"core.install_plugin_silent: loadPluginFromFile error for '{pid}': {error}")
+            if on_error:
+                try:
+                    on_error(error)
+                except Exception:
+                    pass
+
+        run_on_ui_thread(lambda: python_engine.loadPluginFromFile(file_path, None, Callback(_on_installed)))
+    except Exception as e:
+        log(f"core.install_plugin_silent: error for '{pid}': {e}")
+        if on_error:
+            try:
+                on_error(e)
+            except Exception:
+                pass
+
+
+def onlyLocalInstallNoUi(file_path: str, plugin_id: str, on_done):
+    # installs plugin from local file_path, no index write, no UI.
+    # on_done(error) called on UI thread. error is None on success.
+    try:
+        from elyxcore import gen
+        from org.telegram.messenger import Utilities
+
+        Callback = gen(Utilities.Callback, "run")
+        python_engine = PluginsController.engines.get("python")
+
+        def on_enabled(error):
+            if error:
+                log(f"core.onlyLocalInstallNoUi: setPluginEnabled error for '{plugin_id}': {error}")
+            run_on_ui_thread(lambda: on_done(error))
+
+        def on_installed(error):
+            if not error:
+                return python_engine.setPluginEnabled(plugin_id, True, Callback(on_enabled))
+            log(f"core.onlyLocalInstallNoUi: loadPluginFromFile error for '{plugin_id}': {error}")
+            run_on_ui_thread(lambda: on_done(error))
+
+        run_on_ui_thread(lambda: python_engine.loadPluginFromFile(file_path, None, Callback(on_installed)))
+    except Exception as e:
+        log(f"core.onlyLocalInstallNoUi: error for '{plugin_id}': {e}")
+        run_on_ui_thread(lambda: on_done(e))
+
+
 class PackItCore:
     def __init__(self, repoManager):
         self.repoManager = repoManager

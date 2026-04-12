@@ -40,6 +40,7 @@ class _AfpFileHandler(MethodHook):
 
         try:
             tmp_parent = getTempDir()
+            os.makedirs(tmp_parent, exist_ok=True)
             for entry in os.listdir(tmp_parent):
                 if entry.startswith("afp_preview_"):
                     try:
@@ -99,16 +100,25 @@ class _AfpFileHandler(MethodHook):
                             entry = plugins_val[i]
                             if entry is None:
                                 break
-                            info = {"name": "", "version": "", "icon": ""}
+                            info = {"name": "", "version": "", "icon": "", "path": "", "id": "", "app_version": ""}
                             name_val = entry["name"]
                             ver_val = entry["version"]
                             icon_val = entry["icon"]
+                            path_val = entry["path"]
+                            id_val = entry["id"]
+                            app_version_val = entry["app_version"]
                             if name_val is not None:
                                 info["name"] = name_val.asString()
                             if ver_val is not None:
                                 info["version"] = ver_val.asString()
                             if icon_val is not None:
                                 info["icon"] = icon_val.asString()
+                            if path_val is not None:
+                                info["path"] = path_val.asString()
+                            if id_val is not None:
+                                info["id"] = id_val.asString()
+                            if app_version_val is not None:
+                                info["app_version"] = app_version_val.asString()
                             plugins.append(info)
                             i += 1
                 except Exception as e:
@@ -127,9 +137,17 @@ class _AfpFileHandler(MethodHook):
             log(f"afpFile: count read error: {e}")
             return
 
+        has_settings = False
+        try:
+            settings_val = config_doc["settings"]
+            if settings_val is not None:
+                has_settings = bool(settings_val.asBool())
+        except Exception:
+            pass
+
         try:
             from .ImportBottomSheet import show as showImportSheet
-            showImportSheet(plugins, count)
+            showImportSheet(plugins, count, file_path, total_count=count, settings=has_settings)
         except Exception as e:
             log(f"afpFile: show ImportBottomSheet error: {e}")
 
