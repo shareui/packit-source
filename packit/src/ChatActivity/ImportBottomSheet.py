@@ -81,7 +81,7 @@ def _make_icon_view(activity, icon_str: str, size_dp: int):
         return None
 
 
-def show(plugins: list, count: int):
+def show(plugins: list, count: int, file_path: str = "", total_count: int = 0, settings: bool = True):
     # plugins: list of dicts with keys name, version, icon
     from client_utils import get_last_fragment
     fragment = get_last_fragment()
@@ -817,7 +817,16 @@ def show(plugins: list, count: int):
                 class _ImportClick(dynamic_proxy(View.OnClickListener)):
                     def __init__(self): super().__init__()
                     def onClick(self, v):
+                        if sel_state["active"]:
+                            selected = [p for i, p in enumerate(plugins) if sel_state["checked"][i]]
+                        else:
+                            selected = plugins
                         sheet.dismiss()
+                        try:
+                            from .ConfirmImportBottomSheet import show as showConfirm
+                            showConfirm(file_path, selected, total_count=total_count or len(plugins), settings=settings)
+                        except Exception as e:
+                            log(f"ImportBottomSheet: open confirm error: {e}")
 
                 import_btn.setOnClickListener(_ImportClick())
                 import_lp = LinearLayout.LayoutParams(

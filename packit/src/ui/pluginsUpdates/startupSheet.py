@@ -675,12 +675,9 @@ def _do_install(item: dict, plugin, set_btn_state=None):
         try:
             from ...deeplinks.install import _resolvePluginsUrl
             from ...utils.paths import getPluginsDir
+            from ...core import install_plugin_silent
             import requests as _req
             import os
-            from elyxcore import gen
-            from org.telegram.messenger import Utilities
-
-            Callback = gen(Utilities.Callback, "run")
 
             plugins_url = _resolvePluginsUrl(repo)
             if not plugins_url:
@@ -735,81 +732,16 @@ def _do_install(item: dict, plugin, set_btn_state=None):
             with open(file_path, "wb") as f:
                 f.write(dl.content)
 
-            is_elyx = False
-            try:
-                tags = plugin_data.get("tags") or []
-                is_elyx = any(
-                    isinstance(t, (list, tuple)) and len(t) > 0 and t[0] == "Elyx"
-                    for t in tags
-                )
-            except Exception as e:
-                log(f"startupSheet: _do_install tag check error for '{pid}': {e}")
-
-            log(f"startupSheet: _do_install is_elyx={is_elyx} for '{pid}'")
-
-            if is_elyx:
-                try:
-                    from zipfile import ZipFile
-                    from elyxcore import ElyxPlugin, ElyxEngine
-                    from ...utils.installIndex import commit_elyx_pending
-
-                    elyx_plugin = ElyxPlugin(plzip=ZipFile(file_path, "r"), raise_errors=False)
-
-                    def on_elyx_complete():
-                        log(f"startupSheet: elyx install complete for '{pid}'")
-                        try:
-                            commit_elyx_pending(plugin_data, repo_id)
-                        except Exception as e:
-                            log(f"startupSheet: commit_elyx_pending error for '{pid}': {e}")
-                        if set_btn_state:
-                            run_on_ui_thread(lambda: set_btn_state("done"))
-
-                    def on_elyx_error(error):
-                        log(f"startupSheet: elyx install error for '{pid}': {error}")
-                        if set_btn_state:
-                            run_on_ui_thread(lambda: set_btn_state("idle"))
-
-                    ElyxEngine.instance.load_from_archive(
-                        elyx_plugin, True, on_elyx_complete, on_elyx_error
-                    )
-                except Exception as e:
-                    log(f"startupSheet: _do_install elyx path error for '{pid}': {e}")
-                    if set_btn_state:
-                        run_on_ui_thread(lambda: set_btn_state("idle"))
-                return
-
-            plugin_id = pid
-            from com.exteragram.messenger.plugins import PluginsController
-            python_engine = PluginsController.engines.get("python")
-
-            # set_pending before install so commit_pending can write the index record
-            try:
-                from ...utils.installIndex import set_pending, commit_pending
-                set_pending(plugin_data, repo_id)
-            except Exception as e:
-                log(f"startupSheet: set_pending error: {e}")
-
-            def on_enabled(error):
-                if error:
-                    log(f"startupSheet: setPluginEnabled error for '{plugin_id}': {error}")
-                    if set_btn_state:
-                        run_on_ui_thread(lambda: set_btn_state("idle"))
-                    return
-                try:
-                    commit_pending()
-                except Exception as e:
-                    log(f"startupSheet: commit_pending error: {e}")
+            def on_complete():
                 if set_btn_state:
                     run_on_ui_thread(lambda: set_btn_state("done"))
 
-            def on_installed(error):
-                if not error:
-                    return python_engine.setPluginEnabled(plugin_id, True, Callback(on_enabled))
-                log(f"startupSheet: loadPluginFromFile error for '{plugin_id}': {error}")
+            def on_error(error):
+                log(f"startupSheet: _do_install install error for '{pid}': {error}")
                 if set_btn_state:
                     run_on_ui_thread(lambda: set_btn_state("idle"))
 
-            run_on_ui_thread(lambda: python_engine.loadPluginFromFile(file_path, None, Callback(on_installed)))
+            install_plugin_silent(file_path, plugin_data, repo_id, on_complete=on_complete, on_error=on_error)
         except Exception as e:
             log(f"startupSheet: _do_install task error for '{pid}': {e}")
             if set_btn_state:

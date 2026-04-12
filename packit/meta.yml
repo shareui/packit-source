@@ -4,7 +4,7 @@ description: |
 
   Source code: [shareui/packit-source](https://github.com/shareui/packit-source)
 id: shareui_packit
-version: "1.0.0-dev.1083"
+version: "1.0.0-dev.1246"
 author: "@packitapp"
 app_version: ">=12.5.1"
 sdk_version: ">=1.4.3.2"

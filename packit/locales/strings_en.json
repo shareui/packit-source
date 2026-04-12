@@ -766,5 +766,7 @@
     "afp_import_btn": "Import",
     "afp_import_all": "all",
     "afp_import_still_all": "Still import all",
-    "afp_import_hint": "{0} plugins will be imported into your client, continue?"
+    "afp_import_hint": "{0} plugins will be imported into your client, continue?",
+    "afp_confirm_desc": "{count} plugins will be imported into your client. Continue?",
+    "afp_import_with_settings": "Import with settings"
 }
