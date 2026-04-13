@@ -42,5 +42,10 @@
     "packit/res/fonts/Sora-Regular.ttf",
     "packit/res/fonts/Sora-SemiBold.ttf",
     "packit/res/fonts/Sora-Thin.ttf"
+  ],
+  "buildName": "{name}-{version}",
+  "buildNameRelease": "{name}-{version}-3.11",
+  "releaseIgnore": [
+    "packit/src/main.py"
   ]
 }

@@ -8,6 +8,7 @@ version: "1.0.0-dev.1246"
 author: "@packitlinks"
 app_version: ">=12.5.1"
 sdk_version: ">=1.4.3.2"
+elyx_version: ">=0.9.0"
 icon: plugin232/17
 
 # кстати тебя врядли выложат в utilits. Ты пофакту, повторил kpm. А как бы в utils правило второй вариант нельзя выкладыватьб
