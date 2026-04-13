@@ -298,7 +298,7 @@ def _show_plugin_menu(act, p, anchor_view, repo_id: str = ""):
 
             title_tv = TextView(act)
             title_tv.setText(title)
-            title_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            title_tv.setTextSize(14)
             try:
                 if is_red:
                     try:
