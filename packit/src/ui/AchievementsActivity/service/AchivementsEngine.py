@@ -232,6 +232,7 @@ _XP_REWARDS = {
     "secret_identity": 0,
     "secret_curiosity": 1500,
     "secret_subscriber": 5000,
+    "secret_enlightened": 5000,
 }
 
 
@@ -271,7 +272,7 @@ _LOYALTY_ACHIEVEMENTS = {
     "days_2555": 2555, "days_2920": 2920, "days_3285": 3285, "days_3650": 3650,
 }
 
-_SECRET_ACHIEVEMENTS = {"secret_premium", "secret_terraria", "secret_identity", "secret_curiosity", "secret_subscriber"}
+_SECRET_ACHIEVEMENTS = {"secret_premium", "secret_terraria", "secret_identity", "secret_curiosity", "secret_subscriber", "secret_enlightened"}
 
 
 def sync_completed(data: dict) -> tuple:

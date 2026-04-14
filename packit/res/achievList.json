@@ -910,5 +910,17 @@
     "title_key": "achiev_title_secret_subscriber",
     "hint_key": "achiev_hint_secret_subscriber",
     "category_key": "achiev_cat_unknown"
+  },
+  {
+    "id": "secret_enlightened",
+    "category": "Unknown achievements",
+    "title": "You are enlightened",
+    "goal": 1,
+    "hint": "Well... You really don't understand the first time that you can't screw every living thing.",
+    "icon": "msg_info",
+    "playSound": true,
+    "title_key": "achiev_title_secret_enlightened",
+    "hint_key": "achiev_hint_secret_enlightened",
+    "category_key": "achiev_cat_unknown"
   }
 ]
