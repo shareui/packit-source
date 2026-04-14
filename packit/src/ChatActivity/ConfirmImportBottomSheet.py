@@ -33,6 +33,54 @@ def _format_size(size_bytes: int) -> str:
     return f"{size_bytes / (1024 * 1024):.2f} GB"
 
 
+def _merge_plugin_settings(file_path: str, plugin_ids: list):
+    # reads settings.json from archive root, merges entries for given plugin_ids into client plugin_settings.json
+    import json
+    try:
+        with zipfile.ZipFile(file_path, "r") as zf:
+            if "settings.json" not in zf.namelist():
+                log("ConfirmImportBottomSheet: settings.json not found in archive")
+                return
+            archive_settings = json.loads(zf.read("settings.json").decode("utf-8"))
+    except Exception as e:
+        log(f"ConfirmImportBottomSheet: failed to read settings.json from archive: {e}")
+        return
+
+    try:
+        from org.telegram.messenger import ApplicationLoader
+        client_path = ApplicationLoader.applicationContext.getFilesDir().getAbsolutePath() + "/plugins/plugin_settings.json"
+    except Exception as e:
+        log(f"ConfirmImportBottomSheet: failed to get filesDir: {e}")
+        return
+
+    try:
+        with open(client_path, "r", encoding="utf-8") as f:
+            client_settings = json.load(f)
+    except FileNotFoundError:
+        client_settings = {}
+    except Exception as e:
+        log(f"ConfirmImportBottomSheet: failed to read client plugin_settings.json: {e}")
+        return
+
+    merged = 0
+    for plugin_id in plugin_ids:
+        if plugin_id in archive_settings:
+            client_settings[plugin_id] = archive_settings[plugin_id]
+            merged += 1
+            log(f"ConfirmImportBottomSheet: merged settings for '{plugin_id}'")
+
+    if merged == 0:
+        log("ConfirmImportBottomSheet: no settings to merge for installed plugins")
+        return
+
+    try:
+        with open(client_path, "w", encoding="utf-8") as f:
+            json.dump(client_settings, f, ensure_ascii=False, indent=2)
+        log(f"ConfirmImportBottomSheet: wrote settings for {merged} plugin(s)")
+    except Exception as e:
+        log(f"ConfirmImportBottomSheet: failed to write client plugin_settings.json: {e}")
+
+
 def _make_chip(act, text, color_key):
     try:
         from org.telegram.ui.ActionBar import Theme
@@ -145,6 +193,8 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
             except Exception as e:
                 log(f"ConfirmImportBottomSheet: chip error: {e}")
 
+            import_with_settings = [False]
+
             # "import with settings" checkbox row - only shown when archive has settings
             if settings:
                 try:
@@ -185,8 +235,6 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                         settings_label,
                         LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL)
                     )
-
-                    import_with_settings = [False]
 
                     def _onSettingsRowClick(v):
                         import_with_settings[0] = not import_with_settings[0]
@@ -270,6 +318,7 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                         total = len(plugins)
                         done_count = [0]
                         failed = []  # list of {name, error}
+                        installed_ids = []  # plugin_ids that installed successfully
                         lock = threading.Lock()
 
                         run_on_ui_thread(lambda: _set_btn_loading(True))
@@ -516,14 +565,18 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                             except Exception as e:
                                 log(f"ConfirmImportBottomSheet: errors sheet error: {e}\n{traceback.format_exc()}")
 
-                        def on_plugin_done(plugin_name, error):
+                        def on_plugin_done(plugin_name, error, plugin_id=None):
                             with lock:
                                 done_count[0] += 1
                                 if error:
                                     failed.append({"name": plugin_name, "error": error})
+                                elif plugin_id:
+                                    installed_ids.append(plugin_id)
                                 all_done = done_count[0] >= total
                             if not all_done:
                                 return
+                            if import_with_settings[0] and installed_ids:
+                                _merge_plugin_settings(file_path, installed_ids)
                             sheet.dismiss()
                             if failed:
                                 def _show():
@@ -612,7 +665,7 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                                             continue
                                         log(f"ConfirmImportBottomSheet: starting install for '{plugin_name}' id='{plugin_id}'")
                                         onlyLocalInstallNoUi(extracted, plugin_id,
-                                                             lambda err, _n=plugin_name: on_plugin_done(_n, err))
+                                                             lambda err, _n=plugin_name, _id=plugin_id: on_plugin_done(_n, err, _id))
                             except Exception as e:
                                 log(f"ConfirmImportBottomSheet: _run_installs error: {e}\n{traceback.format_exc()}")
                                 for p in plugins:
