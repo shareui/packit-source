@@ -279,6 +279,18 @@ class ContributorsSettings:
         except Exception:
             BulletinHelper.show_error(strings.failed_to_open_link)
 
+    def _open_vestr_direct_message(self):
+        try:
+            from java.util import Locale
+            current_lang = Locale.getDefault().getLanguage()
+            if current_lang == "ru":
+                url = "https://t.me/mr_vestr/?text=%D0%9F%D1%80%D0%B8%D0%B2%D0%B5%D1%82%21+%D0%9F%D0%B8%D1%88%D1%83+%D0%BF%D0%BE+%D0%BF%D0%BE%D0%B2%D0%BE%D0%B4%D1%83+%D0%BF%D0%BB%D0%B0%D0%B3%D0%B8%D0%BD%D0%B0+%C2%ABPackit%C2%BB%3A%0D%0A"
+            else:
+                url = "https://t.me/mr_vestr/?text=Hello%21+I%27m+writing+regarding+the+%22Packit%22+plugin%3A%0D%0A"
+            self._open_url(url)
+        except Exception:
+            self._open_url("https://t.me/mr_Vestr")
+
     def _make_avatar_item(self, image_url, title_text="", subtitle_text="", username_url=None):
         try:
             frag = get_last_fragment()
@@ -439,7 +451,7 @@ class ContributorsSettings:
         if divider is not None:
             items.append(divider)
 
-        item = self._make_link_item("msg_message", str(strings.direct_message), "t.me/mr_Vestr", lambda v: self._open_url("https://t.me/mr_Vestr"))
+        item = self._make_link_item("msg_message", str(strings.direct_message), "t.me/mr_Vestr", lambda v: self._open_vestr_direct_message())
         if item is not None:
             items.append(item)
 
