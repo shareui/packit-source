@@ -265,10 +265,17 @@ def _buildCacheCard(context, cacheDir, on_clear, title=None):
         clearBtn.setOnClickListener(OnClickListener(on_clear))
         card.addView(clearBtn, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL))
 
-        return card
+        def update_size():
+            try:
+                new_size, new_count = _getCacheInfo(cacheDir)
+                sizeView.setText(f"{new_size} • {new_count} files")
+            except Exception as e:
+                log(f"other: _buildCacheCard update_size error: {e}")
+
+        return card, update_size
     except Exception as e:
         log(f"other: _buildCacheCard error: {e}")
-        return None
+        return None, None
 
 
 def _showEditPathDialog(context, pathView, freeView):
@@ -1360,7 +1367,7 @@ class OtherSettings:
         time.sleep(1)
         os.kill(os.getpid(), signal.SIGKILL)
 
-    def _onClearCacheClick(self, view):
+    def _onClearCacheClick(self, view, update_callback=None):
         try:
             frag = get_last_fragment()
             act = frag.getParentActivity() if frag else None
@@ -1379,6 +1386,12 @@ class OtherSettings:
                         shutil.rmtree(cacheDir)
                 except Exception as e:
                     log(f"clear cache error: {e}")
+
+                if update_callback:
+                    try:
+                        update_callback()
+                    except Exception as e:
+                        log(f"clear cache update callback error: {e}")
 
                 try:
                     frag2 = get_last_fragment()
@@ -1412,13 +1425,18 @@ class OtherSettings:
         except Exception as e:
             log(f"clear cache dialog error: {e}")
 
-    def _onClearPluginCacheClick(self, view):
+    def _onClearPluginCacheClick(self, view, update_callback=None):
         try:
             from ..utils.paths import getCacheRoot
             plugin_cache_dir = getCacheRoot() + "/.cache/plugins"
             if os.path.exists(plugin_cache_dir):
                 shutil.rmtree(plugin_cache_dir)
                 log("other: plugin cache cleared")
+                if update_callback:
+                    try:
+                        update_callback()
+                    except Exception as e:
+                        log(f"other: clear plugin cache update callback error: {e}")
         except Exception as e:
             log(f"other: clear plugin cache error: {e}")
 
@@ -1747,27 +1765,27 @@ class OtherSettings:
 
         if ctx:
             cacheDir = self._getCacheDir()
-            cacheCard = _buildCacheCard(ctx, cacheDir, self._onClearCacheClick)
+            cacheCard, cacheUpdateFunc = _buildCacheCard(ctx, cacheDir, lambda v: self._onClearCacheClick(v, cacheUpdateFunc))
             if cacheCard is not None:
                 items.append(Custom(view=cacheCard))
             else:
                 items.append(Text(
                     text=strings.clear_cache,
                     icon="msg_delete",
-                    on_click=self._onClearCacheClick,
+                    on_click=lambda v: self._onClearCacheClick(v, None),
                     red=True
                 ))
 
             from ..utils.paths import getCacheRoot
             pluginCacheDir = getCacheRoot() + "/.cache/plugins"
-            pluginCacheCard = _buildCacheCard(ctx, pluginCacheDir, self._onClearPluginCacheClick, title=strings.clear_plugin_cache)
+            pluginCacheCard, pluginCacheUpdateFunc = _buildCacheCard(ctx, pluginCacheDir, lambda v: self._onClearPluginCacheClick(v, pluginCacheUpdateFunc), title=strings.clear_plugin_cache)
             if pluginCacheCard is not None:
                 items.append(Custom(view=pluginCacheCard))
             else:
                 items.append(Text(
                     text=strings.clear_plugin_cache,
                     icon="msg_delete",
-                    on_click=self._onClearPluginCacheClick,
+                    on_click=lambda v: self._onClearPluginCacheClick(v, None),
                     red=True
                 ))
         else:

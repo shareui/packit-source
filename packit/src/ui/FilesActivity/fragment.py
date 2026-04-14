@@ -930,7 +930,7 @@ def _show_entry_menu(act, anchor_view, path, on_rename, on_delete, on_copy):
 
             tv = TextView(act)
             tv.setText(title)
-            tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            tv.setTextSize(14)
             try:
                 color = Theme.getColor(Theme.key_text_RedRegular) if is_red else Theme.getColor(Theme.key_actionBarDefaultSubmenuItem)
                 tv.setTextColor(color)

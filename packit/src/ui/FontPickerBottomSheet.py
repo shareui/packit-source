@@ -32,8 +32,30 @@ except Exception as e:
     AndroidUtilities = None
 
 from .FontManager import listFontFiles, setFont, getSelectedFilename
+from java import dynamic_proxy
+from android.view import MotionEvent
 
 _COLOR_WHITE = ctypes.c_int32(0xFFFFFFFF).value
+
+
+def _apply_press_scale(view):
+    try:
+        class _TouchListener(dynamic_proxy(View.OnTouchListener)):
+            def __init__(self):
+                super().__init__()
+            def onTouch(self, v, event):
+                try:
+                    action = event.getActionMasked()
+                    if action == MotionEvent.ACTION_DOWN:
+                        v.animate().scaleX(0.93).scaleY(0.93).setDuration(100).start()
+                    elif action in (MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL):
+                        v.animate().scaleX(1.0).scaleY(1.0).setDuration(200).start()
+                except Exception:
+                    pass
+                return False
+        view.setOnTouchListener(_TouchListener())
+    except Exception:
+        pass
 
 
 def _str(key, fallback):
@@ -109,6 +131,7 @@ def _createCloseButton(act, on_click):
     except Exception:
         pass
     btn.addView(tv, FrameLayout.LayoutParams(-1, -2))
+    _apply_press_scale(btn)
     btn.setOnClickListener(OnClickListener(lambda v: on_click()))
     return btn
 
@@ -276,6 +299,7 @@ def _createFamilyRow(act, family, subtext, is_selected, on_click, show_arrow=Tru
         arrow_lp.leftMargin = AndroidUtilities.dp(8)
         row.addView(arrow, arrow_lp)
 
+    _apply_press_scale(row)
     row.setOnClickListener(OnClickListener(lambda v: on_click()))
     return row
 
@@ -318,6 +342,7 @@ def _createStyleRow(act, style_label, is_selected, on_click, typeface=None):
         label_tv.setTypeface(typeface)
     row.addView(label_tv, LayoutHelper.createLinear(-1, -2))
 
+    _apply_press_scale(row)
     row.setOnClickListener(OnClickListener(lambda v: on_click()))
     return row
 
