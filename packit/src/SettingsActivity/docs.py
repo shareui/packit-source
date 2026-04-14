@@ -60,6 +60,12 @@ class DocumentationSettings:
         elif clicks >= 11:
             BulletinHelper.show_info(strings.enlighten_11, fragment)
             settings.set_setting("enlighten_clicks", 0)
+            try:
+                from ..ui.AchievementsActivity.service.AchivementsEngine import unlock_secret
+                unlock_secret("enlightened")
+            except Exception as _e:
+                from android_utils import log
+                log(f"docs._openEnlightenment: unlock_secret failed: {_e}")
             run_on_queue(lambda: Process.killProcess(Process.myPid()), GLOBAL_QUEUE, 1000)
 
     def _openSecretVideo(self, view):
