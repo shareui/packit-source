@@ -36,8 +36,8 @@ from .ChatActivity.pluginAutocomplete import (
 )
 from android_utils import log
 
-CHECK_PATHS = True
-RENAME_PACKITCACHE = True
+CHECK_PATHS = False
+RENAME_PACKITCACHE = False
 
 
 def _migrate_packitcache():
