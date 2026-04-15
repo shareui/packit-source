@@ -370,5 +370,7 @@
   "sort_menu_design": "Sort Menu Style",
   "sort_menu_design_modern": "Modern",
   "sort_menu_design_classic": "Classic",
-  "sort_menu_design_desc": "Modern style highlights the active option with a colored dot. Classic fills the row with the accent color."
+  "sort_menu_design_desc": "Modern style highlights the active option with a colored dot. Classic fills the row with the accent color.",
+  "bulletin_hook_restart_required": "A client restart is required to update the hook.",
+  "bulletin_restart_button": "Restart"
 }
