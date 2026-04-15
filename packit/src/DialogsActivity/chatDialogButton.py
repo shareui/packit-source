@@ -111,9 +111,19 @@ class ChatDialogButton:
 
                         R = find_class("org.telegram.messenger.R")
                         try:
-                            icon_id = int(getattr(R.drawable, "msg_addbot"))
+                            from elyx import settings as _s
+                            _mode = _s.get("dialogs_menu_button", 1)
+                        except Exception:
+                            _mode = 1
+                        _icon_names = ["msg_plugins", "msg_addbot", "input_smile"]
+                        _icon_name = _icon_names[_mode] if 0 <= _mode < len(_icon_names) else "msg_addbot"
+                        try:
+                            icon_id = int(getattr(R.drawable, _icon_name))
                         except Exception:
                             icon_id = 0
+                        _label_keys = ["dialogs_menu_packit_settings", "install_plugin_btn", "dialogs_menu_install_icon"]
+                        _label_key = _label_keys[_mode] if 0 <= _mode < len(_label_keys) else "install_plugin_btn"
+                        _label = strings[_label_key]
 
                         _String = jclass("java.lang.String")
                         _Runnable = jclass("java.lang.Runnable")
@@ -125,12 +135,31 @@ class ChatDialogButton:
 
                             def run(self):
                                 try:
-                                    from ..ui.PluginListActivity.fragment import InstallUI
-                                    run_on_ui_thread(lambda: InstallUI(plugin).open())
+                                    from elyx import settings as _s
+                                    mode = _s.get("dialogs_menu_button", 1)
+                                    if mode == 0:
+                                        from com.exteragram.messenger.plugins import PluginsController
+                                        from com.exteragram.messenger.plugins.ui import PluginSettingsActivity
+                                        from client_utils import get_last_fragment
+                                        def _open():
+                                            try:
+                                                frag = get_last_fragment()
+                                                pluginObj = PluginsController.getInstance().plugins.get(plugin.id)
+                                                if pluginObj and frag:
+                                                    frag.presentFragment(PluginSettingsActivity(pluginObj))
+                                            except Exception as e:
+                                                log(f"ChatDialogButton: open settings error: {e}")
+                                        run_on_ui_thread(_open)
+                                    elif mode == 2:
+                                        from ..ui.IconsListActivity.fragment import InstallIconsUI
+                                        run_on_ui_thread(lambda: InstallIconsUI(plugin).open())
+                                    else:
+                                        from ..ui.PluginListActivity.fragment import InstallUI
+                                        run_on_ui_thread(lambda: InstallUI(plugin).open())
                                 except Exception as e:
                                     log(f"ChatDialogButton: onClick error: {e}")
 
-                        io.add(icon_id, _String(strings["install_plugin_btn"]), _OnClick())
+                        io.add(icon_id, _String(_label), _OnClick())
                         param.setResult(True)
                     except Exception as e:
                         log(f"ChatDialogButton: before_hooked_method error: {e}")
@@ -216,13 +245,32 @@ class ChatDialogButton:
             )
             item_info_ctor.setAccessible(True)
 
-            R = find_class("org.telegram.messenger.R")
-            try:
-                icon_id = int(getattr(R.drawable, "msg_addbot"))
-            except Exception:
-                icon_id = 0
-
             _String = jclass("java.lang.String")
+
+            _ICON_NAMES = ["msg_plugins", "msg_addbot", "input_smile"]
+            _LABEL_KEYS = ["dialogs_menu_packit_settings", "install_plugin_btn", "dialogs_menu_install_icon"]
+
+            def _get_mode_icon_id():
+                try:
+                    from elyx import settings as _s
+                    _mode = _s.get("dialogs_menu_button", 1)
+                except Exception:
+                    _mode = 1
+                _name = _ICON_NAMES[_mode] if 0 <= _mode < len(_ICON_NAMES) else "msg_addbot"
+                try:
+                    R = find_class("org.telegram.messenger.R")
+                    return int(getattr(R.drawable, _name))
+                except Exception:
+                    return 0
+
+            def _get_mode_label():
+                try:
+                    from elyx import settings as _s
+                    _mode = _s.get("dialogs_menu_button", 1)
+                except Exception:
+                    _mode = 1
+                _key = _LABEL_KEYS[_mode] if 0 <= _mode < len(_LABEL_KEYS) else "install_plugin_btn"
+                return strings[_key]
 
             # register our item in itemDetails map so the activity knows name+icon
             class InitItemDetailsHook(MethodHook):
@@ -231,8 +279,8 @@ class ChatDialogButton:
                         item_details = item_details_field.get(param.thisObject)
                         if item_details is None:
                             return
-                        label = _String(strings["install_plugin_btn"])
-                        info_obj = item_info_ctor.newInstance(label, _Integer(icon_id))
+                        label = _String(_get_mode_label())
+                        info_obj = item_info_ctor.newInstance(label, _Integer(_get_mode_icon_id()))
                         item_details.put(_Integer(_PACKIT_MENU_ID), info_obj)
                     except Exception as e:
                         log(f"ChatDialogButton: initItemDetails hook error: {e}")

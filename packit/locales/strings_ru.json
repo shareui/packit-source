@@ -591,6 +591,8 @@
   "show_settings_button": "Кнопка PackIt в настройках Telegram",
   "show_settings_button_desc": "Показывает кнопку настроек PackIt под строкой настроек exteraGram.",
   "restart_required_title": "Требуется перезапуск",
+  "bulletin_hook_restart_required": "A client restart is required to update the hook.",
+  "bulletin_restart_button": "Restart",
   "restart_required_message": "Это изменение вступит в силу после перезапуска.",
   "packit_channel_handle": "@packitapp",
   "packit_forum_handle": "@packitGround",
