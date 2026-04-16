@@ -372,5 +372,6 @@
   "sort_menu_design_classic": "Classic",
   "sort_menu_design_desc": "Modern style highlights the active option with a colored dot. Classic fills the row with the accent color.",
   "bulletin_hook_restart_required": "A client restart is required to update the hook.",
-  "bulletin_restart_button": "Restart"
+  "bulletin_restart_button": "Restart",
+  "plugin_description": "**Katalog zasobów dla exteraGram/AyuGram. Wtyczki, ikony — wszystko w jednym miejscu, z obsługą wielu repozytoriów.**\n\nKod źródłowy: "
 }

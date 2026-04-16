@@ -774,5 +774,6 @@
   "afp_confirm_desc": "{count} plugins will be imported into your client. Continue?",
   "afp_import_with_settings": "Import with settings",
   "achiev_title_secret_enlightened": "You are enlightened",
-  "achiev_hint_secret_enlightened": "Well... You really don't understand the first time that you can't screw every living thing."
+  "achiev_hint_secret_enlightened": "Well... You really don't understand the first time that you can't screw every living thing.",
+  "plugin_description": "**A resource catalog for exteraGram/AyuGram. Plugins, icons — all in one place, with support for multiple repositories.**\n\nSource code: "
 }
