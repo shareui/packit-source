@@ -1,10 +1,7 @@
 name: PackIt
-description: |
-  **A resource catalog for exteraGram/AyuGram. Plugins, icons — all in one place, with support for multiple repositories.**
-
-  Source code: [shareui/packit-source](https://github.com/shareui/packit-source)
+description: "{plugin_description} [shareui/packit-source](https://github.com/shareui/packit-source)"
 id: shareui_packit
-version: "1.0.0-dev.1295"
+version: "1.0.0-dev.1296"
 author: "@packitX"
 app_version: ">=12.5.1"
 sdk_version: ">=1.4.3.2"

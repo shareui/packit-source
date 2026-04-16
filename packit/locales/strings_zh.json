@@ -372,5 +372,6 @@
   "sort_menu_design_classic": "Classic",
   "sort_menu_design_desc": "Modern style highlights the active option with a colored dot. Classic fills the row with the accent color.",
   "bulletin_hook_restart_required": "A client restart is required to update the hook.",
-  "bulletin_restart_button": "Restart"
+  "bulletin_restart_button": "Restart",
+  "plugin_description": "**exteraGram/AyuGram 的资源目录。插件、图标 — 一站式管理，支持多个仓库。**\n\n源代码: "
 }

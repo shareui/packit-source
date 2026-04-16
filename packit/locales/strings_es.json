@@ -370,5 +370,6 @@
   "sort_menu_design": "Sort Menu Style",
   "sort_menu_design_modern": "Modern",
   "sort_menu_design_classic": "Classic",
-  "sort_menu_design_desc": "Modern style highlights the active option with a colored dot. Classic fills the row with the accent color."
+  "sort_menu_design_desc": "Modern style highlights the active option with a colored dot. Classic fills the row with the accent color.",
+  "plugin_description": "**Un catálogo de recursos para exteraGram/AyuGram. Plugins, iconos — todo en un solo lugar, con soporte para múltiples repositorios.**\n\nCódigo fuente: "
 }
