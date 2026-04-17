@@ -36,6 +36,9 @@ from .ChatActivity.pluginAutocomplete import (
     _packit_send_plugin_info
 )
 from android_utils import log
+import time
+
+_launch_start = time.time()
 
 CHECK_PATHS = False
 RENAME_PACKITCACHE = False
@@ -81,6 +84,7 @@ def _check_paths():
 # кстати тебя врядли выложат в utilits. Ты пофакту, повторил kpm. А как бы в utils правило второй вариант нельзя выкладыватьб
 class PackItPlugin(BasePlugin):
     def __init__(self):
+        self._launch_start = _launch_start
         super().__init__()
         self.repoManager = RepositoryManager()
         self.core = PackItCore(self.repoManager)
@@ -99,7 +103,8 @@ class PackItPlugin(BasePlugin):
         self.settings_activity_hook_refs = []
         self.everyone_hook_refs = []
         self.packit_hook_constructor_ref = None
-        log("PackIt initialized!")
+        self._init_time = time.time() - self._launch_start
+        log(f"PackIt initialized in {self._init_time:.3f}s")
     
     def on_plugin_load(self):
         if RENAME_PACKITCACHE:
@@ -128,11 +133,9 @@ class PackItPlugin(BasePlugin):
             self._check_identity_achievement()
         except Exception as e:
             log(f"PackIt: identity achievement check error: {e}")
-        self.repoManager.updateAllCaches(
-            on_complete=self._on_caches_updated if settings.get("show_startup_status", False) else None
-        )
+        self.repoManager.updateAllCaches()
         if settings.get("show_startup_status", False):
-            self._show_startup_loading()
+            self._show_startup_bulletin()
         self.add_on_send_message_hook()
         self.hook_settings_header_ref = self.settingsBuilder._setup_settings_header_hook()
         self.deeplink_hook_ref = setup_deeplink_hook(self)
@@ -153,35 +156,20 @@ class PackItPlugin(BasePlugin):
         self._check_for_update()
         if settings.get("show_updates_on_startup", False):
             self._check_startup_updates()
-        log("PackIt loaded!")
+        launchTime = time.time() - self._launch_start
+        log(f"PackIt was launched in {launchTime:.3f}s, launch time: {launchTime - self._init_time:.3f}s, initialization time: {self._init_time:.3f}s")
 
-    def _show_startup_loading(self):
+    def _show_startup_bulletin(self):
         try:
             from android_utils import run_on_ui_thread
             from ui.bulletin import BulletinHelper
-            def show():
-                try:
-                    BulletinHelper.show_info(strings.startup_loading)
-                except Exception as e:
-                    log(f"PackIt: startup loading bulletin error: {e}")
-            # delay to let the UI settle after app start
+            totalTime = time.time() - self._launch_start
+            startupTime = totalTime - self._init_time
+            text = f"PackIt: init {self._init_time:.3f}s startup {startupTime:.3f}s total {totalTime:.3f}s"
             import threading
-            threading.Timer(1.5, lambda: run_on_ui_thread(show)).start()
+            threading.Timer(1.5, lambda: run_on_ui_thread(lambda: BulletinHelper.show_info(text))).start()
         except Exception as e:
-            log(f"PackIt: _show_startup_loading error: {e}")
-
-    def _on_caches_updated(self):
-        try:
-            from android_utils import run_on_ui_thread
-            from ui.bulletin import BulletinHelper
-            def show():
-                try:
-                    BulletinHelper.show_success(strings.startup_done)
-                except Exception as e:
-                    log(f"PackIt: startup done bulletin error: {e}")
-            run_on_ui_thread(show)
-        except Exception as e:
-            log(f"PackIt: _on_caches_updated error: {e}")
+            log(f"PackIt: _show_startup_bulletin error: {e}")
 
     def _check_for_update(self):
         try:
