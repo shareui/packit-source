@@ -20,6 +20,14 @@ def _get_extera_config():
         return None
 
 
+def _is_drawer_mode():
+    try:
+        cfg = _get_extera_config()
+        return bool(cfg.navigationDrawer) if cfg is not None else False
+    except Exception:
+        return False
+
+
 _MENU_STATE_KEY = "dialogs_install_btn_enabled"
 
 
@@ -41,7 +49,8 @@ def _set_btn_enabled(val):
 
 def _register_menu_id():
     # sanitize removes our id every launch (unknown to MainMenuItem enum),
-    # so we always re-add it to the correct list based on persisted state
+    # so we always re-add it to the correct list based on persisted state.
+    # works for both drawer and dots mode — layout/hidden lists are shared.
     try:
         cfg = _get_extera_config()
         if cfg is None:
@@ -70,8 +79,47 @@ def _register_menu_id():
         return False
 
 
+def _get_mode_icon_id(mode):
+    _icon_names = ["msg_plugins", "msg_addbot", "input_smile"]
+    name = _icon_names[mode] if 0 <= mode < len(_icon_names) else "msg_addbot"
+    try:
+        R = find_class("org.telegram.messenger.R")
+        return int(getattr(R.drawable, name))
+    except Exception:
+        return 0
+
+
+def _get_mode_label(mode):
+    _label_keys = ["dialogs_menu_packit_settings", "install_plugin_btn", "dialogs_menu_install_icon"]
+    key = _label_keys[mode] if 0 <= mode < len(_label_keys) else "install_plugin_btn"
+    return strings[key]
+
+
+def _get_current_mode():
+    try:
+        from elyx import settings as _s
+        return _s.get("dialogs_menu_button", 1)
+    except Exception:
+        return 1
+
+
 class ChatDialogButton:
     def setup_dialogs_menu_hook(self):
+        try:
+            _register_menu_id()
+            self._setup_sanitize_hook()
+            self._setup_main_menu_prefs_hooks()
+
+            if _is_drawer_mode():
+                self._setup_drawer_hook()
+            else:
+                self._setup_dots_hook()
+
+            log("ChatDialogButton: hooks set up")
+        except Exception as e:
+            log(f"ChatDialogButton: setup_dialogs_menu_hook error: {e}")
+
+    def _setup_dots_hook(self):
         try:
             DialogsActivity = find_class("org.telegram.ui.DialogsActivity")
             if DialogsActivity is None:
@@ -93,9 +141,6 @@ class ChatDialogButton:
 
             target_method.setAccessible(True)
 
-            self._setup_sanitize_hook()
-            self._setup_main_menu_prefs_hooks()
-
             plugin = self.plugin
 
             class AddMainMenuItemHook(MethodHook):
@@ -109,21 +154,9 @@ class ChatDialogButton:
                         if io is None:
                             return
 
-                        R = find_class("org.telegram.messenger.R")
-                        try:
-                            from elyx import settings as _s
-                            _mode = _s.get("dialogs_menu_button", 1)
-                        except Exception:
-                            _mode = 1
-                        _icon_names = ["msg_plugins", "msg_addbot", "input_smile"]
-                        _icon_name = _icon_names[_mode] if 0 <= _mode < len(_icon_names) else "msg_addbot"
-                        try:
-                            icon_id = int(getattr(R.drawable, _icon_name))
-                        except Exception:
-                            icon_id = 0
-                        _label_keys = ["dialogs_menu_packit_settings", "install_plugin_btn", "dialogs_menu_install_icon"]
-                        _label_key = _label_keys[_mode] if 0 <= _mode < len(_label_keys) else "install_plugin_btn"
-                        _label = strings[_label_key]
+                        mode = _get_current_mode()
+                        icon_id = _get_mode_icon_id(mode)
+                        label = _get_mode_label(mode)
 
                         _String = jclass("java.lang.String")
                         _Runnable = jclass("java.lang.Runnable")
@@ -135,9 +168,8 @@ class ChatDialogButton:
 
                             def run(self):
                                 try:
-                                    from elyx import settings as _s
-                                    mode = _s.get("dialogs_menu_button", 1)
-                                    if mode == 0:
+                                    m = _get_current_mode()
+                                    if m == 0:
                                         from com.exteragram.messenger.plugins import PluginsController
                                         from com.exteragram.messenger.plugins.ui import PluginSettingsActivity
                                         from client_utils import get_last_fragment
@@ -150,7 +182,7 @@ class ChatDialogButton:
                                             except Exception as e:
                                                 log(f"ChatDialogButton: open settings error: {e}")
                                         run_on_ui_thread(_open)
-                                    elif mode == 2:
+                                    elif m == 2:
                                         from ..ui.IconsListActivity.fragment import InstallIconsUI
                                         run_on_ui_thread(lambda: InstallIconsUI(plugin).open())
                                     else:
@@ -159,19 +191,113 @@ class ChatDialogButton:
                                 except Exception as e:
                                     log(f"ChatDialogButton: onClick error: {e}")
 
-                        io.add(icon_id, _String(_label), _OnClick())
+                        io.add(icon_id, _String(label), _OnClick())
                         param.setResult(True)
                     except Exception as e:
                         log(f"ChatDialogButton: before_hooked_method error: {e}")
 
-            _register_menu_id()
-
-            hook_ref = plugin.hook_method(target_method, AddMainMenuItemHook())
-            log("ChatDialogButton: hook set up")
-            return hook_ref
-
+            return self.plugin.hook_method(target_method, AddMainMenuItemHook())
         except Exception as e:
-            log(f"ChatDialogButton: setup_dialogs_menu_hook error: {e}")
+            log(f"ChatDialogButton: _setup_dots_hook error: {e}")
+            return None
+
+    def _setup_drawer_hook(self):
+        # in drawer mode, addMainMenuConfiguredItem is never called for unknown ids.
+        # hook DrawerMenuView.rebuildMenu (after) and inject our item manually.
+        try:
+            DrawerMenuViewClass = find_class("com.exteragram.messenger.drawer.DrawerMenuView")
+            if DrawerMenuViewClass is None:
+                log("ChatDialogButton: DrawerMenuView not found")
+                return None
+
+            rebuild_method = None
+            for m in DrawerMenuViewClass.getClass().getDeclaredMethods():
+                try:
+                    if m.getName() == "rebuildMenu" and len(m.getParameterTypes()) == 2:
+                        rebuild_method = m
+                        break
+                except Exception:
+                    continue
+
+            if rebuild_method is None:
+                log("ChatDialogButton: DrawerMenuView.rebuildMenu not found")
+                return None
+
+            rebuild_method.setAccessible(True)
+            plugin = self.plugin
+
+            class RebuildMenuHook(MethodHook):
+                def after_hooked_method(self_hook, param):
+                    try:
+                        if not _is_btn_enabled():
+                            return
+                        if not _is_drawer_mode():
+                            return
+
+                        drawer_view = param.thisObject
+                        account = int(param.args[0])
+
+                        DrawerMenuItemViewClass = find_class("com.exteragram.messenger.drawer.DrawerMenuItemView")
+                        if DrawerMenuItemViewClass is None:
+                            return
+
+                        ctx = drawer_view.getContext()
+                        mode = _get_current_mode()
+                        icon_id = _get_mode_icon_id(mode)
+                        label = _get_mode_label(mode)
+
+                        item_view = DrawerMenuItemViewClass(ctx)
+                        item_view.setMenuItem(_PACKIT_MENU_ID, account, icon_id, label)
+
+                        from android_utils import OnClickListener
+                        def on_click(v):
+                            try:
+                                # close drawer before opening packit ui
+                                try:
+                                    from client_utils import get_last_fragment
+                                    frag = get_last_fragment()
+                                    if frag is not None:
+                                        act = frag.getParentActivity()
+                                        dc = act.drawerLayoutContainer.getDrawerContainer()
+                                        if dc is not None and dc.isDrawerOpen():
+                                            dc.closeDrawer(True)
+                                except Exception as e:
+                                    log(f"ChatDialogButton: close drawer error: {e}")
+                                m = _get_current_mode()
+                                if m == 0:
+                                    from com.exteragram.messenger.plugins import PluginsController
+                                    from com.exteragram.messenger.plugins.ui import PluginSettingsActivity
+                                    from client_utils import get_last_fragment
+                                    frag = get_last_fragment()
+                                    pluginObj = PluginsController.getInstance().plugins.get(plugin.id)
+                                    if pluginObj and frag:
+                                        frag.presentFragment(PluginSettingsActivity(pluginObj))
+                                elif m == 2:
+                                    from ..ui.IconsListActivity.fragment import InstallIconsUI
+                                    InstallIconsUI(plugin).open()
+                                else:
+                                    from ..ui.PluginListActivity.fragment import InstallUI
+                                    InstallUI(plugin).open()
+                            except Exception as e:
+                                log(f"ChatDialogButton: drawer onClick error: {e}")
+
+                        item_view.setOnClickListener(OnClickListener(on_click))
+
+                        # get container (first child of DrawerMenuView which is a LinearLayout)
+                        try:
+                            container = drawer_view.getChildAt(0)
+                            if container is not None:
+                                container.addView(item_view)
+                        except Exception as e:
+                            log(f"ChatDialogButton: drawer addView error: {e}")
+                    except Exception as e:
+                        log(f"ChatDialogButton: RebuildMenuHook error: {e}")
+
+            hook_ref = self.plugin.hook_method(rebuild_method, RebuildMenuHook())
+            log("ChatDialogButton: drawer hook set up")
+            return hook_ref
+        except Exception as e:
+            log(f"ChatDialogButton: _setup_drawer_hook error: {e}")
             return None
 
     def _setup_sanitize_hook(self):
@@ -207,7 +333,7 @@ class ChatDialogButton:
             return None
 
     def _setup_main_menu_prefs_hooks(self):
-        # hooks for MainMenuPreferencesActivity so our item renders in the
+        # hooks for AppNavigationPreferencesActivity so our item renders in the
         # "Main menu" settings screen (initItemDetails, createMenuItem, onClick)
         try:
             activity_cls = find_class(
@@ -247,40 +373,15 @@ class ChatDialogButton:
 
             _String = jclass("java.lang.String")
 
-            _ICON_NAMES = ["msg_plugins", "msg_addbot", "input_smile"]
-            _LABEL_KEYS = ["dialogs_menu_packit_settings", "install_plugin_btn", "dialogs_menu_install_icon"]
-
-            def _get_mode_icon_id():
-                try:
-                    from elyx import settings as _s
-                    _mode = _s.get("dialogs_menu_button", 1)
-                except Exception:
-                    _mode = 1
-                _name = _ICON_NAMES[_mode] if 0 <= _mode < len(_ICON_NAMES) else "msg_addbot"
-                try:
-                    R = find_class("org.telegram.messenger.R")
-                    return int(getattr(R.drawable, _name))
-                except Exception:
-                    return 0
-
-            def _get_mode_label():
-                try:
-                    from elyx import settings as _s
-                    _mode = _s.get("dialogs_menu_button", 1)
-                except Exception:
-                    _mode = 1
-                _key = _LABEL_KEYS[_mode] if 0 <= _mode < len(_LABEL_KEYS) else "install_plugin_btn"
-                return strings[_key]
-
-            # register our item in itemDetails map so the activity knows name+icon
             class InitItemDetailsHook(MethodHook):
                 def after_hooked_method(self_hook, param):
                     try:
                         item_details = item_details_field.get(param.thisObject)
                         if item_details is None:
                             return
-                        label = _String(_get_mode_label())
-                        info_obj = item_info_ctor.newInstance(label, _Integer(_get_mode_icon_id()))
+                        mode = _get_current_mode()
+                        label = _String(_get_mode_label(mode))
+                        info_obj = item_info_ctor.newInstance(label, _Integer(_get_mode_icon_id(mode)))
                         item_details.put(_Integer(_PACKIT_MENU_ID), info_obj)
                     except Exception as e:
                         log(f"ChatDialogButton: initItemDetails hook error: {e}")
@@ -289,7 +390,6 @@ class ChatDialogButton:
             init_method.setAccessible(True)
             self.plugin.hook_method(init_method, InitItemDetailsHook())
 
-            # return UItem for our id so it renders correctly in the list
             UItem = jclass("org.telegram.ui.Components.UItem")
             create_method = None
             for m in java_cls.getDeclaredMethods():
@@ -320,7 +420,6 @@ class ChatDialogButton:
 
                 self.plugin.hook_method(create_method, CreateMenuItemHook())
 
-            # toggle visibility when user taps our item in prefs
             NotificationCenter = jclass("org.telegram.messenger.NotificationCenter")
             base_activity_cls = find_class(
                 "com.exteragram.messenger.preferences.BasePreferencesActivity"

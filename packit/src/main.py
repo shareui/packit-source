@@ -18,7 +18,7 @@ from .other import text as _text
 from .ChatActivity.SecurityBottomSheets import setup_policy_button_hook, setup_hash_button_hook
 from .ChatActivity.LinksIcons import setup_links_buttons_hook
 from .SettingsActivity.service.settingsActivityHook import setup_settings_activity_hook
-from .DialogsActivity.pillWidget import setup_pill_widget
+from .DialogsActivity.pillWidget import setup_pill_widget, _unregister_pill
 from .ui.PluginListActivity.service.InstallDismissHook import setup_install_dismiss_hook
 from .ChatActivity.export.DecryptorBottomSheet import setup_packit_file_hook
 from .ChatActivity.afpFile import setup_afp_file_hook
