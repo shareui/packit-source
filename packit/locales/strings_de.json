@@ -167,7 +167,7 @@
   "security_scan": "Sicherheit",
   "cache_header": "Cache",
   "filesystem_header": "Dateisystem",
-  "clear_cache": "Cache leeren",
+  "clear_cache": "Arbeitsordner löschen",
   "clear_cache_confirm_title": "Cache leeren",
   "clear_cache_confirm_message": "Bist du sicher? Diese Aktion ist nicht rückgängig zu machen.",
   "clear_cache_done_title": "Cache geleert",

@@ -167,7 +167,7 @@
   "security_scan": "Zabezpečení",
   "cache_header": "Cache",
   "filesystem_header": "Systém souborů",
-  "clear_cache": "Vymazat cache",
+  "clear_cache": "Smazat pracovní složku",
   "clear_cache_confirm_title": "Vymazat cache",
   "clear_cache_confirm_message": "Jsi si jistý/á? Tato akce je nevratná.",
   "clear_cache_done_title": "Cache vymazána",

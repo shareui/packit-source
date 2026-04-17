@@ -167,7 +167,7 @@
   "security_scan": "Бяспека",
   "cache_header": "Кэш",
   "filesystem_header": "Файлавая сістэма",
-  "clear_cache": "Ачысціць кэш",
+  "clear_cache": "Выдаліць рабочую папку",
   "clear_cache_confirm_title": "Ачысціць кэш",
   "clear_cache_confirm_message": "Вы ўпэўнены? Гэта дзеянне незваротнае.",
   "clear_cache_done_title": "Кэш ачышчаны",

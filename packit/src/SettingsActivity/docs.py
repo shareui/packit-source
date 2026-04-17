@@ -48,25 +48,35 @@ class DocumentationSettings:
         self._openUrl("https://t.me/packitGround/13/351")
 
     def _openEnlightenment(self, view):
-        clicks = settings.get("enlighten_clicks", 0) + 1
-        settings.set_setting("enlighten_clicks", clicks)
-        fragment = get_last_fragment()
+        from android_utils import log
+        try:
+            clicks = settings.get("enlighten_clicks", 0) + 1
+            log(f"docs._openEnlightenment: clicks={clicks}")
+            settings.set_setting("enlighten_clicks", clicks)
+            fragment = get_last_fragment()
+            log(f"docs._openEnlightenment: fragment={fragment}")
 
-        if clicks <= 9:
-            BulletinHelper.show_info(getattr(strings, f"enlighten_{clicks}"), fragment)
-        elif clicks == 10:
-            BulletinHelper.show_info(strings.enlighten_10, fragment)
-            run_on_queue(lambda: Process.killProcess(Process.myPid()), GLOBAL_QUEUE, 1000)
-        elif clicks >= 11:
-            BulletinHelper.show_info(strings.enlighten_11, fragment)
-            settings.set_setting("enlighten_clicks", 0)
-            try:
-                from ..ui.AchievementsActivity.service.AchivementsEngine import unlock_secret
-                unlock_secret("enlightened")
-            except Exception as _e:
-                from android_utils import log
-                log(f"docs._openEnlightenment: unlock_secret failed: {_e}")
-            run_on_queue(lambda: Process.killProcess(Process.myPid()), GLOBAL_QUEUE, 1000)
+            if clicks <= 9:
+                log(f"docs._openEnlightenment: showing enlighten_{clicks}")
+                BulletinHelper.show_info(getattr(strings, f"enlighten_{clicks}"), fragment)
+            elif clicks == 10:
+                log(f"docs._openEnlightenment: showing enlighten_10, scheduling kill")
+                BulletinHelper.show_info(strings.enlighten_10, fragment)
+                run_on_queue(lambda: Process.killProcess(Process.myPid()), GLOBAL_QUEUE, 1000)
+            elif clicks >= 11:
+                log(f"docs._openEnlightenment: showing enlighten_11, resetting clicks, unlocking achievement")
+                BulletinHelper.show_info(strings.enlighten_11, fragment)
+                settings.set_setting("enlighten_clicks", 0)
+                try:
+                    from ..ui.AchievementsActivity.service.AchivementsEngine import unlock_secret
+                    log(f"docs._openEnlightenment: calling unlock_secret enlightened")
+                    unlock_secret("enlightened")
+                    log(f"docs._openEnlightenment: unlock_secret done")
+                except Exception as e:
+                    log(f"docs._openEnlightenment: unlock_secret failed: {e}")
+                run_on_queue(lambda: Process.killProcess(Process.myPid()), GLOBAL_QUEUE, 1000)
+        except Exception as e:
+            log(f"docs._openEnlightenment: error: {e}")
 
     def _openSecretVideo(self, view):
         self._openUrl("https://youtu.be/xMHJGd3wwZk?si=ZpXaKUV-bpq_Fcob")
@@ -74,7 +84,7 @@ class DocumentationSettings:
     def build(self):
       return [
           Header(text=strings.for_users),
-  
+
           Text(
               text=strings.faq,
               icon="msg_help",
@@ -99,11 +109,11 @@ class DocumentationSettings:
               on_click=self._openSecretVideo,
               link_alias="secret_video"
           ),
-  
+
           Divider(),
-  
+
           Header(text=strings.for_devs),
-  
+
           Text(
               text=strings.creating_own_repo,
               icon="msg_edit",
@@ -128,6 +138,6 @@ class DocumentationSettings:
               on_click=self._openMetainfoDocs,
               link_alias="devdocs"
           ),
-  
+
           Divider()
       ]

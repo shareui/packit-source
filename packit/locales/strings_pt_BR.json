@@ -167,7 +167,7 @@
   "security_scan": "Segurança",
   "cache_header": "Cache",
   "filesystem_header": "Sistema de arquivos",
-  "clear_cache": "Limpar cache",
+  "clear_cache": "Excluir pasta de trabalho",
   "clear_cache_confirm_title": "Limpar cache",
   "clear_cache_confirm_message": "Tem certeza? Esta ação é irreversível.",
   "clear_cache_done_title": "Cache limpo",

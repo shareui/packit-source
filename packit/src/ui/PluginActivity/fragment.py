@@ -502,7 +502,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         root.setOrientation(LinearLayout.VERTICAL)
         root.setPadding(
             AndroidUtilities.dp(16), AndroidUtilities.dp(16),
-            AndroidUtilities.dp(16), AndroidUtilities.dp(24)
+            AndroidUtilities.dp(16), AndroidUtilities.dp(88)
         )
         scroll.addView(root)
 
@@ -716,6 +716,31 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
 
             circle_size = AndroidUtilities.dp(44)
 
+            # read squareFab setting from ExteraConfig
+            squareFab = True
+            try:
+                from hook_utils import find_class as _find_class
+                _ExteraConfig = _find_class("com.exteragram.messenger.ExteraConfig")
+                raw = _ExteraConfig.squareFab
+                squareFab = bool(raw)
+                log(f"pluginProfile: squareFab raw={raw} type={type(raw)} bool={squareFab}")
+            except Exception as e:
+                log(f"pluginProfile: squareFab read error: {e}")
+
+            def _make_fab_bg(color, size_dp, isSquare):
+                from android.graphics.drawable import GradientDrawable as _GD
+                import math
+                bg = _GD()
+                if isSquare:
+                    bg.setShape(_GD.RECTANGLE)
+                    # matches TG formula: ceil(size * 16 / 56)
+                    corner = AndroidUtilities.dp(float(math.ceil(size_dp * 16.0 / 56.0)))
+                    bg.setCornerRadius(corner)
+                else:
+                    bg.setShape(_GD.OVAL)
+                bg.setColor(color)
+                return bg
+
             install_btn = FrameLayout(act)
             install_btn.setClickable(True)
             install_btn.setFocusable(True)
@@ -723,11 +748,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             if is_available:
                 btn_text_color = Theme.getColor(Theme.key_featuredStickers_buttonText)
                 try:
-                    from android.graphics.drawable import GradientDrawable as _GD
-                    circle_bg = _GD()
-                    circle_bg.setShape(_GD.OVAL)
-                    circle_bg.setColor(btn_base)
-                    install_btn.setBackground(circle_bg)
+                    install_btn.setBackground(_make_fab_bg(btn_base, 56, squareFab))
                 except Exception:
                     pass
             else:
@@ -737,11 +758,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 b = gray & 0xFF
                 bg_gray = ctypes.c_int32((0x44 << 24) | (r << 16) | (g << 8) | b).value
                 try:
-                    from android.graphics.drawable import GradientDrawable as _GD
-                    circle_bg = _GD()
-                    circle_bg.setShape(_GD.OVAL)
-                    circle_bg.setColor(bg_gray)
-                    install_btn.setBackground(circle_bg)
+                    install_btn.setBackground(_make_fab_bg(bg_gray, 56, squareFab))
                 except Exception:
                     pass
                 btn_text_color = gray
@@ -891,42 +908,146 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     except Exception as e:
                         log(f"pluginProfile: unavail hint error: {e}")
 
-                def onInstallClick(v, _p=p, _install_ui=_install_ui_ref, _all=_all_plugins_ref,
-                                   _btn=install_btn, _label=install_label_container,
-                                   _btn_text_color=btn_text_color, _act=act):
-                    versions = _p.get("versions") or {}
-                    if not versions:
-                        _do_install(_p, _install_ui, _all, _btn, _label, _btn_text_color, _act)
-                        return
-                    from ...utils.app_version import check_app_version as _check_app_version
-                    from .versionPicker import _build_version_entries
-                    all_entries = _build_version_entries(_p)
-                    hide_unavail = False
-                    try:
-                        from elyx import settings as _s
-                        hide_unavail = _s.get("hide_unavailable_plugins", False)
-                    except Exception:
-                        pass
-                    avail = [e for e in all_entries if not e["app_version"] or _check_app_version(e["app_version"])]
-                    if hide_unavail and not avail:
-                        _show_all_unavail_hint(_btn, _act)
-                        return
-                    if len(avail) == 1 and (hide_unavail or len(all_entries) == 1):
-                        e = avail[0]
-                        versioned = dict(_p)
-                        versioned["link"] = e["link"]
-                        if e["app_version"]:
-                            versioned["app_version"] = e["app_version"]
-                        _do_install(versioned, _install_ui, _all, _btn, _label, _btn_text_color, _act)
-                        return
-                    _show_version_picker(_act, _p, _install_ui, _all, _btn, _label, _btn_text_color, _do_install,
-                                         on_cancel=lambda: run_on_ui_thread(lambda: _set_loading(_btn, _label, _btn_text_color, _act, False)), repo_id=self.repo_id)
+            # attach install button as FAB in bottom-right of content_view
+            fab_size = AndroidUtilities.dp(56)
+            fab_margin = AndroidUtilities.dp(16)
+            fab_lp = FrameLayout.LayoutParams(fab_size, fab_size)
+            fab_lp.gravity = Gravity.BOTTOM | Gravity.END
+            fab_lp.rightMargin = fab_margin
+            fab_lp.bottomMargin = fab_margin
+            # resize the button itself to FAB dimensions
+            install_btn.removeAllViews()
+            install_label_container2 = LinearLayout(act)
+            install_label_container2.setOrientation(LinearLayout.HORIZONTAL)
+            install_label_container2.setGravity(Gravity.CENTER)
+            install_icon2 = ImageView(act)
+            install_icon2.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+            try:
+                install_icon2.setImageResource(_resolve_icon("msg_download_remix"))
+                install_icon2.setColorFilter(btn_text_color)
+            except Exception:
+                pass
+            install_label_container2.addView(install_icon2, LayoutHelper.createLinear(26, 26, Gravity.CENTER))
+            install_btn.addView(install_label_container2, FrameLayout.LayoutParams(fab_size, fab_size))
+            # update _set_loading to use fab_size
+            _fab_size_ref = [fab_size]
 
-                install_btn.setOnClickListener(OnClickListener(onInstallClick))
+            def _set_loading_fab(_btn, _label, _btn_text_color, _act, isLoading,
+                                 _fab_size_ref=_fab_size_ref):
+                try:
+                    sz = _fab_size_ref[0]
+                    _btn.setEnabled(not isLoading)
+                    _btn.removeAllViews()
+                    if isLoading:
+                        try:
+                            from org.telegram.ui.Components import CircularProgressDrawable
+                            d = CircularProgressDrawable(_btn_text_color)
+                            try:
+                                d.size = float(AndroidUtilities.dp(22))
+                                d.thickness = float(AndroidUtilities.dp(2))
+                            except Exception:
+                                pass
+                            spinner = ImageView(_act)
+                            spinner.setImageDrawable(d)
+                            spinner.setScaleType(ImageView.ScaleType.CENTER)
+                            spin_lp = FrameLayout.LayoutParams(sz, sz)
+                            spin_lp.gravity = Gravity.CENTER
+                            _btn.addView(spinner, spin_lp)
+                        except Exception:
+                            pb = ProgressBar(_act)
+                            try:
+                                pb.setIndeterminate(True)
+                                from android.content.res import ColorStateList
+                                pb.setIndeterminateTintList(ColorStateList.valueOf(_btn_text_color))
+                            except Exception:
+                                pass
+                            pb_lp = FrameLayout.LayoutParams(AndroidUtilities.dp(22), AndroidUtilities.dp(22))
+                            pb_lp.gravity = Gravity.CENTER
+                            _btn.addView(pb, pb_lp)
+                    else:
+                        _btn.addView(_label, FrameLayout.LayoutParams(sz, sz))
+                except Exception as e:
+                    log(f"pluginProfile: _set_loading_fab error: {e}")
 
-            install_lp = LinearLayout.LayoutParams(circle_size, circle_size)
-            install_lp.rightMargin = AndroidUtilities.dp(8)
-            bottom_row.addView(install_btn, install_lp)
+            # rebind click handler to use fab-aware loader and label
+            def onInstallClickFab(v, _p=p, _install_ui=_install_ui_ref, _all=_all_plugins_ref,
+                                  _btn=install_btn, _label=install_label_container2,
+                                  _btn_text_color=btn_text_color, _act=act):
+                versions = _p.get("versions") or {}
+                if not versions:
+                    _do_install(_p, _install_ui, _all, _btn, _label, _btn_text_color, _act)
+                    return
+                from ...utils.app_version import check_app_version as _check_app_version2
+                from .versionPicker import _build_version_entries
+                all_entries = _build_version_entries(_p)
+                hide_unavail = False
+                try:
+                    from elyx import settings as _s
+                    hide_unavail = _s.get("hide_unavailable_plugins", False)
+                except Exception:
+                    pass
+                avail = [e for e in all_entries if not e["app_version"] or _check_app_version2(e["app_version"])]
+                if hide_unavail and not avail:
+                    _show_all_unavail_hint(_btn, _act)
+                    return
+                if len(avail) == 1 and (hide_unavail or len(all_entries) == 1):
+                    e = avail[0]
+                    versioned = dict(_p)
+                    versioned["link"] = e["link"]
+                    if e["app_version"]:
+                        versioned["app_version"] = e["app_version"]
+                    _do_install(versioned, _install_ui, _all, _btn, _label, _btn_text_color, _act)
+                    return
+                _show_version_picker(_act, _p, _install_ui, _all, _btn, _label, _btn_text_color, _do_install,
+                                     on_cancel=lambda: run_on_ui_thread(
+                                         lambda: _set_loading_fab(_btn, _label, _btn_text_color, _act, False)
+                                     ), repo_id=self.repo_id)
+
+            install_btn.setOnClickListener(OnClickListener(onInstallClickFab))
+            self.content_view.addView(install_btn, fab_lp)
+            self._fab_ref = install_btn
+
+            # rebind _do_install so its internal loader uses fab dimensions
+            def _do_install(_p, _install_ui, _all, _btn, _label, _btn_text_color, _act,
+                            on_finish_override=None):
+                from ...core import install_plugin
+                if not on_finish_override:
+                    _set_loading_fab(_btn, _label, _btn_text_color, _act, True)
+                cached = False
+                try:
+                    import os as _os
+                    from ...core import _get_plugin_cache_path, _sha256_file
+                    _url = _p.get("link") or _p.get("raw") or ""
+                    _fname = _url.split("/")[-1] or f"{_p.get('id')}.plugin"
+                    _cp = _get_plugin_cache_path(None, _fname)
+                    _eh = _p.get("hash") or ""
+                    if _eh and _os.path.exists(_cp):
+                        cached = _eh == _sha256_file(_cp)
+                except Exception:
+                    pass
+
+                def _finish(ok):
+                    if ok:
+                        try:
+                            import os as _os
+                            from ...utils.media import playSound
+                            _snd = _os.path.join(_os.path.dirname(__file__), "../../../res/sounds/install.mp3")
+                            playSound(_snd, "sfx_install")
+                        except Exception:
+                            pass
+                    if on_finish_override:
+                        run_on_ui_thread(lambda: on_finish_override(ok))
+                    else:
+                        delay = 1.0 if cached else 0.0
+                        if delay:
+                            import threading as _t
+                            _t.Timer(delay, lambda: run_on_ui_thread(
+                                lambda: _set_loading_fab(_btn, _label, _btn_text_color, _act, False)
+                            )).start()
+                        else:
+                            run_on_ui_thread(lambda: _set_loading_fab(_btn, _label, _btn_text_color, _act, False))
+
+                install_plugin(_p, on_finish=_finish, install_ui=_install_ui, all_plugins=_all, rm_rid=self.repo_id)
 
         # save circle button (msg_saved icon, yellow when active)
         _save_size = AndroidUtilities.dp(44)
@@ -2252,6 +2373,9 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         if self.content_view is not None:
             _add_actionbar_glow(self.content_view)
             _add_bottom_glow(self.content_view)
+            fab = getattr(self, '_fab_ref', None)
+            if fab is not None:
+                fab.bringToFront()
         
         return self.content_view
 

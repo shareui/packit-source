@@ -167,7 +167,7 @@
   "security_scan": "Beveiliging",
   "cache_header": "Cache",
   "filesystem_header": "Bestandssysteem",
-  "clear_cache": "Cache wissen",
+  "clear_cache": "Werkmap verwijderen",
   "clear_cache_confirm_title": "Cache wissen",
   "clear_cache_confirm_message": "Weet je het zeker? Deze actie is onomkeerbaar.",
   "clear_cache_done_title": "Cache gewist",

@@ -716,7 +716,16 @@ def show_hint_sheet(achievement: dict):
         # hint text
         hint_tv = TextView(act)
         hint_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
-        hint_tv.setText(str(strings[achievement.get("hint_key", "achiev_hint_unknown")]))
+        hint_text = str(strings[achievement.get("hint_key", "achiev_hint_unknown")])
+        try:
+            from com.exteragram.messenger.utils.text import LocaleUtils
+            from android.text.method import LinkMovementMethod
+            hint_tv.setText(LocaleUtils.fullyFormatText(hint_text))
+            hint_tv.setMovementMethod(LinkMovementMethod.getInstance())
+            hint_tv.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
+        except Exception as _e:
+            log(f"achievements: fullyFormatText hint failed: {_e}")
+            hint_tv.setText(hint_text)
         hint_tv.setTextColor(Theme.getColor(Theme.key_dialogTextGray2))
         hint_tv.setLineSpacing(AndroidUtilities.dp(2), 1.0)
         root.addView(hint_tv, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 20))

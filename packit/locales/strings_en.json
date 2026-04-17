@@ -74,7 +74,7 @@
   "plugin_card_header": "Plugin Card",
   "install_sheet_header": "Installation BottomSheet",
   "install_sheet_links": "Show author links",
-  "install_sheet_links_desc": "Display icon buttons from __links__ metadata in the install dialog.",
+  "install_sheet_links_desc": "Display icon buttons from links metadata in the install dialog.",
   "install_sheet_hash": "Show hash check button",
   "install_sheet_hash_desc": "Display the file hash verification button in the install dialog.",
   "install_sheet_signatures": "Show signatures button",
@@ -187,7 +187,7 @@
   "security_scan": "Security",
   "cache_header": "Cache",
   "filesystem_header": "File System",
-  "clear_cache": "Clear cache",
+  "clear_cache": "Delete working folder",
   "clear_cache_confirm_title": "Clear cache",
   "clear_cache_confirm_message": "Are you sure? This action is irreversible.",
   "clear_cache_done_title": "Cache cleared",
@@ -775,5 +775,9 @@
   "afp_import_with_settings": "Import with settings",
   "achiev_title_secret_enlightened": "You are enlightened",
   "achiev_hint_secret_enlightened": "Well... You really don't understand the first time that you can't screw every living thing.",
-  "plugin_description": "**A resource catalog for exteraGram/AyuGram. Plugins, icons — all in one place, with support for multiple repositories.**\n\nSource code: "
+  "plugin_description": "**A resource catalog for exteraGram/AyuGram. Plugins, icons — all in one place, with support for multiple repositories.**\n\nSource code: ",
+  "achiev_title_secret_talking_about_you": "No, I'm talking about you",
+  "achiev_hint_secret_talking_about_you": "https://t.me/packitGround/232/4434",
+  "achiev_title_secret_utils_rule": "I won't be put in the utils :(",
+  "achiev_hint_secret_utils_rule": "кстати тебя врядли выложат в utilits. Ты пофакту, повторил kpm. А как бы в utils правило второй вариант нельзя выкладыватьб"
 }

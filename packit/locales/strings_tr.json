@@ -167,7 +167,7 @@
   "security_scan": "Güvenlik",
   "cache_header": "Önbellek",
   "filesystem_header": "Dosya sistemi",
-  "clear_cache": "Önbelleği temizle",
+  "clear_cache": "Çalışma klasörünü sil",
   "clear_cache_confirm_title": "Önbelleği temizle",
   "clear_cache_confirm_message": "Emin misin? Bu işlem geri alınamaz.",
   "clear_cache_done_title": "Önbellek temizlendi",

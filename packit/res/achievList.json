@@ -922,5 +922,29 @@
     "title_key": "achiev_title_secret_enlightened",
     "hint_key": "achiev_hint_secret_enlightened",
     "category_key": "achiev_cat_unknown"
+  },
+  {
+    "id": "secret_talking_about_you",
+    "category": "Unknown achievements",
+    "title": "No, I'm talking about you",
+    "goal": 1,
+    "hint": "https://t.me/packitGround/232/4434",
+    "icon": "msg_secret",
+    "playSound": true,
+    "title_key": "achiev_title_secret_talking_about_you",
+    "hint_key": "achiev_hint_secret_talking_about_you",
+    "category_key": "achiev_cat_unknown"
+  },
+  {
+    "id": "secret_utils_rule",
+    "category": "Unknown achievements",
+    "title": "I won't be put in the utils :(",
+    "goal": 1,
+    "hint": "кстати тебя врядли выложат в utilits. Ты пофакту, повторил kpm. А как бы в utils правило второй вариант нельзя выкладыватьб",
+    "icon": "msg_secret",
+    "playSound": true,
+    "title_key": "achiev_title_secret_utils_rule",
+    "hint_key": "achiev_hint_secret_utils_rule",
+    "category_key": "achiev_cat_unknown"
   }
 ]
