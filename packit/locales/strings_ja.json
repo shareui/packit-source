@@ -167,7 +167,7 @@
   "security_scan": "セキュリティ",
   "cache_header": "キャッシュ",
   "filesystem_header": "ファイルシステム",
-  "clear_cache": "キャッシュを削除",
+  "clear_cache": "作業フォルダを削除",
   "clear_cache_confirm_title": "キャッシュを削除",
   "clear_cache_confirm_message": "本当によろしいですか？この操作は元に戻せません。",
   "clear_cache_done_title": "キャッシュを削除しました",

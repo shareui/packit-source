@@ -167,7 +167,7 @@
   "security_scan": "安全",
   "cache_header": "缓存",
   "filesystem_header": "文件系统",
-  "clear_cache": "清除缓存",
+  "clear_cache": "删除工作文件夹",
   "clear_cache_confirm_title": "清除缓存",
   "clear_cache_confirm_message": "确定吗？此操作不可撤销。",
   "clear_cache_done_title": "缓存已清除",

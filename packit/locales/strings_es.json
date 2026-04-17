@@ -167,7 +167,7 @@
   "security_scan": "Seguridad",
   "cache_header": "Caché",
   "filesystem_header": "Sistema de archivos",
-  "clear_cache": "Limpiar caché",
+  "clear_cache": "Eliminar carpeta de trabajo",
   "clear_cache_confirm_title": "Limpiar caché",
   "clear_cache_confirm_message": "¿Estás seguro? Esta acción es irreversible.",
   "clear_cache_done_title": "Caché limpiada",

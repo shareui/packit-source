@@ -167,7 +167,7 @@
   "security_scan": "Segurança",
   "cache_header": "Pamięć podręczna",
   "filesystem_header": "System plików",
-  "clear_cache": "Wyczyść pamięć podręczną",
+  "clear_cache": "Usuń folder roboczy",
   "clear_cache_confirm_title": "Wyczyść pamięć podręczną",
   "clear_cache_confirm_message": "Czy jesteś pewny/a? Ta operacja jest nieodwracalna.",
   "clear_cache_done_title": "Pamięć podręczna wyczyszczona",

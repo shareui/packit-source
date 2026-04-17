@@ -167,7 +167,7 @@
   "security_scan": "Sicurezza",
   "cache_header": "Cache",
   "filesystem_header": "File system",
-  "clear_cache": "Svuota cache",
+  "clear_cache": "Elimina cartella di lavoro",
   "clear_cache_confirm_title": "Svuota cache",
   "clear_cache_confirm_message": "Sei sicuro/a? Questa azione è irreversibile.",
   "clear_cache_done_title": "Cache svuotata",

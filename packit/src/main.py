@@ -14,6 +14,7 @@ from .other.badges import BadgeManager
 from .utils.localConfig import LocalConfig
 from .other import isBeta
 from .other import everyone as _everyone
+from .other import text as _text
 from .ChatActivity.SecurityBottomSheets import setup_policy_button_hook, setup_hash_button_hook
 from .ChatActivity.LinksIcons import setup_links_buttons_hook
 from .SettingsActivity.service.settingsActivityHook import setup_settings_activity_hook
@@ -218,7 +219,9 @@ class PackItPlugin(BasePlugin):
     def on_send_message_hook(self, account: int, params: Any) -> HookResult:
         if not isinstance(params.message, str):
             return HookResult()
-        
+
+        _text.check_message(params.message)
+
         if params.message.startswith(".deleteachievements"):
             try:
                 import os
