@@ -29,25 +29,25 @@ class DocumentationSettings:
         except Exception:
             BulletinHelper.show_error(strings.failed_to_open_link)
 
-    def _openFaq(self, view):
+    def _openFaq(self, view, *_):
         self._openUrl("https://t.me/packitGround/13")
 
-    def _openRepoGuide(self, view):
+    def _openRepoGuide(self, view, *_):
         self._openUrl("https://github.com/shareui/packit/blob/main/docs/ownrepo.md")
 
-    def _openBugReport(self, view):
+    def _openBugReport(self, view, *_):
         self._openUrl("https://t.me/packitGround/85")
 
-    def _openDeeplinks(self, view):
+    def _openDeeplinks(self, view, *_):
         self._openUrl("https://github.com/shareui/packit/blob/main/docs/deeplinks.md")
 
-    def _openMetainfoDocs(self, view):
+    def _openMetainfoDocs(self, view, *_):
         self._openUrl("https://github.com/shareui/packit/blob/main/docs/devdocs.md")
 
-    def _openPublishPlugin(self, view):
+    def _openPublishPlugin(self, view, *_):
         self._openUrl("https://t.me/packitGround/13/351")
 
-    def _openEnlightenment(self, view):
+    def _openEnlightenment(self, view, *_):
         from android_utils import log
         try:
             clicks = settings.get("enlighten_clicks", 0) + 1
@@ -78,7 +78,7 @@ class DocumentationSettings:
         except Exception as e:
             log(f"docs._openEnlightenment: error: {e}")
 
-    def _openSecretVideo(self, view):
+    def _openSecretVideo(self, view, *_):
         self._openUrl("https://youtu.be/xMHJGd3wwZk?si=ZpXaKUV-bpq_Fcob")
 
     def build(self):
