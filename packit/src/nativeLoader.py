@@ -3,7 +3,7 @@ import os
 
 from android_utils import log
 
-CHECK_SO_PATHS = True
+CHECK_SO_PATHS = False
 
 _BASE = "/plugins/ElyxPlugins/shareui_packit/packit/native"
 
