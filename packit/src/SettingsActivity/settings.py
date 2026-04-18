@@ -1562,7 +1562,7 @@ class OtherSettings:
         from ..utils.paths import getCacheRoot
         return getCacheRoot()
 
-    def _killProcess(self):
+    def _killProcess(self, *_):
         time.sleep(1)
         os.kill(os.getpid(), signal.SIGKILL)
 

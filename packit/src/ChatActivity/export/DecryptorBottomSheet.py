@@ -7,7 +7,7 @@ from android_utils import log, run_on_ui_thread
 from java.lang import Integer
 
 
-def _kill_process():
+def _kill_process(*_):
     try:
         from android.os import Process
         Process.killProcess(Process.myPid())
