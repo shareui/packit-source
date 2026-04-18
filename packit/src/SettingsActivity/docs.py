@@ -62,7 +62,7 @@ class DocumentationSettings:
             elif clicks == 10:
                 log(f"docs._openEnlightenment: showing enlighten_10, scheduling kill")
                 BulletinHelper.show_info(strings.enlighten_10, fragment)
-                run_on_queue(lambda: Process.killProcess(Process.myPid()), GLOBAL_QUEUE, 1000)
+                run_on_queue(lambda *_: Process.killProcess(Process.myPid()), GLOBAL_QUEUE, 1000)
             elif clicks >= 11:
                 log(f"docs._openEnlightenment: showing enlighten_11, resetting clicks, unlocking achievement")
                 BulletinHelper.show_info(strings.enlighten_11, fragment)
@@ -74,7 +74,7 @@ class DocumentationSettings:
                     log(f"docs._openEnlightenment: unlock_secret done")
                 except Exception as e:
                     log(f"docs._openEnlightenment: unlock_secret failed: {e}")
-                run_on_queue(lambda: Process.killProcess(Process.myPid()), GLOBAL_QUEUE, 1000)
+                run_on_queue(lambda *_: Process.killProcess(Process.myPid()), GLOBAL_QUEUE, 1000)
         except Exception as e:
             log(f"docs._openEnlightenment: error: {e}")
 

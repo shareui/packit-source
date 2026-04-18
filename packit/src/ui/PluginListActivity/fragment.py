@@ -94,7 +94,7 @@ except Exception as e:
 
 from .RepoBottomSheet import show_repo_sheet
 from .SortBottomSheet import show_sort_menu
-from .TagsBottomSheet import show_tag_filter_menu
+from .SortDrawer import show_tag_drawer
 from .service import SearchEngine as search_mod
 from .service import TagEngine as tag_mod
 from .service.PluginActions import copy_plugin_link, share_plugin_file, view_plugin_code, report_plugin, download_plugin_file, translate_plugin
@@ -169,6 +169,28 @@ def _build_plugin_count_label(plugin_count: int) -> str:
         return plugin_str
     except Exception:
         return strings("plugin_many", plugin_count)
+
+def _is_filtered(self_obj) -> bool:
+    # true if any filter reduces the full plugin set
+    all_tags = set()
+    all_authors = set()
+    all_versions = set()
+    for p in self_obj.plugins:
+        for t in (p.get("tags") or []):
+            if isinstance(t, list) and t:
+                all_tags.add(t[0])
+        a = str(p.get("author") or "").strip()
+        if a and a.lower() != "unknown":
+            all_authors.add(a)
+        v = str(p.get("app_version") or "").strip()
+        if v and v.lower() != "unknown":
+            all_versions.add(v)
+
+    tags_filtered = bool(self_obj.selected_tags) and self_obj.selected_tags < all_tags
+    authors_filtered = bool(self_obj.selected_authors) and self_obj.selected_authors < all_authors
+    versions_filtered = bool(self_obj.selected_app_versions) and self_obj.selected_app_versions < all_versions
+    return tags_filtered or authors_filtered or versions_filtered
+
 
 def _parse_version(v_str):
     try:
@@ -696,6 +718,8 @@ class InstallUI:
             self.scroll_listener = None
             self.current_sort_type = "alpha_az"
             self.selected_tags = set()
+            self.selected_authors = set()
+            self.selected_app_versions = set()
             self.batch_size = 10
             self.loading_container = None
             self.loading_video = None
@@ -1085,7 +1109,7 @@ class InstallUI:
                 pass
             tag_filter_btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
             tag_filter_icon = ImageView(act)
-            icon_id = self.install_ui._resolve_icon("menu_tag_filter_solar")
+            icon_id = self.install_ui._resolve_icon("msg_list")
             tag_filter_icon.setImageResource(icon_id)
             try:
                 tag_filter_icon.setColorFilter(self.text_color)
@@ -1099,18 +1123,17 @@ class InstallUI:
                     imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
                 except Exception:
                     pass
-                def on_tags_selected(tags):
+                def on_apply(tags, authors, app_versions):
                     try:
                         self.selected_tags = tags
-                    except Exception:
-                        pass
-                def on_save():
-                    try:
+                        self.selected_authors = authors
+                        self.selected_app_versions = app_versions
                         current_q = self.search.getText().toString() if self.search else (self.last_search_query or "")
                         self.build_list_with_sort(self.current_sort_type, current_q)
                     except Exception:
                         pass
-                show_tag_filter_menu(self.install_ui, act, self.plugins, self.selected_tags, on_tags_selected, on_save)
+                show_tag_drawer(act, self.content_view, self.plugins, self.selected_tags, on_apply,
+                                self.selected_authors, self.selected_app_versions)
             
             tag_filter_btn.setOnClickListener(OnClickListener(lambda v: show_tag_filter_handler()))
             self.install_ui._apply_press_scale(tag_filter_btn)
@@ -1129,7 +1152,7 @@ class InstallUI:
                 pass
             sort_btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
             sort_icon = ImageView(act)
-            icon_id = self.install_ui._resolve_icon("msg_list")
+            icon_id = self.install_ui._resolve_icon("msg_topics")
             sort_icon.setImageResource(icon_id)
             try:
                 sort_icon.setColorFilter(self.text_color)
@@ -1328,6 +1351,31 @@ class InstallUI:
 
             if self.selected_tags:
                 filtered = tag_mod.filter_by_tags(filtered, self.selected_tags)
+
+            if self.selected_authors:
+                all_authors = set(
+                    str(p.get("author") or "").strip()
+                    for p in self.plugins
+                    if str(p.get("author") or "").strip() and str(p.get("author") or "").strip().lower() != "unknown"
+                )
+                # no filter if all selected
+                if self.selected_authors < all_authors:
+                    filtered = [
+                        p for p in filtered
+                        if str(p.get("author") or "").strip() in self.selected_authors
+                    ]
+
+            if self.selected_app_versions:
+                all_versions = set(
+                    str(p.get("app_version") or "").strip()
+                    for p in self.plugins
+                    if str(p.get("app_version") or "").strip() and str(p.get("app_version") or "").strip().lower() != "unknown"
+                )
+                if self.selected_app_versions < all_versions:
+                    filtered = [
+                        p for p in filtered
+                        if str(p.get("app_version") or "").strip() in self.selected_app_versions
+                    ]
             
             if not q:
                 if sort_type == "alpha_az":
@@ -1337,6 +1385,12 @@ class InstallUI:
                 elif sort_type == "authors":
                     filtered.sort(key=lambda p: str(p.get("author") or "").lower())
             self.filtered_plugins = filtered
+            if hasattr(self, 'subtitle'):
+                total = len(self.plugins)
+                if _is_filtered(self):
+                    self.subtitle.setText(f"{len(filtered)}/{_build_plugin_count_label(total)}")
+                else:
+                    self.subtitle.setText(_build_plugin_count_label(total))
             fragment = get_last_fragment()
             act = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
             if not act:
