@@ -777,5 +777,9 @@
   "achiev_title_secret_talking_about_you": "No, I'm talking about you",
   "achiev_hint_secret_talking_about_you": "https://t.me/packitGround/232/4434",
   "achiev_title_secret_utils_rule": "I won't be put in the utils :(",
-  "achiev_hint_secret_utils_rule": "кстати тебя врядли выложат в utilits. Ты пофакту, повторил kpm. А как бы в utils правило второй вариант нельзя выкладыватьб"
+  "achiev_hint_secret_utils_rule": "кстати тебя врядли выложат в utilits. Ты пофакту, повторил kpm. А как бы в utils правило второй вариант нельзя выкладыватьб",
+  "tags_section_title": "Tags",
+  "apply_button": "Apply",
+  "authors_section_title": "Authors",
+  "app_version_section_title": "App Version"
 }
