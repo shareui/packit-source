@@ -1,4 +1,4 @@
-from android.view import View, Gravity, ViewTreeObserver
+from android.view import View, Gravity, ViewTreeObserver, MotionEvent
 from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView
 from android.util import TypedValue
 from android.graphics import Color
@@ -8,7 +8,7 @@ from android.view.animation import DecelerateInterpolator
 from java import dynamic_proxy
 from hook_utils import find_class
 from android_utils import log, OnClickListener
-from .service import TagEngine
+from .service import filterEngine
 try:
     from org.telegram.ui.ActionBar import Theme
 except Exception as e:
@@ -25,6 +25,24 @@ except Exception as e:
 
 _DRAWER_WIDTH_DP = 280
 _ANIM_MS = 220
+
+
+def _apply_press_scale(view):
+    try:
+        class _TouchListener(dynamic_proxy(View.OnTouchListener)):
+            def onTouch(self, v, event):
+                try:
+                    action = event.getActionMasked()
+                    if action == MotionEvent.ACTION_DOWN:
+                        v.animate().scaleX(0.94).scaleY(0.94).setDuration(100).start()
+                    elif action in (MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL):
+                        v.animate().scaleX(1.0).scaleY(1.0).setDuration(200).start()
+                except Exception:
+                    pass
+                return False
+        view.setOnTouchListener(_TouchListener())
+    except Exception:
+        pass
 
 
 def _accent():
@@ -302,7 +320,7 @@ class SortDrawer:
         # tags list — hidden by default
         self._tags_list = LinearLayout(act)
         self._tags_list.setOrientation(LinearLayout.VERTICAL)
-        self._tags_list.setPadding(0, AndroidUtilities.dp(6), 0, AndroidUtilities.dp(4))
+        self._tags_list.setPadding(0, AndroidUtilities.dp(8), 0, AndroidUtilities.dp(2))
         self._tags_list.setVisibility(View.GONE)
 
         def on_header_click(v):
@@ -393,24 +411,39 @@ class SortDrawer:
 
     def _build_tag_row(self, tag_name, count, is_selected):
         act = self.act
+
         accent = _accent()
-
         import ctypes
-        r = (accent >> 16) & 0xFF
-        g = (accent >> 8) & 0xFF
-        b = accent & 0xFF
-        accent_dim = ctypes.c_int32((0x28 << 24) | (r << 16) | (g << 8) | b).value
+        ar = (accent >> 16) & 0xFF
+        ag = (accent >> 8) & 0xFF
+        ab = accent & 0xFF
+        # active fill: accent@20% composited over drawer bg — opaque, no alpha lerp flash
+        try:
+            bg_c = _dialog_bg()
+            bgr = (bg_c >> 16) & 0xFF
+            bgg = (bg_c >> 8) & 0xFF
+            bgb = bg_c & 0xFF
+        except Exception:
+            bgr = bgg = bgb = 30
+        a_ratio = 0.20
+        afr = int(bgr * (1 - a_ratio) + ar * a_ratio)
+        afg = int(bgg * (1 - a_ratio) + ag * a_ratio)
+        afb = int(bgb * (1 - a_ratio) + ab * a_ratio)
+        active_fill = ctypes.c_int32((0xFF << 24) | (afr << 16) | (afg << 8) | afb).value
+        # inactive: slightly lighter than drawer bg so it's visible against it
+        inactive_fill = ctypes.c_int32((0xFF << 24) | (min(255, bgr + 22) << 16) | (min(255, bgg + 22) << 8) | min(255, bgb + 22)).value
+        # active text: accent darkened by 20% for better readability on tinted bg
+        ar = max(0, int(((accent >> 16) & 0xFF) * 0.80))
+        ag = max(0, int(((accent >> 8) & 0xFF) * 0.80))
+        ab = max(0, int((accent & 0xFF) * 0.80))
+        active_text = ctypes.c_int32((0xFF << 24) | (ar << 16) | (ag << 8) | ab).value
+        # inactive text: standard secondary gray
+        inactive_text = _text_secondary()
 
-        # border drawable — color depends on selection
-        border = GradientDrawable()
-        border.setShape(GradientDrawable.RECTANGLE)
-        border.setCornerRadius(AndroidUtilities.dp(10))
-        if is_selected:
-            border.setColor(accent_dim)
-            border.setStroke(AndroidUtilities.dp(2), accent)
-        else:
-            border.setColor(Color.TRANSPARENT)
-            border.setStroke(AndroidUtilities.dp(1), Color.argb(50, 127, 127, 127))
+        pill = GradientDrawable()
+        pill.setShape(GradientDrawable.RECTANGLE)
+        pill.setCornerRadius(AndroidUtilities.dp(10))
+        pill.setColor(active_fill if is_selected else inactive_fill)
 
         row = FrameLayout(act)
         row.setClickable(True)
@@ -419,7 +452,7 @@ class SortDrawer:
             AndroidUtilities.dp(12), AndroidUtilities.dp(11),
             AndroidUtilities.dp(12), AndroidUtilities.dp(11)
         )
-        row.setBackground(border)
+        row.setBackground(pill)
 
         inner = LinearLayout(act)
         inner.setOrientation(LinearLayout.HORIZONTAL)
@@ -428,57 +461,77 @@ class SortDrawer:
         name_tv = TextView(act)
         name_tv.setText(tag_name)
         name_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
-        name_tv.setTextColor(_text_primary() if is_selected else _text_secondary())
+        name_tv.setTextColor(active_text if is_selected else inactive_text)
+        try:
+            name_tv.setTypeface(AndroidUtilities.bold())
+        except Exception:
+            pass
 
         inner.addView(name_tv, LinearLayout.LayoutParams(-1, -2))
         row.addView(inner, FrameLayout.LayoutParams(-1, -2, Gravity.CENTER_VERTICAL))
+        _apply_press_scale(row)
 
-        return row, border, name_tv
+        return row, pill, name_tv
 
-    def _update_row_style(self, border, name_tv, is_selected):
+    def _update_row_style(self, pill, name_tv, is_selected):
         try:
             accent = _accent()
             import ctypes
             r = (accent >> 16) & 0xFF
             g = (accent >> 8) & 0xFF
             b = accent & 0xFF
-            accent_dim = ctypes.c_int32((0x28 << 24) | (r << 16) | (g << 8) | b).value
-
-            inactive_fill = Color.TRANSPARENT
-            active_fill = accent_dim
-            active_stroke = accent
-            inactive_stroke = Color.argb(50, 127, 127, 127)
-            active_text = _text_primary()
+            try:
+                bg_c = _dialog_bg()
+                bgr = (bg_c >> 16) & 0xFF
+                bgg = (bg_c >> 8) & 0xFF
+                bgb = bg_c & 0xFF
+            except Exception:
+                bgr = bgg = bgb = 30
+            a_ratio = 0.20
+            afr = int(bgr * (1 - a_ratio) + r * a_ratio)
+            afg = int(bgg * (1 - a_ratio) + g * a_ratio)
+            afb = int(bgb * (1 - a_ratio) + b * a_ratio)
+            active_fill = ctypes.c_int32((0xFF << 24) | (afr << 16) | (afg << 8) | afb).value
+            try:
+                ifr = min(255, bgr + 22)
+                ifg = min(255, bgg + 22)
+                ifb = min(255, bgb + 22)
+                inactive_fill = ctypes.c_int32((0xFF << 24) | (ifr << 16) | (ifg << 8) | ifb).value
+            except Exception:
+                inactive_fill = Color.parseColor("#2A2A2A")
+            active_text = ctypes.c_int32((0xFF << 24) | (max(0, int(r * 0.80)) << 16) | (max(0, int(g * 0.80)) << 8) | max(0, int(b * 0.80))).value
             inactive_text = _text_secondary()
 
-            from_fill = inactive_fill if is_selected else active_fill
             to_fill = active_fill if is_selected else inactive_fill
-            from_stroke = inactive_stroke if is_selected else active_stroke
-            to_stroke = active_stroke if is_selected else inactive_stroke
-            stroke_from = AndroidUtilities.dp(1) if is_selected else AndroidUtilities.dp(2)
-            stroke_to = AndroidUtilities.dp(2) if is_selected else AndroidUtilities.dp(1)
-            from_text = inactive_text if is_selected else active_text
             to_text = active_text if is_selected else inactive_text
 
+            # read current color from views so re-triggered animation starts from actual state
+            try:
+                from_fill = pill.getColor().getDefaultColor()
+            except Exception:
+                from_fill = inactive_fill if is_selected else active_fill
+            try:
+                from_text = name_tv.getCurrentTextColor()
+            except Exception:
+                from_text = inactive_text if is_selected else active_text
+
             def lerpColor(c1, c2, t):
-                a = int(((c1 >> 24) & 0xFF) + t * (((c2 >> 24) & 0xFF) - ((c1 >> 24) & 0xFF)))
                 rv = int(((c1 >> 16) & 0xFF) + t * (((c2 >> 16) & 0xFF) - ((c1 >> 16) & 0xFF)))
                 gv = int(((c1 >> 8) & 0xFF) + t * (((c2 >> 8) & 0xFF) - ((c1 >> 8) & 0xFF)))
                 bv = int((c1 & 0xFF) + t * ((c2 & 0xFF) - (c1 & 0xFF)))
-                return Color.argb(a, rv, gv, bv)
+                return Color.rgb(rv, gv, bv)
 
-            border_ref = border
+            pill_ref = pill
             tv_ref = name_tv
 
             class _Listener(dynamic_proxy(ValueAnimator.AnimatorUpdateListener)):
                 def onAnimationUpdate(self, anim):
                     t = float(anim.getAnimatedFraction())
-                    border_ref.setColor(lerpColor(from_fill, to_fill, t))
-                    border_ref.setStroke(int(stroke_from + t * (stroke_to - stroke_from)), lerpColor(from_stroke, to_stroke, t))
+                    pill_ref.setColor(lerpColor(from_fill, to_fill, t))
                     tv_ref.setTextColor(lerpColor(from_text, to_text, t))
 
             anim = ValueAnimator.ofFloat(0.0, 1.0)
-            anim.setDuration(350)
+            anim.setDuration(250)
             anim.setInterpolator(DecelerateInterpolator(2.0))
             anim.addUpdateListener(_Listener())
             anim.start()
@@ -552,7 +605,10 @@ class SortDrawer:
             apply_tv.setText("Apply")
         apply_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
         apply_tv.setGravity(Gravity.CENTER)
-        apply_tv.setTextColor(Color.WHITE)
+        try:
+            apply_tv.setTextColor(Theme.getColor(Theme.key_dialogScrollGlow))
+        except Exception:
+            apply_tv.setTextColor(_text_primary())
         try:
             apply_tv.setTypeface(AndroidUtilities.bold())
         except Exception:
@@ -644,7 +700,7 @@ class SortDrawer:
 
         items_list = LinearLayout(act)
         items_list.setOrientation(LinearLayout.VERTICAL)
-        items_list.setPadding(0, AndroidUtilities.dp(6), 0, AndroidUtilities.dp(4))
+        items_list.setPadding(0, AndroidUtilities.dp(8), 0, AndroidUtilities.dp(2))
         items_list.setVisibility(View.GONE)
 
         if section_key == "authors":
@@ -791,7 +847,7 @@ class SortDrawer:
         try:
             self._tags_list.removeAllViews()
             self._tag_rows.clear()
-            self._tags_summary = TagEngine.collect_tags(self.plugins)
+            self._tags_summary = filterEngine.collect_tags(self.plugins)
 
             if not self._current_selected:
                 self._current_selected = set(self._tags_summary.keys())

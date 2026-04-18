@@ -44,6 +44,11 @@ def copy_plugin_link(plugin_info: dict, repo_title: str, sound_path: str = None)
         AndroidUtilities.addToClipboard(share_link)
         plugin_name = plugin_info.get("name") or plugin_info.get("id") or "Unknown"
         BulletinFactory.of(container, resource_provider).createSimpleBulletin(R_tg.raw.voip_invite, strings("plugin_link_copied", plugin_name)).show()
+        try:
+            from ....ui.AchievementsActivity.service.AchivementsEngine import increment_category
+            increment_category("Copying links")
+        except Exception as e:
+            log(f"copy_plugin_link: achievements increment error: {e}")
     except Exception as e:
         log(f"copy: failed to copy link: {e}")
 
@@ -52,6 +57,11 @@ def share_plugin_file(plugin_info: dict, display_name: str, activity):
     try:
         from ....utils.share import share_plugin_file as _share_plugin_file
         _share_plugin_file(plugin_info, display_name, activity)
+        try:
+            from ....ui.AchievementsActivity.service.AchivementsEngine import increment_category
+            increment_category("Sharing")
+        except Exception as e:
+            log(f"share_plugin_file: achievements increment error: {e}")
     except Exception as e:
         log(f"Error sharing plugin: {e}")
 
@@ -167,6 +177,11 @@ def download_plugin_file(plugin_info: dict):
                     find_class("org.telegram.messenger.R").raw.ic_download,
                     strings("download_saved", folder=folder)
                 ).show()
+                try:
+                    from ....ui.AchievementsActivity.service.AchivementsEngine import increment_category
+                    increment_category("Downloading")
+                except Exception as e:
+                    log(f"download: achievements increment error: {e}")
             except Exception as e:
                 log(f"download: show ok error: {e}")
 
@@ -213,6 +228,12 @@ def view_plugin_code(plugin_info: dict, activity):
             except Exception as e:
                 log(f"Failed to open URL via Intent: {e}")
                 BulletinFactory.of(activity.getWindow().getDecorView(), None).createErrorBulletin(strings["failed_to_open_url"]).show()
+                return
+        try:
+            from ....ui.AchievementsActivity.service.AchivementsEngine import increment_category
+            increment_category("Viewing code")
+        except Exception as e:
+            log(f"view_plugin_code: achievements increment error: {e}")
                 
     except Exception as e:
         log(f"Error opening plugin URL: {e}")

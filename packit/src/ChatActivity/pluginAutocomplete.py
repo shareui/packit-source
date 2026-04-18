@@ -12,6 +12,106 @@ from markdown_utils import parse_markdown
 from org.telegram.tgnet import TLRPC
 from org.telegram.ui.Components import RecyclerListView
 
+def _parse_filter_flags(raw):
+    # parses "filter:tags=\"a\",\"b\";author=\"@x\";app_version=\">=1.0\" output:type=\"update\""
+    # returns (query_str, flags_dict, output_type_str)
+    # flags_dict keys: "tags" -> list[str], "author" -> list[str], "app_version" -> list[str]
+    # output_type_str: "update" | "release" | None
+
+    # extract output:type="..." first (anywhere in string)
+    output_type = None
+    output_prefix = "output:type="
+    out_idx = raw.lower().find(output_prefix)
+    if out_idx != -1:
+        val_start = raw.find('"', out_idx + len(output_prefix))
+        if val_start != -1:
+            val_end = raw.find('"', val_start + 1)
+            if val_end != -1:
+                output_type = raw[val_start + 1:val_end].strip().lower()
+        # remove the output:... token from raw so it doesn't pollute query/filter
+        token_end = val_end + 1 if (out_idx != -1 and val_end != -1) else out_idx + len(output_prefix)
+        raw = (raw[:out_idx] + raw[token_end:]).strip()
+
+    filter_prefix = "filter:"
+    idx = raw.find(filter_prefix)
+    if idx == -1:
+        return raw.strip(), {}, output_type
+
+    query = raw[:idx].strip()
+    filter_part = raw[idx + len(filter_prefix):]
+
+    flags = {}
+    # split by ; to get individual key=value(s) pairs
+    for segment in filter_part.split(";"):
+        segment = segment.strip()
+        if not segment:
+            continue
+        eq = segment.find("=")
+        if eq == -1:
+            continue
+        key = segment[:eq].strip().lower()
+        values_raw = segment[eq + 1:]
+        # extract all quoted values: "val1","val2",...
+        values = []
+        i = 0
+        while i < len(values_raw):
+            if values_raw[i] == '"':
+                end = values_raw.find('"', i + 1)
+                if end == -1:
+                    break
+                values.append(values_raw[i + 1:end].strip())
+                i = end + 1
+            else:
+                i += 1
+        if values:
+            flags[key] = values
+    return query, flags, output_type
+
+
+def _apply_filter_flags(plugins, flags):
+    if not flags:
+        return plugins
+
+    result = []
+    for plugin in plugins:
+        if not _flag_match(plugin, flags):
+            continue
+        result.append(plugin)
+    return result
+
+
+def _flag_match(plugin, flags):
+    # tags: plugin must have at least one matching tag (case-insensitive)
+    if "tags" in flags:
+        required = {t.lower() for t in flags["tags"]}
+        plugin_tags = plugin.get("tags", [])
+        plugin_tag_names = set()
+        if isinstance(plugin_tags, list):
+            for tag_info in plugin_tags:
+                if isinstance(tag_info, list) and tag_info:
+                    plugin_tag_names.add(str(tag_info[0]).lower())
+                elif isinstance(tag_info, str):
+                    plugin_tag_names.add(tag_info.lower())
+        if not required & plugin_tag_names:
+            return False
+
+    # author: plugin author must match one of the listed (case-insensitive)
+    if "author" in flags:
+        required = {a.lower().lstrip("@") for a in flags["author"]}
+        plugin_author = str(plugin.get("author", "")).lower().lstrip("@")
+        if plugin_author not in required:
+            return False
+
+    # app_version: each expression must pass check_app_version
+    if "app_version" in flags:
+        from ..utils.app_version import check_app_version
+        for expr in flags["app_version"]:
+            if not check_app_version(expr):
+                return False
+
+    return True
+
+
 def _get_cache_dir():
     from ..utils.paths import getReposCacheDir
     return getReposCacheDir()
@@ -116,7 +216,7 @@ def _packit_attach_text_watcher(self, enter_view):
                             text = cmd + text[len(spaced_prefix):]
                     prefix = cmd + " "
                     if text.startswith(prefix):
-                        search_key = text[len(prefix):].lower().strip()
+                        search_key = text[len(prefix):]
                         token = object()
                         plugin._packit_search_token = token
                         plugin._packit_show_loading_popup()
@@ -207,9 +307,12 @@ def _packit_show_loading_popup(self):
 
 def _packit_search_in_background(self, search_key, token):
     try:
+        query, flags, output_type = _parse_filter_flags(search_key)
+        query = query.lower().strip()
+        self._packit_output_type = output_type
+
         all_plugins = self._packit_load_plugins_from_cache()
 
-        # token mismatch means the user already typed something new
         if self._packit_search_token is not token:
             return
 
@@ -217,14 +320,16 @@ def _packit_search_in_background(self, search_key, token):
             run_on_ui_thread(lambda: self._packit_hide_popup())
             return
 
-        if not search_key:
-            result = all_plugins[:10]
+        candidates = _apply_filter_flags(all_plugins, flags)
+
+        if not query:
+            result = candidates[:10]
             run_on_ui_thread(lambda: self._packit_show_plugins_popup(result))
             return
 
         from ..ui.PluginListActivity.service.SearchEngine import build_index, score as search_score
 
-        index = build_index(all_plugins)
+        index = build_index(candidates)
 
         isRussian = False
         try:
@@ -233,15 +338,16 @@ def _packit_search_in_background(self, search_key, token):
         except Exception:
             pass
 
+        fuzzy = False
+        try:
+            from elyx import settings as _s
+            fuzzy = _s.get("fuzzy_search", False)
+        except Exception:
+            pass
+
         scored = []
-        for plugin in all_plugins:
-            fuzzy = False
-            try:
-                from elyx import settings as _s
-                fuzzy = _s.get("fuzzy_search", False)
-            except Exception:
-                pass
-            s = search_score(plugin, search_key, index, isRussian, fuzzy=fuzzy)
+        for plugin in candidates:
+            s = search_score(plugin, query, index, isRussian, fuzzy=fuzzy)
             if s[0] < 6:
                 scored.append((s, plugin))
         scored.sort(key=lambda x: x[0])
@@ -548,27 +654,70 @@ def _packit_send_plugin_info(self, plugin_data):
         message_parts = []
         current_offset = 0
 
+        output_type = getattr(self, "_packit_output_type", None)
         plugin_link = f"tg://packit?plugin={plugin_id}&repo={repo_id}"
-        name_text = name
-        message_parts.append(name_text)
 
-        entity_name = TLRPC.TL_messageEntityTextUrl()
-        entity_name.offset = current_offset
-        entity_name.length = len(name_text)
-        entity_name.url = plugin_link
-        entities.append(entity_name)
+        if output_type == "release":
+            # "{name} has been released" — name is a link+bold, rest is plain
+            name_text = name
+            message_parts.append(name_text)
+            entity_name = TLRPC.TL_messageEntityTextUrl()
+            entity_name.offset = current_offset
+            entity_name.length = len(name_text)
+            entity_name.url = plugin_link
+            entities.append(entity_name)
+            entity_name_bold = TLRPC.TL_messageEntityBold()
+            entity_name_bold.offset = current_offset
+            entity_name_bold.length = len(name_text)
+            entities.append(entity_name_bold)
+            current_offset += len(name_text)
+            suffix = " has been released!"
+            message_parts.append(suffix)
+            current_offset += len(suffix)
 
-        entity_name_bold = TLRPC.TL_messageEntityBold()
-        entity_name_bold.offset = current_offset
-        entity_name_bold.length = len(name_text)
-        entities.append(entity_name_bold)
+        elif output_type == "update":
+            # "{name} updated to {version}" — name is link+bold, "updated to" is bold, version is plain
+            name_text = name
+            message_parts.append(name_text)
+            entity_name = TLRPC.TL_messageEntityTextUrl()
+            entity_name.offset = current_offset
+            entity_name.length = len(name_text)
+            entity_name.url = plugin_link
+            entities.append(entity_name)
+            entity_name_bold = TLRPC.TL_messageEntityBold()
+            entity_name_bold.offset = current_offset
+            entity_name_bold.length = len(name_text)
+            entities.append(entity_name_bold)
+            current_offset += len(name_text)
+            updated_text = " updated to "
+            message_parts.append(updated_text)
+            entity_upd = TLRPC.TL_messageEntityBold()
+            entity_upd.offset = current_offset
+            entity_upd.length = len(updated_text)
+            entities.append(entity_upd)
+            current_offset += len(updated_text)
+            ver_text = version if version else "?"
+            message_parts.append(ver_text)
+            current_offset += len(ver_text)
 
-        current_offset += len(name_text)
-
-        if show_version and version:
-            version_text = f" (v{version})"
-            message_parts.append(version_text)
-            current_offset += len(version_text)
+        else:
+            # default: "{name} (v{version})"
+            name_text = name
+            message_parts.append(name_text)
+            entity_name = TLRPC.TL_messageEntityTextUrl()
+            entity_name.offset = current_offset
+            entity_name.length = len(name_text)
+            entity_name.url = plugin_link
+            entities.append(entity_name)
+            entity_name_bold = TLRPC.TL_messageEntityBold()
+            entity_name_bold.offset = current_offset
+            entity_name_bold.length = len(name_text)
+            entities.append(entity_name_bold)
+            current_offset += len(name_text)
+            if show_version and version:
+                version_text = f" (v{version})"
+                message_parts.append(version_text)
+                current_offset += len(version_text)
 
         message_parts.append("\n")
         current_offset += 1
@@ -670,6 +819,7 @@ def setup_packit_autocomplete(plugin):
         plugin.packit_custom_container = None
         plugin.packit_current_plugins = {}
         plugin._packit_search_token = None
+        plugin._packit_output_type = None
         
         plugin._packit_hook_enter_view_constructor()
         log("Packit autocomplete setup complete")

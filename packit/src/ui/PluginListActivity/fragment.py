@@ -94,9 +94,9 @@ except Exception as e:
 
 from .RepoBottomSheet import show_repo_sheet
 from .SortBottomSheet import show_sort_menu
-from .SortDrawer import show_tag_drawer
+from .filterDrawer import show_tag_drawer
 from .service import SearchEngine as search_mod
-from .service import TagEngine as tag_mod
+from .service import filterEngine as tag_mod
 from .service.PluginActions import copy_plugin_link, share_plugin_file, view_plugin_code, report_plugin, download_plugin_file, translate_plugin
 from ...utils.media import playSound
 from ...core import install_plugin
@@ -720,6 +720,7 @@ class InstallUI:
             self.selected_tags = set()
             self.selected_authors = set()
             self.selected_app_versions = set()
+            self._active_drawer = None
             self.batch_size = 10
             self.loading_container = None
             self.loading_video = None
@@ -1132,8 +1133,8 @@ class InstallUI:
                         self.build_list_with_sort(self.current_sort_type, current_q)
                     except Exception:
                         pass
-                show_tag_drawer(act, self.content_view, self.plugins, self.selected_tags, on_apply,
-                                self.selected_authors, self.selected_app_versions)
+                self._active_drawer = show_tag_drawer(act, self.content_view, self.plugins, self.selected_tags, on_apply,
+                                                      self.selected_authors, self.selected_app_versions)
             
             tag_filter_btn.setOnClickListener(OnClickListener(lambda v: show_tag_filter_handler()))
             self.install_ui._apply_press_scale(tag_filter_btn)
@@ -1283,6 +1284,13 @@ class InstallUI:
             return self.title
 
         def onBackPressed(self):
+            try:
+                if self._active_drawer is not None and self._active_drawer._is_open:
+                    self._active_drawer.close()
+                    self._active_drawer = None
+                    return True
+            except Exception:
+                pass
             return False
 
         def afterCreateView(self, v):

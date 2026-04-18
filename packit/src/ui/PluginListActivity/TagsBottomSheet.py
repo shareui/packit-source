@@ -8,7 +8,7 @@ from android.text import TextUtils
 from android_utils import log
 from android_utils import OnClickListener
 from client_utils import get_last_fragment
-from .service import TagEngine
+from .service import filterEngine
 try:
     from elyx import settings, strings
 except Exception as e:
@@ -33,7 +33,7 @@ except Exception as e:
 
 def show_tag_filter_menu(install_ui, act, plugins, selected_tags, on_tags_selected, on_save):
     try:
-        tags_summary = TagEngine.collect_tags(plugins)
+        tags_summary = filterEngine.collect_tags(plugins)
 
         if not tags_summary:
             log("No tags found in plugins")
