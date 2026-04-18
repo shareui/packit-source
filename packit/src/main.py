@@ -22,6 +22,7 @@ from .DialogsActivity.pillWidget import setup_pill_widget, _unregister_pill
 from .ui.PluginListActivity.service.InstallDismissHook import setup_install_dismiss_hook
 from .ChatActivity.export.DecryptorBottomSheet import setup_packit_file_hook
 from .ChatActivity.afpFile import setup_afp_file_hook
+from .standaloneHooks.addPluginFab import setup_plugins_activity_fab
 from .ChatActivity.pluginAutocomplete import (
     setup_packit_autocomplete,
     _packit_get_class,
@@ -147,6 +148,7 @@ class PackItPlugin(BasePlugin):
         self.install_dismiss_hook_ref = setup_install_dismiss_hook(self)
         setup_packit_file_hook(self)
         setup_afp_file_hook(self)
+        self.plugins_activity_fab_ref = setup_plugins_activity_fab(self)
         self.settings_activity_hook_refs = setup_settings_activity_hook(self)
         setup_pill_widget(self)
         self.dialogs_menu_hook_ref = self.chatUI.setup_dialogs_menu_hook()

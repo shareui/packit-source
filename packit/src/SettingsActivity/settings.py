@@ -48,6 +48,27 @@ def _reload_plugin_settings():
     except Exception as e:
         log(f"settings: reload failed: {e}")
 
+
+def _open_url(url):
+    try:
+        from android_utils import run_on_ui_thread
+        from client_utils import get_last_fragment
+        def _do():
+            try:
+                act = get_last_fragment().getParentActivity()
+                if _Browser:
+                    _Browser.openUrl(act, Uri.parse(url), True, True, True, None, None, False, False, False)
+                else:
+                    from android.content import Intent
+                    intent = Intent(Intent.ACTION_VIEW)
+                    intent.setData(Uri.parse(url))
+                    act.startActivity(intent)
+            except Exception as e:
+                log(f"settings: _open_url ui error: {e}")
+        run_on_ui_thread(_do)
+    except Exception as e:
+        log(f"settings: _open_url error: {e}")
+
 def _fmt_inline_str(template):
     # replaces {cmd} in template with the current inline command setting
     try:
@@ -1746,6 +1767,14 @@ class OtherSettings:
                 link_alias="show_settings_button",
                 on_change=self._onRestartRequiredSwitch
             ),
+            Switch(
+                key="show_plugin_list_fab",
+                text=strings.show_plugin_list_fab,
+                subtext=strings.show_plugin_list_fab_desc,
+                default=True,
+                icon="msg_addbot",
+                link_alias="show_plugin_list_fab",
+            ),
         ]
 
         items += [
@@ -1848,18 +1877,6 @@ class OtherSettings:
                 icon="msg_edit",
                 on_change=lambda v: _reload_plugin_settings()
             ),
-            self._make_expandable_switch("inline_send_enabled", strings.inline_send_header, [
-                ("inline_send_name", True),
-                ("inline_send_version", True),
-                ("inline_send_author", True),
-                ("inline_send_description", True),
-                ("inline_send_install", True),
-            ]),
-            self._make_es_child("inline_send_name", strings.inline_send_name, True) if self._es_is_expanded("inline_send_enabled") else None,
-            self._make_es_child("inline_send_version", strings.inline_send_version, True) if self._es_is_expanded("inline_send_enabled") else None,
-            self._make_es_child("inline_send_author", strings.inline_send_author, True) if self._es_is_expanded("inline_send_enabled") else None,
-            self._make_es_child("inline_send_description", strings.inline_send_description, True) if self._es_is_expanded("inline_send_enabled") else None,
-            self._make_es_child("inline_send_install", strings.inline_send_install, True) if self._es_is_expanded("inline_send_enabled") else None,
             Switch(
                 key="inline_search_double_space",
                 text=strings.inline_search_double_space,
@@ -1876,6 +1893,23 @@ class OtherSettings:
                 icon="msg_clear",
                 link_alias="inline_search_clear_field"
             ),
+            Text(
+                text=strings.inline_view_guide,
+                icon="msg_info",
+                on_click=lambda v: _open_url("https://github.com/shareui/packit/blob/main/docs/inline.md")
+            ),
+            self._make_expandable_switch("inline_send_enabled", strings.inline_send_header, [
+                ("inline_send_name", True),
+                ("inline_send_version", True),
+                ("inline_send_author", True),
+                ("inline_send_description", True),
+                ("inline_send_install", True),
+            ]),
+            self._make_es_child("inline_send_name", strings.inline_send_name, True) if self._es_is_expanded("inline_send_enabled") else None,
+            self._make_es_child("inline_send_version", strings.inline_send_version, True) if self._es_is_expanded("inline_send_enabled") else None,
+            self._make_es_child("inline_send_author", strings.inline_send_author, True) if self._es_is_expanded("inline_send_enabled") else None,
+            self._make_es_child("inline_send_description", strings.inline_send_description, True) if self._es_is_expanded("inline_send_enabled") else None,
+            self._make_es_child("inline_send_install", strings.inline_send_install, True) if self._es_is_expanded("inline_send_enabled") else None,
             Divider(text=_fmt_inline_str(str(strings.inline_search_divider))),
             Header(text=strings.misc_header),
             Switch(
