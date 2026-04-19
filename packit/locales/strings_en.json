@@ -3,9 +3,9 @@
   "plugin_title_version": "PackIt v{0}",
   "plugin_subtitle": "Resource catalog for exteraGram",
   "plugins_header": "Categories",
-  "install_plugin": "Install Plugin",
+  "install_plugin": "Plugin Catalog",
   "check_updates": "Check for Updates",
-  "install_icons": "Install Icons",
+  "install_icons": "Icon Catalog",
   "install_config": "Install Configuration",
   "not_ready_yet": "Not ready yet",
   "settings_header": "Other",
@@ -784,5 +784,7 @@
   "tags_section_title": "Tags",
   "apply_button": "Apply",
   "authors_section_title": "Authors",
-  "app_version_section_title": "App Version"
+  "app_version_section_title": "App Version",
+  "open_directory": "Open Directory",
+  "open_directory_desc": "Browse packit files and folders"
 }

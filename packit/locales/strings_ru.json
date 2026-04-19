@@ -3,9 +3,9 @@
   "plugin_title_version": "PackIt v{0}",
   "plugin_subtitle": "Каталог ресурсов для exteraGram",
   "plugins_header": "Категории",
-  "install_plugin": "Установить плагин",
+  "install_plugin": "Каталог плагинов",
   "check_updates": "Проверить обновления",
-  "install_icons": "Установить иконки",
+  "install_icons": "Каталог иконок",
   "install_config": "Установить конфигурацию",
   "not_ready_yet": "Ещё не готово",
   "settings_header": "Другое",
@@ -638,5 +638,7 @@
   "sort_menu_design_modern": "Modern",
   "sort_menu_design_classic": "Classic",
   "sort_menu_design_desc": "Modern style highlights the active option with a colored dot. Classic fills the row with the accent color.",
-  "plugin_description": "**Каталог ресурсов для exteraGram/AyuGram. Плагины, иконки — всё в одном месте, с поддержкой нескольких репозиториев.**\n\nИсходный код: "
+  "plugin_description": "**Каталог ресурсов для exteraGram/AyuGram. Плагины, иконки — всё в одном месте, с поддержкой нескольких репозиториев.**\n\nИсходный код: ",
+  "open_directory": "Открыть папку",
+  "open_directory_desc": "Просмотр файлов и папок packit"
 }

@@ -3,9 +3,9 @@
   "plugin_title_version": "PackIt v{0}",
   "plugin_subtitle": "Bronnencatalogus voor exteraGram",
   "plugins_header": "Categorieën",
-  "install_plugin": "Plugin installeren",
+  "install_plugin": "Plugincatalogus",
   "check_updates": "Controleer op updates",
-  "install_icons": "Pictogrammen installeren",
+  "install_icons": "Pictogrammencatalogus",
   "install_config": "Configuratie installeren",
   "not_ready_yet": "Nog niet klaar",
   "settings_header": "Overige",
@@ -373,5 +373,7 @@
   "sort_menu_design_desc": "Modern style highlights the active option with a colored dot. Classic fills the row with the accent color.",
   "bulletin_hook_restart_required": "A client restart is required to update the hook.",
   "bulletin_restart_button": "Restart",
-  "plugin_description": "**Een bronnencatalogus voor exteraGram/AyuGram. Plugins, iconen — alles op één plek, met ondersteuning voor meerdere repositories.**\n\nBroncode: "
+  "plugin_description": "**Een bronnencatalogus voor exteraGram/AyuGram. Plugins, iconen — alles op één plek, met ondersteuning voor meerdere repositories.**\n\nBroncode: ",
+  "open_directory": "Map openen",
+  "open_directory_desc": "Packit-bestanden en mappen bekijken"
 }

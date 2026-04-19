@@ -3,9 +3,9 @@
   "plugin_title_version": "PackIt v{0}",
   "plugin_subtitle": "Catalogo di risorse per exteraGram",
   "plugins_header": "Categorie",
-  "install_plugin": "Installa plugin",
+  "install_plugin": "Catalogo plugin",
   "check_updates": "Controlla aggiornamenti",
-  "install_icons": "Installa icone",
+  "install_icons": "Catalogo icone",
   "install_config": "Installa configurazione",
   "not_ready_yet": "Non ancora pronto",
   "settings_header": "Altro",
@@ -373,5 +373,7 @@
   "sort_menu_design_desc": "Modern style highlights the active option with a colored dot. Classic fills the row with the accent color.",
   "bulletin_hook_restart_required": "A client restart is required to update the hook.",
   "bulletin_restart_button": "Restart",
-  "plugin_description": "**Un catalogo di risorse per exteraGram/AyuGram. Plugin, icone — tutto in un unico posto, con supporto per più repository.**\n\nCodice sorgente: "
+  "plugin_description": "**Un catalogo di risorse per exteraGram/AyuGram. Plugin, icone — tutto in un unico posto, con supporto per più repository.**\n\nCodice sorgente: ",
+  "open_directory": "Apri directory",
+  "open_directory_desc": "Sfoglia i file e le cartelle di packit"
 }
