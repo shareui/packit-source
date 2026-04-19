@@ -1395,6 +1395,7 @@ class OtherSettings:
 
     def _es_toggle_and_reload(self, key):
         self._es_expanded_states[key] = not self._es_expanded_states.get(key, False)
+        log(f"OtherSettings: _es_toggle_and_reload key={key} expanded={self._es_expanded_states[key]}")
         from elyx import settings as _s
         _s.set("_es_dummy", not _s.get("_es_dummy", False), reload_settings=True)
 
