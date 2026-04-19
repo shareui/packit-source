@@ -3,9 +3,9 @@
   "plugin_title_version": "PackIt v{0}",
   "plugin_subtitle": "Каталог рэсурсаў для exteraGram",
   "plugins_header": "Катэгорыі",
-  "install_plugin": "Усталяваць плагін",
+  "install_plugin": "Каталог плагінаў",
   "check_updates": "Праверыць абнаўленні",
-  "install_icons": "Усталяваць абразкі",
+  "install_icons": "Каталог абразкоў",
   "install_config": "Усталяваць канфігурацыю",
   "not_ready_yet": "Яшчэ не гатова",
   "settings_header": "Іншае",
@@ -373,5 +373,7 @@
   "sort_menu_design_desc": "Modern style highlights the active option with a colored dot. Classic fills the row with the accent color.",
   "bulletin_hook_restart_required": "A client restart is required to update the hook.",
   "bulletin_restart_button": "Restart",
-  "plugin_description": "**Каталог рэсурсаў для exteraGram/AyuGram. Плагіны, іконкі — усё ў адным месцы, з падтрымкай некалькіх рэпазіторыяў.**\n\nЗыходны код: "
+  "plugin_description": "**Каталог рэсурсаў для exteraGram/AyuGram. Плагіны, іконкі — усё ў адным месцы, з падтрымкай некалькіх рэпазіторыяў.**\n\nЗыходны код: ",
+  "open_directory": "Адкрыць тэчку",
+  "open_directory_desc": "Прагляд файлаў і тэчак packit"
 }

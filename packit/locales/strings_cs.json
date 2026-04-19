@@ -3,9 +3,9 @@
   "plugin_title_version": "PackIt v{0}",
   "plugin_subtitle": "Katalog zdrojů pro exteraGram",
   "plugins_header": "Kategorie",
-  "install_plugin": "Nainstalovat plugin",
+  "install_plugin": "Katalog pluginů",
   "check_updates": "Zkontrolovat aktualizace",
-  "install_icons": "Nainstalovat ikony",
+  "install_icons": "Katalog ikon",
   "install_config": "Nainstalovat konfiguraci",
   "not_ready_yet": "Ještě není připraveno",
   "settings_header": "Ostatní",
@@ -373,5 +373,7 @@
   "sort_menu_design_desc": "Modern style highlights the active option with a colored dot. Classic fills the row with the accent color.",
   "bulletin_hook_restart_required": "A client restart is required to update the hook.",
   "bulletin_restart_button": "Restart",
-  "plugin_description": "**Katalog zdrojů pro exteraGram/AyuGram. Pluginy, ikony — vše na jednom místě, s podporou více repozitářů.**\n\nZdrojový kód: "
+  "plugin_description": "**Katalog zdrojů pro exteraGram/AyuGram. Pluginy, ikony — vše na jednom místě, s podporou více repozitářů.**\n\nZdrojový kód: ",
+  "open_directory": "Otevřít složku",
+  "open_directory_desc": "Procházet soubory a složky packit"
 }

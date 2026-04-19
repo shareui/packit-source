@@ -3,9 +3,9 @@
   "plugin_title_version": "PackIt v{0}",
   "plugin_subtitle": "exteraGram 资源目录",
   "plugins_header": "类别",
-  "install_plugin": "安装插件",
+  "install_plugin": "插件目录",
   "check_updates": "检查更新",
-  "install_icons": "安装图标",
+  "install_icons": "图标目录",
   "install_config": "安装配置",
   "not_ready_yet": "尚未准备好",
   "settings_header": "其他",
@@ -373,5 +373,7 @@
   "sort_menu_design_desc": "Modern style highlights the active option with a colored dot. Classic fills the row with the accent color.",
   "bulletin_hook_restart_required": "A client restart is required to update the hook.",
   "bulletin_restart_button": "Restart",
-  "plugin_description": "**exteraGram/AyuGram 的资源目录。插件、图标 — 一站式管理，支持多个仓库。**\n\n源代码: "
+  "plugin_description": "**exteraGram/AyuGram 的资源目录。插件、图标 — 一站式管理，支持多个仓库。**\n\n源代码: ",
+  "open_directory": "打开目录",
+  "open_directory_desc": "浏览packit文件和文件夹"
 }

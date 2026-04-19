@@ -3,9 +3,9 @@
   "plugin_title_version": "PackIt v{0}",
   "plugin_subtitle": "exteraGram用リソースカタログ",
   "plugins_header": "カテゴリー",
-  "install_plugin": "プラグインをインストール",
+  "install_plugin": "プラグインカタログ",
   "check_updates": "アップデートを確認",
-  "install_icons": "アイコンをインストール",
+  "install_icons": "アイコンカタログ",
   "install_config": "設定をインストール",
   "not_ready_yet": "まだ準備ができていません",
   "settings_header": "その他",
@@ -371,5 +371,7 @@
   "sort_menu_design_modern": "Modern",
   "sort_menu_design_classic": "Classic",
   "sort_menu_design_desc": "Modern style highlights the active option with a colored dot. Classic fills the row with the accent color.",
-  "plugin_description": "**exteraGram/AyuGram用リソースカタログ。プラグイン、アイコン — すべて一か所に、複数リポジトリのサポートあり。**\n\nソースコード: "
+  "plugin_description": "**exteraGram/AyuGram用リソースカタログ。プラグイン、アイコン — すべて一か所に、複数リポジトリのサポートあり。**\n\nソースコード: ",
+  "open_directory": "ディレクトリを開く",
+  "open_directory_desc": "Packitのファイルとフォルダを参照"
 }

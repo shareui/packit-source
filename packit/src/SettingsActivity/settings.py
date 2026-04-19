@@ -40,6 +40,7 @@ from typing import List, Any, Callable
 from dataclasses import dataclass, field
 from ..ui.FontPickerBottomSheet import showFontPicker
 from ..ui.FontManager import getSelectedFilename
+from extera_utils.classes import Base, java_subclass, jMVELoverride, joverride
 
 def _reload_plugin_settings():
     try:
@@ -102,10 +103,6 @@ def _getCacheInfo(cacheDir):
         return "—", 0
 
 
-def _getCacheSize(cacheDir):
-    return _getCacheInfo(cacheDir)[0]
-
-
 def _getFreeSpace(path):
     # returns free space for the given path
     try:
@@ -121,179 +118,198 @@ def _getFreeSpace(path):
         return "—"
 
 
-def _buildTextSubtextCell(context, text, subtext, icon, on_click):
-    # native-looking cell: icon on left, title + subtitle stacked, full-row ripple tap
-    try:
+@java_subclass(FrameLayout)
+class TextSubtextCell(Base):
+    @joverride()
+    def onMeasure(self, widthMeasureSpec: int, heightMeasureSpec: int):
+        from android.view import View
+        MS = View.MeasureSpec
+        # measure with unconstrained height to get natural content height
+        super().onMeasure(
+            MS.makeMeasureSpec(MS.getSize(widthMeasureSpec), MS.EXACTLY),
+            MS.makeMeasureSpec(0, MS.UNSPECIFIED),
+        )
+        h = max(self.getMeasuredHeight(), AndroidUtilities.dp(64))
+        super().onMeasure(
+            MS.makeMeasureSpec(MS.getSize(widthMeasureSpec), MS.EXACTLY),
+            MS.makeMeasureSpec(h, MS.EXACTLY),
+        )
+
+    def on_post_init(self, context):
         from android.widget import ImageView
-        from hook_utils import find_class
         dp = AndroidUtilities.dp
-        log("other: _buildTextSubtextCell start")
 
-        row = LinearLayout(context)
-        row.setOrientation(LinearLayout.HORIZONTAL)
-        row.setGravity(Gravity.CENTER_VERTICAL)
-        row.setMinimumHeight(dp(64))
-        row.setClickable(True)
-        row.setFocusable(True)
-        row.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 2))
-        row.setOnClickListener(OnClickListener(on_click))
-        log("other: _buildTextSubtextCell row created")
+        self.setWillNotDraw(False)
+        self._need_divider = False
 
-        icon_id = None
-        try:
-            R = find_class("org.telegram.messenger.R")
-            icon_id = getattr(R.drawable, icon)
-            log(f"other: _buildTextSubtextCell icon_id={icon_id}")
-        except Exception as e:
-            log(f"other: _buildTextSubtextCell icon resolve error: {e}")
+        # icon left (visible when icon_right=False)
+        self._iconLeft = ImageView(context)
+        self._iconLeft.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon))
+        self.addView(self._iconLeft, LayoutHelper.createFrame(24, 24, Gravity.LEFT | Gravity.CENTER_VERTICAL, 23, 0, 0, 0))
 
-        if icon_id is not None:
-            iconView = ImageView(context)
-            iconView.setImageResource(icon_id)
-            iconView.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon))
-            # left=23 matches native TextCheckCell icon indent
-            row.addView(iconView, LayoutHelper.createLinear(24, 24, Gravity.CENTER_VERTICAL, 23, 0, 0, 0))
-            log("other: _buildTextSubtextCell icon added")
-
+        # text block
         textBlock = LinearLayout(context)
         textBlock.setOrientation(LinearLayout.VERTICAL)
+        self._textBlock = textBlock
 
-        titleView = TextView(context)
-        titleView.setText(str(text))
-        titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
-        titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
-        textBlock.addView(titleView, LayoutHelper.createLinear(-2, -2))
+        self._titleView = TextView(context)
+        self._titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
+        self._titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
 
-        subtitleView = TextView(context)
-        subtitleView.setText(str(subtext))
-        subtitleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
-        subtitleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
-        textBlock.addView(subtitleView, LayoutHelper.createLinear(-2, -2, 0, 2, 0, 0))
+        self._subtitleView = TextView(context)
+        self._subtitleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+        self._subtitleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
 
-        # 23+24+25=72dp total left offset
-        row.addView(textBlock, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL, 25, 10, 17, 10))
+        textBlock.addView(self._titleView, LayoutHelper.createLinear(-1, -2))
+        textBlock.addView(self._subtitleView, LayoutHelper.createLinear(-1, -2, 0, 2, 0, 0))
+        self.addView(textBlock)
 
-        log("other: _buildTextSubtextCell done")
-        return row
+        # icon right (visible when icon_right=True)
+        self._iconRight = ImageView(context)
+        self._iconRight.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+        self._iconRight.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 1))
+        self._iconRight.setPadding(dp(8), dp(8), dp(8), dp(8))
+        self.addView(self._iconRight, LayoutHelper.createFrame(-2, -2, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 0, 0, 8, 0))
+
+        # full-row ripple background (used for icon_left mode)
+        self._rippleBg = Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 2)
+
+    def set_data(self, text, subtext, icon_name, on_click, icon_right=False, need_divider=False):
+        from hook_utils import find_class
+        dp = AndroidUtilities.dp
+
+        self._need_divider = need_divider
+
+        # resolve icon id
+        icon_id = 0
+        try:
+            icon_id = int(getattr(find_class("org.telegram.messenger.R").drawable, icon_name))
+        except Exception as e:
+            log(f"TextSubtextCell icon resolve error: {e}")
+
+        self._titleView.setText(str(text))
+
+        if subtext:
+            self._subtitleView.setText(str(subtext))
+            self._subtitleView.setVisibility(0)  # VISIBLE
+        else:
+            self._subtitleView.setVisibility(8)  # GONE
+
+        if icon_right:
+            self.setClickable(False)
+            self.setFocusable(False)
+            self.setBackground(None)
+
+            self._iconLeft.setVisibility(8)  # GONE
+            self._iconRight.setVisibility(0)  # VISIBLE
+            if icon_id:
+                self._iconRight.setImageResource(icon_id)
+            self._iconRight.setOnClickListener(OnClickListener(on_click))
+
+            self._titleView.setGravity(Gravity.LEFT)
+            # right margin 56dp leaves room for the icon button (40dp) + 8dp padding + 8dp gap
+            self._textBlock.setLayoutParams(LayoutHelper.createFrame(-1, -2, Gravity.LEFT | Gravity.CENTER_VERTICAL, 16, 10, 56, 10))
+        else:
+            self.setClickable(True)
+            self.setFocusable(True)
+            self.setBackground(self._rippleBg)
+            self.setOnClickListener(OnClickListener(on_click))
+
+            self._iconRight.setVisibility(8)  # GONE
+            self._iconLeft.setVisibility(0 if icon_id else 8)
+            if icon_id:
+                self._iconLeft.setImageResource(icon_id)
+
+            # 23+24+25=72dp total left offset
+            self._textBlock.setLayoutParams(LayoutHelper.createFrame(-1, -2, Gravity.LEFT | Gravity.CENTER_VERTICAL, 72, 10, 17, 10))
+
+        self.invalidate()
+
+    @joverride()
+    def onDraw(self, canvas):
+        if self._need_divider:
+            # matches native TG pattern: drawLine at bottom with dp(20) offset
+            canvas.drawLine(
+                AndroidUtilities.dp(20), self.getMeasuredHeight() - 1,
+                self.getMeasuredWidth(), self.getMeasuredHeight() - 1,
+                Theme.dividerPaint,
+            )
+        super().onDraw(canvas)
+
+
+def _buildTextSubtextCell(context, text, subtext, icon, on_click, icon_right=False):
+    # icon_right=False: icon left, full-row ripple; icon_right=True: text left, icon right
+    try:
+        cell = TextSubtextCell.new_instance(context)
+        cell.set_data(text, subtext, icon, on_click, icon_right=icon_right)
+        return cell.java
     except Exception as e:
         log(f"other: _buildTextSubtextCell error: {e}")
         return None
 
 
 def _buildTextSubtextCellIconRight(context, text, subtext, icon, on_click):
-    # cell: title + subtitle on left, icon on right
-    try:
+    return _buildTextSubtextCell(context, text, subtext, icon, on_click, icon_right=True)
+
+
+@java_subclass(LinearLayout)
+class CacheCard(Base):
+    def on_post_init(self, context):
         from android.widget import ImageView
-        from hook_utils import find_class
-        dp = AndroidUtilities.dp
-        log("other: _buildTextSubtextCellIconRight start")
-
-        row = LinearLayout(context)
-        row.setOrientation(LinearLayout.HORIZONTAL)
-        row.setGravity(Gravity.CENTER_VERTICAL)
-        row.setMinimumHeight(dp(64))
-        row.setClickable(True)
-        row.setFocusable(True)
-        row.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 2))
-        row.setOnClickListener(OnClickListener(on_click))
-        log("other: _buildTextSubtextCellIconRight row created")
-
-        textBlock = LinearLayout(context)
-        textBlock.setOrientation(LinearLayout.VERTICAL)
-        textBlock.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL)
-
-        titleView = TextView(context)
-        titleView.setText(str(text))
-        titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
-        titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
-        titleView.setGravity(Gravity.LEFT)
-        textBlock.addView(titleView, LayoutHelper.createLinear(-1, -2))
-
-        if subtext:
-            subtitleView = TextView(context)
-            subtitleView.setText(str(subtext))
-            subtitleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
-            subtitleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
-            subtitleView.setGravity(Gravity.LEFT)
-            textBlock.addView(subtitleView, LayoutHelper.createLinear(-1, -2, 0, 2, 0, 0))
-
-        row.addView(textBlock, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL, 16, 10, 8, 10))
-        log("other: _buildTextSubtextCellIconRight textBlock added")
-
-        icon_id = None
-        try:
-            R = find_class("org.telegram.messenger.R")
-            icon_id = getattr(R.drawable, icon)
-            log(f"other: _buildTextSubtextCellIconRight icon_id={icon_id}")
-        except Exception as e:
-            log(f"other: _buildTextSubtextCellIconRight icon resolve error: {e}")
-
-        if icon_id is not None:
-            iconView = ImageView(context)
-            iconView.setImageResource(icon_id)
-            iconView.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
-            iconView.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 1))
-            iconView.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
-            icon_lp = LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL, 0, 0, 8, 0)
-            row.addView(iconView, icon_lp)
-            log("other: _buildTextSubtextCellIconRight icon added")
-
-        log("other: _buildTextSubtextCellIconRight done")
-        return row
-    except Exception as e:
-        log(f"other: _buildTextSubtextCellIconRight error: {e}")
-        return None
-
-
-
-def _buildCacheCard(context, cacheDir, on_clear, title=None):
-    # card showing cache size with clear button
-    try:
         dp = AndroidUtilities.dp
 
-        card = LinearLayout(context)
-        card.setOrientation(LinearLayout.HORIZONTAL)
-        card.setGravity(Gravity.CENTER_VERTICAL)
-        card.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite))
-        card.setPadding(dp(16), dp(14), dp(8), dp(14))
+        self._cache_dir = None
+        self._on_clear = None
+
+        self.setOrientation(LinearLayout.HORIZONTAL)
+        self.setGravity(Gravity.CENTER_VERTICAL)
+        self.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite))
+        self.setPadding(dp(16), dp(14), dp(8), dp(14))
 
         left = LinearLayout(context)
         left.setOrientation(LinearLayout.VERTICAL)
 
-        titleView = TextView(context)
-        titleView.setText(str(title) if title is not None else str(strings.clear_cache))
-        titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
-        titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
-        left.addView(titleView, LayoutHelper.createLinear(-2, -2))
+        self._titleView = TextView(context)
+        self._titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
+        self._titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+        left.addView(self._titleView, LayoutHelper.createLinear(-2, -2))
 
-        sizeView = TextView(context)
-        size, fileCount = _getCacheInfo(cacheDir)
-        sizeView.setText(f"{size} • {fileCount} files")
-        sizeView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
-        sizeView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
-        left.addView(sizeView, LayoutHelper.createLinear(-2, -2, 0, 2, 0, 0))
+        self._sizeView = TextView(context)
+        self._sizeView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+        self._sizeView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+        left.addView(self._sizeView, LayoutHelper.createLinear(-2, -2, 0, 2, 0, 0))
 
-        card.addView(left, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
-
-        from android.widget import ImageView
-        from android.graphics import Color
+        self.addView(left, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
 
         clearBtn = ImageView(context)
         clearBtn.setImageResource(R.drawable.msg_clearcache)
         clearBtn.setColorFilter(Theme.getColor(Theme.key_avatar_backgroundRed))
         clearBtn.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 1))
         clearBtn.setPadding(dp(8), dp(8), dp(8), dp(8))
-        clearBtn.setOnClickListener(OnClickListener(on_clear))
-        card.addView(clearBtn, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL))
+        clearBtn.setOnClickListener(OnClickListener(lambda v: self._on_clear(v) if self._on_clear else None))
+        self.addView(clearBtn, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL))
 
-        def update_size():
-            try:
-                new_size, new_count = _getCacheInfo(cacheDir)
-                sizeView.setText(f"{new_size} • {new_count} files")
-            except Exception as e:
-                log(f"other: _buildCacheCard update_size error: {e}")
+    def set_data(self, cache_dir, title, on_clear):
+        self._cache_dir = cache_dir
+        self._on_clear = on_clear
+        self._titleView.setText(str(title))
+        self.refresh()
 
-        return card, update_size
+    def refresh(self):
+        try:
+            size, count = _getCacheInfo(self._cache_dir)
+            self._sizeView.setText(f"{size} • {count} files")
+        except Exception as e:
+            log(f"CacheCard refresh error: {e}")
+
+
+def _buildCacheCard(context, cacheDir, on_clear, title=None):
+    # card showing cache size with clear button
+    try:
+        cardTitle = str(title) if title is not None else str(strings.clear_cache)
+        card = CacheCard.new_instance(context)
+        card.set_data(cacheDir, cardTitle, on_clear)
+        return card.java, card.refresh
     except Exception as e:
         log(f"other: _buildCacheCard error: {e}")
         return None, None
@@ -866,6 +882,25 @@ def _getDialogsMenuItems():
     ]
 
 
+_DIALOGS_MENU_ICON_IDS = None
+
+
+def _getDialogsMenuIconIds():
+    global _DIALOGS_MENU_ICON_IDS
+    if _DIALOGS_MENU_ICON_IDS is None:
+        from hook_utils import find_class
+        items = _getDialogsMenuItems()
+        ids = []
+        for icon_name, _ in items:
+            try:
+                R = find_class("org.telegram.messenger.R")
+                ids.append(int(getattr(R.drawable, icon_name)))
+            except Exception:
+                ids.append(0)
+        _DIALOGS_MENU_ICON_IDS = ids
+    return _DIALOGS_MENU_ICON_IDS
+
+
 def _buildDialogsMenuToggle(context, key, default, on_change=None):
     # vertical toggle: each option is a preview row mimicking a dialogs menu button
     try:
@@ -876,7 +911,6 @@ def _buildDialogsMenuToggle(context, key, default, on_change=None):
         from android.view.animation import DecelerateInterpolator
         from android.widget import ImageView
         from java import dynamic_proxy
-        from hook_utils import find_class
         dp = AndroidUtilities.dp
 
         wrapper = LinearLayout(context)
@@ -904,13 +938,6 @@ def _buildDialogsMenuToggle(context, key, default, on_change=None):
         bg_refs = [None] * itemCount
         icon_refs = [None] * itemCount
         label_refs = [None] * itemCount
-
-        def resolveIcon(name):
-            try:
-                R = find_class("org.telegram.messenger.R")
-                return int(getattr(R.drawable, name))
-            except Exception:
-                return 0
 
         def lerpColor(c1, c2, t):
             a = int(((c1 >> 24) & 0xFF) + t * (((c2 >> 24) & 0xFF) - ((c1 >> 24) & 0xFF)))
@@ -979,6 +1006,8 @@ def _buildDialogsMenuToggle(context, key, default, on_change=None):
                     on_change(idx)
             return onClick
 
+        cachedIconIds = _getDialogsMenuIconIds()
+
         for i, (icon_name, label) in enumerate(menuItems):
             card = LinearLayout(context)
             card.setOrientation(LinearLayout.HORIZONTAL)
@@ -993,7 +1022,7 @@ def _buildDialogsMenuToggle(context, key, default, on_change=None):
             card_refs[i] = card
 
             isActive = current_ref[0] == i
-            icon_id = resolveIcon(icon_name)
+            icon_id = cachedIconIds[i]
             iconView = None
             if icon_id:
                 iconView = ImageView(context)
@@ -1018,9 +1047,9 @@ def _buildDialogsMenuToggle(context, key, default, on_change=None):
         return None
 
 
-def _buildSortMenuDesignToggle(context, key, default, on_change=None):
-    try:
-        from elyx import settings as _settings
+@java_subclass(LinearLayout)
+class SortDesignCard(Base):
+    def on_post_init(self, context):
         from android.graphics.drawable import GradientDrawable
         from android.graphics import Color
         from android.animation import ValueAnimator
@@ -1029,36 +1058,41 @@ def _buildSortMenuDesignToggle(context, key, default, on_change=None):
         from android.widget import ImageView
         from java import dynamic_proxy
         from hook_utils import find_class
+        from elyx import settings as _settings
         dp = AndroidUtilities.dp
 
-        wrapper = LinearLayout(context)
-        wrapper.setOrientation(LinearLayout.VERTICAL)
-        wrapper.setPadding(dp(16), dp(8), dp(16), dp(8))
+        self.setOrientation(LinearLayout.VERTICAL)
+        self.setPadding(dp(16), dp(8), dp(16), dp(8))
 
-        row = LinearLayout(context)
-        row.setOrientation(LinearLayout.HORIZONTAL)
-        wrapper.addView(row, LayoutHelper.createLinear(-1, -2))
+        self._dp = dp
+        self._settings = _settings
+        self._key = None
+        self._default = None
+        self._on_change = None
 
         accentColor = Theme.getColor(Theme.key_featuredStickers_addButton)
-        surfaceColor = Theme.getColor(Theme.key_windowBackgroundWhite)
-        grayColor = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
-        blackText = Theme.getColor(Theme.key_windowBackgroundWhiteBlackText)
         dialogBg = Theme.getColor(Theme.key_dialogBackground)
-        dialogBgGray = Theme.getColor(Theme.key_dialogBackgroundGray)
-        dialogTextBlack = Theme.getColor(Theme.key_dialogTextBlack)
         dialogTextGray = Theme.getColor(Theme.key_dialogTextGray2)
+        dialogTextBlack = Theme.getColor(Theme.key_dialogTextBlack)
         buttonText = Theme.getColor(Theme.key_featuredStickers_buttonText)
+        activeStroke = accentColor
+        inactiveStroke = Color.argb(40, 128, 128, 128)
 
         accentR = (accentColor >> 16) & 0xFF
         accentG = (accentColor >> 8) & 0xFF
         accentB = accentColor & 0xFF
-        activeStroke = accentColor
-        inactiveStroke = Color.argb(40, 128, 128, 128)
 
-        # 0 = modern (default), 1 = classic
-        current_ref = [_settings.get(key, default)]
-        card_refs = [None, None]
-        bg_refs = [None, None]
+        self._accentColor = accentColor
+        self._activeStroke = activeStroke
+        self._inactiveStroke = inactiveStroke
+
+        # resolve icon once
+        iconId = 0
+        try:
+            R = find_class("org.telegram.messenger.R")
+            iconId = int(getattr(R.drawable, "msg_archive"))
+        except Exception:
+            pass
 
         def lerpColor(c1, c2, t):
             a = int(((c1 >> 24) & 0xFF) + t * (((c2 >> 24) & 0xFF) - ((c1 >> 24) & 0xFF)))
@@ -1067,23 +1101,7 @@ def _buildSortMenuDesignToggle(context, key, default, on_change=None):
             b = int((c1 & 0xFF) + t * ((c2 & 0xFF) - (c1 & 0xFF)))
             return Color.argb(a, r, g, b)
 
-        def animateCard(card, bg, toActive):
-            fromStroke = inactiveStroke if toActive else activeStroke
-            toStroke = activeStroke if toActive else inactiveStroke
-            strokeFrom = dp(1) if toActive else dp(2)
-            strokeTo = dp(2) if toActive else dp(1)
-
-            class _Listener(dynamic_proxy(ValueAnimator.AnimatorUpdateListener)):
-                def onAnimationUpdate(self, anim):
-                    t = float(anim.getAnimatedFraction())
-                    bg.setStroke(int(strokeFrom + t * (strokeTo - strokeFrom)), lerpColor(fromStroke, toStroke, t))
-                    card.setBackground(bg)
-
-            anim = ValueAnimator.ofFloat(0.0, 1.0)
-            anim.setDuration(350)
-            anim.setInterpolator(DecelerateInterpolator(2.0))
-            anim.addUpdateListener(_Listener())
-            anim.start()
+        self._lerpColor = lerpColor
 
         def makeCardBg(active):
             bg = GradientDrawable()
@@ -1092,36 +1110,8 @@ def _buildSortMenuDesignToggle(context, key, default, on_change=None):
             bg.setStroke(dp(2) if active else dp(1), activeStroke if active else inactiveStroke)
             return bg
 
-        def refreshCards(prev):
-            cur = current_ref[0]
-            for i, card in enumerate(card_refs):
-                if card is not None and bg_refs[i] is not None:
-                    if i == cur and i != prev:
-                        animateCard(card, bg_refs[i], True)
-                    elif i == prev and i != cur:
-                        animateCard(card, bg_refs[i], False)
-
-        def makeCardClick(idx):
-            def onClick(v):
-                prev = current_ref[0]
-                if prev == idx:
-                    return
-                _settings.set(key, idx)
-                current_ref[0] = idx
-                refreshCards(prev)
-                if on_change:
-                    on_change(idx)
-            return onClick
-
-        def resolveIcon(name):
-            try:
-                R = find_class("org.telegram.messenger.R")
-                return getattr(R.drawable, name)
-            except Exception:
-                return 0
-
-        def buildPreviewRow(act, isClassic):
-            container = LinearLayout(act)
+        def buildPreview(isClassic):
+            container = LinearLayout(context)
             container.setOrientation(LinearLayout.VERTICAL)
             container.setPadding(dp(6), dp(6), dp(6), dp(4))
 
@@ -1131,7 +1121,7 @@ def _buildSortMenuDesignToggle(context, key, default, on_change=None):
             container.setBackground(previewBg)
 
             def makeRow(label, isSelected):
-                optRow = LinearLayout(act)
+                optRow = LinearLayout(context)
                 optRow.setOrientation(LinearLayout.HORIZONTAL)
                 optRow.setGravity(Gravity.CENTER_VERTICAL)
                 optRow.setPadding(dp(6), dp(5), dp(6), dp(5))
@@ -1142,7 +1132,7 @@ def _buildSortMenuDesignToggle(context, key, default, on_change=None):
                 optRow.setBackground(rowBg)
 
                 if not isClassic:
-                    dot = FrameLayout(act)
+                    dot = FrameLayout(context)
                     dotSize = dp(8)
                     dotBg = GradientDrawable()
                     dotBg.setShape(GradientDrawable.OVAL)
@@ -1156,8 +1146,7 @@ def _buildSortMenuDesignToggle(context, key, default, on_change=None):
                     dotLp.rightMargin = dp(5)
                     optRow.addView(dot, dotLp)
 
-                iconView = ImageView(act)
-                iconId = resolveIcon("msg_archive")
+                iconView = ImageView(context)
                 if iconId:
                     iconView.setImageResource(iconId)
                     if isSelected and isClassic:
@@ -1170,7 +1159,7 @@ def _buildSortMenuDesignToggle(context, key, default, on_change=None):
                 iconLp.rightMargin = dp(5)
                 optRow.addView(iconView, iconLp)
 
-                labelView = TextView(act)
+                labelView = TextView(context)
                 labelView.setText(label)
                 labelView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 9)
                 if isSelected and isClassic:
@@ -1185,7 +1174,7 @@ def _buildSortMenuDesignToggle(context, key, default, on_change=None):
 
             container.addView(makeRow("A \u2192 Z", True), LayoutHelper.createLinear(-1, -2))
 
-            div = View(act)
+            div = View(context)
             div.setBackgroundColor(Theme.getColor(Theme.key_divider))
             container.addView(div, LayoutHelper.createLinear(-1, 1, 0, dp(4), 0, dp(4)))
 
@@ -1193,8 +1182,27 @@ def _buildSortMenuDesignToggle(context, key, default, on_change=None):
 
             return container
 
+        row = LinearLayout(context)
+        row.setOrientation(LinearLayout.HORIZONTAL)
+        self.addView(row, LayoutHelper.createLinear(-1, -2))
+
+        self._card_refs = [None, None]
+        self._bg_refs = [None, None]
+        self._current_ref = [0]
+
+        def makeCardClick(idx):
+            def onClick(v):
+                prev = self._current_ref[0]
+                if prev == idx:
+                    return
+                self._settings.set(self._key, idx)
+                self._current_ref[0] = idx
+                self._refreshCards(prev)
+                if self._on_change:
+                    self._on_change(idx)
+            return onClick
+
         for i in range(2):
-            # outer column: card + label underneath
             col = LinearLayout(context)
             col.setOrientation(LinearLayout.VERTICAL)
             col.setGravity(Gravity.CENTER_HORIZONTAL)
@@ -1205,13 +1213,13 @@ def _buildSortMenuDesignToggle(context, key, default, on_change=None):
             card.setClickable(True)
             card.setFocusable(True)
             card.setPadding(dp(10), dp(10), dp(10), dp(10))
-            cardBg = makeCardBg(current_ref[0] == i)
+            cardBg = makeCardBg(False)
             card.setBackground(cardBg)
-            bg_refs[i] = cardBg
+            self._bg_refs[i] = cardBg
             card.setOnClickListener(OnClickListener(makeCardClick(i)))
-            card_refs[i] = card
+            self._card_refs[i] = card
 
-            preview = buildPreviewRow(context, isClassic=(i == 1))
+            preview = buildPreview(isClassic=(i == 1))
             card.addView(preview, LayoutHelper.createLinear(-1, -2))
             col.addView(card, LayoutHelper.createLinear(-1, -2))
 
@@ -1220,10 +1228,160 @@ def _buildSortMenuDesignToggle(context, key, default, on_change=None):
             else:
                 row.addView(col, LayoutHelper.createLinear(0, -2, 1.0, Gravity.TOP, 0, 0, 0, 0))
 
-        return wrapper
+    def _animateCard(self, card, bg, toActive):
+        from android.animation import ValueAnimator
+        from android.view.animation import DecelerateInterpolator
+        from android.graphics import Color
+        from java import dynamic_proxy
+        dp = self._dp
+        fromStroke = self._inactiveStroke if toActive else self._activeStroke
+        toStroke = self._activeStroke if toActive else self._inactiveStroke
+        strokeFrom = dp(1) if toActive else dp(2)
+        strokeTo = dp(2) if toActive else dp(1)
+        lerpColor = self._lerpColor
+
+        class _Listener(dynamic_proxy(ValueAnimator.AnimatorUpdateListener)):
+            def onAnimationUpdate(self, anim):
+                t = float(anim.getAnimatedFraction())
+                bg.setStroke(int(strokeFrom + t * (strokeTo - strokeFrom)), lerpColor(fromStroke, toStroke, t))
+                card.setBackground(bg)
+
+        anim = ValueAnimator.ofFloat(0.0, 1.0)
+        anim.setDuration(350)
+        anim.setInterpolator(DecelerateInterpolator(2.0))
+        anim.addUpdateListener(_Listener())
+        anim.start()
+
+    def _refreshCards(self, prev):
+        cur = self._current_ref[0]
+        for i, card in enumerate(self._card_refs):
+            if card is not None and self._bg_refs[i] is not None:
+                if i == cur and i != prev:
+                    self._animateCard(card, self._bg_refs[i], True)
+                elif i == prev and i != cur:
+                    self._animateCard(card, self._bg_refs[i], False)
+
+    def set_selection(self, cur):
+        # restore stroke state without animation (called on bind)
+        dp = self._dp
+        for i, bg in enumerate(self._bg_refs):
+            if bg is not None:
+                active = (i == cur)
+                bg.setStroke(dp(2) if active else dp(1), self._activeStroke if active else self._inactiveStroke)
+                if self._card_refs[i] is not None:
+                    self._card_refs[i].setBackground(bg)
+        self._current_ref[0] = cur
+
+    def setup(self, key, default, on_change=None):
+        self._key = key
+        self._default = default
+        self._on_change = on_change
+        cur = self._settings.get(key, default)
+        self.set_selection(cur)
+
+
+def _buildSortMenuDesignToggle(context, key, default, on_change=None):
+    try:
+        card = SortDesignCard.new_instance(context)
+        card.setup(key, default, on_change)
+        return card.java
     except Exception as e:
         log(f"_buildSortMenuDesignToggle error: {e}")
         return None
+
+
+@java_subclass(LinearLayout)
+class SfxVolumeSlider(Base):
+    onMeasure = jMVELoverride(
+        arguments=[("widthMeasureSpec", "int"), ("heightMeasureSpec", "int")],
+        code="""
+            SUPER_onMeasure(
+                android.view.View$MeasureSpec.makeMeasureSpec(
+                    android.view.View$MeasureSpec.getSize(widthMeasureSpec),
+                    android.view.View$MeasureSpec.EXACTLY
+                ),
+                android.view.View$MeasureSpec.makeMeasureSpec(
+                    org.telegram.messenger.AndroidUtilities.dp(72),
+                    android.view.View$MeasureSpec.EXACTLY
+                )
+            );
+            return null;
+        """,
+    )
+
+    def on_post_init(self, context):
+        from android.widget import SeekBar
+        from android.view import Gravity
+        from java import dynamic_proxy
+        from elyx import settings as _s
+        dp = AndroidUtilities.dp
+
+        self._s = _s
+        self.setOrientation(LinearLayout.VERTICAL)
+        self.setPadding(dp(21), dp(8), dp(21), dp(8))
+        self.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite))
+
+        labelRow = LinearLayout(context)
+        labelRow.setOrientation(LinearLayout.HORIZONTAL)
+        labelRow.setGravity(Gravity.CENTER_VERTICAL)
+        self.addView(labelRow, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 6))
+
+        self._labelView = TextView(context)
+        self._labelView.setText(str(strings.sfx_volume))
+        self._labelView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
+        self._labelView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+        labelRow.addView(self._labelView, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+
+        self._valueView = TextView(context)
+        self._valueView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+        self._valueView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+        labelRow.addView(self._valueView, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL))
+
+        self._seekBar = SeekBar(context)
+        self._seekBar.setMax(100)
+
+        try:
+            from android.graphics import PorterDuff, PorterDuffColorFilter
+            accent = Theme.getColor(Theme.key_featuredStickers_addButton)
+            self._seekBar.getProgressDrawable().setColorFilter(PorterDuffColorFilter(accent, PorterDuff.Mode.SRC_IN))
+            self._seekBar.getThumb().setColorFilter(PorterDuffColorFilter(accent, PorterDuff.Mode.SRC_IN))
+        except Exception:
+            pass
+
+        valueView = self._valueView
+
+        class _ChangeListener(dynamic_proxy(SeekBar.OnSeekBarChangeListener)):
+            def onProgressChanged(self_l, sb, progress, fromUser):
+                try:
+                    _s.set("sfx_volume", progress, reload_settings=False)
+                    valueView.setText(SfxVolumeSlider._volLabel(progress))
+                except Exception:
+                    pass
+
+            def onStartTrackingTouch(self_l, sb):
+                pass
+
+            def onStopTrackingTouch(self_l, sb):
+                pass
+
+        self._seekBar.setOnSeekBarChangeListener(_ChangeListener())
+        self.addView(self._seekBar, LayoutHelper.createLinear(-1, -2))
+
+    def bind(self):
+        try:
+            vol = int(self._s.get("sfx_volume", 100))
+        except Exception:
+            vol = 100
+        self._seekBar.setProgress(vol)
+        self._valueView.setText(SfxVolumeSlider._volLabel(vol))
+
+    @staticmethod
+    def _volLabel(v):
+        if v == 0:
+            return str(strings["sfx_volume_off"])
+        if v == 100:
+            return str(strings["sfx_volume_maximum"])
+        return f"{v}%"
 
 
 class OtherSettings:
@@ -1237,6 +1395,7 @@ class OtherSettings:
 
     def _es_toggle_and_reload(self, key):
         self._es_expanded_states[key] = not self._es_expanded_states.get(key, False)
+        log(f"OtherSettings: _es_toggle_and_reload key={key} expanded={self._es_expanded_states[key]}")
         from elyx import settings as _s
         _s.set("_es_dummy", not _s.get("_es_dummy", False), reload_settings=True)
 
@@ -1396,99 +1555,13 @@ class OtherSettings:
         try:
             if not ctx:
                 return None
-            from elyx import settings as _s
-            from org.telegram.messenger import AndroidUtilities
-            from org.telegram.ui.ActionBar import Theme
-            from org.telegram.ui.Components import LayoutHelper
-            from android.widget import LinearLayout, TextView, SeekBar
-            from android.util import TypedValue
-            from android.view import Gravity
-            from java import dynamic_proxy
-
-            dp = AndroidUtilities.dp
-
-            wrapper = LinearLayout(ctx)
-            wrapper.setOrientation(LinearLayout.VERTICAL)
-            wrapper.setPadding(dp(21), dp(8), dp(21), dp(8))
-            wrapper.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite))
-
-            labelRow = LinearLayout(ctx)
-            labelRow.setOrientation(LinearLayout.HORIZONTAL)
-            labelRow.setGravity(Gravity.CENTER_VERTICAL)
-            wrapper.addView(labelRow, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 6))
-
-            labelView = TextView(ctx)
-            labelView.setText(str(strings.sfx_volume))
-            labelView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
-            labelView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
-            labelRow.addView(labelView, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
-
-            current_vol = 100
-            try:
-                current_vol = int(_s.get("sfx_volume", 100))
-            except Exception:
-                pass
-
-            def _vol_label(v):
-                if v == 0:
-                    return str(strings["sfx_volume_off"])
-                if v == 100:
-                    return str(strings["sfx_volume_maximum"])
-                return f"{v}%"
-
-            valueView = TextView(ctx)
-            valueView.setText(_vol_label(current_vol))
-            valueView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
-            valueView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
-            labelRow.addView(valueView, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL))
-
-            seekBar = SeekBar(ctx)
-            seekBar.setMax(100)
-            seekBar.setProgress(current_vol)
-
-            try:
-                from android.graphics import PorterDuff, PorterDuffColorFilter
-                accent = Theme.getColor(Theme.key_featuredStickers_addButton)
-                seekBar.getProgressDrawable().setColorFilter(PorterDuffColorFilter(accent, PorterDuff.Mode.SRC_IN))
-                seekBar.getThumb().setColorFilter(PorterDuffColorFilter(accent, PorterDuff.Mode.SRC_IN))
-            except Exception:
-                pass
-
-            class _ChangeListener(dynamic_proxy(SeekBar.OnSeekBarChangeListener)):
-                def onProgressChanged(self_l, sb, progress, fromUser):
-                    try:
-                        _s.set("sfx_volume", progress, reload_settings=False)
-                        valueView.setText(_vol_label(progress))
-                    except Exception:
-                        pass
-
-                def onStartTrackingTouch(self_l, sb):
-                    pass
-
-                def onStopTrackingTouch(self_l, sb):
-                    pass
-
-            seekBar.setOnSeekBarChangeListener(_ChangeListener())
-            wrapper.addView(seekBar, LayoutHelper.createLinear(-1, -2))
-
-            return Custom(view=wrapper)
+            slider = SfxVolumeSlider.new_instance(ctx)
+            slider.bind()
+            return Custom(view=slider.java)
         except Exception as e:
             log(f"other: _build_sfx_volume_slider error: {e}")
             return None
 
-
-        try:
-            if ctx:
-                view = _buildSearchEngineToggle(ctx, key="search_engine", default=0)
-                if view is not None:
-                    return Custom(view=view)
-            log("other: _build_search_engine_item_v3 falling back to Text")
-        except Exception as e:
-            log(f"other: _build_search_engine_item_v3 error: {e}")
-        return Text(
-            text=strings.search_engine,
-            icon="msg_speed",
-        )
 
     def _open_main_menu_settings(self, view):
         try:
@@ -1979,8 +2052,8 @@ class OtherSettings:
         if ctx:
             openDirView = _buildTextSubtextCellIconRight(
                 ctx,
-                text="Open Directory",
-                subtext="Browse packit files and folders",
+                text=strings.open_directory,
+                subtext=strings.open_directory_desc,
                 icon="msg_folders",
                 on_click=lambda v: self._open_files_browser()
             )
@@ -1988,13 +2061,13 @@ class OtherSettings:
                 items.append(Custom(view=openDirView))
             else:
                 items.append(Text(
-                    text="Open Directory",
+                    text=strings.open_directory,
                     icon="msg_folders",
                     on_click=lambda v: self._open_files_browser()
                 ))
         else:
             items.append(Text(
-                text="Open Directory",
+                text=strings.open_directory,
                 icon="msg_folders",
                 on_click=lambda v: self._open_files_browser()
             ))

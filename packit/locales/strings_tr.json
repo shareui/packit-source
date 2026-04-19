@@ -3,9 +3,9 @@
   "plugin_title_version": "PackIt v{0}",
   "plugin_subtitle": "exteraGram için kaynak kataloğu",
   "plugins_header": "Kategoriler",
-  "install_plugin": "Eklenti yükle",
+  "install_plugin": "Eklenti Kataloğu",
   "check_updates": "Güncellemeleri kontrol et",
-  "install_icons": "Simgeleri yükle",
+  "install_icons": "Simge Kataloğu",
   "install_config": "Yapılandırmayı yükle",
   "not_ready_yet": "Henüz hazır değil",
   "settings_header": "Diğer",
@@ -373,5 +373,7 @@
   "sort_menu_design_desc": "Modern style highlights the active option with a colored dot. Classic fills the row with the accent color.",
   "bulletin_hook_restart_required": "A client restart is required to update the hook.",
   "bulletin_restart_button": "Restart",
-  "plugin_description": "**exteraGram/AyuGram için bir kaynak kataloğu. Eklentiler, simgeler — hepsi tek bir yerde, birden fazla depo desteğiyle.**\n\nKaynak kodu: "
+  "plugin_description": "**exteraGram/AyuGram için bir kaynak kataloğu. Eklentiler, simgeler — hepsi tek bir yerde, birden fazla depo desteğiyle.**\n\nKaynak kodu: ",
+  "open_directory": "Dizin aç",
+  "open_directory_desc": "Packit dosya ve klasörlerine göz at"
 }
