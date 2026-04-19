@@ -741,6 +741,8 @@ class InstallUI:
             self.batch_size = 10
             self.loading_container = None
             self.loading_video = None
+            self._bottom_spinner = None
+            self._load_trigger_y = -1  # scrollY threshold to fire next load_more; -1 = disarmed
             log(f"InstallUI: PluginListFragment created id={id(self)} title='{title}' repo_id='{repo_id}' install_ui_id={id(install_ui)}")
 
         def onFragmentCreate(self, *_):
@@ -1248,18 +1250,13 @@ class InstallUI:
                 scroll.addView(self.results_container, ScrollView.LayoutParams(-1, -2))
 
             # pill: "↑ To the beginning" — floats over list, shown after scrolling ~10 plugins
-            # wrapped in FrameLayout with clipChildren=false so icon can render above pill bounds
             pill_wrapper = FrameLayout(act)
-            pill_wrapper.setClipChildren(False)
-            pill_wrapper.setClipToPadding(False)
 
             scroll_top_pill = LinearLayout(act)
             scroll_top_pill.setOrientation(LinearLayout.HORIZONTAL)
             scroll_top_pill.setGravity(Gravity.CENTER_VERTICAL)
             scroll_top_pill.setClickable(True)
             scroll_top_pill.setFocusable(True)
-            scroll_top_pill.setClipChildren(False)
-            scroll_top_pill.setClipToPadding(False)
             try:
                 pill_bg_color = Theme.getColor(Theme.key_featuredStickers_addButton)
                 pill_pressed_color = Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
@@ -1298,13 +1295,17 @@ class InstallUI:
 
             pill_wrapper.addView(scroll_top_pill, FrameLayout.LayoutParams(-2, -2))
 
-            # position: centered horizontally, just below the list header area
             pill_lp = FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.CENTER_HORIZONTAL)
-            # search(~58dp) + header_row(~60dp) + main_layout top padding(16dp) = ~134dp offset
             pill_lp.topMargin = AndroidUtilities.dp(118)
-            pill_wrapper.setElevation(AndroidUtilities.dp(4))
             pill_wrapper.setAlpha(0.0)
+            # keep VISIBLE at alpha=0 so GPU texture stays uploaded — avoids upload spike on first show
             pill_wrapper.setVisibility(View.VISIBLE)
+            # hardware layer: GPU compositing is cheaper than CPU software raster during scroll
+            try:
+                from android.view import View as _AView
+                pill_wrapper.setLayerType(_AView.LAYER_TYPE_HARDWARE, None)
+            except Exception:
+                pass
             self.content_view.addView(pill_wrapper, pill_lp)
             self._scroll_top_pill = pill_wrapper
             self._pill_visible = False
@@ -1312,14 +1313,18 @@ class InstallUI:
             # ~10 plugins * ~88dp per card
             scroll_show_threshold = AndroidUtilities.dp(880)
 
+            _drag_dismissed = [False]
+            _drag_start_raw_y = [0.0]
+            _is_dragging = [False]
+            _DISMISS_THRESHOLD_DY = AndroidUtilities.dp(-40)
+
             def _set_pill_visible(visible):
+                if visible and _drag_dismissed[0]:
+                    return
                 if self._pill_visible == visible:
                     return
                 self._pill_visible = visible
-                try:
-                    pill_wrapper.animate().cancel()
-                except Exception:
-                    pass
+                pill_wrapper.animate().cancel()
                 if visible:
                     pill_wrapper.animate().alpha(1.0).setDuration(150).start()
                 else:
@@ -1327,44 +1332,17 @@ class InstallUI:
 
             def _scroll_to_top_smooth():
                 try:
-                    from android.view.animation import DecelerateInterpolator
-                    start_y = scroll.getScrollY()
-                    if start_y == 0:
-                        return
-                    duration = 300
-                    steps = 20
-                    interp = DecelerateInterpolator(1.5)
-                    step_ms = duration // steps
-                    for i in range(steps + 1):
-                        t = i / steps
-                        fraction = interp.getInterpolation(t)
-                        target_y = int(start_y * (1.0 - fraction))
-                        y_val = target_y
-                        run_on_ui_thread(lambda yv=y_val: scroll.scrollTo(0, yv), i * step_ms)
-                except Exception:
                     scroll.smoothScrollTo(0, 0)
-
-            _drag_dismissed = [False]
-            _drag_start_raw_y = [0.0]
-            _is_dragging = [False]
-            # threshold: dragging pill above its natural position triggers dismiss on release
-            _DISMISS_THRESHOLD_DY = AndroidUtilities.dp(-40)
-
-            _orig_set_pill_visible = _set_pill_visible
-
-            def _set_pill_visible(visible):
-                if visible and _drag_dismissed[0]:
-                    return
-                _orig_set_pill_visible(visible)
+                except Exception:
+                    pass
+                _set_pill_visible(False)
 
             def _animate_dismiss_up():
-                # fling pill upward then fade
                 try:
-                    anim = pill_wrapper.animate()
-                    anim.cancel()
+                    pill_wrapper.animate().cancel()
                     pill_wrapper.animate().translationY(-AndroidUtilities.dp(80)).alpha(0.0).setDuration(250).start()
                 except Exception:
-                    _orig_set_pill_visible(False)
+                    pass
 
             def _animate_snap_back():
                 try:
@@ -1379,31 +1357,24 @@ class InstallUI:
                     if action == MotionEvent.ACTION_DOWN:
                         _drag_start_raw_y[0] = ev.getRawY()
                         _is_dragging[0] = False
-                        try:
-                            pill_wrapper.animate().cancel()
-                        except Exception:
-                            pass
-                        scroll_top_pill.animate().scaleX(0.94).scaleY(0.94).setDuration(100).start()
+                        pill_wrapper.animate().cancel()
                         return False
                     if action == MotionEvent.ACTION_MOVE:
                         dy = ev.getRawY() - _drag_start_raw_y[0]
-                        if not _is_dragging[0] and abs(dy) > AndroidUtilities.dp(4):
-                            _is_dragging[0] = True
-                            scroll_top_pill.setPressed(False)
-                            scroll_top_pill.animate().scaleX(1.0).scaleY(1.0).setDuration(100).start()
                         if not _is_dragging[0]:
-                            return False
-                        # allow free drag upward; pull down is resisted (rubberband)
+                            if abs(dy) > AndroidUtilities.dp(4):
+                                _is_dragging[0] = True
+                                scroll_top_pill.setPressed(False)
+                            else:
+                                return False
+                        # direct property set — no animator overhead on MOVE
                         translation = dy if dy < 0 else dy * 0.25
                         pill_wrapper.setTranslationY(translation)
-                        # fade as dragged upward
                         progress = max(0.0, min(1.0, -translation / AndroidUtilities.dp(80)))
                         pill_wrapper.setAlpha(1.0 - progress * 0.5)
                         return True
                     if action == MotionEvent.ACTION_UP or action == MotionEvent.ACTION_CANCEL:
-                        scroll_top_pill.animate().scaleX(1.0).scaleY(1.0).setDuration(200).start()
                         if not _is_dragging[0]:
-                            # no drag — let click through
                             return False
                         _is_dragging[0] = False
                         dy = ev.getRawY() - _drag_start_raw_y[0]
@@ -1422,28 +1393,23 @@ class InstallUI:
                 def __init__(self, outer):
                     super().__init__()
                     self.outer = outer
-                    self.last_scroll_y = 0
-                    self.scroll_threshold = AndroidUtilities.dp(50)
                 def onScrollChange(self, v, scrollX, scrollY, oldScrollX, oldScrollY):
-                    try:
-                        _set_pill_visible(scrollY >= scroll_show_threshold)
-                    except Exception:
-                        pass
-                    try:
-                        if not self.outer.is_loading and len(self.outer.visible_plugins) < len(self.outer.filtered_plugins):
-                            height = v.getHeight()
-                            content_height = v.getChildAt(0).getHeight()
-                            scroll_delta = abs(scrollY - self.last_scroll_y)
-                            if scroll_delta > self.scroll_threshold:
-                                if scrollY + height >= content_height - AndroidUtilities.dp(300):
-                                    self.outer._load_more_items()
-                                self.last_scroll_y = scrollY
-                    except Exception:
-                        pass
+                    outer = self.outer
+                    if scrollY >= scroll_show_threshold:
+                        if not outer._pill_visible:
+                            _set_pill_visible(True)
+                    else:
+                        if outer._pill_visible:
+                            _set_pill_visible(False)
+                    trigger = outer._load_trigger_y
+                    if trigger >= 0 and not outer.is_loading and scrollY >= trigger:
+                        outer._load_trigger_y = -1
+                        outer._load_more_items()
             try:
                 scroll.setOnScrollChangeListener(ScrollListener(self))
             except Exception:
                 pass
+
             # only create results_container on first call; reuse on re-entry
             if not hasattr(self, 'results_container') or self.results_container is None:
                 self.results_container = LinearLayout(act)
@@ -1511,13 +1477,43 @@ class InstallUI:
                     return about[0]
             return str(plugin.get("description") or "")
 
+        def _cache_settings(self):
+            # read all card settings once per build; avoid repeated Java round-trips in make_item
+            self._s_card_padding = settings.get("card_padding", 12)
+            self._s_card_radius = settings.get("card_radius", 18)
+            self._s_card_name_size = float(settings.get("card_name_size", 20))
+            self._s_card_id_size = float(settings.get("card_id_size", 13))
+            self._s_card_desc_size = float(settings.get("card_desc_size", 15))
+            self._s_card_show_icon = settings.get("card_show_icon", True)
+            self._s_card_show_id = settings.get("card_show_id", True)
+            self._s_card_show_desc = settings.get("card_show_desc", True)
+            self._s_icon_size_dp = settings.get("card_icon_size", 67)
+            self._s_sticker_radius = settings.get("sticker_radius", 18)
+            self._s_show_default_sticker = settings.get("show_default_sticker", False)
+            self._s_show_plugin_tags = settings.get("show_plugin_tags", True)
+            self._s_show_size = settings.get("show_plugin_size", False)
+            self._s_show_min_ver = settings.get("show_plugin_min_version", False)
+            self._s_show_deps = settings.get("show_plugin_deps_count", False)
+            self._s_show_view_button = settings.get("show_view_button", True)
+            self._s_show_details_button = settings.get("show_details_button", True)
+            self._s_fuzzy_search = settings.get("fuzzy_search", False)
+            self._s_relocate_copy = settings.get("relocate_copy_link", False)
+            self._s_relocate_share = settings.get("relocate_share", False)
+            self._s_relocate_code = settings.get("relocate_code", False)
+            self._s_relocate_download = settings.get("relocate_download", False)
+            self._s_relocate_translate = settings.get("relocate_translate", False)
+            self._s_relocate_report = settings.get("relocate_report", False)
+
         def build_list_with_sort(self, sort_type: str, q=None):
             start_time = time()
+            self._cache_settings()
             self.current_sort_type = sort_type
             q = (q or "").strip()
             if q != self.last_search_query:
                 self.last_search_query = q
             self.is_loading = True
+            self._load_trigger_y = -1
+            self._pill_prewarmed = False
             self.results_container.removeAllViews()
             self.visible_plugins = []
             self.lazy_load_queue.clear()
@@ -1531,7 +1527,7 @@ class InstallUI:
                     isRussian = Locale.getDefault().getLanguage() == "ru"
                 except Exception:
                     pass
-                fuzzy = settings.get("fuzzy_search", False)
+                fuzzy = self._s_fuzzy_search
                 scored = []
                 for p in self.plugins:
                     s = search_mod.score(p, q, self.search_index, isRussian, fuzzy)
@@ -1621,36 +1617,64 @@ class InstallUI:
                 if hasattr(self, 'subtitle'):
                     self.subtitle.setText(_build_plugin_count_label(len(self.plugins)))
 
-                if self.loading_container:
-                    # stop the spinner drawable before removing to avoid background animation leak
-                    try:
-                        if self.loading_video:
-                            d = self.loading_video.getDrawable()
-                            if d:
-                                d.stop()
-                    except Exception:
-                        pass
-                    # loading_container is in content_view, not content_wrapper
-                    try:
-                        self.content_view.removeView(self.loading_container)
-                    except Exception:
-                        content_wrapper.removeView(self.loading_container)
-                    self.loading_container = None
-                    self.loading_video = None
-
+                # keep loading_container reference — remove it only after first cards are rendered
                 content_wrapper.addView(self.results_container, FrameLayout.LayoutParams(-1, -2))
 
                 if self.plugins and len(self.plugins) > 0:
+                    self._content_wrapper_ref = content_wrapper
                     self.build_list_with_sort("alpha_az")
                 else:
+                    self._dismiss_loading_container(content_wrapper)
                     self._show_empty_state()
             except Exception as e:
                 try:
+                    self._dismiss_loading_container(content_wrapper)
                     content_wrapper.addView(self.results_container, FrameLayout.LayoutParams(-1, -2))
                     if self.plugins and len(self.plugins) > 0:
                         self.build_list_with_sort("alpha_az")
                     else:
                         self._show_empty_state()
+                except Exception:
+                    pass
+
+        def _dismiss_loading_container(self, content_wrapper=None):
+            # fade out then remove the spinner; safe to call multiple times
+            lc = self.loading_container
+            lv = self.loading_video
+            if lc is None:
+                return
+            self.loading_container = None
+            self.loading_video = None
+            try:
+                if lv:
+                    d = lv.getDrawable()
+                    if d:
+                        d.stop()
+            except Exception:
+                pass
+            cw = content_wrapper or getattr(self, '_content_wrapper_ref', None)
+            cv = self.content_view
+
+            class _RemoveRunnable(dynamic_proxy(find_class("java.lang.Runnable"))):
+                def __init__(self, view, parent_cv, parent_cw):
+                    super().__init__()
+                    self._view = view
+                    self._cv = parent_cv
+                    self._cw = parent_cw
+                def run(self):
+                    for parent in (self._cv, self._cw):
+                        try:
+                            if parent is not None:
+                                parent.removeView(self._view)
+                                return
+                        except Exception:
+                            pass
+
+            try:
+                lc.animate().alpha(0.0).setDuration(150).withEndAction(_RemoveRunnable(lc, cv, cw)).start()
+            except Exception:
+                try:
+                    cv.removeView(lc)
                 except Exception:
                     pass
 
@@ -1689,21 +1713,130 @@ class InstallUI:
             except Exception as e:
                 pass
 
-        def _add_items_with_animation(self, items_to_add):
+        def _show_bottom_spinner(self):
+            # slide-in from bottom: starts offscreen below, animates up to resting position
             try:
+                if getattr(self, '_bottom_spinner', None) is not None:
+                    return
+                act = get_last_fragment().getContext()
+                spinner_frame = FrameLayout(act)
+                spinner_frame.setPadding(0, AndroidUtilities.dp(16), 0, AndroidUtilities.dp(16))
+
+                from org.telegram.ui.Components import CircularProgressDrawable
+                color = Theme.getColor(Theme.key_dialogLinkSelection)
+                size = AndroidUtilities.dp(32)
+                thickness = float(AndroidUtilities.dp(3))
+                d = CircularProgressDrawable(float(size), thickness, color)
+                d.setBounds(0, 0, size, size)
+
+                spinner_img = ImageView(act)
+                spinner_img.setImageDrawable(d)
+                spinner_img.setScaleType(ImageView.ScaleType.CENTER)
+                spinner_frame.addView(spinner_img, FrameLayout.LayoutParams(size, size, Gravity.CENTER))
+
+                slide_offset = float(AndroidUtilities.dp(64))
+                spinner_frame.setTranslationY(slide_offset)
+                spinner_frame.setAlpha(0.0)
+                self.results_container.addView(spinner_frame, LayoutHelper.createLinear(-1, -2))
+                spinner_frame.animate().translationY(0.0).alpha(1.0).setDuration(250).start()
+                self._bottom_spinner = spinner_frame
+            except Exception:
+                self._bottom_spinner = None
+
+        def _remove_bottom_spinner(self):
+            # slide-out to bottom before removal
+            try:
+                frame = getattr(self, '_bottom_spinner', None)
+                self._bottom_spinner = None
+                if frame is None:
+                    return
+                slide_offset = float(AndroidUtilities.dp(64))
+                container_ref = self.results_container
+
+                class RemoveRunnable(dynamic_proxy(find_class("java.lang.Runnable"))):
+                    def __init__(self, view, container):
+                        super().__init__()
+                        self._view = view
+                        self._container = container
+                    def run(self):
+                        try:
+                            self._container.removeView(self._view)
+                        except Exception:
+                            pass
+
+                frame.animate().translationY(slide_offset).alpha(0.0).setDuration(200).withEndAction(
+                    RemoveRunnable(frame, container_ref)
+                ).start()
+            except Exception:
+                try:
+                    if frame is not None:
+                        self.results_container.removeView(frame)
+                except Exception:
+                    pass
+
+        def _add_items_with_animation(self, items_to_add, animate=True):
+            try:
+                self._remove_bottom_spinner()
+                visible_count = len(self.visible_plugins)
                 for idx, item in enumerate(items_to_add):
                     self.results_container.addView(item, LayoutHelper.createLinear(-1, -2, 0, 4, 0, 4))
-                    try:
-                        item.setAlpha(0.0)
-                        item.setScaleX(0.92)
-                        item.setScaleY(0.92)
-                        delay = idx * 35
-                        item.animate().alpha(1.0).scaleX(1.0).scaleY(1.0).setDuration(220).setStartDelay(delay).start()
-                    except Exception:
-                        pass
+                    if idx == 0:
+                        # first card is in the tree — safe to dismiss the loading spinner now
+                        self._dismiss_loading_container()
+                    if animate:
+                        try:
+                            item.setAlpha(0.0)
+                            delay = idx * 25
+                            item.animate().alpha(1.0).setDuration(180).setStartDelay(delay).start()
+                        except Exception:
+                            pass
+                    # when the ~10th card is added, pre-warm the pill GPU texture
+                    # so the hardware layer upload happens now, not during user scroll
+                    if (visible_count + idx) == 9:
+                        self._prewarm_pill()
                 self.is_loading = False
+                if len(self.visible_plugins) < len(self.filtered_plugins):
+                    self._rearm_load_trigger()
             except Exception as e:
                 self.is_loading = False
+
+        def _prewarm_pill(self):
+            # run a zero-duration alpha cycle so Android uploads the hardware layer texture
+            # while the user is still at the top — no visible effect
+            pill = getattr(self, '_scroll_top_pill', None)
+            if pill is None or getattr(self, '_pill_prewarmed', False):
+                return
+            self._pill_prewarmed = True
+            try:
+                pill.animate().alpha(0.01).setDuration(1).withEndAction(
+                    lambda: pill.animate().alpha(0.0).setDuration(1).start()
+                ).start()
+            except Exception:
+                pass
+
+        def _rearm_load_trigger(self):
+            # posts to UI thread after layout so getHeight() reflects actual sizes
+            sv = getattr(self, '_scroll_view', None)
+            if sv is None:
+                return
+            outer = self
+            class RearmRunnable(dynamic_proxy(find_class("java.lang.Runnable"))):
+                def run(self):
+                    try:
+                        child = sv.getChildAt(0)
+                        if child is None:
+                            return
+                        content_h = child.getHeight()
+                        view_h = sv.getHeight()
+                        # trigger when 300dp from bottom
+                        trigger = content_h - view_h - AndroidUtilities.dp(300)
+                        outer._load_trigger_y = max(0, trigger)
+                    except Exception:
+                        pass
+            try:
+                sv.post(RearmRunnable())
+            except Exception:
+                pass
 
         def _load_initial_batch(self):
             self.is_loading = True
@@ -1730,6 +1863,7 @@ class InstallUI:
             self.is_loading = True
             start_index = len(self.visible_plugins)
             batch_size = min(self.batch_size, len(self.filtered_plugins) - start_index)
+            run_on_ui_thread(self._show_bottom_spinner)
 
             def load_batch():
                 try:
@@ -1742,7 +1876,7 @@ class InstallUI:
                             item = self.make_item(plugin)
                             items_to_add.append(item)
 
-                    run_on_ui_thread(lambda: self._add_items_with_animation(items_to_add))
+                    run_on_ui_thread(lambda: self._add_items_with_animation(items_to_add, animate=False))
                 except Exception as e:
                     self.is_loading = False
             threading.Thread(target=load_batch, daemon=True).start()
@@ -1754,11 +1888,11 @@ class InstallUI:
             container = LinearLayout(act)
             container.setOrientation(LinearLayout.VERTICAL)
             container.setGravity(Gravity.TOP)
-            _card_padding = AndroidUtilities.dp(settings.get("card_padding", 12))
+            _card_padding = AndroidUtilities.dp(self._s_card_padding)
             container.setPadding(_card_padding, _card_padding, _card_padding, _card_padding)
             try:
                 container.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                    AndroidUtilities.dp(settings.get("card_radius", 18)), self.card_bg_color, self.card_bg_color
+                    AndroidUtilities.dp(self._s_card_radius), self.card_bg_color, self.card_bg_color
                 ))
             except Exception:
                 pass
@@ -1790,12 +1924,11 @@ class InstallUI:
                 return pill
             
             icon_str = p.get("icon")
-            show_default_sticker = settings.get("show_default_sticker", False)
-            show_icon = (icon_str and icon_str != "Unknown") and settings.get("card_show_icon", True)
-            if not show_icon and show_default_sticker and settings.get("card_show_icon", True):
+            show_icon = (icon_str and icon_str != "Unknown") and self._s_card_show_icon
+            if not show_icon and self._s_show_default_sticker and self._s_card_show_icon:
                 icon_str = "Plugins_Stickers/0"
                 show_icon = True
-            icon_size_dp = settings.get("card_icon_size", 67)
+            icon_size_dp = self._s_icon_size_dp
             top_row = LinearLayout(act)
             top_row.setOrientation(LinearLayout.HORIZONTAL)
             top_row.setGravity(Gravity.TOP)
@@ -1803,7 +1936,7 @@ class InstallUI:
             if show_icon:
                 try:
                     icon_view = BackupImageView(act)
-                    icon_view.setRoundRadius(AndroidUtilities.dp(settings.get("sticker_radius", 18)))
+                    icon_view.setRoundRadius(AndroidUtilities.dp(self._s_sticker_radius))
                     try:
                         icon_view.getImageReceiver().setCrossfadeWithOldImage(True)
                     except Exception:
@@ -1892,7 +2025,7 @@ class InstallUI:
                 name_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
             except Exception:
                 name_tv.setTypeface(AndroidUtilities.bold())
-            name_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, float(settings.get("card_name_size", 20)))
+            name_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, self._s_card_name_size)
             display_name = p.get("name") or p.get("id") or "Unknown"
             name_tv.setText(str(display_name))
             name_tv.setTextColor(self.text_color)
@@ -1900,7 +2033,7 @@ class InstallUI:
             name_tv.setHorizontalFadingEdgeEnabled(True)
             name_tv.setFadingEdgeLength(AndroidUtilities.dp(24))
             id_tv = TextView(act)
-            id_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, float(settings.get("card_id_size", 13)))
+            id_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, self._s_card_id_size)
             version_text = str(p.get("version") or "").strip()
             author_text = str(p.get("author") or "").strip()
             if version_text and author_text:
@@ -1911,7 +2044,7 @@ class InstallUI:
             else:
                 formatted_author = LocaleUtils.fullyFormatText(author_text)
                 id_tv.setText(formatted_author)
-            if not settings.get("card_show_id", True):
+            if not self._s_card_show_id:
                 id_tv.setVisibility(View.GONE)
             try:
                 id_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
@@ -1934,7 +2067,7 @@ class InstallUI:
             col.addView(name_scroll, LayoutHelper.createLinear(-1, -2))
             
             tags = p.get("tags") or []
-            if tags and settings.get("show_plugin_tags", True):
+            if tags and self._s_show_plugin_tags:
                 tags_row = LinearLayout(act)
                 tags_row.setOrientation(LinearLayout.HORIZONTAL)
                 tags_row.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL)
@@ -1996,9 +2129,9 @@ class InstallUI:
             
             top_row.addView(col, LayoutHelper.createLinear(0, -2, 1.0))
 
-            show_size = settings.get("show_plugin_size", False)
-            show_min_ver = settings.get("show_plugin_min_version", False)
-            show_deps = settings.get("show_plugin_deps_count", False)
+            show_size = self._s_show_size
+            show_min_ver = self._s_show_min_ver
+            show_deps = self._s_show_deps
 
             if show_size or show_min_ver or show_deps:
                 chips_col = LinearLayout(act)
@@ -2034,7 +2167,7 @@ class InstallUI:
                 top_row.addView(chips_col, chips_lp)
 
             desc_tv = TextView(act)
-            desc_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, float(settings.get("card_desc_size", 15)))
+            desc_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, self._s_card_desc_size)
             description_text = self._get_localized_description(p)
             formatted_description = LocaleUtils.fullyFormatText(description_text)
             desc_tv.setText(formatted_description)
@@ -2045,7 +2178,7 @@ class InstallUI:
                 desc_tv.setMovementMethod(LinkMovementMethod.getInstance())
             except Exception:
                 pass
-            if settings.get("card_show_desc", True):
+            if self._s_card_show_desc:
                 container.addView(desc_tv, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 0))
 
             buttons = LinearLayout(act)
@@ -2137,8 +2270,7 @@ class InstallUI:
                     pass
 
             def onCardClick(v, plugin=p, row_ref=row, hint_ref=current_hint_ref, available=is_available):
-                show_view_button = settings.get("show_view_button", True)
-                if not show_view_button:
+                if not self._s_show_view_button:
                     try:
                         from ..PluginActivity.fragment import show_plugin_profile
                         show_plugin_profile(plugin, self.install_ui, self.plugins, repo_id=self.repo_id)
@@ -2148,22 +2280,20 @@ class InstallUI:
             install_btn.setOnClickListener(OnClickListener(onViewClick))
             self.install_ui._apply_press_scale(install_btn)
 
-            show_view_button = settings.get("show_view_button", True)
-            if not show_view_button:
+            if not self._s_show_view_button:
                 row.setOnClickListener(OnClickListener(onCardClick))
                 self.install_ui._apply_press_scale(row)
                 name_tv.setClickable(True)
                 name_tv.setFocusable(True)
                 name_tv.setOnClickListener(OnClickListener(onCardClick))
                 self.install_ui._apply_press_scale(name_tv)
-                if settings.get("card_show_desc", True):
+                if self._s_card_show_desc:
                     desc_tv.setClickable(True)
                     desc_tv.setFocusable(True)
                     desc_tv.setOnClickListener(OnClickListener(onCardClick))
                     self.install_ui._apply_press_scale(desc_tv)
 
-            show_view_button = settings.get("show_view_button", True)
-            if show_view_button:
+            if self._s_show_view_button:
                 buttons.addView(install_btn, LayoutHelper.createLinear(-2, -2, 0, 0, 8, 0))
 
             def create_icon_pill(icon_name, handler):
@@ -2239,15 +2369,15 @@ class InstallUI:
             buttons.addView(spacer, LayoutHelper.createLinear(0, 0, 1.0))
 
             relocate_actions = [
-                ("relocate_copy_link", "msg_copy", do_copy_relocated),
-                ("relocate_share", "msg_share", do_share_relocated),
-                ("relocate_code", "msg_view_file", do_code_relocated),
-                ("relocate_download", "msg_download", do_download_relocated),
-                ("relocate_translate", "msg_replace", do_translate_relocated),
-                ("relocate_report", "msg_report", do_report_relocated),
+                ("_s_relocate_copy", "msg_copy", do_copy_relocated),
+                ("_s_relocate_share", "msg_share", do_share_relocated),
+                ("_s_relocate_code", "msg_view_file", do_code_relocated),
+                ("_s_relocate_download", "msg_download", do_download_relocated),
+                ("_s_relocate_translate", "msg_replace", do_translate_relocated),
+                ("_s_relocate_report", "msg_report", do_report_relocated),
             ]
-            for setting_key, icon_name, action in relocate_actions:
-                if settings.get(setting_key, False):
+            for attr_key, icon_name, action in relocate_actions:
+                if getattr(self, attr_key, False):
                     relocated_btn = create_icon_pill(icon_name, action)
                     buttons.addView(relocated_btn, LayoutHelper.createLinear(-2, -2, 0, 0, 4, 0))
 
@@ -2405,16 +2535,16 @@ class InstallUI:
                     
 
                     menu_items = [
-                        (icon_copy, strings["copy_link"], do_copy, False, "relocate_copy_link"),
-                        (icon_share, strings["share"], do_share, False, "relocate_share"),
-                        (icon_code, strings["code"], do_code, False, "relocate_code"),
-                        (icon_download, strings["download"], do_download, False, "relocate_download"),
-                        (icon_translate, strings["translate"], do_translate, False, "relocate_translate"),
-                        (icon_report, strings["report"], do_report, True, "relocate_report"),
+                        (icon_copy, strings["copy_link"], do_copy, False, "_s_relocate_copy"),
+                        (icon_share, strings["share"], do_share, False, "_s_relocate_share"),
+                        (icon_code, strings["code"], do_code, False, "_s_relocate_code"),
+                        (icon_download, strings["download"], do_download, False, "_s_relocate_download"),
+                        (icon_translate, strings["translate"], do_translate, False, "_s_relocate_translate"),
+                        (icon_report, strings["report"], do_report, True, "_s_relocate_report"),
                     ]
                     
-                    for icon_res, title, action, is_red, setting_key in menu_items:
-                        if not settings.get(setting_key, False):
+                    for icon_res, title, action, is_red, attr_key in menu_items:
+                        if not getattr(self, attr_key, False):
                             create_menu_item(icon_res, title, action, is_red)
                     
                     popup_window = ActionBarPopupWindow(popup_layout, -2, -2)
@@ -2436,8 +2566,7 @@ class InstallUI:
                 except Exception as e:
                     pass
 
-            show_details_button = settings.get("show_details_button", True)
-            if show_details_button:
+            if self._s_show_details_button:
                 menu_btn = create_icon_pill("ic_ab_other", lambda: show_plugin_actions_menu(menu_btn))
                 buttons.addView(menu_btn, LayoutHelper.createLinear(-2, -2))
             container.addView(buttons, LayoutHelper.createLinear(-1, -2))
