@@ -786,5 +786,7 @@
   "authors_section_title": "Authors",
   "app_version_section_title": "App Version",
   "open_directory": "Open Directory",
-  "open_directory_desc": "Browse packit files and folders"
+  "open_directory_desc": "Browse packit files and folders",
+  "to_the_beginning": "Scroll to Top",
+  "catalog_title": "Catalog"
 }

@@ -495,7 +495,6 @@ class InstallUI:
 
             return loading_container, spinner
         except Exception as e:
-            log(f"Failed to create center loading animation: {e}")
             return None, None
 
     def _open_all_repos_plugins(self):
@@ -526,23 +525,17 @@ class InstallUI:
                             import os
                             from ...utils.paths import getRepoCachePath
                             cache_path = getRepoCachePath(repo_id)
-                            log(f"installUI: cache_path={cache_path} exists={os.path.exists(cache_path)}")
                             if os.path.exists(cache_path):
                                 with open(cache_path, "r", encoding="utf-8") as f:
                                     cached = json.load(f)
                                 resolved = cached.get("repomap", {}).get("plugins") or repo_url
-                                log(f"installUI: resolved plugins_url={resolved}")
                                 plugins_url = resolved
 
-                        log(f"installUI: GET {plugins_url}")
                         response = requests.get(plugins_url, timeout=10)
-                        log(f"installUI: HTTP {response.status_code} for {plugins_url}")
                         if response.status_code != 200:
-                            log(f"repo '{repo.get('name')}': HTTP {response.status_code}, skipping")
                             continue
                         config = response.json()
                         plugins = config.get("plugins", {})
-                        log(f"installUI: plugins type={type(plugins).__name__} len={len(plugins)}")
                         if isinstance(plugins, dict):
                             for pluginId, info in plugins.items():
                                 if isinstance(info, dict):
@@ -551,14 +544,12 @@ class InstallUI:
                             for item in plugins:
                                 if isinstance(item, dict) and item.get("id"):
                                     all_plugins.append({"id": item.get("id"), "repo_name": repo.get("name", "Unknown"), **item})
-                        log(f"installUI: all_plugins so far={len(all_plugins)}")
                     except Exception as e:
-                        log(f"failed to load repo {repo.get('name')}: {e}")
+                        pass
 
                 run_on_ui_thread(lambda: self._update_current_fragment_plugins(all_plugins))
             except Exception as e:
                 BulletinHelper.show_error("Failed to load plugins")
-                log(f"failed to load all repos: {e}")
         run_on_queue(load_task)
 
     def _update_plugins_in_fragment(self, plugins):
@@ -568,7 +559,7 @@ class InstallUI:
                 return
             self._show_plugins_universal(self.title if hasattr(self, 'title') else "Plugins", plugins)
         except Exception as e:
-            log(f"Failed to update plugins in fragment: {e}")
+            pass
 
     def _open_repo_plugins(self, repo):
         repo_name = repo.get("name") or strings["unnamed"]
@@ -596,17 +587,13 @@ class InstallUI:
                     import os
                     from ...utils.paths import getRepoCachePath
                     cache_path = getRepoCachePath(repo_id)
-                    log(f"installUI: single cache_path={cache_path} exists={os.path.exists(cache_path)}")
                     if os.path.exists(cache_path):
                         with open(cache_path, "r", encoding="utf-8") as f:
                             cached = json.load(f)
                         resolved = cached.get("repomap", {}).get("plugins") or repo_url
-                        log(f"installUI: single resolved plugins_url={resolved}")
                         plugins_url = resolved
 
-                log(f"installUI: single GET {plugins_url}")
                 r = requests.get(plugins_url, timeout=20)
-                log(f"installUI: single HTTP {r.status_code}")
                 if r.status_code != 200:
                     raise Exception(f"HTTP {r.status_code}")
                 config = r.json()
@@ -624,24 +611,19 @@ class InstallUI:
                 run_on_ui_thread(lambda: self._update_current_fragment_plugins(plugins))
             except Exception as e:
                 BulletinHelper.show_error("An error occurred while downloading")
-                log(f"InstallUI: error downloading repository '{repo_url}': {e}")
         run_on_queue(load_task)
 
     def _update_current_fragment_plugins(self, plugins):
         try:
             delegate = getattr(self, '_active_delegate', None)
-            log(f"installUI: _update_current_fragment_plugins plugins={len(plugins)} active_delegate={id(delegate) if delegate else None}")
             if not delegate or not hasattr(delegate, 'plugins'):
                 # fallback: try via last fragment
                 fragment = get_last_fragment()
-                log(f"installUI: fallback fragment={fragment}")
                 if fragment and hasattr(fragment, 'getDelegate') and fragment.getDelegate():
                     d = fragment.getDelegate()
                     if hasattr(d, 'plugins'):
                         delegate = d
-                        log(f"installUI: fallback delegate found id={id(delegate)}")
             if not delegate:
-                log("installUI: no delegate found, aborting")
                 return
 
             delegate.plugins = _filter_unavailable(plugins)
@@ -653,17 +635,14 @@ class InstallUI:
                 delegate.subtitle.setText(_build_plugin_count_label(len(delegate.plugins)))
 
             cb = getattr(delegate, '_on_data_ready_cb', None)
-            log(f"installUI: _on_data_ready_cb={cb} gate={getattr(delegate, '_load_gate', None)}")
             # signal gate that data is ready (fires finish if anim also done)
             if cb:
                 delegate._on_data_ready_cb = None
-                log("installUI: calling _on_data_ready_cb")
                 cb()
             elif hasattr(delegate, 'results_container') and delegate.results_container:
-                log("installUI: no gate cb, calling build_list_with_sort directly")
                 run_on_ui_thread(lambda: delegate.build_list_with_sort("alpha_az"))
         except Exception as e:
-            log(f"Failed to update current fragment plugins: {e}")
+            pass
 
     def _show_plugins_universal(self, repo_name: str, plugins: list, repo_id: str = ""):
         fragment = get_last_fragment()
@@ -675,7 +654,7 @@ class InstallUI:
             new_fragment = UniversalFragment(delegate)
             fragment.presentFragment(new_fragment)
             try:
-                new_fragment.setTitle(repo_name, False, 0)
+                new_fragment.setTitle(strings["catalog_title"], False, 0)
                 actionBar = new_fragment.getActionBar()
                 if actionBar:
                     actionBar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))
@@ -694,12 +673,50 @@ class InstallUI:
                                     back_button.setOnClickListener(OnClickListener(_on_back_click))
                             except Exception:
                                 pass
-                    except Exception as e:
-                        log(f"Failed to add back button: {e}")
+                    except Exception:
+                        pass
+                    def _install_height_hook():
+                        try:
+                            from base_plugin import MethodHook
+                            from hook_utils import find_class
+                            from java.lang import Integer as JInteger
+                            from org.telegram.ui.ActionBar import ActionBar as TgActionBar
+                            full_h = TgActionBar.getCurrentActionBarHeight()
+                            target_h = int(full_h * 0.6)
+                            ActionBarProxy = find_class("org.telegram.ui.ActionBar.ActionBar")
+                            real_class = ActionBarProxy.getClass()
+                            method = real_class.getDeclaredMethod("getCurrentActionBarHeight")
+                            method.setAccessible(True)
+                            target_h_ref = [target_h]
+                            class ActionBarHeightHook(MethodHook):
+                                def after_hooked_method(self_h, param):
+                                    param.setResult(JInteger(target_h_ref[0]))
+                            unhook = self.plugin.hook_method(method, ActionBarHeightHook())
+                            delegate._actionbar_height_unhook = [unhook]
+                            try:
+                                actionBar.requestLayout()
+                                actionBar.invalidate()
+                                parent = actionBar.getParent()
+                                if parent is not None:
+                                    parent.requestLayout()
+                            except Exception:
+                                pass
+                            # center back button vertically in the reduced actionbar
+                            try:
+                                back_btn = actionBar.getBackButton()
+                                if back_btn is not None:
+                                    btn_h = back_btn.getMeasuredHeight()
+                                    offset = (target_h - btn_h) / 2.0
+                                    back_btn.setTranslationY(offset)
+                            except Exception:
+                                pass
+                        except Exception as e:
+                            pass
+                    run_on_ui_thread(_install_height_hook, 50)
             except Exception as e:
-                log(f"Failed to setup action bar: {e}")
+                pass
         except Exception as e:
-            log(f"Failed to show plugins universal: {e}")
+            pass
 
     class PluginListFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
         def __init__(self, install_ui, title, plugins, show_loading_initial=False, repo_id=""):
@@ -747,45 +764,42 @@ class InstallUI:
             except Exception:
                 pass
             try:
+                if hasattr(self, '_actionbar_height_unhook') and self._actionbar_height_unhook is not None:
+                    for u in (self._actionbar_height_unhook or []):
+                        self.install_ui.plugin.unhook_method(u)
+                    self._actionbar_height_unhook = None
+            except Exception:
+                pass
+            try:
                 from ...utils.localConfig import LocalConfig
                 showTgc = LocalConfig.get("showTgc", False)
-                log(f"tgChannel: showTgc={showTgc}")
                 if not showTgc:
                     count = LocalConfig.get("installUiOpenCount", 0) + 1
                     LocalConfig.set("installUiOpenCount", count)
-                    log(f"tgChannel: installUiOpenCount={count}")
                     if count >= 2:
                         from android_utils import run_on_ui_thread
-                        log("tgChannel: scheduling sheet in 500ms")
 
                         def _show():
                             try:
-                                log("tgChannel: _show fired")
                                 from .tgChannelSheet import show_tg_channel_sheet
                                 frag = get_last_fragment()
-                                log(f"tgChannel: frag={frag}")
                                 if not frag:
-                                    log("tgChannel: no fragment, abort")
                                     return
                                 act = frag.getParentActivity()
                                 rp = frag.getResourceProvider()
-                                log(f"tgChannel: act={act}, rp={rp}")
                                 if not act:
-                                    log("tgChannel: act is None, abort")
                                     return
-                                log("tgChannel: calling show_tg_channel_sheet")
                                 show_tg_channel_sheet(act, rp)
-                                log("tgChannel: sheet shown")
                             except Exception as e:
-                                log(f"tgChannel: _show error: {e}")
+                                pass
 
                         run_on_ui_thread(_show, 500)
                     else:
-                        log("tgChannel: first visit, skip")
+                        pass
                 else:
-                    log("tgChannel: already shown, skip")
+                    pass
             except Exception as e:
-                log(f"tgChannel: check error: {e}")
+                pass
 
         def _handle_repo_select(self, selected):
             if selected == "all":
@@ -820,7 +834,7 @@ class InstallUI:
             register_bulletin_container(self.content_view)
             main_layout = LinearLayout(act)
             main_layout.setOrientation(LinearLayout.VERTICAL)
-            main_layout.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(16), AndroidUtilities.dp(16), AndroidUtilities.dp(14))
+            main_layout.setPadding(AndroidUtilities.dp(16), 0, AndroidUtilities.dp(16), AndroidUtilities.dp(14))
             self.content_view.addView(main_layout, FrameLayout.LayoutParams(-1, -1))
 
             search_container = FrameLayout(act)
@@ -885,7 +899,7 @@ class InstallUI:
                         return False
                 self.search.setOnEditorActionListener(SearchEditorActionListener(self))
             except Exception as ex:
-                log(f"InstallUI: setOnEditorActionListener failed: {ex}")
+                pass
 
             class SearchTextWatcherWithClear(dynamic_proxy(TextWatcher)):
                 def __init__(self, outer, clear_btn_ref):
@@ -996,8 +1010,8 @@ class InstallUI:
             # regardless of its text length, with equal spacing on both sides
             header_row = FrameLayout(act)
             header_row_lp = LinearLayout.LayoutParams(-1, AndroidUtilities.dp(44))
-            header_row_lp.topMargin = AndroidUtilities.dp(4)
-            header_row_lp.bottomMargin = AndroidUtilities.dp(12)
+            header_row_lp.topMargin = AndroidUtilities.dp(2)
+            header_row_lp.bottomMargin = AndroidUtilities.dp(6)
             main_layout.addView(header_row, header_row_lp)
             repo_btn = LinearLayout(act)
             repo_btn.setOrientation(LinearLayout.HORIZONTAL)
@@ -1196,7 +1210,6 @@ class InstallUI:
 
                 # loading already finished on a previous beforeCreateView call — skip animation
                 if self.loading_container is None and getattr(self, '_load_gate', None) and self._load_gate[0] and self._load_gate[1]:
-                    log(f"installUI: beforeCreateView re-entry after gate done, skipping animation")
                     try:
                         p = self.results_container.getParent()
                         if p is not None:
@@ -1213,23 +1226,18 @@ class InstallUI:
                         self._load_gate = [False, False]  # [anim_done, data_ready]
 
                         def _try_finish():
-                            log(f"installUI: _try_finish gate={self._load_gate}")
                             if self._load_gate[0] and self._load_gate[1]:
-                                log("installUI: gate passed, calling _finish_loading_and_show_plugins")
                                 self._finish_loading_and_show_plugins(content_wrapper)
 
                         def _on_anim_done():
-                            log("installUI: anim timer done")
                             self._load_gate[0] = True
                             _try_finish()
 
                         def _on_data_ready():
-                            log("installUI: data ready callback fired")
                             self._load_gate[1] = True
                             run_on_ui_thread(_try_finish)
 
                         self._on_data_ready_cb = _on_data_ready
-                        log(f"installUI: gate set up, delegate id={id(self)}, _on_data_ready_cb set")
                         threading.Timer(1.0, lambda: run_on_ui_thread(_on_anim_done)).start()
                     else:
                         self._on_data_ready_cb = None
@@ -1239,6 +1247,177 @@ class InstallUI:
             else:
                 scroll.addView(self.results_container, ScrollView.LayoutParams(-1, -2))
 
+            # pill: "↑ To the beginning" — floats over list, shown after scrolling ~10 plugins
+            # wrapped in FrameLayout with clipChildren=false so icon can render above pill bounds
+            pill_wrapper = FrameLayout(act)
+            pill_wrapper.setClipChildren(False)
+            pill_wrapper.setClipToPadding(False)
+
+            scroll_top_pill = LinearLayout(act)
+            scroll_top_pill.setOrientation(LinearLayout.HORIZONTAL)
+            scroll_top_pill.setGravity(Gravity.CENTER_VERTICAL)
+            scroll_top_pill.setClickable(True)
+            scroll_top_pill.setFocusable(True)
+            scroll_top_pill.setClipChildren(False)
+            scroll_top_pill.setClipToPadding(False)
+            try:
+                pill_bg_color = Theme.getColor(Theme.key_featuredStickers_addButton)
+                pill_pressed_color = Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
+            except Exception:
+                pill_bg_color = Theme.getColor(Theme.key_dialogTextBlue)
+                pill_pressed_color = pill_bg_color
+            scroll_top_pill.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                AndroidUtilities.dp(20), pill_bg_color, pill_pressed_color
+            ))
+            scroll_top_pill.setPadding(
+                AndroidUtilities.dp(14), AndroidUtilities.dp(8),
+                AndroidUtilities.dp(14), AndroidUtilities.dp(8)
+            )
+
+            arrow_icon = ImageView(act)
+            arrow_icon_id = self.install_ui._resolve_icon("msg_to_beginning")
+            arrow_icon.setImageResource(arrow_icon_id)
+            try:
+                arrow_icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_buttonText))
+            except Exception:
+                pass
+            arrow_icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+            arrow_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
+            arrow_lp.rightMargin = AndroidUtilities.dp(6)
+            scroll_top_pill.addView(arrow_icon, arrow_lp)
+
+            pill_label = TextView(act)
+            pill_label.setText(strings["to_the_beginning"])
+            pill_label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+            pill_label.setTypeface(AndroidUtilities.bold())
+            try:
+                pill_label.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
+            except Exception:
+                pass
+            scroll_top_pill.addView(pill_label, LinearLayout.LayoutParams(-2, -2))
+
+            pill_wrapper.addView(scroll_top_pill, FrameLayout.LayoutParams(-2, -2))
+
+            # position: centered horizontally, just below the list header area
+            pill_lp = FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.CENTER_HORIZONTAL)
+            # search(~58dp) + header_row(~60dp) + main_layout top padding(16dp) = ~134dp offset
+            pill_lp.topMargin = AndroidUtilities.dp(118)
+            pill_wrapper.setElevation(AndroidUtilities.dp(4))
+            pill_wrapper.setAlpha(0.0)
+            pill_wrapper.setVisibility(View.VISIBLE)
+            self.content_view.addView(pill_wrapper, pill_lp)
+            self._scroll_top_pill = pill_wrapper
+            self._pill_visible = False
+
+            # ~10 plugins * ~88dp per card
+            scroll_show_threshold = AndroidUtilities.dp(880)
+
+            def _set_pill_visible(visible):
+                if self._pill_visible == visible:
+                    return
+                self._pill_visible = visible
+                try:
+                    pill_wrapper.animate().cancel()
+                except Exception:
+                    pass
+                if visible:
+                    pill_wrapper.animate().alpha(1.0).setDuration(150).start()
+                else:
+                    pill_wrapper.animate().alpha(0.0).setDuration(150).start()
+
+            def _scroll_to_top_smooth():
+                try:
+                    from android.view.animation import DecelerateInterpolator
+                    start_y = scroll.getScrollY()
+                    if start_y == 0:
+                        return
+                    duration = 300
+                    steps = 20
+                    interp = DecelerateInterpolator(1.5)
+                    step_ms = duration // steps
+                    for i in range(steps + 1):
+                        t = i / steps
+                        fraction = interp.getInterpolation(t)
+                        target_y = int(start_y * (1.0 - fraction))
+                        y_val = target_y
+                        run_on_ui_thread(lambda yv=y_val: scroll.scrollTo(0, yv), i * step_ms)
+                except Exception:
+                    scroll.smoothScrollTo(0, 0)
+
+            _drag_dismissed = [False]
+            _drag_start_raw_y = [0.0]
+            _is_dragging = [False]
+            # threshold: dragging pill above its natural position triggers dismiss on release
+            _DISMISS_THRESHOLD_DY = AndroidUtilities.dp(-40)
+
+            _orig_set_pill_visible = _set_pill_visible
+
+            def _set_pill_visible(visible):
+                if visible and _drag_dismissed[0]:
+                    return
+                _orig_set_pill_visible(visible)
+
+            def _animate_dismiss_up():
+                # fling pill upward then fade
+                try:
+                    anim = pill_wrapper.animate()
+                    anim.cancel()
+                    pill_wrapper.animate().translationY(-AndroidUtilities.dp(80)).alpha(0.0).setDuration(250).start()
+                except Exception:
+                    _orig_set_pill_visible(False)
+
+            def _animate_snap_back():
+                try:
+                    pill_wrapper.animate().cancel()
+                    pill_wrapper.animate().translationY(0.0).alpha(1.0).setDuration(200).start()
+                except Exception:
+                    pass
+
+            class PillTouchListener(dynamic_proxy(View.OnTouchListener)):
+                def onTouch(self, v, ev):
+                    action = ev.getActionMasked()
+                    if action == MotionEvent.ACTION_DOWN:
+                        _drag_start_raw_y[0] = ev.getRawY()
+                        _is_dragging[0] = False
+                        try:
+                            pill_wrapper.animate().cancel()
+                        except Exception:
+                            pass
+                        scroll_top_pill.animate().scaleX(0.94).scaleY(0.94).setDuration(100).start()
+                        return False
+                    if action == MotionEvent.ACTION_MOVE:
+                        dy = ev.getRawY() - _drag_start_raw_y[0]
+                        if not _is_dragging[0] and abs(dy) > AndroidUtilities.dp(4):
+                            _is_dragging[0] = True
+                            scroll_top_pill.setPressed(False)
+                            scroll_top_pill.animate().scaleX(1.0).scaleY(1.0).setDuration(100).start()
+                        if not _is_dragging[0]:
+                            return False
+                        # allow free drag upward; pull down is resisted (rubberband)
+                        translation = dy if dy < 0 else dy * 0.25
+                        pill_wrapper.setTranslationY(translation)
+                        # fade as dragged upward
+                        progress = max(0.0, min(1.0, -translation / AndroidUtilities.dp(80)))
+                        pill_wrapper.setAlpha(1.0 - progress * 0.5)
+                        return True
+                    if action == MotionEvent.ACTION_UP or action == MotionEvent.ACTION_CANCEL:
+                        scroll_top_pill.animate().scaleX(1.0).scaleY(1.0).setDuration(200).start()
+                        if not _is_dragging[0]:
+                            # no drag — let click through
+                            return False
+                        _is_dragging[0] = False
+                        dy = ev.getRawY() - _drag_start_raw_y[0]
+                        if action == MotionEvent.ACTION_UP and dy < _DISMISS_THRESHOLD_DY:
+                            _drag_dismissed[0] = True
+                            _animate_dismiss_up()
+                        else:
+                            _animate_snap_back()
+                        return True
+                    return False
+
+            scroll_top_pill.setOnTouchListener(PillTouchListener())
+            scroll_top_pill.setOnClickListener(OnClickListener(lambda v: _scroll_to_top_smooth()))
+
             class ScrollListener(dynamic_proxy(View.OnScrollChangeListener)):
                 def __init__(self, outer):
                     super().__init__()
@@ -1246,6 +1425,10 @@ class InstallUI:
                     self.last_scroll_y = 0
                     self.scroll_threshold = AndroidUtilities.dp(50)
                 def onScrollChange(self, v, scrollX, scrollY, oldScrollX, oldScrollY):
+                    try:
+                        _set_pill_visible(scrollY >= scroll_show_threshold)
+                    except Exception:
+                        pass
                     try:
                         if not self.outer.is_loading and len(self.outer.visible_plugins) < len(self.outer.filtered_plugins):
                             height = v.getHeight()
@@ -1312,7 +1495,7 @@ class InstallUI:
                     if fragment:
                         fragment.finishFragment()
                 except Exception as e:
-                    log(f"Failed to finish fragment: {e}")
+                    pass
 
         def _get_localized_description(self, plugin):
             about = plugin.get("about", [])
@@ -1435,7 +1618,6 @@ class InstallUI:
 
         def _finish_loading_and_show_plugins(self, content_wrapper):
             try:
-                log(f"installUI: _finish_loading_and_show_plugins plugins={len(self.plugins)} loading_container={self.loading_container}")
                 if hasattr(self, 'subtitle'):
                     self.subtitle.setText(_build_plugin_count_label(len(self.plugins)))
 
@@ -1463,7 +1645,6 @@ class InstallUI:
                 else:
                     self._show_empty_state()
             except Exception as e:
-                log(f"Error finishing loading: {e}")
                 try:
                     content_wrapper.addView(self.results_container, FrameLayout.LayoutParams(-1, -2))
                     if self.plugins and len(self.plugins) > 0:
@@ -1506,7 +1687,7 @@ class InstallUI:
                 self.results_container.addView(empty_container, LayoutHelper.createLinear(-1, -2))
                 self.is_loading = False
             except Exception as e:
-                log(f"Error showing empty state: {e}")
+                pass
 
         def _add_items_with_animation(self, items_to_add):
             try:
@@ -1522,7 +1703,6 @@ class InstallUI:
                         pass
                 self.is_loading = False
             except Exception as e:
-                log(f"Error adding items: {e}")
                 self.is_loading = False
 
         def _load_initial_batch(self):
@@ -1541,7 +1721,6 @@ class InstallUI:
 
                     run_on_ui_thread(lambda: self._add_items_with_animation(items_to_add))
                 except Exception as e:
-                    log(f"Error in initial batch loading: {e}")
                     self.is_loading = False
             threading.Thread(target=load_batch, daemon=True).start()
 
@@ -1565,7 +1744,6 @@ class InstallUI:
 
                     run_on_ui_thread(lambda: self._add_items_with_animation(items_to_add))
                 except Exception as e:
-                    log(f"Error in batch loading: {e}")
                     self.is_loading = False
             threading.Thread(target=load_batch, daemon=True).start()
 
@@ -1641,7 +1819,7 @@ class InstallUI:
                             from ..PluginActivity.fragment import show_plugin_profile
                             show_plugin_profile(plugin, self.install_ui, self.plugins, repo_id=self.repo_id)
                         except Exception as e:
-                            log(f"pluginProfile: open error: {e}")
+                            pass
 
                     icon_view.setClickable(True)
                     icon_view.setFocusable(True)
@@ -1675,7 +1853,6 @@ class InstallUI:
                                 return True
                             return False
                         except Exception as e:
-                            log(f"InstallUI: failed to load icon for '{p.get('id')}' ({icon_str}): {e}")
                             return False
                     if not try_load_icon():
                         try:
@@ -1696,7 +1873,7 @@ class InstallUI:
 
                         threading.Thread(target=_retry_load, daemon=True).start()
                 except Exception as e:
-                    log(f"InstallUI: icon init error for '{p.get('id')}': {e}")
+                    pass
 
             col = LinearLayout(act)
             col.setOrientation(LinearLayout.VERTICAL)
@@ -1809,7 +1986,7 @@ class InstallUI:
                                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                     ctx.startActivity(intent)
                             except Exception as e:
-                                log(f"tag url open error: {e}")
+                                pass
                         tag_tv.setOnClickListener(OnClickListener(onTagClick))
                         self.install_ui._apply_press_scale(tag_tv)
                     tag_lp = LinearLayout.LayoutParams(-2, -2)
@@ -1947,17 +2124,17 @@ class InstallUI:
                                 hint.setDuration(5500)
                                 hint.show()
                             except Exception as e:
-                                log(f"unavailable hint position error: {e}")
+                                pass
 
                         run_on_ui_thread(_position_and_show)
                     except Exception as e:
-                        log(f"unavailable hint error: {e}")
+                        pass
 
                 try:
                     from ..PluginActivity.fragment import show_plugin_profile
                     show_plugin_profile(plugin, self.install_ui, self.plugins, repo_id=self.repo_id)
                 except Exception as e:
-                    log(f"pluginProfile: open error: {e}")
+                    pass
 
             def onCardClick(v, plugin=p, row_ref=row, hint_ref=current_hint_ref, available=is_available):
                 show_view_button = settings.get("show_view_button", True)
@@ -1966,7 +2143,7 @@ class InstallUI:
                         from ..PluginActivity.fragment import show_plugin_profile
                         show_plugin_profile(plugin, self.install_ui, self.plugins, repo_id=self.repo_id)
                     except Exception as e:
-                        log(f"pluginProfile: open error: {e}")
+                        pass
 
             install_btn.setOnClickListener(OnClickListener(onViewClick))
             self.install_ui._apply_press_scale(install_btn)
@@ -2021,7 +2198,7 @@ class InstallUI:
                     from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
                     increment_category("Downloading")
                 except Exception as e:
-                    log(f"uiMain: achievements increment error: {e}")
+                    pass
 
             def do_copy_relocated():
                 copy_plugin_link(p, self.repo_id or self.title, copyLinkSoundPath)
@@ -2029,7 +2206,7 @@ class InstallUI:
                     from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
                     increment_category("Copying links")
                 except Exception as e:
-                    log(f"uiMain: achievements increment error: {e}")
+                    pass
 
             def do_share_relocated():
                 share_plugin_file(p, str(display_name), act_for_share)
@@ -2037,7 +2214,7 @@ class InstallUI:
                     from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
                     increment_category("Sharing")
                 except Exception as e:
-                    log(f"uiMain: achievements increment error: {e}")
+                    pass
 
             def do_code_relocated():
                 view_plugin_code(p, act)
@@ -2045,7 +2222,7 @@ class InstallUI:
                     from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
                     increment_category("Viewing code")
                 except Exception as e:
-                    log(f"uiMain: achievements increment error: {e}")
+                    pass
 
             def do_translate_relocated():
                 translate_plugin(p)
@@ -2056,7 +2233,7 @@ class InstallUI:
                     from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
                     increment_category("Reporting")
                 except Exception as e:
-                    log(f"uiMain: achievements increment error: {e}")
+                    pass
 
             spacer = View(act)
             buttons.addView(spacer, LayoutHelper.createLinear(0, 0, 1.0))
@@ -2182,7 +2359,7 @@ class InstallUI:
                             from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
                             increment_category("Downloading")
                         except Exception as e:
-                            log(f"uiMain: achievements increment error: {e}")
+                            pass
 
                     def do_copy():
                         copy_plugin_link(p, self.repo_id or self.title, copyLinkSoundPath)
@@ -2190,7 +2367,7 @@ class InstallUI:
                             from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
                             increment_category("Copying links")
                         except Exception as e:
-                            log(f"uiMain: achievements increment error: {e}")
+                            pass
 
                     def do_share():
                         share_plugin_file(p, str(display_name), act_for_share)
@@ -2198,7 +2375,7 @@ class InstallUI:
                             from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
                             increment_category("Sharing")
                         except Exception as e:
-                            log(f"uiMain: achievements increment error: {e}")
+                            pass
 
                     def do_code():
                         view_plugin_code(p, act)
@@ -2206,7 +2383,7 @@ class InstallUI:
                             from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
                             increment_category("Viewing code")
                         except Exception as e:
-                            log(f"uiMain: achievements increment error: {e}")
+                            pass
 
                     def do_translate():
                         translate_plugin(p)
@@ -2217,7 +2394,7 @@ class InstallUI:
                             from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
                             increment_category("Reporting")
                         except Exception as e:
-                            log(f"uiMain: achievements increment error: {e}")
+                            pass
                     
                     icon_download = getattr(R_tg.drawable, 'msg_download', 0)
                     icon_copy = getattr(R_tg.drawable, 'msg_copy', getattr(R_tg.drawable, 'msg_copy_filled', 0))
@@ -2257,7 +2434,7 @@ class InstallUI:
                     popup_window.showAtLocation(anchor_view, AGravity.TOP | AGravity.LEFT, popup_x, popup_y)
                     popup_window.dimBehind()
                 except Exception as e:
-                    log(f"Error showing plugin actions menu: {e}")
+                    pass
 
             show_details_button = settings.get("show_details_button", True)
             if show_details_button:

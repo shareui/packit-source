@@ -1469,7 +1469,7 @@ class OtherSettings:
             if ctx:
                 from elyx import settings as _s
                 # value that is currently applied (captured at settings open time)
-                applied_value = _s.get("dialogs_menu_button", 0)
+                applied_value = _s.get("dialogs_menu_button", 1)
 
                 def onDialogsMenuChange(idx):
                     if idx == applied_value:
@@ -1495,7 +1495,7 @@ class OtherSettings:
                     except Exception as e:
                         log(f"other: dialogs menu bulletin error: {e}")
 
-                view = _buildDialogsMenuToggle(ctx, key="dialogs_menu_button", default=0, on_change=onDialogsMenuChange)
+                view = _buildDialogsMenuToggle(ctx, key="dialogs_menu_button", default=1, on_change=onDialogsMenuChange)
                 if view is not None:
                     return Custom(view=view)
             log("other: _build_dialogs_menu_toggle_item falling back")
