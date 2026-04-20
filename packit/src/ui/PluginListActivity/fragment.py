@@ -265,6 +265,29 @@ class InstallUI:
         except Exception:
             pass
 
+    def _apply_press_scale_on_target(self, view, target):
+        # touch on view animates target (the card row), not view itself
+        try:
+            class _TouchListener(dynamic_proxy(View.OnTouchListener)):
+                def __init__(self, fn):
+                    super().__init__()
+                    self._fn = fn
+                def onTouch(self, v, event):
+                    return self._fn(v, event)
+            def _on_touch(v, event):
+                try:
+                    action = event.getActionMasked()
+                    if action == MotionEvent.ACTION_DOWN:
+                        target.animate().scaleX(0.97).scaleY(0.97).setDuration(100).start()
+                    elif action in (MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL):
+                        target.animate().scaleX(1.0).scaleY(1.0).setDuration(200).start()
+                except Exception:
+                    pass
+                return False
+            view.setOnTouchListener(_TouchListener(_on_touch))
+        except Exception:
+            pass
+
     def _create_close_button(self, act, text=None):
         close_btn = FrameLayout(act)
         resolvedText = text if text is not None else strings["close_button"]
@@ -742,6 +765,8 @@ class InstallUI:
             self.loading_container = None
             self.loading_video = None
             self._bottom_spinner = None
+            self._live_search_spinner = None
+            self._live_search_spinner_view = None
             self._load_trigger_y = -1  # scrollY threshold to fire next load_more; -1 = disarmed
             log(f"InstallUI: PluginListFragment created id={id(self)} title='{title}' repo_id='{repo_id}' install_ui_id={id(install_ui)}")
 
@@ -856,7 +881,7 @@ class InstallUI:
             except Exception:
                 pass
             search_container.setBackground(pill)
-            search_container.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(8))
+            search_container.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(5), AndroidUtilities.dp(8), AndroidUtilities.dp(5))
             self.search = EditTextBoldCursor(act)
             self.search.setHint(strings["search_hint"])
             self.search.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
@@ -908,6 +933,68 @@ class InstallUI:
                     super().__init__()
                     self.outer = outer
                     self.clear_btn = clear_btn_ref
+                    self._live_timer = None
+
+                def _show_live_spinner(self):
+                    try:
+                        if getattr(self.outer, '_live_search_spinner', None) is None:
+                            spinner_container, spinner_view = self.outer.install_ui._create_center_loading_animation(self.outer.content_view)
+                            if spinner_container is None:
+                                return
+                            self.outer._live_search_spinner = spinner_container
+                            self.outer._live_search_spinner_view = spinner_view
+                            self.outer.content_view.addView(spinner_container, FrameLayout.LayoutParams(-1, -1))
+                        else:
+                            self.outer._live_search_spinner.setAlpha(1.0)
+                            self.outer._live_search_spinner.setVisibility(View.VISIBLE)
+                        # hide cards while spinner is shown
+                        try:
+                            self.outer.results_container.setVisibility(View.INVISIBLE)
+                        except Exception:
+                            pass
+                    except Exception:
+                        pass
+
+                def _hide_live_spinner(self):
+                    try:
+                        spinner = getattr(self.outer, '_live_search_spinner', None)
+                        if spinner is None:
+                            return
+                        spinner.animate().alpha(0.0).setDuration(150).withEndAction(
+                            lambda: spinner.setVisibility(View.GONE)
+                        ).start()
+                    except Exception:
+                        pass
+                    try:
+                        self.outer.results_container.setVisibility(View.VISIBLE)
+                    except Exception:
+                        pass
+
+                def _schedule_live_search(self, query):
+                    # cancel previous pending timer
+                    prev = self._live_timer
+                    if prev is not None:
+                        try:
+                            prev.cancel()
+                        except Exception:
+                            pass
+                    outer = self.outer
+
+                    def _do_search():
+                        def _ui():
+                            try:
+                                if query != outer.last_search_query:
+                                    outer.last_search_query = query
+                                    outer.build_list(query)
+                                self._hide_live_spinner()
+                            except Exception:
+                                pass
+                        run_on_ui_thread(_ui)
+
+                    t = threading.Timer(0.3, _do_search)
+                    self._live_timer = t
+                    t.start()
+
                 def afterTextChanged(self, s):
                     text = s.toString()
                     if text and len(text) > 0:
@@ -922,6 +1009,14 @@ class InstallUI:
                                 lambda: self.clear_btn.setVisibility(View.GONE)).start()
                         except Exception:
                             self.clear_btn.setVisibility(View.GONE)
+                    try:
+                        from elyx import settings as _s
+                        if _s.get("live_search", False):
+                            self._show_live_spinner()
+                            self._schedule_live_search(text)
+                    except Exception:
+                        pass
+
                 def beforeTextChanged(self, s, start, count, after):
                     pass
                 def onTextChanged(self, s, start, before, count):
@@ -930,7 +1025,7 @@ class InstallUI:
             search_row = LinearLayout(act)
             search_row.setOrientation(LinearLayout.HORIZONTAL)
             search_row.setGravity(Gravity.CENTER_VERTICAL)
-            search_row.addView(self.search, LinearLayout.LayoutParams(-1, AndroidUtilities.dp(42), 1.0))
+            search_row.addView(self.search, LinearLayout.LayoutParams(-1, AndroidUtilities.dp(36), 1.0))
             
             clear_btn = FrameLayout(act)
             clear_btn.setClickable(True)
@@ -969,7 +1064,7 @@ class InstallUI:
             self.install_ui._apply_press_scale(clear_btn)
             clear_btn.setVisibility(View.GONE)
             clear_btn.setAlpha(0.0)
-            search_row.addView(clear_btn, LinearLayout.LayoutParams(AndroidUtilities.dp(52), AndroidUtilities.dp(42), 0))
+            search_row.addView(clear_btn, LinearLayout.LayoutParams(AndroidUtilities.dp(52), AndroidUtilities.dp(36), 0))
             
             search_btn = FrameLayout(act)
             search_btn.setClickable(True)
@@ -1004,7 +1099,13 @@ class InstallUI:
 
             search_btn.setOnClickListener(OnClickListener(onSearchBtnClick))
             self.install_ui._apply_press_scale(search_btn)
-            search_row.addView(search_btn, LinearLayout.LayoutParams(AndroidUtilities.dp(52), AndroidUtilities.dp(42), 0))
+            try:
+                from elyx import settings as _s
+                if _s.get("live_search", False):
+                    search_btn.setVisibility(View.GONE)
+            except Exception:
+                pass
+            search_row.addView(search_btn, LinearLayout.LayoutParams(AndroidUtilities.dp(52), AndroidUtilities.dp(36), 0))
             search_container.addView(search_row, FrameLayout.LayoutParams(-1, -2))
             main_layout.addView(search_container, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8))
 
@@ -1605,6 +1706,16 @@ class InstallUI:
                 empty_container.addView(empty, LayoutHelper.createLinear(-2, -2))
                 self.results_container.addView(empty_container, LayoutHelper.createLinear(-1, -2))
                 self.is_loading = False
+                # dismiss live spinner if active
+                try:
+                    spinner = getattr(self, '_live_search_spinner', None)
+                    if spinner is not None:
+                        spinner.animate().alpha(0.0).setDuration(150).withEndAction(
+                            lambda: spinner.setVisibility(View.GONE)
+                        ).start()
+                    self.results_container.setVisibility(View.VISIBLE)
+                except Exception:
+                    pass
             else:
                 self._load_initial_batch()
             log(f"Build list took {time() - start_time:.3f}s")
@@ -1783,6 +1894,16 @@ class InstallUI:
                     if idx == 0:
                         # first card is in the tree — safe to dismiss the loading spinner now
                         self._dismiss_loading_container()
+                        # dismiss live search spinner if active
+                        try:
+                            spinner = getattr(self, '_live_search_spinner', None)
+                            if spinner is not None:
+                                spinner.animate().alpha(0.0).setDuration(150).withEndAction(
+                                    lambda: spinner.setVisibility(View.GONE)
+                                ).start()
+                            self.results_container.setVisibility(View.VISIBLE)
+                        except Exception:
+                            pass
                     if animate:
                         try:
                             item.setAlpha(0.0)
@@ -1957,7 +2078,10 @@ class InstallUI:
                     icon_view.setClickable(True)
                     icon_view.setFocusable(True)
                     icon_view.setOnClickListener(OnClickListener(onIconClick))
-                    self.install_ui._apply_press_scale(icon_view)
+                    if self._s_show_details_button:
+                        self.install_ui._apply_press_scale(icon_view)
+                    else:
+                        self.install_ui._apply_press_scale_on_target(icon_view, row)
 
                     def try_load_icon():
                         try:
@@ -2282,16 +2406,16 @@ class InstallUI:
 
             if not self._s_show_view_button:
                 row.setOnClickListener(OnClickListener(onCardClick))
-                self.install_ui._apply_press_scale(row)
+                self.install_ui._apply_press_scale_on_target(row, row)
                 name_tv.setClickable(True)
                 name_tv.setFocusable(True)
                 name_tv.setOnClickListener(OnClickListener(onCardClick))
-                self.install_ui._apply_press_scale(name_tv)
+                self.install_ui._apply_press_scale_on_target(name_tv, row)
                 if self._s_card_show_desc:
                     desc_tv.setClickable(True)
                     desc_tv.setFocusable(True)
                     desc_tv.setOnClickListener(OnClickListener(onCardClick))
-                    self.install_ui._apply_press_scale(desc_tv)
+                    self.install_ui._apply_press_scale_on_target(desc_tv, row)
 
             if self._s_show_view_button:
                 buttons.addView(install_btn, LayoutHelper.createLinear(-2, -2, 0, 0, 8, 0))
