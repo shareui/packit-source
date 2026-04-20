@@ -195,6 +195,8 @@ class InstallIconsUI:
                 "secondary_text_color": Color.parseColor("#CCCCCC"),
                 "hint_text_color": Color.parseColor("#999999"),
                 "cursor_color": Theme.getColor(Theme.key_chat_messagePanelCursor),
+                "search_border_color": Color.parseColor("#3C3C3C"),
+                "search_stroke_width": AndroidUtilities.dp(2),
             }
         return {
             "main_bg_color": Theme.getColor(Theme.key_windowBackgroundGray),
@@ -204,6 +206,8 @@ class InstallIconsUI:
             "secondary_text_color": Color.parseColor("#666666"),
             "hint_text_color": Color.parseColor("#999999"),
             "cursor_color": Theme.getColor(Theme.key_chat_messagePanelCursor),
+            "search_border_color": Color.parseColor("#e0e0e0"),
+            "search_stroke_width": 0,
         }
 
     def open(self):
@@ -474,6 +478,7 @@ class InstallIconsUI:
             # registry of (iv, loaded_list) for the global swap ticker
             self._card_registry = []
             self._ticker_started = False
+            self._live_search_spinner = None
 
         def onFragmentCreate(self, *_):
             pass
@@ -503,6 +508,8 @@ class InstallIconsUI:
             self.secondary_text_color = colors["secondary_text_color"]
             self.hint_text_color = colors["hint_text_color"]
             self.cursor_color = colors["cursor_color"]
+            self.search_border_color = colors["search_border_color"]
+            self.search_stroke_width = colors["search_stroke_width"]
 
             self.content_view = FrameLayout(act)
             self.content_view.setBackgroundColor(self.main_bg_color)
@@ -530,7 +537,7 @@ class InstallIconsUI:
             except Exception:
                 pass
             search_container.setBackground(pill)
-            search_container.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(8))
+            search_container.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(5), AndroidUtilities.dp(8), AndroidUtilities.dp(5))
 
             self.search = EditTextBoldCursor(act)
             self.search.setHint(strings["icons_search_hint"])
@@ -583,6 +590,122 @@ class InstallIconsUI:
                     super().__init__()
                     self.outer = outer
                     self.clear_btn = clear_btn_ref
+                    self._live_timer = None
+
+                def _show_live_spinner(self):
+                    try:
+                        if getattr(self.outer, '_live_search_spinner', None) is None:
+                            from org.telegram.ui.Components import CircularProgressDrawable
+                            _size = 122
+                            _color = Theme.getColor(Theme.key_dialogLinkSelection)
+                            _d = CircularProgressDrawable(float(_size), float(AndroidUtilities.dp(8)), _color)
+                            _d.setBounds(0, 0, _size, _size)
+                            _spinner_iv = ImageView(act)
+                            _spinner_iv.setImageDrawable(_d)
+                            _spinner_iv.setScaleType(ImageView.ScaleType.FIT_CENTER)
+                            spinner_container = FrameLayout(act)
+                            spinner_container.setLayoutParams(FrameLayout.LayoutParams(-1, -1))
+                            _lp = FrameLayout.LayoutParams(_size, _size, Gravity.CENTER)
+                            spinner_container.addView(_spinner_iv, _lp)
+                            self.outer._live_search_spinner = spinner_container
+                            self.outer.content_view.addView(spinner_container, FrameLayout.LayoutParams(-1, -1))
+                        else:
+                            self.outer._live_search_spinner.setAlpha(1.0)
+                            self.outer._live_search_spinner.setVisibility(View.VISIBLE)
+                        try:
+                            self.outer.results_container.setVisibility(View.INVISIBLE)
+                        except Exception:
+                            pass
+                    except Exception:
+                        pass
+
+                def _hide_live_spinner(self):
+                    try:
+                        spinner = getattr(self.outer, '_live_search_spinner', None)
+                        if spinner is None:
+                            return
+                        spinner.animate().alpha(0.0).setDuration(150).withEndAction(
+                            lambda: spinner.setVisibility(View.GONE)
+                        ).start()
+                    except Exception:
+                        pass
+                    try:
+                        self.outer.results_container.setVisibility(View.VISIBLE)
+                    except Exception:
+                        pass
+
+                def _schedule_live_search(self, query):
+                    prev = self._live_timer
+                    if prev is not None:
+                        try:
+                            prev.cancel()
+                        except Exception:
+                            pass
+                    outer = self.outer
+
+                    def _do_search():
+                        # scoring runs on background thread after debounce
+                        try:
+                            if query != outer.last_search_query:
+                                q = query.strip()
+                                icons = outer.icons or []
+                                search_index = outer.search_index
+                                sort_type = outer.current_sort_type
+
+                                if not q:
+                                    filtered = list(icons)
+                                else:
+                                    isRussian = False
+                                    try:
+                                        from java.util import Locale
+                                        isRussian = Locale.getDefault().getLanguage() == "ru"
+                                    except Exception:
+                                        pass
+                                    fuzzy = settings.get("fuzzy_search", False)
+                                    scored = []
+                                    for icon in icons:
+                                        s = search_mod.score(icon, q, search_index, isRussian, fuzzy)
+                                        if s[0] < 6:
+                                            scored.append((s, icon))
+                                    scored.sort(key=lambda x: x[0])
+                                    filtered = [icon for _, icon in scored]
+
+                                if not q:
+                                    if sort_type == "alpha_az":
+                                        filtered.sort(key=lambda i: str(i.get("name") or i.get("id") or "").lower())
+                                    elif sort_type == "alpha_za":
+                                        filtered.sort(key=lambda i: str(i.get("name") or i.get("id") or "").lower(), reverse=True)
+                                    elif sort_type == "authors":
+                                        filtered.sort(key=lambda i: str(i.get("author") or "").lower())
+
+                                def _ui(q=q, filtered=filtered):
+                                    try:
+                                        outer.last_search_query = q
+                                        outer.filtered_icons = filtered
+                                        outer.is_loading = True
+                                        outer.results_container.removeAllViews()
+                                        outer.visible_icons = []
+                                        outer._card_registry = []
+                                        outer._ticker_started = False
+                                        if hasattr(outer, "subtitle"):
+                                            outer.subtitle.setText(strings["icons_count"].format(len(filtered)))
+                                        if not filtered:
+                                            outer._show_empty_state()
+                                        else:
+                                            outer._load_initial_batch()
+                                        self._hide_live_spinner()
+                                    except Exception:
+                                        pass
+                                run_on_ui_thread(_ui)
+                            else:
+                                run_on_ui_thread(lambda: self._hide_live_spinner())
+                        except Exception:
+                            run_on_ui_thread(lambda: self._hide_live_spinner())
+
+                    t = threading.Timer(0.3, _do_search)
+                    self._live_timer = t
+                    t.start()
+
                 def afterTextChanged(self, s):
                     text = s.toString()
                     if text and len(text) > 0:
@@ -593,16 +716,18 @@ class InstallIconsUI:
                             pass
                     else:
                         try:
-                            Runnable = find_class("java.lang.Runnable")
-                            class _HideRunnable(dynamic_proxy(Runnable)):
-                                def __init__(self, btn):
-                                    super().__init__()
-                                    self._btn = btn
-                                def run(self):
-                                    self._btn.setVisibility(View.GONE)
-                            self.clear_btn.animate().alpha(0.0).setDuration(200).withEndAction(_HideRunnable(self.clear_btn)).start()
+                            self.clear_btn.animate().alpha(0.0).setDuration(200).withEndAction(
+                                lambda: self.clear_btn.setVisibility(View.GONE)).start()
                         except Exception:
                             self.clear_btn.setVisibility(View.GONE)
+                    try:
+                        from elyx import settings as _s
+                        if _s.get("live_search", False):
+                            self._show_live_spinner()
+                            self._schedule_live_search(text)
+                    except Exception:
+                        pass
+
                 def beforeTextChanged(self, s, start, count, after):
                     pass
                 def onTextChanged(self, s, start, before, count):
@@ -611,7 +736,7 @@ class InstallIconsUI:
             search_row = LinearLayout(act)
             search_row.setOrientation(LinearLayout.HORIZONTAL)
             search_row.setGravity(Gravity.CENTER_VERTICAL)
-            search_row.addView(self.search, LinearLayout.LayoutParams(-1, AndroidUtilities.dp(42), 1.0))
+            search_row.addView(self.search, LinearLayout.LayoutParams(-1, AndroidUtilities.dp(36), 1.0))
 
             clear_btn = FrameLayout(act)
             clear_btn.setClickable(True)
@@ -629,7 +754,15 @@ class InstallIconsUI:
             clear_btn_icon.setScaleType(ImageView.ScaleType.CENTER)
             clear_btn.addView(clear_btn_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
 
+            import os as _os
+            clearSoundPath = _os.path.join(_os.path.dirname(__file__), "../../res/sounds/clear-search.mp3")
+
             def on_clear_click():
+                try:
+                    from ...utils.media import playSound
+                    playSound(clearSoundPath, "sfx_clear_search")
+                except Exception:
+                    pass
                 try:
                     self.search.setText("")
                     self.last_search_query = ""
@@ -643,7 +776,7 @@ class InstallIconsUI:
             self.install_ui._apply_press_scale(clear_btn)
             clear_btn.setVisibility(View.GONE)
             clear_btn.setAlpha(0.0)
-            search_row.addView(clear_btn, LinearLayout.LayoutParams(AndroidUtilities.dp(52), AndroidUtilities.dp(42), 0))
+            search_row.addView(clear_btn, LinearLayout.LayoutParams(AndroidUtilities.dp(52), AndroidUtilities.dp(36), 0))
 
             search_btn = FrameLayout(act)
             search_btn.setClickable(True)
@@ -666,9 +799,25 @@ class InstallIconsUI:
                 pass
             search_btn_icon.setScaleType(ImageView.ScaleType.CENTER)
             search_btn.addView(search_btn_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
-            search_btn.setOnClickListener(OnClickListener(lambda v: perform_search()))
+            searchBtnSoundPath = _os.path.join(_os.path.dirname(__file__), "../../res/sounds/search-btn.mp3")
+
+            def onSearchBtnClick(v):
+                try:
+                    from ...utils.media import playSound
+                    playSound(searchBtnSoundPath, "sfx_search")
+                except Exception:
+                    pass
+                perform_search()
+
+            search_btn.setOnClickListener(OnClickListener(onSearchBtnClick))
             self.install_ui._apply_press_scale(search_btn)
-            search_row.addView(search_btn, LinearLayout.LayoutParams(AndroidUtilities.dp(52), AndroidUtilities.dp(42), 0))
+            try:
+                from elyx import settings as _s
+                if _s.get("live_search", False):
+                    search_btn.setVisibility(View.GONE)
+            except Exception:
+                pass
+            search_row.addView(search_btn, LinearLayout.LayoutParams(AndroidUtilities.dp(52), AndroidUtilities.dp(36), 0))
             search_container.addView(search_row, FrameLayout.LayoutParams(-1, -2))
             main_layout.addView(search_container, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8))
 
@@ -948,6 +1097,9 @@ class InstallIconsUI:
 
             self.filtered_icons = filtered
             log(f"IconList.build_list_with_sort: filtered count={len(filtered)}")
+
+            if hasattr(self, 'subtitle'):
+                self.subtitle.setText(strings["icons_count"].format(len(self.icons)))
 
             fragment = get_last_fragment()
             act = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
