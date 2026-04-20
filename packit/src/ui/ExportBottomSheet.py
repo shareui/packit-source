@@ -21,11 +21,12 @@ except Exception as e:
     Theme = None
 
 try:
-    from org.telegram.ui.Components import LayoutHelper, BackupImageView
+    from org.telegram.ui.Components import LayoutHelper, BackupImageView, CheckBox2
 except Exception as e:
     import android_utils as _au; _au.log(f"ExportBottomSheet: import LayoutHelper failed: {e}")
     LayoutHelper = None
     BackupImageView = None
+    CheckBox2 = None
 
 try:
     from org.telegram.messenger import AndroidUtilities
@@ -56,6 +57,26 @@ except Exception as e:
 def _c(color: int) -> int:
     # ebani chocoпай
     return ctypes.c_int32(color).value
+
+
+def _apply_press_scale(view):
+    try:
+        class _TouchListener(dynamic_proxy(View.OnTouchListener)):
+            def __init__(self):
+                super().__init__()
+            def onTouch(self, v, event):
+                try:
+                    action = event.getActionMasked()
+                    if action == MotionEvent.ACTION_DOWN:
+                        v.animate().scaleX(0.93).scaleY(0.93).setDuration(100).start()
+                    elif action in (MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL):
+                        v.animate().scaleX(1.0).scaleY(1.0).setDuration(200).start()
+                except Exception:
+                    pass
+                return False
+        view.setOnTouchListener(_TouchListener())
+    except Exception:
+        pass
 
 
 def _resolveIcon(name):
@@ -243,9 +264,17 @@ def _createCheckRow(act, label, version_str, icon_str, checked, on_change):
     row = LinearLayout(act)
     row.setOrientation(LinearLayout.HORIZONTAL)
     row.setGravity(Gravity.CENTER_VERTICAL)
-    row.setPadding(AndroidUtilities.dp(4), AndroidUtilities.dp(10), AndroidUtilities.dp(4), AndroidUtilities.dp(10))
+    row.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(10), AndroidUtilities.dp(12), AndroidUtilities.dp(10))
     row.setClickable(True)
     row.setFocusable(True)
+    try:
+        row_bg = GradientDrawable()
+        row_bg.setShape(GradientDrawable.RECTANGLE)
+        row_bg.setCornerRadius(AndroidUtilities.dp(12))
+        row_bg.setColor(Theme.getColor(Theme.key_dialogBackground))
+        row.setBackground(row_bg)
+    except Exception:
+        pass
 
     icon_size_dp = 34
     show_sticker = bool(icon_str and "/" in icon_str and BackupImageView is not None)
@@ -406,6 +435,7 @@ def show(plugins, on_export):
             sheet = BottomSheet(act, False, fragment.getResourceProvider())
             sheet.setApplyBottomPadding(False)
             sheet.setApplyTopPadding(False)
+            sheet.setCanDismissWithSwipe(False)
 
             outer = LinearLayout(act)
             outer.setOrientation(LinearLayout.VERTICAL)
@@ -455,47 +485,13 @@ def show(plugins, on_export):
 
             title_col = LinearLayout(act)
             title_col.setOrientation(LinearLayout.VERTICAL)
-            title_col.addView(title_tv, LayoutHelper.createLinear(-2, -2))
-            title_col.addView(subtitle_tv, LayoutHelper.createLinear(-2, -2, 0, 4, 0, 0))
+            title_col.setGravity(Gravity.CENTER_HORIZONTAL)
+            title_tv.setGravity(Gravity.CENTER)
+            subtitle_tv.setGravity(Gravity.CENTER)
+            title_col.addView(title_tv, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_HORIZONTAL))
+            title_col.addView(subtitle_tv, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_HORIZONTAL, 0, 4, 0, 0))
 
-            toggle_btn = FrameLayout(act)
-            toggle_btn_size = AndroidUtilities.dp(28)
-            try:
-                toggle_btn.setBackground(Theme.createSelectorDrawable(
-                    Theme.getColor(Theme.key_listSelector), 1, AndroidUtilities.dp(14)
-                ))
-            except Exception:
-                toggle_btn.setClickable(True)
-                toggle_btn.setFocusable(True)
-            toggle_btn.setClickable(True)
-            toggle_btn.setFocusable(True)
-
-            toggle_iv = ImageView(act)
-            toggle_iv.setScaleType(ImageView.ScaleType.CENTER)
-            _toggle_icon = _resolveIcon("msg_photo_settings")
-            if _toggle_icon is not None:
-                toggle_iv.setImageResource(_toggle_icon)
-            try:
-                toggle_iv.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
-            except Exception:
-                pass
-            toggle_btn.addView(toggle_iv, FrameLayout.LayoutParams(
-                AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER
-            ))
-
-            title_frame = FrameLayout(act)
-            title_frame.addView(title_col, FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT
-            ))
-            toggle_lp = FrameLayout.LayoutParams(
-                toggle_btn_size, toggle_btn_size,
-                Gravity.TOP | Gravity.END
-            )
-            title_frame.addView(toggle_btn, toggle_lp)
-
-            outer.addView(title_frame, LayoutHelper.createLinear(-1, -2, pad_h, 16, pad_h, 16))
-            outer.addView(_createDivider(act), LayoutHelper.createLinear(-1, 1))
+            outer.addView(title_col, LayoutHelper.createLinear(-1, -2, pad_h, 16, pad_h, 16))
 
             # plugins section
             plugin_states = {}
@@ -514,25 +510,33 @@ def show(plugins, on_export):
                     text = str(strings["utilities_export_subtitle"]).replace("{count}", str(n))
                 subtitle_tv.setText(text)
 
+                try:
+                    if n == total and total > 0:
+                        toggle_all_checkbox.setChecked(True, True)
+                    elif n < total:
+                        toggle_all_checkbox.setChecked(False, True)
+                except Exception:
+                    pass
+
             # plugins_list goes inside a ScrollView with capped height
             plugins_list = LinearLayout(act)
             plugins_list.setOrientation(LinearLayout.VERTICAL)
 
-            for fname, name, version, icon in plugins:
+            for i, (fname, name, version, icon) in enumerate(plugins):
                 row, state, cb = _createCheckRow(act, name, version, icon, True, lambda c: _updateSubtitle())
                 plugin_states[fname] = state
                 plugin_checkboxes[fname] = cb
-                plugins_list.addView(row, LayoutHelper.createLinear(-1, -2))
+                row_lp = LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 8 if i < len(plugins) - 1 else 0)
+                plugins_list.addView(row, row_lp)
+                _apply_press_scale(row)
 
-            def _onToggleAll(v):
+            def _onToggleAll():
                 for fn, st in plugin_states.items():
                     st["checked"] = not st["checked"]
                     cb_ref = plugin_checkboxes.get(fn)
                     if cb_ref is not None:
                         cb_ref.setChecked(st["checked"], True)
                 _updateSubtitle()
-
-            toggle_btn.setOnClickListener(OnClickListener(_onToggleAll))
 
             # ScrollView wraps only the plugin list, capped at 5 rows
             plugin_row_px = AndroidUtilities.dp(54)
@@ -560,79 +564,212 @@ def show(plugins, on_export):
 
             scroll_height_px = min(len(plugins), 5) * plugin_row_px
 
-            # container: FrameLayout holds scroll + top/bottom gradient overlays
-            fade_height_dp = 16
-            plugins_wrap = FrameLayout(act)
-            plugins_wrap.setVisibility(View.GONE)
-            plugins_wrap.addView(
-                plugins_scroll,
-                FrameLayout.LayoutParams(-1, scroll_height_px)
-            )
+            dark_container = FrameLayout(act)
+            try:
+                dark_field_color = Theme.getColor(Theme.key_windowBackgroundGray)
+            except Exception:
+                dark_field_color = Color.parseColor("#2C2C2C")
+            dark_bg = GradientDrawable()
+            dark_bg.setShape(GradientDrawable.RECTANGLE)
+            dark_bg.setCornerRadius(AndroidUtilities.dp(18))
+            dark_bg.setColor(dark_field_color)
+            dark_container.setBackground(dark_bg)
+            
+            plugins_scroll.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12))
+            dark_container.addView(plugins_scroll, FrameLayout.LayoutParams(-1, -1))
+            
+            try:
+                plugins_scroll.setVerticalFadingEdgeEnabled(True)
+                plugins_scroll.setHorizontalFadingEdgeEnabled(False)
+                plugins_scroll.setFadingEdgeLength(AndroidUtilities.dp(20))
+            except Exception as e:
+                log(f"ExportBottomSheet: fading edge error: {e}")
+            
+            dark_lp = LinearLayout.LayoutParams(-1, scroll_height_px + AndroidUtilities.dp(24))
+            dark_lp.leftMargin = AndroidUtilities.dp(pad_h)
+            dark_lp.rightMargin = AndroidUtilities.dp(pad_h)
+            outer.addView(dark_container, dark_lp)
+            export_states = {
+                "settings": False,
+                "locally": True
+            }
+            def _createOptionCheckboxRow(act, text, checked_state_key, checkbox_ref=None):
+                checkbox = CheckBox2(act, 21, None)
+                checkbox.setColor(Theme.key_dialogRoundCheckBox, Theme.key_checkboxDisabled, Theme.key_dialogRoundCheckBoxCheck)
+                checkbox.setDrawUnchecked(True)
+                checkbox.setDrawBackgroundAsArc(10)
+                checkbox.setChecked(export_states[checked_state_key], False)
+                checkbox.setVisibility(1)
+                if checkbox_ref is not None:
+                    checkbox_ref[0] = checkbox
+                
+                container = FrameLayout(act)
+                btn_bg = GradientDrawable()
+                btn_bg.setCornerRadius(AndroidUtilities.dp(18))
+                try:
+                    bg_color = Theme.getColor(Theme.key_chat_inLoader) & 0x20FFFFFF | 0x10000000
+                except Exception:
+                    bg_color = Color.parseColor("#F0F0F0")
+                btn_bg.setColor(bg_color)
+                try:
+                    ripple_color = ColorStateList.valueOf(Color.parseColor("#40000000"))
+                    ripple_drawable = RippleDrawable(ripple_color, btn_bg, None)
+                    container.setBackground(ripple_drawable)
+                except Exception:
+                    container.setBackground(btn_bg)
+                
+                inner_layout = LinearLayout(act)
+                inner_layout.setOrientation(LinearLayout.HORIZONTAL)
+                inner_layout.setGravity(Gravity.CENTER_VERTICAL)
+                inner_layout.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
+                inner_layout.setMinimumHeight(AndroidUtilities.dp(40))
+                inner_layout.addView(checkbox, LayoutHelper.createLinear(24, 24, Gravity.CENTER_VERTICAL, 0, 0, 8, 0))
+                
+                text_view = TextView(act)
+                text_view.setText(text)
+                text_view.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+                text_view.setGravity(Gravity.CENTER_VERTICAL)
+                try:
+                    text_view.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
+                except Exception:
+                    text_view.setTextColor(Color.BLACK)
+                inner_layout.addView(text_view)
+                
+                container.addView(inner_layout)
+                
+                def toggle_checkbox(v):
+                    current_state = checkbox.isChecked()
+                    checkbox.setChecked(not current_state, True)
+                    export_states[checked_state_key] = not current_state
+                
+                container.setOnClickListener(OnClickListener(toggle_checkbox))
+                return container
 
+            options_row = LinearLayout(act)
+            options_row.setOrientation(LinearLayout.HORIZONTAL)
+            options_row.setGravity(Gravity.CENTER_VERTICAL)
+            options_row.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
+
+            toggle_all_checked = True
+            toggle_all_checkbox = CheckBox2(act, 21, None)
+            toggle_all_checkbox.setColor(Theme.key_dialogRoundCheckBox, Theme.key_checkboxDisabled, Theme.key_dialogRoundCheckBoxCheck)
+            toggle_all_checkbox.setDrawUnchecked(True)
+            toggle_all_checkbox.setDrawBackgroundAsArc(10)
+            toggle_all_checkbox.setChecked(toggle_all_checked, False)
+            toggle_all_checkbox.setVisibility(1)
+            
+            toggle_all_container = FrameLayout(act)
+            toggle_all_bg = GradientDrawable()
+            toggle_all_bg.setCornerRadius(AndroidUtilities.dp(18))
+            try:
+                toggle_bg_color = Theme.getColor(Theme.key_chat_inLoader) & 0x20FFFFFF | 0x10000000
+            except Exception:
+                toggle_bg_color = Color.parseColor("#F0F0F0")
+            toggle_all_bg.setColor(toggle_bg_color)
+            try:
+                ripple_color = ColorStateList.valueOf(Color.parseColor("#40000000"))
+                toggle_ripple = RippleDrawable(ripple_color, toggle_all_bg, None)
+                toggle_all_container.setBackground(toggle_ripple)
+            except Exception:
+                toggle_all_container.setBackground(toggle_all_bg)
+            
+            toggle_all_inner = LinearLayout(act)
+            toggle_all_inner.setOrientation(LinearLayout.HORIZONTAL)
+            toggle_all_inner.setGravity(Gravity.CENTER_VERTICAL)
+            toggle_all_inner.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
+            
+            toggle_all_inner.addView(toggle_all_checkbox, LayoutHelper.createLinear(24, 24, Gravity.CENTER_VERTICAL, 0, 0, 8, 0))
+            
+            toggle_all_text = TextView(act)
+            toggle_all_text.setText(str(strings["utilities_export_toggle_all"]))
+            toggle_all_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            toggle_all_text.setGravity(Gravity.CENTER_VERTICAL)
+            try:
+                toggle_all_text.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
+            except Exception:
+                toggle_all_text.setTextColor(Color.BLACK)
+            toggle_all_inner.addView(toggle_all_text)
+            
+            toggle_all_container.addView(toggle_all_inner)
+            
+            def _onToggleAllWithCheckbox(v):
+                current_state = toggle_all_checkbox.isChecked()
+                toggle_all_checkbox.setChecked(not current_state, True)
+                for fn, st in plugin_states.items():
+                    st["checked"] = not current_state
+                    cb_ref = plugin_checkboxes.get(fn)
+                    if cb_ref is not None:
+                        cb_ref.setChecked(st["checked"], True)
+                _updateSubtitle()
+            
+            toggle_all_container.setOnClickListener(OnClickListener(_onToggleAllWithCheckbox))
+            _apply_press_scale(toggle_all_container)
+            options_row.addView(toggle_all_container, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL, 0, 0, AndroidUtilities.dp(8), 0))
+
+            settings_checkbox_ref = [None]
+            settings_container = _createOptionCheckboxRow(
+                act,
+                str(strings["utilities_export_plugin_settings"]),
+                "settings",
+                settings_checkbox_ref
+            )
+            _apply_press_scale(settings_container)
+            options_row.addView(settings_container, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL, 0, 0, AndroidUtilities.dp(8), 0))
+
+            locally_checkbox_ref = [None]
+            locally_container = _createOptionCheckboxRow(
+                act,
+                str(strings["utilities_export_locally"]),
+                "locally",
+                locally_checkbox_ref
+            )
+            _apply_press_scale(locally_container)
+            options_row.addView(locally_container, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL))
+            options_scroll = ScrollView(act)
+            options_scroll.setHorizontalScrollBarEnabled(False)
+            options_scroll.setVerticalScrollBarEnabled(False)
+            try:
+                options_scroll.setHorizontalScrollViewEnabled(True)
+            except Exception:
+                pass
+            options_scroll.setOverScrollMode(View.OVER_SCROLL_NEVER)
+            try:
+                from android.widget import HorizontalScrollView
+                options_scroll = HorizontalScrollView(act)
+                options_scroll.setHorizontalScrollBarEnabled(False)
+                options_scroll.setOverScrollMode(View.OVER_SCROLL_NEVER)
+            except Exception:
+                pass
+            
+            options_scroll.addView(options_row)
+            options_wrap = FrameLayout(act)
+            options_wrap.addView(options_scroll, FrameLayout.LayoutParams(-1, -2))
+            
             try:
                 bg_color = Theme.getColor(Theme.key_dialogBackground)
                 transparent = Color.argb(0, (bg_color >> 16) & 0xFF, (bg_color >> 8) & 0xFF, bg_color & 0xFF)
-
-                top_fade = FrameLayout(act)
-                top_grd = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, [bg_color, transparent])
-                top_fade.setBackground(top_grd)
-                top_fade.setClickable(False)
-                plugins_wrap.addView(
-                    top_fade,
-                    FrameLayout.LayoutParams(-1, AndroidUtilities.dp(fade_height_dp), Gravity.TOP)
+                
+                left_fade = FrameLayout(act)
+                left_grd = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, [bg_color, transparent])
+                left_fade.setBackground(left_grd)
+                left_fade.setClickable(False)
+                options_wrap.addView(
+                    left_fade,
+                    FrameLayout.LayoutParams(AndroidUtilities.dp(16), -1, Gravity.LEFT)
                 )
 
-                bottom_fade = FrameLayout(act)
-                bottom_grd = GradientDrawable(GradientDrawable.Orientation.BOTTOM_TOP, [bg_color, transparent])
-                bottom_fade.setBackground(bottom_grd)
-                bottom_fade.setClickable(False)
-                plugins_wrap.addView(
-                    bottom_fade,
-                    FrameLayout.LayoutParams(-1, AndroidUtilities.dp(fade_height_dp), Gravity.BOTTOM)
+                right_fade = FrameLayout(act)
+                right_grd = GradientDrawable(GradientDrawable.Orientation.RIGHT_LEFT, [bg_color, transparent])
+                right_fade.setBackground(right_grd)
+                right_fade.setClickable(False)
+                options_wrap.addView(
+                    right_fade,
+                    FrameLayout.LayoutParams(AndroidUtilities.dp(16), -1, Gravity.RIGHT)
                 )
             except Exception as e:
-                log(f"ExportBottomSheet: gradient overlay error: {e}")
+                log(f"ExportBottomSheet: options fade overlay error: {e}")
 
-            plugins_wrap_lp = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                scroll_height_px
-            )
-            plugins_wrap_lp.leftMargin = AndroidUtilities.dp(pad_h)
-            plugins_wrap_lp.rightMargin = AndroidUtilities.dp(pad_h)
-
-            plugins_header = _createSectionHeader(
-                act,
-                str(strings["utilities_export_plugins_section"]),
-                lambda expanded: plugins_wrap.setVisibility(View.VISIBLE if expanded else View.GONE)
-            )
-            outer.addView(plugins_header, LayoutHelper.createLinear(-1, -2, pad_h, 0, pad_h, 0))
-            outer.addView(plugins_wrap, plugins_wrap_lp)
-
-            outer.addView(_createDivider(act), LayoutHelper.createLinear(-1, 1))
-
-            settings_container = LinearLayout(act)
-            settings_container.setOrientation(LinearLayout.VERTICAL)
-            settings_container.setVisibility(View.GONE)
-
-            settings_row, export_settings_state = _createOptionRow(
-                act, str(strings["utilities_export_plugin_settings"]), False, lambda c: None
-            )
-            settings_container.addView(settings_row, LayoutHelper.createLinear(-1, -2))
-
-            locally_row, export_locally_state = _createOptionRow(
-                act, str(strings["utilities_export_locally"]), True, lambda c: None
-            )
-            settings_container.addView(locally_row, LayoutHelper.createLinear(-1, -2))
-
-            settings_header = _createSectionHeader(
-                act,
-                str(strings["utilities_export_settings_section"]),
-                lambda expanded: settings_container.setVisibility(View.VISIBLE if expanded else View.GONE)
-            )
-            outer.addView(settings_header, LayoutHelper.createLinear(-1, -2, pad_h, 0, pad_h, 0))
-            outer.addView(settings_container, LayoutHelper.createLinear(-1, -2, pad_h, 0, pad_h, 0))
-
-            outer.addView(_createDivider(act), LayoutHelper.createLinear(-1, 1, 0, 8, 0, 0))
+            outer.addView(options_wrap, LayoutHelper.createLinear(-1, -2, pad_h, 4, pad_h, 4))
 
             # buttons
             def _onExport():
@@ -641,8 +778,8 @@ def show(plugins, on_export):
                     sheet.dismiss()
                     BulletinHelper.show_error(strings["utilities_export_empty"])
                     return
-                incl_settings = export_settings_state.get("checked", False)
-                locally = export_locally_state.get("checked", True)
+                incl_settings = export_states["settings"]
+                locally = export_states["locally"]
                 if not locally:
                     sheet.dismiss()
                     BulletinHelper.show_error(strings["not_ready_yet"])
@@ -651,10 +788,8 @@ def show(plugins, on_export):
                 on_export(selected, incl_settings, locally)
 
             export_btn = _createButton(act, str(strings["utilities_export_btn"]), True, _onExport)
-            outer.addView(export_btn, LayoutHelper.createLinear(-1, -2, pad_h, 8, pad_h, 8))
-
-            close_btn = _createButton(act, str(strings["close_button"]), False, lambda: sheet.dismiss())
-            outer.addView(close_btn, LayoutHelper.createLinear(-1, -2, pad_h, 0, pad_h, 8))
+            _apply_press_scale(export_btn)
+            outer.addView(export_btn, LayoutHelper.createLinear(-1, -2, pad_h, 8, pad_h, 16))
 
             sheet.setCustomView(outer)
 

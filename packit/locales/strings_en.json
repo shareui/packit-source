@@ -758,6 +758,7 @@
   "utilities_archive_name_label": "Archive name",
   "utilities_afp_divider": "A few plugins — A fast and convenient format for exporting exteragram plugins.",
   "utilities_export_empty": "Please select at least 1 plugin to export",
+  "utilities_export_toggle_all": "All",
   "utilities_export_title": "Export plugins",
   "utilities_export_subtitle_zero": "Exports all plugins from your client",
   "utilities_export_subtitle_none": "No plugins selected",
