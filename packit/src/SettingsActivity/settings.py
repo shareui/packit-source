@@ -2002,6 +2002,14 @@ class OtherSettings:
                 link_alias="fuzzy_search"
             ),
             Switch(
+                key="live_search",
+                text=strings.live_search,
+                subtext=strings.live_search_desc,
+                default=False,
+                icon="msg_search",
+                link_alias="live_search"
+            ),
+            Switch(
                 key="static_online_status",
                 text=strings.static_online_status,
                 subtext=strings.static_online_status_desc,

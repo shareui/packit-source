@@ -277,6 +277,8 @@
   "off": "Off",
   "fuzzy_search": "Fuzzy search",
   "fuzzy_search_desc": "Find plugins even with typos (1 character off). May be slightly slower.",
+  "live_search": "Live Search",
+  "live_search_desc": "Removes the need to click the search button in the plugin list. Not recommended for use on low-end devices.",
   "deeplinks_parameters": "Parameters",
   "required": "Required",
   "deeplinks_plugins_menu_desc": "Open the plugin manager to browse and install plugins",
