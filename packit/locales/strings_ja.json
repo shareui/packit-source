@@ -373,5 +373,17 @@
   "sort_menu_design_desc": "Modern style highlights the active option with a colored dot. Classic fills the row with the accent color.",
   "plugin_description": "**exteraGram/AyuGram用リソースカタログ。プラグイン、アイコン — すべて一か所に、複数リポジトリのサポートあり。**\n\nソースコード: ",
   "open_directory": "ディレクトリを開く",
-  "open_directory_desc": "Packitのファイルとフォルダを参照"
+  "open_directory_desc": "Packitのファイルとフォルダを参照",
+  "publish_plugin_guide_url": "https://t.me/packitd/4",
+  "faq_desc": "よくある質問と回答",
+  "report_bug_desc": "バグを見つけた？教えてください",
+  "how_to_enlighten_desc": "あなたを悟りへ導く...",
+  "secret_video_desc": "考えずにクリック。",
+  "creating_own_repo_desc": "自分のリポジトリ作成ガイド",
+  "publish_ur_plugin_desc": "プラグインをカタログに登録する方法",
+  "deeplinks_desc": "ディープリンクガイド (tg://packit...)",
+  "devdocs_desc": "詳細ドキュメント",
+  "links_docs_desc": "便利なリンクとガイド",
+  "devdocs": "開発者ドキュメント",
+  "docs_suggest_review": "PackIt への感想や改善提案は [こちらのセクション ⟩](https://t.me/packitGround/933) からどうぞ"
 }

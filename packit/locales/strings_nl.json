@@ -375,5 +375,17 @@
   "bulletin_restart_button": "Restart",
   "plugin_description": "**Een bronnencatalogus voor exteraGram/AyuGram. Plugins, iconen — alles op één plek, met ondersteuning voor meerdere repositories.**\n\nBroncode: ",
   "open_directory": "Map openen",
-  "open_directory_desc": "Packit-bestanden en mappen bekijken"
+  "open_directory_desc": "Packit-bestanden en mappen bekijken",
+  "publish_plugin_guide_url": "https://t.me/packitd/4",
+  "faq_desc": "Veelgestelde vragen en antwoorden",
+  "report_bug_desc": "Bug gevonden? Laat het ons weten",
+  "how_to_enlighten_desc": "Zal je verlichten...",
+  "secret_video_desc": "Niet denken, gewoon klikken.",
+  "creating_own_repo_desc": "Gids voor het maken van je eigen repository",
+  "publish_ur_plugin_desc": "Zo voeg je je plugin toe aan de catalogus",
+  "deeplinks_desc": "Gids voor deeplinks (tg://packit...)",
+  "devdocs_desc": "Gedetailleerde documentatie",
+  "links_docs_desc": "Handige links en gidsen",
+  "devdocs": "Ontwikkelaarsdocumentatie",
+  "docs_suggest_review": "Je kunt ook een beoordeling achterlaten of verbeteringen voor PackIt voorstellen in [dit gedeelte ⟩](https://t.me/packitGround/933)"
 }

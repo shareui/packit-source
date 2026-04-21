@@ -373,5 +373,17 @@
   "sort_menu_design_desc": "Modern style highlights the active option with a colored dot. Classic fills the row with the accent color.",
   "plugin_description": "**Un catálogo de recursos para exteraGram/AyuGram. Plugins, iconos — todo en un solo lugar, con soporte para múltiples repositorios.**\n\nCódigo fuente: ",
   "open_directory": "Abrir directorio",
-  "open_directory_desc": "Explorar archivos y carpetas de packit"
+  "open_directory_desc": "Explorar archivos y carpetas de packit",
+  "publish_plugin_guide_url": "https://t.me/packitd/4",
+  "faq_desc": "Preguntas y respuestas frecuentes",
+  "report_bug_desc": "¿Encontraste un error? Cuéntanos",
+  "how_to_enlighten_desc": "Te iluminará...",
+  "secret_video_desc": "No pienses, solo haz clic.",
+  "creating_own_repo_desc": "Guía para crear tu propio repositorio",
+  "publish_ur_plugin_desc": "Cómo añadir tu plugin al catálogo",
+  "deeplinks_desc": "Guía de deeplinks (tg://packit...)",
+  "devdocs_desc": "Documentación detallada",
+  "links_docs_desc": "Enlaces y guías útiles",
+  "devdocs": "Documentación para desarrolladores",
+  "docs_suggest_review": "También puedes dejar una reseña o sugerir mejoras para PackIt en [esta sección ⟩](https://t.me/packitGround/933)"
 }

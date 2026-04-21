@@ -51,7 +51,7 @@
   "lead_developer_vestr": "Lead Developer",
   "special_thanks": "Special thanks to: @NKS22S, @justkoder",
   "for_users": "For Users",
-  "faq": "FAQ",
+  "faq": "Frequently Asked Questions",
   "report_bug": "Report Bug",
   "official_forum": "Official Forum",
   "packit_channel": "PackIt Channel",
@@ -792,5 +792,16 @@
   "open_directory_desc": "Browse packit files and folders",
   "to_the_beginning": "Scroll to Top",
   "catalog_title": "Catalog",
-  "end_of_list": "It's as clean there as after a search of a deputy's place"
+  "end_of_list": "It's as clean there as after a search of a deputy's place",
+  "publish_plugin_guide_url": "https://t.me/packitd/4",
+  "faq_desc": "Common questions and answers",
+  "report_bug_desc": "Found something broken? Tell us",
+  "how_to_enlighten_desc": "Will enlighten you...",
+  "secret_video_desc": "Don't think, just click.",
+  "creating_own_repo_desc": "Guide to creating your own repository",
+  "publish_ur_plugin_desc": "How to get your plugin into the catalog",
+  "deeplinks_desc": "Guide to deeplinks (tg://packit...)",
+  "devdocs_desc": "Detailed documentation",
+  "links_docs_desc": "Useful links and guides",
+  "docs_suggest_review": "You can also leave a review or suggest how to improve PackIt in [this section ⟩](https://t.me/packitGround/933)"
 }

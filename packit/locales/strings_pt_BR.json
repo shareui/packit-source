@@ -375,5 +375,17 @@
   "bulletin_restart_button": "Restart",
   "plugin_description": "**Um catálogo de recursos para exteraGram/AyuGram. Plugins, ícones — tudo em um só lugar, com suporte a múltiplos repositórios.**\n\nCódigo-fonte: ",
   "open_directory": "Abrir diretório",
-  "open_directory_desc": "Explorar arquivos e pastas do packit"
+  "open_directory_desc": "Explorar arquivos e pastas do packit",
+  "publish_plugin_guide_url": "https://t.me/packitd/4",
+  "faq_desc": "Perguntas e respostas frequentes",
+  "report_bug_desc": "Encontrou um bug? Nos conte",
+  "how_to_enlighten_desc": "Vai te iluminar...",
+  "secret_video_desc": "Não pense, só clique.",
+  "creating_own_repo_desc": "Guia para criar seu próprio repositório",
+  "publish_ur_plugin_desc": "Como colocar seu plugin no catálogo",
+  "deeplinks_desc": "Guia de deeplinks (tg://packit...)",
+  "devdocs_desc": "Documentação detalhada",
+  "links_docs_desc": "Links úteis e guias",
+  "devdocs": "Documentação para desenvolvedores",
+  "docs_suggest_review": "Você também pode deixar uma avaliação ou sugerir melhorias para o PackIt nesta [seção ⟩](https://t.me/packitGround/933)"
 }

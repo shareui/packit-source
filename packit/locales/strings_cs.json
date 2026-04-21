@@ -375,5 +375,17 @@
   "bulletin_restart_button": "Restart",
   "plugin_description": "**Katalog zdrojů pro exteraGram/AyuGram. Pluginy, ikony — vše na jednom místě, s podporou více repozitářů.**\n\nZdrojový kód: ",
   "open_directory": "Otevřít složku",
-  "open_directory_desc": "Procházet soubory a složky packit"
+  "open_directory_desc": "Procházet soubory a složky packit",
+  "publish_plugin_guide_url": "https://t.me/packitd/4",
+  "faq_desc": "Časté otázky a odpovědi",
+  "report_bug_desc": "Našel chybu? Řekni nám",
+  "how_to_enlighten_desc": "Osvítí tě...",
+  "secret_video_desc": "Nemysli, jen klikni.",
+  "creating_own_repo_desc": "Průvodce vytvořením vlastního repozitáře",
+  "publish_ur_plugin_desc": "Jak dostat plugin do katalogu",
+  "deeplinks_desc": "Průvodce deeplinky (tg://packit...)",
+  "devdocs_desc": "Podrobná dokumentace",
+  "links_docs_desc": "Užitečné odkazy a průvodci",
+  "devdocs": "Dokumentace pro vývojáře",
+  "docs_suggest_review": "Můžeš také zanechat recenzi nebo navrhnout vylepšení PackIt v [této sekci ⟩](https://t.me/packitGround/933)"
 }
