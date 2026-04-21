@@ -1328,7 +1328,7 @@ class InstallIconsUI:
             inner.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(10), AndroidUtilities.dp(8), AndroidUtilities.dp(10))
             card.addView(inner, FrameLayout.LayoutParams(-1, -1))
 
-            all_urls = [u for u in (icon.get("preview") or []) if str(u).lower().endswith(".png") or str(u).lower().endswith(".svg")]
+            all_urls = [e[0] for e in (icon.get("preview") or []) if isinstance(e, (list, tuple)) and e and (str(e[0]).lower().endswith(".png") or str(e[0]).lower().endswith(".svg"))]
 
             icon_size_px = AndroidUtilities.dp(icon_size_dp)
             iv = ImageView(act)
