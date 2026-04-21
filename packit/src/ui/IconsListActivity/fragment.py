@@ -516,7 +516,7 @@ class InstallIconsUI:
 
             main_layout = LinearLayout(act)
             main_layout.setOrientation(LinearLayout.VERTICAL)
-            main_layout.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(16), AndroidUtilities.dp(16), AndroidUtilities.dp(14))
+            main_layout.setPadding(AndroidUtilities.dp(16), 0, AndroidUtilities.dp(16), AndroidUtilities.dp(14))
             self.content_view.addView(main_layout, FrameLayout.LayoutParams(-1, -1))
 
             # search bar
@@ -819,7 +819,7 @@ class InstallIconsUI:
                 pass
             search_row.addView(search_btn, LinearLayout.LayoutParams(AndroidUtilities.dp(52), AndroidUtilities.dp(36), 0))
             search_container.addView(search_row, FrameLayout.LayoutParams(-1, -2))
-            main_layout.addView(search_container, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8))
+            main_layout.addView(search_container, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 8))
 
             # header row: repo button | subtitle | sort button
             header_row = FrameLayout(act)
