@@ -698,44 +698,6 @@ class InstallUI:
                                 pass
                     except Exception:
                         pass
-                    def _install_height_hook():
-                        try:
-                            from base_plugin import MethodHook
-                            from hook_utils import find_class
-                            from java.lang import Integer as JInteger
-                            from org.telegram.ui.ActionBar import ActionBar as TgActionBar
-                            full_h = TgActionBar.getCurrentActionBarHeight()
-                            target_h = int(full_h * 0.6)
-                            ActionBarProxy = find_class("org.telegram.ui.ActionBar.ActionBar")
-                            real_class = ActionBarProxy.getClass()
-                            method = real_class.getDeclaredMethod("getCurrentActionBarHeight")
-                            method.setAccessible(True)
-                            target_h_ref = [target_h]
-                            class ActionBarHeightHook(MethodHook):
-                                def after_hooked_method(self_h, param):
-                                    param.setResult(JInteger(target_h_ref[0]))
-                            unhook = self.plugin.hook_method(method, ActionBarHeightHook())
-                            delegate._actionbar_height_unhook = [unhook]
-                            try:
-                                actionBar.requestLayout()
-                                actionBar.invalidate()
-                                parent = actionBar.getParent()
-                                if parent is not None:
-                                    parent.requestLayout()
-                            except Exception:
-                                pass
-                            # center back button vertically in the reduced actionbar
-                            try:
-                                back_btn = actionBar.getBackButton()
-                                if back_btn is not None:
-                                    btn_h = back_btn.getMeasuredHeight()
-                                    offset = (target_h - btn_h) / 2.0
-                                    back_btn.setTranslationY(offset)
-                            except Exception:
-                                pass
-                        except Exception as e:
-                            pass
-                    run_on_ui_thread(_install_height_hook, 50)
             except Exception as e:
                 pass
         except Exception as e:
@@ -788,13 +750,6 @@ class InstallUI:
                 if hasattr(self, 'search_hooks'):
                     for hook in self.search_hooks:
                         self.install_ui.plugin.unhook_method(hook)
-            except Exception:
-                pass
-            try:
-                if hasattr(self, '_actionbar_height_unhook') and self._actionbar_height_unhook is not None:
-                    for u in (self._actionbar_height_unhook or []):
-                        self.install_ui.plugin.unhook_method(u)
-                    self._actionbar_height_unhook = None
             except Exception:
                 pass
             try:
@@ -1107,7 +1062,7 @@ class InstallUI:
                 pass
             search_row.addView(search_btn, LinearLayout.LayoutParams(AndroidUtilities.dp(52), AndroidUtilities.dp(36), 0))
             search_container.addView(search_row, FrameLayout.LayoutParams(-1, -2))
-            main_layout.addView(search_container, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8))
+            main_layout.addView(search_container, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 8))
 
             # header_row uses FrameLayout so subtitle is always centered
             # regardless of its text length, with equal spacing on both sides
