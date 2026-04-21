@@ -43,7 +43,7 @@
   "lead_developer_vestr": "Développeur principal",
   "special_thanks": "Remerciements particuliers à : @NKS22S, @justkoder",
   "for_users": "Pour les utilisateurs",
-  "faq": "FAQ",
+  "faq": "Foire aux questions",
   "report_bug": "Signaler un bug",
   "official_forum": "Forum officiel",
   "packit_channel": "Chaîne PackIt",
@@ -375,5 +375,17 @@
   "bulletin_restart_button": "Restart",
   "plugin_description": "**Un catalogue de ressources pour exteraGram/AyuGram. Plugins, icônes — tout au même endroit, avec prise en charge de plusieurs dépôts.**\n\nCode source : ",
   "open_directory": "Ouvrir le dossier",
-  "open_directory_desc": "Parcourir les fichiers packit"
+  "open_directory_desc": "Parcourir les fichiers packit",
+  "publish_plugin_guide_url": "https://t.me/packitd/4",
+  "faq_desc": "Questions et réponses fréquentes",
+  "report_bug_desc": "Un bug trouvé ? Dis-nous",
+  "how_to_enlighten_desc": "T'illuminera...",
+  "secret_video_desc": "Ne réfléchis pas, clique.",
+  "creating_own_repo_desc": "Guide pour créer son propre dépôt",
+  "publish_ur_plugin_desc": "Comment intégrer ton plugin au catalogue",
+  "deeplinks_desc": "Guide des deeplinks (tg://packit...)",
+  "devdocs_desc": "Documentation détaillée",
+  "links_docs_desc": "Liens utiles et guides",
+  "devdocs": "Documentation développeur",
+  "docs_suggest_review": "Tu peux aussi laisser un avis ou suggérer des améliorations pour PackIt dans [cette section ⟩](https://t.me/packitGround/933)"
 }

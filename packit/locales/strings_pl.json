@@ -43,7 +43,7 @@
   "lead_developer_vestr": "Główny programista",
   "special_thanks": "Specjalne podziękowania dla: @NKS22S, @justkoder",
   "for_users": "Dla użytkowników",
-  "faq": "FAQ",
+  "faq": "Najczęściej zadawane pytania",
   "report_bug": "Zgłoś błąd",
   "official_forum": "Oficjalne forum",
   "packit_channel": "Kanał PackIt",
@@ -375,5 +375,17 @@
   "bulletin_restart_button": "Restart",
   "plugin_description": "**Katalog zasobów dla exteraGram/AyuGram. Wtyczki, ikony — wszystko w jednym miejscu, z obsługą wielu repozytoriów.**\n\nKod źródłowy: ",
   "open_directory": "Otwórz katalog",
-  "open_directory_desc": "Przeglądaj pliki i foldery packit"
+  "open_directory_desc": "Przeglądaj pliki i foldery packit",
+  "publish_plugin_guide_url": "https://t.me/packitd/4",
+  "faq_desc": "Często zadawane pytania i odpowiedzi",
+  "report_bug_desc": "Znalazłeś błąd? Daj nam znać",
+  "how_to_enlighten_desc": "Oświeci cię...",
+  "secret_video_desc": "Nie myśl, po prostu kliknij.",
+  "creating_own_repo_desc": "Przewodnik po tworzeniu własnego repozytorium",
+  "publish_ur_plugin_desc": "Jak dodać wtyczkę do katalogu",
+  "deeplinks_desc": "Przewodnik po deeplinkach (tg://packit...)",
+  "devdocs_desc": "Szczegółowa dokumentacja",
+  "links_docs_desc": "Przydatne linki i poradniki",
+  "devdocs": "Dokumentacja dla deweloperów",
+  "docs_suggest_review": "Możesz też zostawić opinię lub zaproponować ulepszenia PackIt w [tej sekcji ⟩](https://t.me/packitGround/933)"
 }

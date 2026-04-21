@@ -375,5 +375,17 @@
   "bulletin_restart_button": "Restart",
   "plugin_description": "**exteraGram/AyuGram için bir kaynak kataloğu. Eklentiler, simgeler — hepsi tek bir yerde, birden fazla depo desteğiyle.**\n\nKaynak kodu: ",
   "open_directory": "Dizin aç",
-  "open_directory_desc": "Packit dosya ve klasörlerine göz at"
+  "open_directory_desc": "Packit dosya ve klasörlerine göz at",
+  "publish_plugin_guide_url": "https://t.me/packitd/4",
+  "faq_desc": "Sık sorulan sorular ve cevaplar",
+  "report_bug_desc": "Hata buldun mu? Bize söyle",
+  "how_to_enlighten_desc": "Seni aydınlatacak...",
+  "secret_video_desc": "Düşünme, sadece tıkla.",
+  "creating_own_repo_desc": "Kendi deponuzu oluşturma rehberi",
+  "publish_ur_plugin_desc": "Eklentini kataloğa nasıl eklersin",
+  "deeplinks_desc": "Derin bağlantı rehberi (tg://packit...)",
+  "devdocs_desc": "Ayrıntılı dokümantasyon",
+  "links_docs_desc": "Faydalı bağlantılar ve kılavuzlar",
+  "devdocs": "Geliştirici belgeleri",
+  "docs_suggest_review": "PackIt için bir yorum bırakabilir veya iyileştirme önerisi sunabilirsiniz: [bu bölüm ⟩](https://t.me/packitGround/933)"
 }

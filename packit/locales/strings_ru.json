@@ -43,7 +43,7 @@
   "lead_developer_vestr": "Ведущий разработчик",
   "special_thanks": "Особая благодарность: @NKS22S, @justkoder",
   "for_users": "Для пользователей",
-  "faq": "FAQ",
+  "faq": "Часто задаваемые вопросы",
   "report_bug": "Сообщить об ошибке",
   "official_forum": "Официальный форум",
   "packit_channel": "Канал PackIt",
@@ -640,5 +640,17 @@
   "sort_menu_design_desc": "Modern style highlights the active option with a colored dot. Classic fills the row with the accent color.",
   "plugin_description": "**Каталог ресурсов для exteraGram/AyuGram. Плагины, иконки — всё в одном месте, с поддержкой нескольких репозиториев.**\n\nИсходный код: ",
   "open_directory": "Открыть папку",
-  "open_directory_desc": "Просмотр файлов и папок packit"
+  "open_directory_desc": "Просмотр файлов и папок packit",
+  "publish_plugin_guide_url": "https://t.me/packitd/3",
+  "faq_desc": "Частые вопросы и ответы",
+  "report_bug_desc": "Нашёл баг? Расскажи нам",
+  "how_to_enlighten_desc": "Просветит тебя...",
+  "secret_video_desc": "Не думай, просто нажми.",
+  "creating_own_repo_desc": "Гайд по созданию своего репозитория",
+  "publish_ur_plugin_desc": "Как попасть в каталог",
+  "deeplinks_desc": "Гайд по диплинкам (tg://packit...)",
+  "devdocs_desc": "Подробная документация",
+  "links_docs_desc": "Полезные ссылки и гайды",
+  "devdocs": "Документация для разработчиков",
+  "docs_suggest_review": "Вы также можете оставить отзыв или предложить улучшение PackIt в [этом разделе ⟩](https://t.me/packitGround/933)"
 }
