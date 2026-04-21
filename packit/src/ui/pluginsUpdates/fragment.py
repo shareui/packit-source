@@ -467,7 +467,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             try:
                 bg = GradientDrawable()
                 bg.setCornerRadius(dp(16))
-                bg.setColor(Theme.getColor(Theme.key_dialogBackground))
+                bg.setColor(Theme.getColor(Theme.key_windowBackgroundGray))
                 card.setBackground(bg)
             except Exception:
                 pass
@@ -476,10 +476,10 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 from org.telegram.ui.Components import RLottieImageView
                 from org.telegram.messenger import R as R_tg
                 lottie = RLottieImageView(act)
-                lottie.setAnimation(getattr(R_tg.raw, anim_name), dp(72), dp(72))
+                lottie.setAnimation(getattr(R_tg.raw, anim_name), dp(144), dp(144))
                 lottie.setAutoRepeat(False)
                 lottie.playAnimation()
-                lottie_lp = LinearLayout.LayoutParams(dp(72), dp(72))
+                lottie_lp = LinearLayout.LayoutParams(dp(144), dp(144))
                 lottie_lp.gravity = Gravity.CENTER_HORIZONTAL
                 lottie_lp.bottomMargin = dp(12)
                 card.addView(lottie, lottie_lp)
@@ -495,6 +495,9 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
             card_lp = FrameLayout.LayoutParams(-2, -2)
             card_lp.gravity = Gravity.CENTER
+            card_lp.leftMargin = dp(16)
+            card_lp.rightMargin = dp(16)
+            card_lp.topMargin = dp(-80)
             self._content_view.addView(card, card_lp)
         except Exception as e:
             log(f"pluginsUpdates: _show_empty error: {e}")
@@ -694,7 +697,10 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         download_icon_view = _ImageView(act)
         if download_icon_id:
             download_icon_view.setImageResource(download_icon_id)
-        download_icon_view.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon))
+        try:
+            download_icon_view.setColorFilter(Theme.getColor(Theme.key_featuredStickers_addButton))
+        except Exception:
+            download_icon_view.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon))
         download_icon_view.setScaleType(_ImageView.ScaleType.CENTER_INSIDE)
         download_icon_view.setPadding(dp(6), dp(6), dp(6), dp(6))
         icon_lp = FrameLayout.LayoutParams(btn_size, btn_size)
