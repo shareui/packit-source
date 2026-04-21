@@ -697,7 +697,10 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         download_icon_view = _ImageView(act)
         if download_icon_id:
             download_icon_view.setImageResource(download_icon_id)
-        download_icon_view.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon))
+        try:
+            download_icon_view.setColorFilter(Theme.getColor(Theme.key_featuredStickers_addButton))
+        except Exception:
+            download_icon_view.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon))
         download_icon_view.setScaleType(_ImageView.ScaleType.CENTER_INSIDE)
         download_icon_view.setPadding(dp(6), dp(6), dp(6), dp(6))
         icon_lp = FrameLayout.LayoutParams(btn_size, btn_size)
