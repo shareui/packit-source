@@ -1787,10 +1787,42 @@ class OtherSettings:
 
     def _open_card_editor(self):
         try:
-            from .PluginCardEditor import build_card_editor_page
+            from .SubSettings.PluginCardEditor import build_card_editor_page
             return build_card_editor_page()
         except Exception as e:
             log(f"OtherSettings: _open_card_editor error: {e}")
+            return []
+
+    def _open_hotkeys_page(self):
+        try:
+            from .SubSettings.hotkeys import build_hotkeys_page
+            return build_hotkeys_page(self, self._getContext())
+        except Exception as e:
+            log(f"OtherSettings: _open_hotkeys_page error: {e}")
+            return []
+
+    def _open_plugin_profile_page(self):
+        try:
+            from .SubSettings.pluginProfile import build_plugin_profile_page
+            return build_plugin_profile_page()
+        except Exception as e:
+            log(f"OtherSettings: _open_plugin_profile_page error: {e}")
+            return []
+
+    def _open_install_sheet_page(self):
+        try:
+            from .SubSettings.installSheet import build_install_sheet_page
+            return build_install_sheet_page()
+        except Exception as e:
+            log(f"OtherSettings: _open_install_sheet_page error: {e}")
+            return []
+
+    def _open_repos_navigation_page(self):
+        try:
+            from .SubSettings.reposNavigation import build_repos_navigation_page
+            return build_repos_navigation_page()
+        except Exception as e:
+            log(f"OtherSettings: _open_repos_navigation_page error: {e}")
             return []
 
     def _onClearIgnoreListClick(self, view):
@@ -1808,59 +1840,41 @@ class OtherSettings:
         ctx = self._getContext()
 
         items = [
-            Header(text=strings.buttons_header),
-            self._build_dialogs_btn_item(ctx),
-            self._build_dialogs_menu_toggle_item(ctx),
-            self._build_pill_stack_item(ctx),
-            Switch(
-                key="show_chat_menu",
-                text=strings.button_in_chat_menu,
-                subtext=strings.button_in_chat_menu_desc,
-                default=False,
-                icon="msg_settings",
-                link_alias="show_chat_menu",
-                on_change=self.chat_button.on_chat_switch if self.chat_button else None
-            ),
-            Switch(
-                key="show_chat_plugins_menu",
-                text=strings.button_in_chat_plugins,
-                subtext=strings.button_in_chat_plugins_desc,
-                default=False,
-                icon="msg_plugins",
-                link_alias="show_chat_plugins_menu",
-                on_change=self.chat_button.on_chat_plugins_switch if self.chat_button else None
-            ),
-
-            Switch(
-                key="show_settings_button",
-                text=strings.show_settings_button,
-                subtext=strings.show_settings_button_desc,
-                default=True,
-                icon="msg_settings",
-                link_alias="show_settings_button",
-                on_change=self._onRestartRequiredSwitch
-            ),
-            Switch(
-                key="show_plugin_list_fab",
-                text=strings.show_plugin_list_fab,
-                subtext=strings.show_plugin_list_fab_desc,
-                default=True,
+            Header(text=strings.navigating_through_settings),
+            Text(
+                text=strings.hotkeys_header,
+                subtext=strings.hotkeys_subtext,
                 icon="msg_addbot",
-                link_alias="show_plugin_list_fab",
+                create_sub_fragment=self._open_hotkeys_page
             ),
-        ]
-
-        items += [
-            Divider(text=strings.buttons_header_desc),
-            Header(text=strings.interface_header),
-            self._build_sort_menu_design_item(ctx),
-            self._build_font_picker_item(ctx),
             Text(
                 text=strings.edit_plugin_card,
                 subtext=strings.edit_plugin_card_desc,
                 icon="msg_edit",
                 create_sub_fragment=self._open_card_editor
             ),
+            Text(
+                text=strings.plugin_profile_header,
+                subtext=strings.plugin_profile_subtext,
+                icon="msg_info",
+                create_sub_fragment=self._open_plugin_profile_page
+            ),
+            Text(
+                text=strings.install_sheet_header,
+                icon="msg_download",
+                create_sub_fragment=self._open_install_sheet_page
+            ),
+            Text(
+                text=strings.repos_navigation_header,
+                icon="msg_leave",
+                create_sub_fragment=self._open_repos_navigation_page
+            ),
+        ]
+
+        items += [
+            Header(text=strings.interface_header),
+            self._build_sort_menu_design_item(ctx),
+            self._build_font_picker_item(ctx),
             Switch(
                 key="hide_unavailable_plugins",
                 text=strings.hide_unavailable_plugins,
@@ -1877,60 +1891,6 @@ class OtherSettings:
                 icon="msg_to_beginning",
                 link_alias="scroll_button_bottom_right"
             ),
-            Divider(),
-            Header(text=strings.plugin_profile_header),
-            Switch(
-                key="show_extended_desc",
-                text=strings.show_extended_desc,
-                subtext=strings.show_extended_desc_desc,
-                default=False,
-                icon="msg_info",
-            ),
-            Divider(text=strings.show_extended_desc_hint),
-            Header(text=strings.install_sheet_header),
-            Switch(
-                key="install_sheet_links",
-                text=strings.install_sheet_links,
-                subtext=strings.install_sheet_links_desc,
-                default=True,
-                icon="msg_link",
-                link_alias="install_sheet_links"
-            ),
-            Switch(
-                key="install_sheet_hash",
-                text=strings.install_sheet_hash,
-                subtext=strings.install_sheet_hash_desc,
-                default=True,
-                icon="msg_sendfile",
-                link_alias="install_sheet_hash"
-            ),
-            Switch(
-                key="install_sheet_signatures",
-                text=strings.install_sheet_signatures,
-                subtext=strings.install_sheet_signatures_desc,
-                default=True,
-                icon="msg_policy",
-                link_alias="install_sheet_signatures"
-            ),
-            Divider(),
-            Header(text=strings.navigation_header),
-            Switch(
-                key="skip_repository_selection",
-                text=strings.skip_repository_selection,
-                subtext=strings.skip_repository_selection_desc,
-                default=False,
-                icon="msg_leave",
-                link_alias="skip_repository_selection"
-            ),
-            Switch(
-                key="version_picker_auto_expand",
-                text=strings.version_picker_auto_expand,
-                subtext=strings.version_picker_auto_expand_desc,
-                default=False,
-                icon="msg_list",
-                link_alias="version_picker_auto_expand"
-            ),
-            Divider(text=strings.navigation_header_desc),
             Header(text=strings.sfx_header),
             self._make_expandable_switch("sfx_enabled", strings.sfx_header, [
                 ("sfx_install", False),
