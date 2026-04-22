@@ -640,6 +640,8 @@
   "show_settings_button_desc": "Shows a PackIt Settings button under the exteraGram settings row.",
   "show_plugin_list_fab": "New plugin button",
   "show_plugin_list_fab_desc": "Adds a button to open the plugin list in PluginCell.",
+  "scroll_button_bottom_right": "Scroll button at bottom right",
+  "scroll_button_bottom_right_desc": "Position the scroll-to-top button at the bottom right corner instead of top center.",
   "restart_required_title": "Restart required",
   "restart_required_message": "This setting takes effect after a restart.",
   "bulletin_hook_restart_required": "A client restart is required to update the hook.",

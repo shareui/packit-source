@@ -1869,6 +1869,14 @@ class OtherSettings:
                 icon="msg_block",
                 link_alias="hide_unavailable_plugins"
             ),
+            Switch(
+                key="scroll_button_bottom_right",
+                text=strings.scroll_button_bottom_right,
+                subtext=strings.scroll_button_bottom_right_desc,
+                default=False,
+                icon="msg_to_beginning",
+                link_alias="scroll_button_bottom_right"
+            ),
             Divider(),
             Header(text=strings.plugin_profile_header),
             Switch(

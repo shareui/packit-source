@@ -1305,54 +1305,107 @@ class InstallUI:
             else:
                 scroll.addView(self.results_container, ScrollView.LayoutParams(-1, -2))
 
+            scroll_bottom_right = False
+            try:
+                from elyx import settings as _s
+                scroll_bottom_right = _s.get("scroll_button_bottom_right", False)
+            except Exception:
+                pass
+
             # pill: "↑ To the beginning" — floats over list, shown after scrolling ~10 plugins
             pill_wrapper = FrameLayout(act)
 
-            scroll_top_pill = LinearLayout(act)
-            scroll_top_pill.setOrientation(LinearLayout.HORIZONTAL)
-            scroll_top_pill.setGravity(Gravity.CENTER_VERTICAL)
-            scroll_top_pill.setClickable(True)
-            scroll_top_pill.setFocusable(True)
-            try:
-                pill_bg_color = Theme.getColor(Theme.key_featuredStickers_addButton)
-                pill_pressed_color = Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
-            except Exception:
-                pill_bg_color = Theme.getColor(Theme.key_dialogTextBlue)
-                pill_pressed_color = pill_bg_color
-            scroll_top_pill.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                AndroidUtilities.dp(20), pill_bg_color, pill_pressed_color
-            ))
-            scroll_top_pill.setPadding(
-                AndroidUtilities.dp(14), AndroidUtilities.dp(8),
-                AndroidUtilities.dp(14), AndroidUtilities.dp(8)
-            )
+            if scroll_bottom_right:
+                import math
+                from android.graphics.drawable import GradientDrawable as _GD
+                
+                def _make_fab_bg(color, size_dp=56, isSquare=False):
+                    bg = _GD()
+                    if isSquare:
+                        bg.setShape(_GD.RECTANGLE)
+                        corner = AndroidUtilities.dp(float(math.ceil(size_dp * 16.0 / 56.0)))
+                        bg.setCornerRadius(corner)
+                    else:
+                        bg.setShape(_GD.OVAL)
+                    bg.setColor(color)
+                    return bg
 
-            arrow_icon = ImageView(act)
-            arrow_icon_id = self.install_ui._resolve_icon("msg_to_beginning")
-            arrow_icon.setImageResource(arrow_icon_id)
-            try:
-                arrow_icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_buttonText))
-            except Exception:
-                pass
-            arrow_icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
-            arrow_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
-            arrow_lp.rightMargin = AndroidUtilities.dp(6)
-            scroll_top_pill.addView(arrow_icon, arrow_lp)
+                scroll_top_pill = FrameLayout(act)
+                scroll_top_pill.setClickable(True)
+                scroll_top_pill.setFocusable(True)
+                try:
+                    btn_base = Theme.getColor(Theme.key_featuredStickers_addButton)
+                    from android.graphics import Color
+                    r = (btn_base >> 16) & 0xFF
+                    g = (btn_base >> 8) & 0xFF
+                    b = btn_base & 0xFF
+                    transparent_btn_base = Color.argb(180, r, g, b)
+                    scroll_top_pill.setBackground(_make_fab_bg(transparent_btn_base, 40))
+                except Exception:
+                    pass
 
-            pill_label = TextView(act)
-            pill_label.setText(strings["to_the_beginning"])
-            pill_label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
-            pill_label.setTypeface(AndroidUtilities.bold())
-            try:
-                pill_label.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
-            except Exception:
-                pass
-            scroll_top_pill.addView(pill_label, LinearLayout.LayoutParams(-2, -2))
+                fab_size = AndroidUtilities.dp(40)
+                arrow_icon = ImageView(act)
+                arrow_icon_id = self.install_ui._resolve_icon("msg_to_beginning")
+                arrow_icon.setImageResource(arrow_icon_id)
+                try:
+                    arrow_icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_buttonText))
+                except Exception:
+                    pass
+                arrow_icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+                scroll_top_pill.addView(arrow_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
+                
+                pill_wrapper.addView(scroll_top_pill, FrameLayout.LayoutParams(fab_size, fab_size))
+                
+                pill_lp = FrameLayout.LayoutParams(fab_size, fab_size, Gravity.BOTTOM | Gravity.END)
+                pill_lp.rightMargin = AndroidUtilities.dp(16)
+                pill_lp.bottomMargin = AndroidUtilities.dp(20)
+            else:
+                scroll_top_pill = LinearLayout(act)
+                scroll_top_pill.setOrientation(LinearLayout.HORIZONTAL)
+                scroll_top_pill.setGravity(Gravity.CENTER_VERTICAL)
+                scroll_top_pill.setClickable(True)
+                scroll_top_pill.setFocusable(True)
+                try:
+                    pill_bg_color = Theme.getColor(Theme.key_featuredStickers_addButton)
+                    pill_pressed_color = Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
+                except Exception:
+                    pill_bg_color = Theme.getColor(Theme.key_dialogTextBlue)
+                    pill_pressed_color = pill_bg_color
+                scroll_top_pill.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                    AndroidUtilities.dp(20), pill_bg_color, pill_pressed_color
+                ))
+                scroll_top_pill.setPadding(
+                    AndroidUtilities.dp(14), AndroidUtilities.dp(8),
+                    AndroidUtilities.dp(14), AndroidUtilities.dp(8)
+                )
 
-            pill_wrapper.addView(scroll_top_pill, FrameLayout.LayoutParams(-2, -2))
+                arrow_icon = ImageView(act)
+                arrow_icon_id = self.install_ui._resolve_icon("msg_to_beginning")
+                arrow_icon.setImageResource(arrow_icon_id)
+                try:
+                    arrow_icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_buttonText))
+                except Exception:
+                    pass
+                arrow_icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+                arrow_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
+                arrow_lp.rightMargin = AndroidUtilities.dp(6)
+                scroll_top_pill.addView(arrow_icon, arrow_lp)
 
-            pill_lp = FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.CENTER_HORIZONTAL)
-            pill_lp.topMargin = AndroidUtilities.dp(118)
+                pill_label = TextView(act)
+                pill_label.setText(strings["to_the_beginning"])
+                pill_label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+                pill_label.setTypeface(AndroidUtilities.bold())
+                try:
+                    pill_label.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
+                except Exception:
+                    pass
+                scroll_top_pill.addView(pill_label, LinearLayout.LayoutParams(-2, -2))
+
+                pill_wrapper.addView(scroll_top_pill, FrameLayout.LayoutParams(-2, -2))
+                
+                pill_lp = FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.CENTER_HORIZONTAL)
+                pill_lp.topMargin = AndroidUtilities.dp(118)
             pill_wrapper.setAlpha(0.0)
             # keep VISIBLE at alpha=0 so GPU texture stays uploaded — avoids upload spike on first show
             pill_wrapper.setVisibility(View.VISIBLE)
