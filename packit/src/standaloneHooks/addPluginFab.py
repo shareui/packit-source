@@ -261,7 +261,7 @@ def _attach_press_animation(fab, state_ref):
         log(f"addPluginFab: _attach_press_animation error: {e}")
 
 
-
+def _make_end_listener(on_end):
     from android.animation import Animator
     from java import dynamic_proxy
 
