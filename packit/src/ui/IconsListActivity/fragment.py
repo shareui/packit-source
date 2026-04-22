@@ -597,7 +597,7 @@ class InstallIconsUI:
                         if getattr(self.outer, '_live_search_spinner', None) is None:
                             from org.telegram.ui.Components import CircularProgressDrawable
                             _size = 122
-                            _color = Theme.getColor(Theme.key_dialogLinkSelection)
+                            _color = Theme.getColor(Theme.key_featuredStickers_addButton)
                             _d = CircularProgressDrawable(float(_size), float(AndroidUtilities.dp(8)), _color)
                             _d.setBounds(0, 0, _size, _size)
                             _spinner_iv = ImageView(act)
@@ -951,7 +951,7 @@ class InstallIconsUI:
                 try:
                     from org.telegram.ui.Components import CircularProgressDrawable
                     _size = 122
-                    _color = Theme.getColor(Theme.key_dialogLinkSelection)
+                    _color = Theme.getColor(Theme.key_featuredStickers_addButton)
                     _d = CircularProgressDrawable(float(_size), float(AndroidUtilities.dp(8)), _color)
                     _d.setBounds(0, 0, _size, _size)
                     _spinner = ImageView(act)
