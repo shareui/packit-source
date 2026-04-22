@@ -460,7 +460,7 @@ class InstallUI:
     def _create_circular_loading(self, act, size_dp=20):
         try:
             from org.telegram.ui.Components import CircularProgressDrawable
-            color = Theme.getColor(Theme.key_featuredStickers_buttonText)
+            color = Theme.getColor(Theme.key_featuredStickers_addButton)
             d = CircularProgressDrawable(color)
             try:
                 d.size = float(AndroidUtilities.dp(size_dp))
@@ -504,7 +504,7 @@ class InstallUI:
 
             from org.telegram.ui.Components import CircularProgressDrawable
             size = 122
-            color = Theme.getColor(Theme.key_dialogLinkSelection)
+            color = Theme.getColor(Theme.key_featuredStickers_addButton)
             thickness = float(AndroidUtilities.dp(8))
             # use 3-arg ctor: size is set before setStyle, so m3IndicatorView gets correct size
             d = CircularProgressDrawable(float(size), thickness, color)
