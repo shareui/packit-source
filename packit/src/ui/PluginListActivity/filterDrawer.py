@@ -882,6 +882,34 @@ class SortDrawer:
         for key, (row, border, name_tv) in self._app_version_rows.items():
             self._update_row_style(border, name_tv, key in self._current_app_versions)
 
+    def _register_back_callback(self):
+        try:
+            from androidx.activity import OnBackPressedCallback
+            from extera_utils.classes import Base, java_subclass, joverride
+            drawer_ref = self
+
+            @java_subclass(OnBackPressedCallback)
+            class _BackCallback(Base):
+                @joverride()
+                def handleOnBackPressed(self):
+                    drawer_ref.close()
+
+            cb = _BackCallback.new_instance(True)
+            self._back_callback = cb
+            self.act.getOnBackPressedDispatcher().addCallback(self.act, cb.java)
+        except Exception as e:
+            log(f"SortDrawer._register_back_callback error: {e}")
+            self._back_callback = None
+
+    def _unregister_back_callback(self):
+        try:
+            cb = getattr(self, '_back_callback', None)
+            if cb is not None:
+                cb.remove()
+                self._back_callback = None
+        except Exception as e:
+            log(f"SortDrawer._unregister_back_callback error: {e}")
+
     def open(self, selected_tags, selected_authors=None, selected_app_versions=None):
         try:
             self._current_selected = set(selected_tags) if selected_tags else set()
@@ -897,6 +925,7 @@ class SortDrawer:
             self._is_open = True
             self._animate(True)
             self._adjust_spacer()
+            self._register_back_callback()
         except Exception as e:
             log(f"SortDrawer.open error: {e}")
 
@@ -920,6 +949,7 @@ class SortDrawer:
     def close(self):
         try:
             self._is_open = False
+            self._unregister_back_callback()
             self._animate(False)
         except Exception as e:
             log(f"SortDrawer.close error: {e}")

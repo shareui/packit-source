@@ -191,6 +191,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
         self._breadcrumb_bar = None
         self._frag_ref = [None]
         self._clipboard = None  # ("copy", path)
+        self._back_callback = None
 
     def onFragmentCreate(self, *_):
         log(f"filesActivity: onFragmentCreate stack={self._stack}")
@@ -198,6 +199,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
     def onFragmentDestroy(self, *_):
         log(f"filesActivity: onFragmentDestroy stack={self._stack} alive={self._alive[0]}")
         self._alive[0] = False
+        self._unregister_back_callback()
         try:
             if self._content_view is not None:
                 parent = self._content_view.getParent()
@@ -210,6 +212,45 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                 log("filesActivity: onFragmentDestroy views cleared")
         except Exception as e:
             log(f"filesActivity: onFragmentDestroy error: {e}")
+
+    def _register_back_callback(self):
+        if self._back_callback is not None:
+            return
+        try:
+            act = getattr(self, '_act', None)
+            if act is None:
+                return
+            from androidx.activity import OnBackPressedCallback
+            from extera_utils.classes import Base, java_subclass, joverride
+            delegate_ref = self
+
+            @java_subclass(OnBackPressedCallback)
+            class _BackCallback(Base):
+                @joverride()
+                def handleOnBackPressed(self):
+                    if len(delegate_ref._stack) > 1:
+                        delegate_ref._stack.pop()
+                        run_on_ui_thread(lambda: delegate_ref._render())
+                    if len(delegate_ref._stack) <= 1:
+                        delegate_ref._unregister_back_callback()
+
+            cb = _BackCallback.new_instance(True)
+            self._back_callback = cb
+            act.getOnBackPressedDispatcher().addCallback(act, cb.java)
+            log("filesActivity: back callback registered")
+        except Exception as e:
+            log(f"filesActivity: _register_back_callback error: {e}")
+            self._back_callback = None
+
+    def _unregister_back_callback(self):
+        try:
+            cb = self._back_callback
+            if cb is not None:
+                cb.remove()
+                self._back_callback = None
+                log("filesActivity: back callback unregistered")
+        except Exception as e:
+            log(f"filesActivity: _unregister_back_callback error: {e}")
 
     def getTitle(self):
         current_path = self._stack[-1]
@@ -225,11 +266,13 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
         if len(self._stack) > 1:
             popped = self._stack.pop()
             log(f"filesActivity: onBackPressed popped={popped} remaining={self._stack}")
+            if len(self._stack) <= 1:
+                self._unregister_back_callback()
             run_on_ui_thread(lambda: self._render())
-            # UniversalFragment inverts the delegate result (!onBackPressed),
-            # so False here becomes true on java side = "don't close fragment"
-            return False
-        log("filesActivity: onBackPressed at root, returning False (close)")
+            # delegate True -> java !True = False -> finishFragment not called = stay open
+            return True
+        log("filesActivity: onBackPressed at root, closing fragment")
+        # delegate False -> java !False = True -> finishFragment called = close
         return False
 
     def afterCreateView(self, v):
@@ -246,12 +289,16 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
 
     def onMenuItemClick(self, mid):
         if mid == -1:
-            try:
-                frag = get_last_fragment()
-                if frag:
-                    frag.finishFragment()
-            except Exception as e:
-                log(f"filesActivity: failed to finish fragment: {e}")
+            if len(self._stack) > 1:
+                self._stack.pop()
+                run_on_ui_thread(lambda: self._render())
+            else:
+                try:
+                    frag = get_last_fragment()
+                    if frag:
+                        frag.finishFragment()
+                except Exception as e:
+                    log(f"filesActivity: failed to finish fragment: {e}")
             return True
         return False
 
@@ -287,6 +334,9 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             "text_gray": text_gray, "accent": accent, "divider": divider_color
         }
         self._act = act
+
+        if len(self._stack) > 1:
+            self._register_back_callback()
 
         self._content_view = FrameLayout(act)
         self._content_view.setBackgroundColor(bg)
@@ -347,6 +397,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             return
         self._stack.append(path)
         log(f"filesActivity: _push stack_after={self._stack}")
+        self._register_back_callback()
         self._render()
 
     def _render_breadcrumbs(self):
@@ -418,59 +469,9 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
         # pop stack down to the given path
         while len(self._stack) > 1 and self._stack[-1] != path:
             self._stack.pop()
+        if len(self._stack) <= 1:
+            self._unregister_back_callback()
         self._render()
-
-    def _open_folder_in_new_window(self, path):
-        try:
-            frag = get_last_fragment()
-            if not frag:
-                return
-            
-            delegate = FilesFragment(path)
-            new_frag = UniversalFragment(delegate)
-            frag.presentFragment(new_frag)
-            
-            try:
-                folder_name = os.path.basename(path)
-                new_frag.setTitle(folder_name, False, 0)
-                action_bar = new_frag.getActionBar()
-                if action_bar:
-                    action_bar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))
-                    try:
-                        from org.telegram.messenger import R as R_tg
-                        back_icon = getattr(R_tg.drawable, 'ic_ab_back', 0)
-                        if back_icon:
-                            action_bar.setBackButtonImage(back_icon)
-                            action_bar.setBackButtonContentDescription("Back")
-                            try:
-                                back_button = action_bar.getBackButton()
-                                if back_button:
-                                    def _on_back_click(v):
-                                        f = get_last_fragment()
-                                        if f: f.finishFragment()
-                                    back_button.setOnClickListener(OnClickListener(_on_back_click))
-                            except Exception:
-                                pass
-                    except Exception as e:
-                        log(f"filesActivity: Failed to add back button: {e}")
-
-                    try:
-                        menu = action_bar.createMenu()
-                        add_icon = _resolve_icon("msg_addbot")
-                        add_btn = menu.addItemWithWidth(1, add_icon, AndroidUtilities.dp(54))
-                        
-                        add_btn.setOnClickListener(OnClickListener(lambda v: (
-                            delegate._do_create_file()
-                        )))
-                    except Exception as e:
-                        log(f"filesActivity: _open_folder_in_new_window menu error: {e}")
-                
-                delegate._frag_ref[0] = new_frag
-            except Exception as e:
-                log(f"filesActivity: _open_folder_in_new_window actionBar error: {e}")
-                
-        except Exception as e:
-            log(f"filesActivity: _open_folder_in_new_window error: {e}")
 
     def _open_menu(self, anchor, path):
         act = self._act
@@ -739,7 +740,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                 full = os.path.join(path, name)
                 row, _ = _make_row(act, name, None, folder_icon_id, t, is_dir=True,
                                    on_menu=lambda btn, p=full: self._open_menu(btn, p))
-                row.setOnClickListener(OnClickListener(lambda v, p=full: self._open_folder_in_new_window(p)))
+                row.setOnClickListener(OnClickListener(lambda v, p=full: self._push(p)))
                 _apply_press_scale(row)
                 list_root.addView(row, LayoutHelper.createLinear(-1, -2))
                 if i < len(dirs) - 1 or files:
@@ -1030,15 +1031,6 @@ def show_files_browser(plugin=None):
                     if back_icon:
                         action_bar.setBackButtonImage(back_icon)
                         action_bar.setBackButtonContentDescription("Back")
-                        try:
-                            back_button = action_bar.getBackButton()
-                            if back_button:
-                                def _on_back_click(v):
-                                    f = get_last_fragment()
-                                    if f: f.finishFragment()
-                                back_button.setOnClickListener(OnClickListener(_on_back_click))
-                        except Exception:
-                            pass
                 except Exception as e:
                     log(f"filesActivity: Failed to add back button: {e}")
                 try:

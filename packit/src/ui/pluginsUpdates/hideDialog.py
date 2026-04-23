@@ -21,6 +21,32 @@ _ANIM_DURATION = 220
 _SPRING_DURATION = 380
 
 
+def _register_back_cb(act, on_back):
+    try:
+        from androidx.activity import OnBackPressedCallback
+        from extera_utils.classes import Base, java_subclass, joverride
+
+        @java_subclass(OnBackPressedCallback)
+        class _Cb(Base):
+            @joverride()
+            def handleOnBackPressed(self):
+                on_back()
+
+        cb = _Cb.new_instance(True)
+        act.getOnBackPressedDispatcher().addCallback(act, cb.java)
+        return cb
+    except Exception as e:
+        log(f"hideDialog: _register_back_cb error: {e}")
+        return None
+
+def _unregister_back_cb(cb):
+    try:
+        if cb is not None:
+            cb.remove()
+    except Exception as e:
+        log(f"hideDialog: _unregister_back_cb error: {e}")
+
+
 def _animate_in(overlay, card):
     try:
         from android.animation import AnimatorSet, ObjectAnimator
@@ -153,8 +179,11 @@ def show_hide_dialog(act, pid: str, repo_id: str, repo_version: str, on_apply):
         decor = act.getWindow().getDecorView()
 
         overlay_ref = [None]
+        back_cb_ref = [None]
 
         def _dismiss(on_end=None):
+            _unregister_back_cb(back_cb_ref[0])
+            back_cb_ref[0] = None
             _animate_out(overlay_ref, card, decor, on_end=on_end)
 
         # dim overlay
@@ -282,6 +311,7 @@ def show_hide_dialog(act, pid: str, repo_id: str, repo_version: str, on_apply):
             pass
 
         decor.addView(overlay, ViewGroup.LayoutParams(-1, -1))
+        back_cb_ref[0] = _register_back_cb(act, _dismiss)
         run_on_ui_thread(lambda: _animate_in(overlay, card))
     except Exception as e:
         log(f"hideDialog: show_hide_dialog error: {e}")
