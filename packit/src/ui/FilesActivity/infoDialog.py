@@ -19,6 +19,32 @@ _ANIM_DURATION = 220
 _SPRING_DURATION = 380
 
 
+def _register_back_cb(act, on_back):
+    try:
+        from androidx.activity import OnBackPressedCallback
+        from extera_utils.classes import Base, java_subclass, joverride
+
+        @java_subclass(OnBackPressedCallback)
+        class _Cb(Base):
+            @joverride()
+            def handleOnBackPressed(self):
+                on_back()
+
+        cb = _Cb.new_instance(True)
+        act.getOnBackPressedDispatcher().addCallback(act, cb.java)
+        return cb
+    except Exception as e:
+        log(f"infoDialog: _register_back_cb error: {e}")
+        return None
+
+def _unregister_back_cb(cb):
+    try:
+        if cb is not None:
+            cb.remove()
+    except Exception as e:
+        log(f"infoDialog: _unregister_back_cb error: {e}")
+
+
 def _animate_in(overlay, card):
     try:
         from android.animation import AnimatorSet, ObjectAnimator
@@ -245,8 +271,11 @@ def show_info_dialog(act, name: str, info: dict):
         dp = AndroidUtilities.dp
         decor = act.getWindow().getDecorView()
         overlay_ref = [None]
+        back_cb_ref = [None]
 
         def _dismiss():
+            _unregister_back_cb(back_cb_ref[0])
+            back_cb_ref[0] = None
             _animate_out(overlay_ref, card, decor)
 
         overlay = FrameLayout(act)
@@ -334,6 +363,7 @@ def show_info_dialog(act, name: str, info: dict):
             pass
 
         decor.addView(overlay, ViewGroup.LayoutParams(-1, -1))
+        back_cb_ref[0] = _register_back_cb(act, _dismiss)
         run_on_ui_thread(lambda: _animate_in(overlay, card))
     except Exception as e:
         log(f"infoDialog: show_info_dialog error: {e}")

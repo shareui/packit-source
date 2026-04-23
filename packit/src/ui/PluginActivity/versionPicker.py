@@ -15,6 +15,32 @@ try:
 except Exception:
     pass
 
+def _register_back_cb(act, on_back):
+    try:
+        from androidx.activity import OnBackPressedCallback
+        from extera_utils.classes import Base, java_subclass, joverride
+
+        @java_subclass(OnBackPressedCallback)
+        class _Cb(Base):
+            @joverride()
+            def handleOnBackPressed(self):
+                on_back()
+
+        cb = _Cb.new_instance(True)
+        act.getOnBackPressedDispatcher().addCallback(act, cb.java)
+        return cb
+    except Exception as e:
+        log(f"versionPicker: _register_back_cb error: {e}")
+        return None
+
+def _unregister_back_cb(cb):
+    try:
+        if cb is not None:
+            cb.remove()
+    except Exception as e:
+        log(f"versionPicker: _unregister_back_cb error: {e}")
+
+
 def _build_version_entries(plugin):
     # returns list sorted newest first
     def _ver_key(v):
@@ -81,6 +107,7 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
         selected_entry = [None]
         list_expanded = [False]
         overlay_ref = [None]
+        back_cb_ref = [None]
         list_container_ref = [None]
         header_ver_tv_ref = [None]
         arrow_iv_ref = [None]
@@ -185,6 +212,8 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
         install_started = [False]
 
         def _dismiss(restore_btn=False):
+            _unregister_back_cb(back_cb_ref[0])
+            back_cb_ref[0] = None
             try:
                 from android.animation import AnimatorSet, ObjectAnimator, Animator
 
@@ -789,6 +818,8 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
         except Exception:
             pass
         decor.addView(overlay, ViewGroup.LayoutParams(-1, -1))
+
+        back_cb_ref[0] = _register_back_cb(act, _dismiss)
 
         def _post_show():
             _animate_in()
