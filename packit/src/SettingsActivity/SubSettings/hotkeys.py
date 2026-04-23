@@ -43,6 +43,14 @@ def build_hotkeys_page(other_settings, ctx):
             icon="msg_addbot",
             link_alias="show_plugin_list_fab",
         ),
+        Switch(
+            key="show_icon_packs_fab",
+            text=strings.show_icon_packs_fab,
+            subtext=strings.show_icon_packs_fab_desc,
+            default=True,
+            icon="msg_addbot",
+            link_alias="show_icon_packs_fab",
+        ),
         Divider(text=strings.buttons_header_desc),
     ]
     return [item for item in items if item is not None]

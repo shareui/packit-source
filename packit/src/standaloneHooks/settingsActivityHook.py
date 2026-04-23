@@ -1,3 +1,4 @@
+import ctypes
 from android_utils import log, run_on_ui_thread
 from hook_utils import find_class
 from base_plugin import MethodHook
@@ -19,6 +20,11 @@ except Exception as e:
 
 # must not collide with existing ids (-1..19 used by SettingsActivity)
 _PACKIT_SETTINGS_ID = 880099
+
+# icon bg: #e6d9f5 = rgba(230, 217, 245)
+_ICON_BG_COLOR = ctypes.c_int32((0xFF << 24) | (230 << 16) | (217 << 8) | 245).value
+# icon fg: #615ea4 = rgba(97, 94, 164)
+_ICON_FG_COLOR = ctypes.c_int32((0xFF << 24) | (97 << 16) | (94 << 8) | 164).value
 
 
 def setup_settings_activity_hook(plugin):
@@ -78,7 +84,7 @@ def setup_settings_activity_hook(plugin):
 
                     icon_id = 0
                     try:
-                        icon_id = int(R_tg.drawable.msg_settings)
+                        icon_id = int(R_tg.drawable.msg_download_remix)
                     except Exception as e:
                         log(f"settingsActivityHook: icon resolve error: {e}")
 
@@ -100,13 +106,25 @@ def setup_settings_activity_hook(plugin):
 
                     of_method.setAccessible(True)
                     from java import jint
-                    packit_item = of_method.invoke(None, [jint(_PACKIT_SETTINGS_ID), jint(0), jint(0), jint(icon_id), label])
+                    packit_item = of_method.invoke(
+                        None,
+                        [jint(_PACKIT_SETTINGS_ID), jint(_ICON_BG_COLOR), jint(_ICON_BG_COLOR), jint(icon_id), label]
+                    )
                     if packit_item is None:
                         log("settingsActivityHook: packit_item is None")
                         return
 
-                    items.add(extera_idx + 1, packit_item)
-                    log(f"settingsActivityHook: inserted PackIt button at {extera_idx + 1}")
+                    insert_offset = 1
+                    try:
+                        from org.telegram.messenger import ApplicationLoader
+                        pkg = str(ApplicationLoader.applicationContext.getPackageName())
+                        if pkg == "com.radolyn.ayugram":
+                            insert_offset = 2
+                    except Exception as e:
+                        log(f"settingsActivityHook: package check error: {e}")
+
+                    items.add(extera_idx + insert_offset, packit_item)
+                    log(f"settingsActivityHook: inserted PackIt button at {extera_idx + insert_offset}")
                 except Exception as e:
                     log(f"settingsActivityHook: FillItemsHook error: {e}")
 
@@ -136,6 +154,27 @@ def setup_settings_activity_hook(plugin):
                 except Exception as e:
                     log(f"settingsActivityHook: OnClickHook error: {e}")
 
+        class BindViewHook(MethodHook):
+            def after_hooked_method(self, param):
+                try:
+                    uItem = param.args[1]
+                    if uItem is None:
+                        return
+                    if int(uItem.id) != _PACKIT_SETTINGS_ID:
+                        return
+                    log("settingsActivityHook: BindViewHook fired for packit item")
+                    view = param.args[0]
+                    icon_view = view.getIconView()
+                    from android.graphics import PorterDuff
+                    from org.telegram.ui.ActionBar import Theme
+                    if not Theme.isCurrentThemeMonet():
+                        icon_view.setColorFilter(_ICON_FG_COLOR, PorterDuff.Mode.SRC_IN)
+                        log("settingsActivityHook: icon color applied")
+                    else:
+                        log("settingsActivityHook: monet theme, skipping color override")
+                except Exception as e:
+                    log(f"settingsActivityHook: BindViewHook error: {e}")
+
         try:
             fill_method = SA.getClass().getDeclaredMethod("fillItems", ArrayList, UniversalAdapter)
             fill_method.setAccessible(True)
@@ -145,7 +184,26 @@ def setup_settings_activity_hook(plugin):
             log(f"settingsActivityHook: fillItems hook error: {e}")
 
         try:
-            View = find_class("android.view.View")
+            SettingCellFactoryClass = find_class("org.telegram.ui.SettingsActivity$SettingCell$Factory")
+            bind_method = None
+            if SettingCellFactoryClass is not None:
+                for m in SettingCellFactoryClass.getDeclaredMethods():
+                    try:
+                        if m.getName() == "bindView" and len(m.getParameterTypes()) == 5:
+                            bind_method = m
+                            break
+                    except Exception:
+                        pass
+            if bind_method:
+                bind_method.setAccessible(True)
+                hooks.append(plugin.hook_method(bind_method, BindViewHook()))
+                log("settingsActivityHook: bindView hooked")
+            else:
+                log("settingsActivityHook: bindView(5) not found")
+        except Exception as e:
+            log(f"settingsActivityHook: bindView hook error: {e}")
+
+        try:
             click_method = None
             for m in SA.getClass().getDeclaredMethods():
                 try:

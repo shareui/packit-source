@@ -644,6 +644,8 @@
   "show_settings_button_desc": "Shows a PackIt Settings button under the exteraGram settings row.",
   "show_plugin_list_fab": "New plugin button",
   "show_plugin_list_fab_desc": "Adds a button to open the plugin list in PluginCell.",
+  "show_icon_packs_fab": "Icon catalog button",
+  "show_icon_packs_fab_desc": "Adds a button to open the icon catalog on the Icon Sets screen.",
   "scroll_button_bottom_right": "Scroll button at bottom right",
   "scroll_button_bottom_right_desc": "Position the scroll-to-top button at the bottom right corner instead of top center.",
   "restart_required_title": "Restart required",
