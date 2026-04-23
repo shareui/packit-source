@@ -17,13 +17,14 @@ from .other import everyone as _everyone
 from .other import text as _text
 from .ChatActivity.SecurityBottomSheets import setup_policy_button_hook, setup_hash_button_hook
 from .ChatActivity.LinksIcons import setup_links_buttons_hook
-from .SettingsActivity.service.settingsActivityHook import setup_settings_activity_hook
+from .standaloneHooks.settingsActivityHook import setup_settings_activity_hook
 from .SettingsActivity.service.fastExpandableHook import setup_fast_expandable_hook
 from .DialogsActivity.pillWidget import setup_pill_widget, _unregister_pill
 from .ui.PluginListActivity.service.InstallDismissHook import setup_install_dismiss_hook
 from .ChatActivity.export.DecryptorBottomSheet import setup_packit_file_hook
 from .ChatActivity.afpFile import setup_afp_file_hook
 from .standaloneHooks.addPluginFab import setup_plugins_activity_fab
+from .standaloneHooks.addIconsFab import setup_icon_packs_activity_fab
 from .ChatActivity.pluginAutocomplete import (
     setup_packit_autocomplete,
     _packit_get_class,
@@ -151,6 +152,7 @@ class PackItPlugin(BasePlugin):
         setup_packit_file_hook(self)
         setup_afp_file_hook(self)
         self.plugins_activity_fab_ref = setup_plugins_activity_fab(self)
+        self.icon_packs_activity_fab_ref = setup_icon_packs_activity_fab(self)
         self.settings_activity_hook_refs = setup_settings_activity_hook(self)
         self.fast_expandable_hook_ref = setup_fast_expandable_hook(self, self.settingsBuilder.otherSettings)
         setup_pill_widget(self)
