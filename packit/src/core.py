@@ -154,7 +154,7 @@ def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button,
             if _is_elyx_plugin(plugin_info) and rm_rid:
                 try:
                     from .utils.installIndex import commit_elyx_pending
-                    commit_elyx_pending(plugin_info, rm_rid)
+                    commit_elyx_pending(plugin_info, rm_rid, original_path=temp_path)
                 except Exception as e:
                     log(f"core: elyx index commit error: {e}")
             _fire_install_listeners(plugin_id)
@@ -573,7 +573,7 @@ def install_plugin_silent(file_path: str, plugin_data: dict, repo_id: str, on_co
             def _elyx_complete():
                 log(f"core.install_plugin_silent: elyx install complete for '{pid}'")
                 try:
-                    commit_elyx_pending(plugin_data, repo_id)
+                    commit_elyx_pending(plugin_data, repo_id, original_path=file_path)
                 except Exception as e:
                     log(f"core.install_plugin_silent: commit_elyx_pending error for '{pid}': {e}")
                 if on_complete:

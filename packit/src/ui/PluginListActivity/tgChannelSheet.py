@@ -87,7 +87,7 @@ def show_tg_channel_sheet(activity, resource_provider):
                 except Exception as e:
                     log(f"tgChannelSheet: achievement unlock error: {e}")
                 try:
-                    url = strings["tg_channel_url"]
+                    url = "https://t.me/addlist/pgo-Kwox6_g2Nzlk"
                     uri = Uri.parse(url)
                     Browser.openUrl(activity, uri, True, True, True, None, None, False, False, False)
                 except Exception:
