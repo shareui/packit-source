@@ -112,7 +112,7 @@ def _count_active_repos(repo_manager) -> int:
 def _plural_form(n: int, plural_type: str) -> str:
     # returns "one", "few", or "many" based on count and language plural rule
     if plural_type == "ru":
-        # slavic rule: 1→one, 2-4→few, 5+→many (also handles 11-19 edge case)
+        # slavic rule: 1->one, 2-4->few, 5+->many (also handles 11-19 edge case)
         mod10 = n % 10
         mod100 = n % 100
         if mod10 == 1 and mod100 != 11:
@@ -215,8 +215,6 @@ def _filter_unavailable(plugins):
         if not av or _check_app_version(av):
             result.append(p)
     return result
-
-
 
 class InstallUI:
     def __init__(self, plugin):

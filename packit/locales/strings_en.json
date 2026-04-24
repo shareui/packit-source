@@ -206,6 +206,8 @@
   "beta_dialog_ok": "OK",
   "beta_dialog_cancel": "Don't joke like that anymore :(",
   "update_repositories": "Update repositories",
+  "sfx_settings": "SFX Settings",
+  "plugin_components": "Plugin Components",
   "sfx_header": "SFX",
   "enable_sfx": "Enable SFX",
   "enable_sfx_desc": "Play sounds on plugin actions",
