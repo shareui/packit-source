@@ -29,6 +29,9 @@ def getPluginsDir() -> str:
 def getElyxArchivesDir() -> str:
     return _filesDir() + "/plugins/ElyxPlugins/archives"
 
+def getPackitArchivesDir() -> str:
+    return _filesDir() + "/plugins/ElyxPlugins/packit"
+
 def getBitHashSoPath() -> str:
     return _filesDir() + "/plugins/ElyxPlugins/shareui_packit/packit/native/libbithash.so"
 
