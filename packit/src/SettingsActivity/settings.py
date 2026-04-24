@@ -1793,6 +1793,30 @@ class OtherSettings:
             log(f"OtherSettings: _open_card_editor error: {e}")
             return []
 
+    def _open_interface_page(self):
+        try:
+            from .SubSettings.interface import build_interface_page
+            return build_interface_page(self, self._getContext())
+        except Exception as e:
+            log(f"OtherSettings: _open_interface_page error: {e}")
+            return []
+
+    def _open_sfx_page(self):
+        try:
+            from .SubSettings.sfx import build_sfx_page
+            return build_sfx_page(self, self._getContext())
+        except Exception as e:
+            log(f"OtherSettings: _open_sfx_page error: {e}")
+            return []
+
+    def _open_comps_page(self):
+        try:
+            from .SubSettings.comps import build_comps_page
+            return build_comps_page(self, self._getContext())
+        except Exception as e:
+            log(f"OtherSettings: _open_comps_page error: {e}")
+            return []
+
     def _open_hotkeys_page(self):
         try:
             from .SubSettings.hotkeys import build_hotkeys_page
@@ -1842,6 +1866,21 @@ class OtherSettings:
         items = [
             Header(text=strings.navigating_through_settings),
             Text(
+                text=strings.interface_header,
+                icon="msg_theme",
+                create_sub_fragment=self._open_interface_page
+            ),
+            Text(
+                text=strings.sfx_settings,
+                icon="msg_voicechat",
+                create_sub_fragment=self._open_sfx_page
+            ),
+            Text(
+                text=strings.plugin_components,
+                icon="msg_addbot",
+                create_sub_fragment=self._open_comps_page
+            ),
+            Text(
                 text=strings.hotkeys_header,
                 subtext=strings.hotkeys_subtext,
                 icon="msg_addbot",
@@ -1872,43 +1911,6 @@ class OtherSettings:
         ]
 
         items += [
-            Header(text=strings.interface_header),
-            self._build_sort_menu_design_item(ctx),
-            self._build_font_picker_item(ctx),
-            Switch(
-                key="hide_unavailable_plugins",
-                text=strings.hide_unavailable_plugins,
-                subtext=strings.hide_unavailable_plugins_desc,
-                default=False,
-                icon="msg_block",
-                link_alias="hide_unavailable_plugins"
-            ),
-            Switch(
-                key="scroll_button_bottom_right",
-                text=strings.scroll_button_bottom_right,
-                subtext=strings.scroll_button_bottom_right_desc,
-                default=False,
-                icon="msg_to_beginning",
-                link_alias="scroll_button_bottom_right"
-            ),
-            Header(text=strings.sfx_header),
-            self._make_expandable_switch("sfx_enabled", strings.sfx_header, [
-                ("sfx_install", False),
-                ("sfx_copy_link", False),
-                ("sfx_search", False),
-                ("sfx_clear_search", False),
-                ("sfx_achievement", True),
-            ]),
-            self._make_es_child("sfx_install", strings.sfx_install, False) if self._es_is_expanded("sfx_enabled") else None,
-            self._make_es_child("sfx_copy_link", strings.sfx_copy_link, False) if self._es_is_expanded("sfx_enabled") else None,
-            self._make_es_child("sfx_search", strings.sfx_search, False) if self._es_is_expanded("sfx_enabled") else None,
-            self._make_es_child("sfx_clear_search", strings.sfx_clear_search, False) if self._es_is_expanded("sfx_enabled") else None,
-            self._make_es_child("sfx_achievement", strings.sfx_achievement, True) if self._es_is_expanded("sfx_enabled") else None,
-            self._build_sfx_volume_slider(ctx),
-            Divider(text=strings.sfx_header_desc),
-            Header(text=strings.components_header),
-            self._build_search_engine_item(ctx),    
-            self._build_hash_function_item(ctx),
             Divider(),
             Header(text=strings.inline_search_header),
             Input(

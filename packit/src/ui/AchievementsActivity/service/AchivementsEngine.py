@@ -151,7 +151,10 @@ def _dict_to_db(db, data: dict):
         _lib.packdb_award_add(db, aid.encode())
 
 
-def _load_account(account_id: str = None) -> dict:
+def _load_account(account_id: str = None) -> tuple:
+    # returns (data, load_ok)
+    # load_ok=False means both main and snapshot failed to read (corrupted/missing sig)
+    # in that case callers must not overwrite with empty data
     if account_id is None:
         account_id = _get_current_account_id()
     os.makedirs(_get_configs_dir(), exist_ok=True)
@@ -160,10 +163,10 @@ def _load_account(account_id: str = None) -> dict:
         log(f"packitdb: load failed for {account_id}, trying snapshot")
         db = _open_db_from_file(_get_snap_path(), account_id)
         if not db:
-            return {}
+            return {}, False
     data = _db_to_dict(db)
     _lib.packdb_close(db)
-    return data
+    return data, True
 
 
 def _save_account(data: dict, account_id: str = None):
@@ -440,11 +443,14 @@ def _show_achievement_queue(queue: list):
 # public API
 
 def get_progress(achievement_id: str) -> int:
-    return _load_account().get(achievement_id, 0)
+    data, _ = _load_account()
+    return data.get(achievement_id, 0)
 
 
 def set_progress(achievement_id: str, value: int):
-    data = _load_account()
+    data, ok = _load_account()
+    if not ok:
+        return
     data[achievement_id] = value
     data, newly_completed = sync_completed(data)
     _save_account(data)
@@ -452,7 +458,9 @@ def set_progress(achievement_id: str, value: int):
 
 
 def increment(achievement_id: str, by: int = 1):
-    data = _load_account()
+    data, ok = _load_account()
+    if not ok:
+        return
     data[achievement_id] = data.get(achievement_id, 0) + by
     data, newly_completed = sync_completed(data)
     _save_account(data)
@@ -460,7 +468,9 @@ def increment(achievement_id: str, by: int = 1):
 
 
 def increment_category(category: str, by: int = 1):
-    data = _load_account()
+    data, ok = _load_account()
+    if not ok:
+        return
     for a in ACHIEVEMENTS:
         if a["category"] == category:
             data[a["id"]] = data.get(a["id"], 0) + by
@@ -472,7 +482,9 @@ def increment_category(category: str, by: int = 1):
 def unlock_secret(achievement_id: str):
     full_id = f"secret_{achievement_id}"
     log(f"achievements.unlock_secret: id={full_id}")
-    data = _load_account()
+    data, ok = _load_account()
+    if not ok:
+        return
     log(f"achievements.unlock_secret: current value={data.get(full_id)}, awarded={full_id in data.get('_awarded', [])}")
     data[full_id] = 1
     data, newly_completed = sync_completed(data)
@@ -489,7 +501,7 @@ def is_completed(achievement_id: str) -> bool:
 
 
 def get_all_with_progress() -> list:
-    data = _load_account()
+    data, _ = _load_account()
     result = []
     for a in ACHIEVEMENTS:
         progress = data.get(a["id"], 0)
@@ -500,9 +512,10 @@ def get_all_with_progress() -> list:
 
 
 def get_stats() -> dict:
-    data = _load_account()
+    data, ok = _load_account()
     data, _ = sync_completed(data)
-    _save_account(data)
+    if ok:
+        _save_account(data)
     return {
         "installed_plugins": data.get("first_plugin", 0),
         "repositories_added": data.get("repo_1", 0),
