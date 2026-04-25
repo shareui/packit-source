@@ -274,7 +274,7 @@ def _make_achievement_card(act, achievement: dict, on_hint_click):
         pass
     title_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
     if is_secret_locked:
-        title_tv.setText(str(strings["achiev_unknown_title"]))
+        title_tv.setText("???")
         title_tv.setTextColor(text_secondary)
     else:
         title_tv.setText(str(strings[achievement.get("title_key", "achiev_title_unknown")]))

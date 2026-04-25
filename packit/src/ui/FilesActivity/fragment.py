@@ -692,9 +692,9 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             msg = f"Delete {'folder' if is_dir else 'file'} \"{name}\"?"
 
             builder = AlertDialogBuilder(act)
-            builder.set_title(str(strings["files_delete_title"]))
+            builder.set_title("Delete")
             builder.set_message(msg)
-            builder.set_negative_button(str(strings["files_cancel"]), lambda b, w: b.dismiss())
+            builder.set_negative_button("Cancel", lambda b, w: b.dismiss())
 
             def on_yes(b, w):
                 try:
@@ -712,7 +712,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                 except Exception as e:
                     log(f"filesActivity: delete error: {e}")
 
-            builder.set_positive_button(str(strings["files_delete_title"]), on_yes)
+            builder.set_positive_button("Delete", on_yes)
             try:
                 builder.make_button_red(AlertDialogBuilder.BUTTON_POSITIVE)
             except Exception as e:
@@ -742,7 +742,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
 
             if not dirs and not files:
                 empty_tv = TextView(act)
-                empty_tv.setText(str(strings["files_empty_folder"]))
+                empty_tv.setText("Empty folder")
                 empty_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
                 empty_tv.setTextColor(t["text_gray"])
                 empty_tv.setGravity(Gravity.CENTER)

@@ -56,11 +56,13 @@ class _DocumentHandler(MethodHook):
                     def _is_hashed_id(k: str) -> bool:
                         return len(k) == 16 and all(c in "0123456789abcdef" for c in k)
 
-                    if achievements_data and all(_is_hashed_id(k) for k in achievements_data):
+                    if isinstance(achievements_data, dict) and achievements_data and all(_is_hashed_id(k) for k in achievements_data):
                         from ...ui.AchievementsActivity.service.AchivementsEngine import _hash_account_id
                         account_data = achievements_data.get(_hash_account_id(export_user_id), {})
-                    else:
+                    elif isinstance(achievements_data, dict):
                         account_data = achievements_data
+                    else:
+                        account_data = {}
 
                     import_level, import_xp, _ = get_level_info(account_data)
                 except Exception as e:

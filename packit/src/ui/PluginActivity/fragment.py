@@ -652,7 +652,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
 
             if release_date:
                 date_tv = TextView(act)
-                date_tv.setText(_format_date(release_date, str(strings["pp_release_date"])))
+                date_tv.setText(_format_date(release_date, "Release date"))
                 date_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
                 date_tv.setTextColor(text_color)
                 date_tv.setSingleLine(True)
@@ -667,7 +667,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             effective_update = update_date if update_date else release_date
             if effective_update:
                 update_tv = TextView(act)
-                update_tv.setText(_format_date(effective_update, str(strings["pp_last_updated"])))
+                update_tv.setText(_format_date(effective_update, "Last updated"))
                 update_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
                 update_tv.setTextColor(text_color)
                 update_tv.setSingleLine(True)
@@ -1276,7 +1276,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                         .setMultilineText(True)
                         .setBgColor(Theme.getColor(Theme.key_undo_background))
                         .setTextColor(Theme.getColor(Theme.key_undo_infoColor))
-                        .setText(str(strings["pp_plugin_archived_desc"]))
+                        .setText("The plugin will no longer be updated. But it might still work.")
                         .setTextAlign(Layout.Alignment.ALIGN_CENTER)
                         .allowBlur(True)
                         .setRounding(AndroidUtilities.dp(12))
@@ -1757,7 +1757,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
 
         def _build_stub_content():
             tv = TextView(act)
-            tv.setText(str(strings["pp_not_ready_yet"]))
+            tv.setText("It's not ready yet.")
             tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
             tv.setTextColor(gray_color)
             tv.setGravity(Gravity.CENTER_HORIZONTAL)

@@ -1,27 +1,32 @@
-from java import dynamic_proxy
-from java.lang import Runnable, String
-from android_utils import log
 try:
     from org.telegram.ui.Components import ItemOptions
 except Exception as e:
     import android_utils as _au; _au.log(f"contextMenu: import ItemOptions failed: {e}")
     ItemOptions = None
+
 try:
     from org.telegram.messenger import R as R_tg
 except Exception as e:
     import android_utils as _au; _au.log(f"contextMenu: import R failed: {e}")
     R_tg = None
+
 try:
     from org.telegram.ui.ActionBar import Theme
 except Exception as e:
     import android_utils as _au; _au.log(f"contextMenu: import Theme failed: {e}")
     Theme = None
 
+from java import dynamic_proxy
+from java.lang import Runnable, String
+from android_utils import log
+
+
 def _resolve_icon(name: str) -> int:
     try:
         return getattr(R_tg.drawable, name, 0)
     except Exception:
         return 0
+
 
 def _make_runnable(fn) -> Runnable:
     class _R(dynamic_proxy(Runnable)):
@@ -37,20 +42,20 @@ def _make_runnable(fn) -> Runnable:
 
 
 def show_plugin_context_menu(container, anchor_view, items: list):
+    """
+    shows standard telegram popup menu.
 
-#     usage guide
-
-#     container   - ViewGroup (e.g. anchor_view.getRootView())
-#     anchor_view - View to anchor the popup to
-#     items       - list of dicts:
-#         {
-#             "icon":   str,       # drawable name, e.g. "msg_copy"
-#             "text":   str,       # label
-#             "action": callable,  # called on tap
-#             "red":    bool,      # optional, default False
-#             "show":   bool,      # optional, default True -controls visibility
-#         }
-
+    container   - ViewGroup (e.g. anchor_view.getRootView())
+    anchor_view - View to anchor the popup to
+    items       - list of dicts:
+        {
+            "icon":   str,       # drawable name, e.g. "msg_copy"
+            "text":   str,       # label
+            "action": callable,  # called on tap
+            "red":    bool,      # optional, default False
+            "show":   bool,      # optional, default True - controls visibility
+        }
+    """
     if ItemOptions is None:
         log("contextMenu: ItemOptions not available")
         return

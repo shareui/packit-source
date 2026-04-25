@@ -508,7 +508,7 @@ def _showResultSheet(act, state: str, msg: str, localHash: str, showInstall: boo
             pass
 
         hashLabel = TextView(act)
-        hashLabel.setText(str(strings["hash_sha256_label"]))
+        hashLabel.setText("SHA-256")
         hashLabel.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
         hashLabel.setTypeface(AndroidUtilities.bold())
         hashLabel.setTextColor(stateColor)
