@@ -799,6 +799,9 @@
   "apply_button": "Apply",
   "authors_section_title": "Authors",
   "app_version_section_title": "App Version",
+  "saved_section_title": "Saved Plugins",
+  "saved_filter_saved": "Saved plugins",
+  "saved_filter_unsaved": "Unsaved plugins",
   "open_directory": "Open Directory",
   "open_directory_desc": "Browse packit files and folders",
   "to_the_beginning": "Scroll to Top",
@@ -814,5 +817,17 @@
   "deeplinks_desc": "Guide to deeplinks (tg://packit...)",
   "devdocs_desc": "Detailed documentation",
   "links_docs_desc": "Useful links and guides",
-  "docs_suggest_review": "You can also leave a review or suggest how to improve PackIt in [this section ⟩](https://t.me/packitGround/933)"
+  "docs_suggest_review": "You can also leave a review or suggest how to improve PackIt in [this section ⟩](https://t.me/packitGround/933)",
+  "interface_header_desc": "Cards, fonts, navigation style",
+  "sfx_settings_desc": "Sounds and volume for actions",
+  "plugin_components_desc": "Technical components of the PackIt",
+  "install_sheet_header_desc": "Buttons and info in install dialog",
+  "repos_navigation_header_desc": "How repo list is opened",
+  "inline_search_nav": "Inline search",
+  "inline_search_nav_desc": "Search & send plugins in the chat",
+  "misc_nav": "Misc",
+  "misc_nav_desc": "Search, status and appearance tweaks",
+  "updplugins_nav": "Updating plugins",
+  "updplugins_nav_desc": "Startup updates and ignore list",
+  "file_system_settings_nav_desc": "File display settings"
 }

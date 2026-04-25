@@ -30,6 +30,37 @@ except Exception as e:
     import android_utils as _au; _au.log(f"pluginProfile: import UniversalFragment failed: {e}")
 
 
+def _get_saved_plugins_path() -> str:
+    from ...utils.paths import getConfigsDir
+    import os
+    d = getConfigsDir()
+    os.makedirs(d, exist_ok=True)
+    return os.path.join(d, "saved_plugins.json")
+
+
+def _read_saved_plugins() -> list:
+    import json, os
+    path = _get_saved_plugins_path()
+    if not os.path.exists(path):
+        return []
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, list) else []
+    except Exception as e:
+        log(f"pluginProfile: _read_saved_plugins: {e}")
+        return []
+
+
+def _write_saved_plugins(ids: list):
+    import json
+    try:
+        with open(_get_saved_plugins_path(), "w", encoding="utf-8") as f:
+            json.dump(ids, f, ensure_ascii=False)
+    except Exception as e:
+        log(f"pluginProfile: _write_saved_plugins: {e}")
+
+
 def _add_actionbar_glow(fv):
     try:
         from android.graphics import Color
@@ -1060,9 +1091,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
 
         def _is_saved():
             try:
-                from ...utils.localConfig import LocalConfig
-                saved = LocalConfig.get("saved_plugins", {})
-                return isinstance(saved, dict) and _plugin_id in saved
+                return _plugin_id in _read_saved_plugins()
             except Exception:
                 return False
 
@@ -1143,17 +1172,14 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
 
         def onSaveClick(v):
             try:
-                from ...utils.localConfig import LocalConfig
-                saved = LocalConfig.get("saved_plugins", {})
-                if not isinstance(saved, dict):
-                    saved = {}
+                saved = _read_saved_plugins()
                 if _plugin_id in saved:
-                    del saved[_plugin_id]
+                    saved.remove(_plugin_id)
                     active = False
                 else:
-                    saved[_plugin_id] = _repo_id_save
+                    saved.append(_plugin_id)
                     active = True
-                LocalConfig.set("saved_plugins", saved)
+                _write_saved_plugins(saved)
                 _apply_save_state(active)
                 _apply_save_color(active)
                 if active:

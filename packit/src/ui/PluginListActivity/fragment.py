@@ -189,7 +189,8 @@ def _is_filtered(self_obj) -> bool:
     tags_filtered = bool(self_obj.selected_tags) and self_obj.selected_tags < all_tags
     authors_filtered = bool(self_obj.selected_authors) and self_obj.selected_authors < all_authors
     versions_filtered = bool(self_obj.selected_app_versions) and self_obj.selected_app_versions < all_versions
-    return tags_filtered or authors_filtered or versions_filtered
+    saved_filtered = hasattr(self_obj, 'selected_saved') and self_obj.selected_saved != {"saved", "unsaved"}
+    return tags_filtered or authors_filtered or versions_filtered or saved_filtered
 
 
 def _parse_version(v_str):
@@ -720,6 +721,7 @@ class InstallUI:
             self.selected_tags = set()
             self.selected_authors = set()
             self.selected_app_versions = set()
+            self.selected_saved = {"saved", "unsaved"}
             self._active_drawer = None
             self.batch_size = 10
             self.loading_container = None
@@ -1194,17 +1196,18 @@ class InstallUI:
                     imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
                 except Exception:
                     pass
-                def on_apply(tags, authors, app_versions):
+                def on_apply(tags, authors, app_versions, saved):
                     try:
                         self.selected_tags = tags
                         self.selected_authors = authors
                         self.selected_app_versions = app_versions
+                        self.selected_saved = saved
                         current_q = self.search.getText().toString() if self.search else (self.last_search_query or "")
                         self.build_list_with_sort(self.current_sort_type, current_q)
                     except Exception:
                         pass
                 self._active_drawer = show_tag_drawer(act, self.content_view, self.plugins, self.selected_tags, on_apply,
-                                                      self.selected_authors, self.selected_app_versions)
+                                                      self.selected_authors, self.selected_app_versions, self.selected_saved)
             
             tag_filter_btn.setOnClickListener(OnClickListener(lambda v: show_tag_filter_handler()))
             self.install_ui._apply_press_scale(tag_filter_btn)
@@ -1670,6 +1673,20 @@ class InstallUI:
                         p for p in filtered
                         if str(p.get("app_version") or "").strip() in self.selected_app_versions
                     ]
+
+            if hasattr(self, 'selected_saved') and self.selected_saved != {"saved", "unsaved"}:
+                try:
+                    from ..PluginActivity.fragment import _read_saved_plugins
+                    saved_ids = set(_read_saved_plugins())
+                    show_saved = "saved" in self.selected_saved
+                    show_unsaved = "unsaved" in self.selected_saved
+                    if not (show_saved and show_unsaved):
+                        filtered = [
+                            p for p in filtered
+                            if (str(p.get("id") or "") in saved_ids) == show_saved
+                        ]
+                except Exception as e:
+                    log(f"pluginList: saved filter error: {e}")
             
             if not q:
                 if sort_type == "alpha_az":
@@ -2202,6 +2219,7 @@ class InstallUI:
                 tags_row.setOrientation(LinearLayout.HORIZONTAL)
                 tags_row.setGravity(Gravity.LEFT | Gravity.CENTER_VERTICAL)
                 tags_row.setPadding(0, AndroidUtilities.dp(6), 0, 0)
+                tags_row.setClipChildren(True)
                 for tag in tags:
                     if not isinstance(tag, (list, tuple)) or len(tag) < 2:
                         continue
@@ -2255,6 +2273,31 @@ class InstallUI:
                     tag_lp = LinearLayout.LayoutParams(-2, -2)
                     tag_lp.rightMargin = AndroidUtilities.dp(5)
                     tags_row.addView(tag_tv, tag_lp)
+
+                # hide tags that don't fit in a single line — keep only the first visible one
+                _tags_row_ref = tags_row
+                class _TagsLayoutListener(dynamic_proxy(View.OnLayoutChangeListener)):
+                    def __init__(self):
+                        super().__init__()
+                        self._done = False
+                    def onLayoutChange(self, v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom):
+                        if self._done:
+                            return
+                        row_width = v.getWidth()
+                        if row_width <= 0:
+                            return
+                        self._done = True
+                        # hide any child whose right edge exceeds row width
+                        found_hidden = False
+                        for i in range(v.getChildCount()):
+                            child = v.getChildAt(i)
+                            if child is None:
+                                continue
+                            if found_hidden or child.getRight() > row_width:
+                                child.setVisibility(View.GONE)
+                                found_hidden = True
+                        v.removeOnLayoutChangeListener(self)
+                tags_row.addOnLayoutChangeListener(_TagsLayoutListener())
                 col.addView(tags_row, LayoutHelper.createLinear(-1, -2))
             
             top_row.addView(col, LayoutHelper.createLinear(0, -2, 1.0))
