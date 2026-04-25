@@ -255,10 +255,148 @@ class ProfileSettings:
 
     def _show_export_db(self, view):
         try:
-            t = threading.Thread(target=self._do_export, daemon=True)
-            t.start()
+            from android_utils import run_on_ui_thread
+            run_on_ui_thread(self._open_export_sheet)
         except Exception as e:
             log(f"profile._show_export_db: error: {e}")
+
+    def _open_export_sheet(self):
+        try:
+            from android.widget import LinearLayout, TextView, FrameLayout
+            from android.view import Gravity
+            from android.util import TypedValue
+            from android.graphics import Color
+            from android.graphics.drawable import GradientDrawable
+            from org.telegram.messenger import AndroidUtilities
+            from org.telegram.ui.ActionBar import Theme, BottomSheet
+            from org.telegram.ui.Components import LayoutHelper, CheckBox2
+            from android_utils import OnClickListener
+
+            frag = get_last_fragment()
+            if not frag:
+                return
+            ctx = frag.getParentActivity()
+            if not ctx:
+                return
+
+            dp = AndroidUtilities.dp
+
+            builder = BottomSheet.Builder(ctx)
+
+            root = LinearLayout(ctx)
+            root.setOrientation(LinearLayout.VERTICAL)
+            root.setPadding(dp(16), dp(8), dp(16), dp(16))
+
+            title = TextView(ctx)
+            title.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+            title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20)
+            title.setGravity(Gravity.CENTER)
+            try:
+                title.setTypeface(AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_MEDIUM))
+            except Exception:
+                pass
+            title.setText(str(strings["export_bs_title"]))
+            root.addView(title, LayoutHelper.createLinear(-1, -2, Gravity.CENTER_HORIZONTAL, 0, 16, 0, 8))
+
+            subtitle = TextView(ctx)
+            subtitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+            subtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            subtitle.setGravity(Gravity.CENTER)
+            subtitle.setText(str(strings["export_bs_subtitle"]))
+            root.addView(subtitle, LayoutHelper.createLinear(-1, -2, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 20))
+
+            checkboxStates = [True, True, True]
+            checkboxLabels = [
+                strings["export_bs_local_config"],
+                strings["export_bs_achievements"],
+                strings["export_bs_plugins"],
+            ]
+            checkboxViews = []
+
+            def makeCheckRow(i, labelText):
+                from org.telegram.ui.Components import ScaleStateListAnimator
+
+                rowBg = GradientDrawable()
+                rowBg.setShape(GradientDrawable.RECTANGLE)
+                rowBg.setCornerRadius(dp(10))
+                rowBg.setColor(Theme.getColor(Theme.key_windowBackgroundGray))
+
+                row = LinearLayout(ctx)
+                row.setOrientation(LinearLayout.HORIZONTAL)
+                row.setGravity(Gravity.CENTER_VERTICAL)
+                row.setBackground(rowBg)
+                row.setPadding(dp(14), dp(12), dp(14), dp(12))
+                row.setClickable(True)
+
+                cb = CheckBox2(ctx, 21, frag.getResourceProvider())
+                cb.setColor(
+                    Theme.key_radioBackgroundChecked,
+                    Theme.key_checkboxDisabled,
+                    Theme.key_checkboxCheck,
+                )
+                cb.setDrawUnchecked(True)
+                cb.setChecked(True, False)
+                cb.setDrawBackgroundAsArc(10)
+                checkboxViews.append(cb)
+
+                label = TextView(ctx)
+                label.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+                label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+                label.setText(str(labelText))
+
+                row.addView(cb, LayoutHelper.createLinear(21, 21, Gravity.CENTER_VERTICAL, 0, 0, 12, 0))
+                row.addView(label, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+
+                def makeToggle(idx, checkbox):
+                    def onClick(v):
+                        checkboxStates[idx] = not checkboxStates[idx]
+                        checkbox.setChecked(checkboxStates[idx], True)
+                    return onClick
+
+                row.setOnClickListener(OnClickListener(makeToggle(i, cb)))
+                ScaleStateListAnimator.apply(row, 0.05, 1.5)
+                return row
+
+            for i, label in enumerate(checkboxLabels):
+                bottomMargin = 8 if i < len(checkboxLabels) - 1 else 20
+                rowView = makeCheckRow(i, label)
+                root.addView(rowView, LayoutHelper.createLinear(-1, -2, 0, 0, 0, bottomMargin))
+
+            shareBtn = TextView(ctx)
+            shareBtn.setText(str(strings["export_bs_share"]))
+            shareBtn.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
+            shareBtn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+            try:
+                shareBtn.setTypeface(AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_MEDIUM))
+            except Exception:
+                pass
+            shareBtn.setGravity(Gravity.CENTER)
+            shareBtn.setPadding(dp(16), dp(12), dp(16), dp(12))
+            try:
+                btnBg = GradientDrawable()
+                btnBg.setShape(GradientDrawable.RECTANGLE)
+                btnBg.setCornerRadius(dp(8))
+                btnBg.setColor(Theme.getColor(Theme.key_featuredStickers_addButton))
+                shareBtn.setBackground(btnBg)
+            except Exception:
+                shareBtn.setBackgroundColor(Theme.getColor(Theme.key_featuredStickers_addButton))
+            root.addView(shareBtn, LayoutHelper.createLinear(-1, -2))
+
+            builder.setCustomView(root)
+            sheet = builder.create()
+
+            def onShare(v):
+                try:
+                    sheet.dismiss()
+                except Exception:
+                    pass
+                t = threading.Thread(target=self._do_export, daemon=True)
+                t.start()
+
+            shareBtn.setOnClickListener(OnClickListener(onShare))
+            sheet.show()
+        except Exception as e:
+            log(f"profile._open_export_sheet: error: {e}")
 
     def _make_stats_card(self, context):
         log("profile: _make_stats_card start")

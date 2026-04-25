@@ -244,7 +244,7 @@ class InstallIconsUI:
         log(f"IconList.open: usable repos count={len(repos)}")
         if not repos:
             log("IconList.open: no usable repos, showing error bulletin")
-            BulletinHelper.show_error(str(strings["err_no_repos_configured"]))
+            BulletinHelper.show_error("No repositories configured")
             return
         skip_sel = settings.get("skip_repository_selection", False)
         log(f"IconList.open: skip_repository_selection={skip_sel}")
@@ -322,7 +322,7 @@ class InstallIconsUI:
                 log(f"IconList._open_all_repos_icons: total icons collected={len(all_icons)}")
                 run_on_ui_thread(lambda: self._update_current_fragment_icons(all_icons))
             except Exception as e:
-                BulletinHelper.show_error(str(strings["err_failed_to_load_icons_simple"]))
+                BulletinHelper.show_error("Failed to load icons")
                 log(f"IconList._open_all_repos_icons: fatal error: {e}")
         run_on_queue(load_task)
 
@@ -332,7 +332,7 @@ class InstallIconsUI:
         log(f"IconList._open_repo_icons: repo='{repo_name}' url='{repo_url}'")
         if not repo_url:
             log("IconList._open_repo_icons: empty url, aborting")
-            BulletinHelper.show_error(str(strings["err_repo_url_empty"]))
+            BulletinHelper.show_error("Repository URL is empty")
             return
         fragment = get_last_fragment()
         if not fragment:
@@ -384,7 +384,7 @@ class InstallIconsUI:
                 log(f"IconList._open_repo_icons: parsed icons count={len(icons)}")
                 run_on_ui_thread(lambda: self._update_current_fragment_icons(icons))
             except Exception as e:
-                BulletinHelper.show_error(str(strings["err_download_failed_simple"]))
+                BulletinHelper.show_error("An error occurred while downloading")
                 log(f"IconList._open_repo_icons: error for url='{repo_url}': {e}")
         run_on_queue(load_task)
 
