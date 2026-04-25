@@ -167,7 +167,6 @@ def _try_load_sticker(iv, icon_str, size_dp):
                 None, None, 0, 1
             )
             return True
-        # pack not cached — request load from network
         try:
             mdc.loadStickersByEmojiOrName(pack_name, False, False)
         except Exception:
@@ -262,133 +261,90 @@ from .versionPicker import _show_version_picker
 
 def _show_plugin_menu(act, p, anchor_view, repo_id: str = ""):
     try:
-        from ..PluginListActivity.service.PluginActions import copy_plugin_link, share_plugin_file, view_plugin_code, download_plugin_file, translate_plugin
+        from ..PluginListActivity.service.PluginActions import share_plugin_file, view_plugin_code, download_plugin_file
         from ..PluginListActivity.service.ReportService import report_plugin
-        from org.telegram.messenger import R as R_tg
+        from org.telegram.ui.Components import ItemOptions
+        from org.telegram.ui.ActionBar import ActionBarMenuSubItem
+        from org.telegram.messenger import R as R_tg, AndroidUtilities
+        from java import dynamic_proxy
+        from java.lang import Runnable as JRunnable
+        from android_utils import OnClickListener
 
-        popup_layout = ActionBarPopupWindow.ActionBarPopupWindowLayout(act)
-        popup_layout.setBackgroundColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuBackground))
-        popup_layout.setFitItems(True)
-        popup_window_ref = [None]
+        plugin_id = str(p.get("id") or "")
+        version = str(p.get("version") or "")
+        rid = repo_id or plugin_id
 
-        def create_menu_item(icon_res, title, action, is_red=False):
-            item_frame = FrameLayout(act)
-            item_frame.setMinimumWidth(AndroidUtilities.dp(160))
-            item_frame.setClickable(True)
-            item_frame.setFocusable(True)
-            try:
-                try:
-                    bg_color = Theme.getColor(Theme.key_dialogBackgroundGray) & 0x20FFFFFF | 0x10000000
-                except Exception:
-                    bg_color = Theme.getColor(Theme.key_windowBackgroundGray) & 0x20FFFFFF | 0x10000000
-                try:
-                    pressed_color = Theme.getColor(Theme.key_listSelector) & 0x40FFFFFF | 0x30000000
-                except Exception:
-                    pressed_color = AColor.parseColor("#D0D0D0") if AColor else 0x30000000
-                btn_bg = GradientDrawable()
-                btn_bg.setCornerRadius(AndroidUtilities.dp(10))
-                btn_bg.setColor(bg_color)
-                try:
-                    ripple_color = AColorStateList.valueOf(AColor.parseColor("#40000000"))
-                    pressed_bg = GradientDrawable()
-                    pressed_bg.setCornerRadius(AndroidUtilities.dp(10))
-                    pressed_bg.setColor(pressed_color)
-                    item_frame.setBackground(RippleDrawable(ripple_color, btn_bg, pressed_bg))
-                except Exception:
-                    item_frame.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                        AndroidUtilities.dp(10), bg_color, pressed_color
-                    ))
-            except Exception:
-                item_frame.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 2))
+        def _icon(name):
+            return int(getattr(R_tg.drawable, name, 0))
 
-            item_content = LinearLayout(act)
-            item_content.setOrientation(LinearLayout.HORIZONTAL)
-            item_content.setGravity(Gravity.CENTER_VERTICAL)
-            item_content.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12))
-
-            icon = ImageView(act)
-            icon.setScaleType(ImageView.ScaleType.CENTER)
-            try:
-                icon_drawable = ContextCompat.getDrawable(act, icon_res)
-                if is_red:
+        def _runnable(fn):
+            class _R(dynamic_proxy(JRunnable)):
+                def __init__(self):
+                    super().__init__()
+                def run(self):
                     try:
-                        red_color = Theme.getColor(Theme.key_text_RedRegular)
-                    except Exception:
-                        red_color = AColor.parseColor("#FF3B30")
-                    icon_drawable.setColorFilter(red_color, PorterDuff.Mode.SRC_IN)
-                else:
-                    try:
-                        gray_color = Theme.getColor(Theme.key_dialogTextGray)
-                    except Exception:
-                        gray_color = AColor.parseColor("#808080")
-                    icon_drawable.setColorFilter(gray_color, PorterDuff.Mode.SRC_IN)
-                icon.setImageDrawable(icon_drawable)
-            except Exception:
-                icon.setImageResource(icon_res)
-            item_content.addView(icon, LayoutHelper.createLinear(24, 24, Gravity.CENTER_VERTICAL, 0, 0, 12, 0))
+                        fn()
+                    except Exception as _e:
+                        log(f"pluginProfile: menu action error: {_e}")
+            return _R()
 
-            title_tv = TextView(act)
-            title_tv.setText(title)
-            title_tv.setTextSize(14)
+        options = ItemOptions.makeOptions(anchor_view.getRootView(), None, anchor_view, True)
+
+        # swipeback panel for copy link
+        # install = no version, install latest = with current version pinned
+        def _copy_and_dismiss(link):
+            AndroidUtilities.addToClipboard(link)
+            options.dismiss()
             try:
-                if is_red:
-                    try:
-                        red_color = Theme.getColor(Theme.key_text_RedRegular)
-                    except Exception:
-                        red_color = AColor.parseColor("#FF3B30")
-                    title_tv.setTextColor(red_color)
-                else:
-                    title_tv.setTextColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuItem))
-            except Exception:
-                pass
-            item_content.addView(title_tv, LayoutHelper.createLinear(-1, -2, 1.0, Gravity.CENTER_VERTICAL))
-            item_frame.addView(item_content)
-
-            def _on_click(*_):
+                from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
+                increment_category("Copying links")
+            except Exception as _ae:
+                log(f"pluginProfile: achievement increment error: {_ae}")
+            try:
+                from hook_utils import find_class as _fc
+                BulletinFactory = _fc("org.telegram.ui.Components.BulletinFactory")
+                frag = get_last_fragment()
+                container = anchor_view.getRootView()
+                resource_provider = None
                 try:
-                    if popup_window_ref[0]:
-                        popup_window_ref[0].dismiss()
+                    resource_provider = frag.getResourceProvider()
                 except Exception:
                     pass
-                try:
-                    action()
-                except Exception:
-                    pass
+                icon_raw = getattr(R_tg.raw, "copy", getattr(R_tg.raw, "msg_copy", 0))
+                BulletinFactory.of(container, resource_provider).createSimpleBulletin(
+                    icon_raw,
+                    str(strings["link_copied"])
+                ).show()
+            except Exception as _be:
+                log(f"pluginProfile: copy bulletin error: {_be}")
 
-            item_frame.setOnClickListener(OnClickListener(_on_click))
-            popup_layout.addView(item_frame, LayoutHelper.createLinear(-1, -2))
+        swipeback = options.makeSwipeback()
+        swipeback.add(_icon("ic_ab_back"), str(strings["copy_link_back"]),
+                      _runnable(lambda: options.closeSwipeback()))
+        swipeback.addGap()
+        swipeback.add(_icon("msg_download"), str(strings["copy_link_install"]),
+                      _runnable(lambda: _copy_and_dismiss(f"tg://packit?install&repo={rid}&plugin={plugin_id}")))
+        swipeback.add(_icon("msg_download"), str(strings["copy_link_install_latest"]),
+                      _runnable(lambda: _copy_and_dismiss(f"tg://packit?install&repo={rid}&plugin={plugin_id}&version={version}")))
+        swipeback.add(_icon("msg_contacts"), str(strings["copy_link_profile"]),
+                      _runnable(lambda: _copy_and_dismiss(f"tg://packit?plugin={plugin_id}&repo={rid}")))
 
-        icon_copy      = getattr(R_tg.drawable, 'msg_copy',      getattr(R_tg.drawable, 'msg_copy_filled', 0))
-        icon_share     = getattr(R_tg.drawable, 'msg_share',     0)
-        icon_code      = getattr(R_tg.drawable, 'msg_view_file', 0)
-        icon_download  = getattr(R_tg.drawable, 'msg_download',  0)
-        icon_translate = getattr(R_tg.drawable, 'msg_replace',   0)
-        icon_report    = getattr(R_tg.drawable, 'msg_report',    0)
+        # copy link row (opens swipeback)
+        ctx = options.getContext()
+        copy_sub = ActionBarMenuSubItem(ctx, False, False, None)
+        copy_sub.setTextAndIcon(str(strings["copy_link"]), _icon("msg_copy"))
+        copy_sub.setOnClickListener(OnClickListener(lambda v: options.openSwipeback(swipeback)))
+        options.add(copy_sub)
 
-        import os as _os
-        _copy_sound = _os.path.join(_os.path.dirname(__file__), "../../../res/sounds/copy-link.mp3")
-        create_menu_item(icon_copy,      str(strings["copy_link"]), lambda: copy_plugin_link(p, repo_id or str(p.get("id") or ""), _copy_sound))
-        create_menu_item(icon_share,     str(strings["share"]),     lambda: share_plugin_file(p, str(p.get("name") or p.get("id") or ""), act))
-        create_menu_item(icon_code,      str(strings["code"]),      lambda: view_plugin_code(p, act))
-        create_menu_item(icon_download,  str(strings["download"]),  lambda: download_plugin_file(p))
-        create_menu_item(icon_report,    str(strings["report"]),    lambda: report_plugin(p, act), is_red=True)
+        options.add(_icon("msg_share"),     str(strings["share"]),    _runnable(lambda: share_plugin_file(p, str(p.get("name") or plugin_id), act)))
+        options.add(_icon("msg_view_file"), str(strings["code"]),     _runnable(lambda: view_plugin_code(p, act)))
+        options.add(_icon("msg_download"),  str(strings["download"]), _runnable(lambda: download_plugin_file(p)))
+        options.addGap()
+        options.add(_icon("msg_report"),    str(strings["report"]),   Theme.key_text_RedRegular, Theme.key_text_RedRegular,
+                    _runnable(lambda: report_plugin(p, act)))
 
-        popup_window = ActionBarPopupWindow(popup_layout, -2, -2)
-        popup_window_ref[0] = popup_window
-        popup_window.setOutsideTouchable(True)
-        popup_window.setClippingEnabled(True)
-        popup_window.setAnimationStyle(R_tg.style.PopupContextAnimation)
-        popup_window.setFocusable(True)
-        popup_layout.measure(
-            View.MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(1000), View.MeasureSpec.AT_MOST),
-            View.MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(1000), View.MeasureSpec.AT_MOST)
-        )
-        location = [0, 0]
-        anchor_view.getLocationInWindow(location)
-        popup_x = location[0] + anchor_view.getWidth() - popup_layout.getMeasuredWidth()
-        popup_y = location[1] - popup_layout.getMeasuredHeight()
-        popup_window.showAtLocation(anchor_view, Gravity.TOP | Gravity.LEFT, popup_x, popup_y)
-        popup_window.dimBehind()
+        options.setSwipebackGravity(True, False)
+        options.show()
         log("pluginProfile: _show_plugin_menu shown")
     except Exception as e:
         log(f"pluginProfile: _show_plugin_menu error: {e}")
@@ -696,7 +652,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
 
             if release_date:
                 date_tv = TextView(act)
-                date_tv.setText(_format_date(release_date, "Release date"))
+                date_tv.setText(_format_date(release_date, str(strings["pp_release_date"])))
                 date_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
                 date_tv.setTextColor(text_color)
                 date_tv.setSingleLine(True)
@@ -711,7 +667,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             effective_update = update_date if update_date else release_date
             if effective_update:
                 update_tv = TextView(act)
-                update_tv.setText(_format_date(effective_update, "Last updated"))
+                update_tv.setText(_format_date(effective_update, str(strings["pp_last_updated"])))
                 update_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
                 update_tv.setTextColor(text_color)
                 update_tv.setSingleLine(True)
@@ -1320,7 +1276,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                         .setMultilineText(True)
                         .setBgColor(Theme.getColor(Theme.key_undo_background))
                         .setTextColor(Theme.getColor(Theme.key_undo_infoColor))
-                        .setText("The plugin will no longer be updated. But it might still work.")
+                        .setText(str(strings["pp_plugin_archived_desc"]))
                         .setTextAlign(Layout.Alignment.ALIGN_CENTER)
                         .allowBlur(True)
                         .setRounding(AndroidUtilities.dp(12))
@@ -1801,7 +1757,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
 
         def _build_stub_content():
             tv = TextView(act)
-            tv.setText("It's not ready yet.")
+            tv.setText(str(strings["pp_not_ready_yet"]))
             tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
             tv.setTextColor(gray_color)
             tv.setGravity(Gravity.CENTER_HORIZONTAL)

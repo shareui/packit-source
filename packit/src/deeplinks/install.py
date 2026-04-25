@@ -87,7 +87,7 @@ def handle(url, repoManager):
 
         repo = _findRepo(repoManager, repoId)
         if not repo:
-            BulletinHelper.show_error(f"Repository '{repoId}' not found")
+            BulletinHelper.show_error(str(strings("err_repo_not_found", id=repoId)))
             return
 
         if iconId:
@@ -268,12 +268,12 @@ def _handleInstallPlugin(repo: dict, pluginId: str, versionId: str = ""):
         try:
             pluginsUrl = _resolvePluginsUrl(repo)
             if not pluginsUrl:
-                run_on_ui_thread(lambda: BulletinHelper.show_error("Repository URL is empty"))
+                run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings.err_repo_url_empty)))
                 return
 
             r = requests.get(pluginsUrl, timeout=15)
             if r.status_code != 200:
-                run_on_ui_thread(lambda: BulletinHelper.show_error(f"Failed to load repository: HTTP {r.status_code}"))
+                run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings("err_repo_load_failed", code=r.status_code))))
                 return
 
             data = r.json()
@@ -300,7 +300,7 @@ def _handleInstallPlugin(repo: dict, pluginId: str, versionId: str = ""):
                 all_plugins = [p for p in pluginsRaw if isinstance(p, dict)]
 
             if not plugin:
-                run_on_ui_thread(lambda: BulletinHelper.show_error(f"Plugin '{pluginId}' not found"))
+                run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings("err_plugin_not_found", id=pluginId))))
                 return
 
             # resolve specific version if requested
@@ -313,7 +313,7 @@ def _handleInstallPlugin(repo: dict, pluginId: str, versionId: str = ""):
                     meta = versions[versionId]
                     link = meta.get("link") or meta.get("raw") or ""
                     if not link:
-                        run_on_ui_thread(lambda: BulletinHelper.show_error(f"Version '{versionId}' has no link"))
+                        run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings("err_version_no_link", id=versionId))))
                         return
                     original_plugin = plugin  # keep original for compatibility search
                     plugin = dict(plugin)
@@ -325,7 +325,7 @@ def _handleInstallPlugin(repo: dict, pluginId: str, versionId: str = ""):
                     plugin["hash"] = "Outdated"
                     plugin["bithash"] = "Outdated"
                 else:
-                    run_on_ui_thread(lambda: BulletinHelper.show_error(f"Version '{versionId}' not found"))
+                    run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings("err_version_not_found", id=versionId))))
                     return
 
                 # check compatibility of resolved version
@@ -344,7 +344,7 @@ def _handleInstallPlugin(repo: dict, pluginId: str, versionId: str = ""):
             run_on_ui_thread(lambda: install_plugin(plugin, all_plugins=all_plugins))
         except Exception as e:
             log(f"deeplinks.install: fetch error: {e}")
-            run_on_ui_thread(lambda: BulletinHelper.show_error("An error occurred while loading plugin"))
+            run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings.err_plugin_load_failed)))
 
     if versionId:
         def _show_loading_bulletin():
@@ -391,12 +391,12 @@ def _handleInstallIconPack(repo: dict, iconId: str):
         try:
             iconsUrl = _resolveIconsUrl(repo)
             if not iconsUrl:
-                run_on_ui_thread(lambda: BulletinHelper.show_error("Repository URL is empty"))
+                run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings.err_repo_url_empty)))
                 return
 
             r = requests.get(iconsUrl, timeout=15)
             if r.status_code != 200:
-                run_on_ui_thread(lambda: BulletinHelper.show_error(f"Failed to load repository: HTTP {r.status_code}"))
+                run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings("err_repo_load_failed", code=r.status_code))))
                 return
 
             data = r.json()
@@ -414,12 +414,12 @@ def _handleInstallIconPack(repo: dict, iconId: str):
                         break
 
             if not icon:
-                run_on_ui_thread(lambda: BulletinHelper.show_error(f"Icon pack '{iconId}' not found"))
+                run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings("err_icon_pack_not_found", id=iconId))))
                 return
 
             run_on_ui_thread(lambda: install_icon_pack(icon))
         except Exception as e:
             log(f"deeplinks.install: icon fetch error: {e}")
-            run_on_ui_thread(lambda: BulletinHelper.show_error("An error occurred while loading icon pack"))
+            run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings.err_icon_pack_load_failed)))
 
     run_on_queue(task)

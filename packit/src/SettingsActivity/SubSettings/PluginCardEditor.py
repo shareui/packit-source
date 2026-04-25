@@ -431,7 +431,7 @@ class PluginCardPreview:
             name_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
         except Exception:
             name_tv.setTypeface(AndroidUtilities.bold())
-        name_tv.setText("Plugin Name")
+        name_tv.setText(str(strings["card_preview_name"]))
         name_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
         name_tv.setSingleLine(True)
         name_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, float(_gs(_KEY_NAME_SIZE)))
@@ -439,7 +439,7 @@ class PluginCardPreview:
         col.addView(name_tv, LayoutHelper.createLinear(-1, -2))
 
         id_tv = TextView(self.context)
-        id_tv.setText("v1.0.0 \u2022 @author")
+        id_tv.setText(str(strings["card_preview_id"]))
         id_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
         id_tv.setSingleLine(True)
         id_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, float(_gs(_KEY_ID_SIZE)))
@@ -479,7 +479,7 @@ class PluginCardPreview:
 
         # chips placeholder — shown when all chips are off
         chips_ph = TextView(self.context)
-        chips_ph.setText("+ info")
+        chips_ph.setText(str(strings["card_preview_chips_ph"]))
         chips_ph.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
         chips_ph.setTextColor(ctypes.c_int32(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)).value)
         chips_ph.setBackground(Theme.createRoundRectDrawable(
@@ -522,7 +522,7 @@ class PluginCardPreview:
             tags_row.addView(tag_tv, tag_lp)
         # tags placeholder
         tags_ph = TextView(self.context)
-        tags_ph.setText("+ tags")
+        tags_ph.setText(str(strings["card_preview_tags_ph"]))
         tags_ph.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
         tags_ph.setTextColor(ctypes.c_int32(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)).value)
         tags_ph.setBackground(Theme.createRoundRectDrawable(
@@ -541,7 +541,7 @@ class PluginCardPreview:
         col.addView(tags_wrapper, tags_wrapper_lp)
 
         desc_tv = TextView(self.context)
-        desc_tv.setText("Plugin description text that shows below the name and author.")
+        desc_tv.setText(str(strings["card_preview_desc"]))
         desc_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
         desc_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, float(_gs(_KEY_DESC_SIZE)))
         self.elements['desc_tv'] = desc_tv
@@ -958,10 +958,10 @@ class PluginCardPreview:
             id_tv = self.elements['id_tv']
             id_tv.setVisibility(View.VISIBLE)
             if show_id:
-                id_tv.setText("v1.0.0 \u2022 @author")
+                id_tv.setText(str(strings["card_preview_id"]))
                 id_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
             else:
-                id_tv.setText("v \u2022 @author")
+                id_tv.setText(str(strings["card_preview_id_hidden"]))
                 id_tv.setTextColor(ctypes.c_int32(
                     (0x44 << 24) | (Theme.getColor(Theme.key_windowBackgroundWhiteGrayText) & 0x00FFFFFF)
                 ).value)
@@ -1259,7 +1259,7 @@ class PluginCardEditorPage:
         row.setOrientation(LinearLayout.VERTICAL)
         row.setPadding(AndroidUtilities.dp(23), AndroidUtilities.dp(10), AndroidUtilities.dp(23), AndroidUtilities.dp(10))
         tv = TextView(ctx)
-        tv.setText("Chips gravity")
+        tv.setText(str(strings["card_chips_gravity"]))
         tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15.0)
         tv.setTextColor(ctypes.c_int32(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText)).value)
         row.addView(tv, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8))
@@ -1336,7 +1336,7 @@ class PluginCardEditorPage:
             ctypes.c_int32(Theme.getColor(Theme.key_listSelector)).value, 2
         ))
         lbl = TextView(ctx)
-        lbl.setText("Color")
+        lbl.setText(str(strings["card_color"]))
         lbl.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16.0)
         lbl.setTextColor(ctypes.c_int32(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText)).value)
         color_row.addView(lbl, LayoutHelper.createLinear(0, -2, 1.0, 23, 0, 12, 0))
