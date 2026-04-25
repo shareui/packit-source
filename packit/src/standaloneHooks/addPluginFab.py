@@ -131,8 +131,8 @@ def _inject_fab(plugin, frag_view):
 def _attach_scroll_listener(frag_view, fab, fab_lp, fab_margin, state_ref):
     try:
         from androidx.recyclerview.widget import RecyclerView
-        from android.view import Gravity
         from android.animation import AnimatorSet, ObjectAnimator
+        from android.view import View
         from extera_utils.classes import Base, java_subclass, joverride
 
         list_view = None
@@ -147,16 +147,15 @@ def _attach_scroll_listener(frag_view, fab, fab_lp, fab_margin, state_ref):
 
         state_ref["at_bottom"] = False
 
-        def _animate_to_side(go_to_start):
+        def _animate_hide():
             if state_ref["animating"]:
                 return
             state_ref["animating"] = True
 
-            # phase 1: fade out + shrink FAB to nothing
             scale_x_out = ObjectAnimator.ofFloat(fab, "scaleX", 1.0, 0.0)
             scale_y_out = ObjectAnimator.ofFloat(fab, "scaleY", 1.0, 0.0)
             alpha_out = ObjectAnimator.ofFloat(fab, "alpha", 1.0, 0.0)
-            rotate_out = ObjectAnimator.ofFloat(fab, "rotation", 0.0, 90.0 if go_to_start else -90.0)
+            rotate_out = ObjectAnimator.ofFloat(fab, "rotation", 0.0, 90.0)
             scale_x_out.setDuration(180)
             scale_y_out.setDuration(180)
             alpha_out.setDuration(180)
@@ -165,58 +164,58 @@ def _attach_scroll_listener(frag_view, fab, fab_lp, fab_margin, state_ref):
             phase1 = AnimatorSet()
             phase1.playTogether(scale_x_out, scale_y_out, alpha_out, rotate_out)
 
-            # phase 2: move gravity, fade in + expand FAB with bounce
-            def start_phase2():
+            def on_hide_end():
                 try:
-                    if go_to_start:
-                        fab_lp.gravity = Gravity.BOTTOM | Gravity.START
-                        fab_lp.leftMargin = fab_margin
-                        fab_lp.rightMargin = 0
-                    else:
-                        fab_lp.gravity = Gravity.BOTTOM | Gravity.END
-                        fab_lp.rightMargin = fab_margin
-                        fab_lp.leftMargin = 0
-
-                    fab.setRotation(-90.0 if go_to_start else 90.0)
-                    fab.setScaleX(0.0)
-                    fab.setScaleY(0.0)
-                    fab.setAlpha(0.0)
-                    fab.setLayoutParams(fab_lp)
-
-                    # overshoot: grow past 1.0 then snap back
-                    scale_x_in = ObjectAnimator.ofFloat(fab, "scaleX", 0.0, 1.25, 1.0)
-                    scale_y_in = ObjectAnimator.ofFloat(fab, "scaleY", 0.0, 1.25, 1.0)
-                    alpha_in = ObjectAnimator.ofFloat(fab, "alpha", 0.0, 1.0)
-                    rotate_in = ObjectAnimator.ofFloat(fab, "rotation", fab.getRotation(), 0.0)
-                    scale_x_in.setDuration(280)
-                    scale_y_in.setDuration(280)
-                    alpha_in.setDuration(200)
-                    rotate_in.setDuration(280)
-
-                    phase2 = AnimatorSet()
-                    phase2.playTogether(scale_x_in, scale_y_in, alpha_in, rotate_in)
-
-                    def on_phase2_end():
-                        try:
-                            state_ref["animating"] = False
-                        except Exception as e:
-                            log(f"addPluginFab: on_phase2_end error: {e}")
-
-                    phase2.addListener(_make_end_listener(on_phase2_end))
-                    phase2.start()
-                except Exception as e:
-                    log(f"addPluginFab: start_phase2 error: {e}")
+                    fab.setVisibility(View.GONE)
                     state_ref["animating"] = False
+                except Exception as e:
+                    log(f"addPluginFab: on_hide_end error: {e}")
 
-            phase1.addListener(_make_end_listener(start_phase2))
+            phase1.addListener(_make_end_listener(on_hide_end))
             phase1.start()
 
-        def update_fab_side(rv):
+        def _animate_show():
+            if state_ref["animating"]:
+                return
+            state_ref["animating"] = True
+
+            fab.setVisibility(View.VISIBLE)
+            fab.setRotation(-90.0)
+            fab.setScaleX(0.0)
+            fab.setScaleY(0.0)
+            fab.setAlpha(0.0)
+
+            # overshoot: grow past 1.0 then snap back
+            scale_x_in = ObjectAnimator.ofFloat(fab, "scaleX", 0.0, 1.25, 1.0)
+            scale_y_in = ObjectAnimator.ofFloat(fab, "scaleY", 0.0, 1.25, 1.0)
+            alpha_in = ObjectAnimator.ofFloat(fab, "alpha", 0.0, 1.0)
+            rotate_in = ObjectAnimator.ofFloat(fab, "rotation", -90.0, 0.0)
+            scale_x_in.setDuration(280)
+            scale_y_in.setDuration(280)
+            alpha_in.setDuration(200)
+            rotate_in.setDuration(280)
+
+            phase2 = AnimatorSet()
+            phase2.playTogether(scale_x_in, scale_y_in, alpha_in, rotate_in)
+
+            def on_show_end():
+                try:
+                    state_ref["animating"] = False
+                except Exception as e:
+                    log(f"addPluginFab: on_show_end error: {e}")
+
+            phase2.addListener(_make_end_listener(on_show_end))
+            phase2.start()
+
+        def update_fab_visibility(rv):
             at_bottom = not rv.canScrollVertically(1)
             if at_bottom == state_ref["at_bottom"]:
                 return
             state_ref["at_bottom"] = at_bottom
-            run_on_ui_thread(lambda: _animate_to_side(go_to_start=at_bottom))
+            if at_bottom:
+                run_on_ui_thread(_animate_hide)
+            else:
+                run_on_ui_thread(_animate_show)
 
         # fires once when scroll stops — no per-frame cost
         @java_subclass(RecyclerView.OnScrollListener)
@@ -225,7 +224,7 @@ def _attach_scroll_listener(frag_view, fab, fab_lp, fab_margin, state_ref):
             def onScrollStateChanged(self, rv, newState):
                 try:
                     if newState == 0:  # SCROLL_STATE_IDLE
-                        update_fab_side(rv)
+                        update_fab_visibility(rv)
                 except Exception as e:
                     log(f"addPluginFab: onScrollStateChanged error: {e}")
 

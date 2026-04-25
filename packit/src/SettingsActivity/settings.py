@@ -1833,20 +1833,36 @@ class OtherSettings:
             log(f"OtherSettings: _open_plugin_profile_page error: {e}")
             return []
 
-    def _open_install_sheet_page(self):
+    def _open_inline_page(self):
         try:
-            from .SubSettings.installSheet import build_install_sheet_page
-            return build_install_sheet_page()
+            from .SubSettings.inline import build_inline_page
+            return build_inline_page(self, _fmt_inline_str, _reload_plugin_settings, _open_url)
         except Exception as e:
-            log(f"OtherSettings: _open_install_sheet_page error: {e}")
+            log(f"OtherSettings: _open_inline_page error: {e}")
             return []
 
-    def _open_repos_navigation_page(self):
+    def _open_file_settings_page(self):
         try:
-            from .SubSettings.reposNavigation import build_repos_navigation_page
-            return build_repos_navigation_page()
+            from .SubSettings.fileSettings import build_file_settings_page
+            return build_file_settings_page(self)
         except Exception as e:
-            log(f"OtherSettings: _open_repos_navigation_page error: {e}")
+            log(f"OtherSettings: _open_file_settings_page error: {e}")
+            return []
+
+    def _open_misc_page(self):
+        try:
+            from .SubSettings.misc import build_misc_page
+            return build_misc_page(self)
+        except Exception as e:
+            log(f"OtherSettings: _open_misc_page error: {e}")
+            return []
+
+    def _open_updplugins_page(self):
+        try:
+            from .SubSettings.updplugins import build_updplugins_page
+            return build_updplugins_page(self)
+        except Exception as e:
+            log(f"OtherSettings: _open_updplugins_page error: {e}")
             return []
 
     def _onClearIgnoreListClick(self, view):
@@ -1867,17 +1883,20 @@ class OtherSettings:
             Header(text=strings.navigating_through_settings),
             Text(
                 text=strings.interface_header,
+                subtext=strings.interface_header_desc,
                 icon="msg_theme",
                 create_sub_fragment=self._open_interface_page
             ),
             Text(
                 text=strings.sfx_settings,
+                subtext=strings.sfx_settings_desc,
                 icon="msg_voicechat",
                 create_sub_fragment=self._open_sfx_page
             ),
             Text(
                 text=strings.plugin_components,
-                icon="msg_addbot",
+                subtext=strings.plugin_components_desc,
+                icon="msg_photo_settings",
                 create_sub_fragment=self._open_comps_page
             ),
             Text(
@@ -1887,10 +1906,10 @@ class OtherSettings:
                 create_sub_fragment=self._open_hotkeys_page
             ),
             Text(
-                text=strings.edit_plugin_card,
-                subtext=strings.edit_plugin_card_desc,
-                icon="msg_edit",
-                create_sub_fragment=self._open_card_editor
+                text=strings.inline_search_nav,
+                subtext=strings.inline_search_nav_desc,
+                icon="msg_search",
+                create_sub_fragment=self._open_inline_page
             ),
             Text(
                 text=strings.plugin_profile_header,
@@ -1899,129 +1918,18 @@ class OtherSettings:
                 create_sub_fragment=self._open_plugin_profile_page
             ),
             Text(
-                text=strings.install_sheet_header,
+                text=strings.updplugins_nav,
+                subtext=strings.updplugins_nav_desc,
                 icon="msg_download",
-                create_sub_fragment=self._open_install_sheet_page
+                create_sub_fragment=self._open_updplugins_page
             ),
             Text(
-                text=strings.repos_navigation_header,
-                icon="msg_leave",
-                create_sub_fragment=self._open_repos_navigation_page
+                text=strings.misc_nav,
+                subtext=strings.misc_nav_desc,
+                icon="msg_settings_old",
+                create_sub_fragment=self._open_misc_page
             ),
         ]
-
-        items += [
-            Divider(),
-            Header(text=strings.inline_search_header),
-            Input(
-                key="inline_search_command",
-                text=strings.inline_search_command,
-                default=".packit",
-                icon="msg_edit",
-                on_change=lambda v: _reload_plugin_settings()
-            ),
-            Switch(
-                key="inline_search_double_space",
-                text=strings.inline_search_double_space,
-                subtext=_fmt_inline_str(str(strings.inline_search_double_space_desc)),
-                default=False,
-                icon="msg_search",
-                link_alias="inline_search_double_space"
-            ),
-            Switch(
-                key="inline_search_clear_field",
-                text=strings.inline_search_clear_field,
-                subtext=strings.inline_search_clear_field_desc,
-                default=False,
-                icon="msg_clear",
-                link_alias="inline_search_clear_field"
-            ),
-            Text(
-                text=strings.inline_view_guide,
-                icon="msg_info",
-                on_click=lambda v: _open_url("https://github.com/shareui/packit/blob/main/docs/inline.md")
-            ),
-            self._make_expandable_switch("inline_send_enabled", strings.inline_send_header, [
-                ("inline_send_name", True),
-                ("inline_send_version", True),
-                ("inline_send_author", True),
-                ("inline_send_description", True),
-                ("inline_send_install", True),
-            ]),
-            self._make_es_child("inline_send_name", strings.inline_send_name, True) if self._es_is_expanded("inline_send_enabled") else None,
-            self._make_es_child("inline_send_version", strings.inline_send_version, True) if self._es_is_expanded("inline_send_enabled") else None,
-            self._make_es_child("inline_send_author", strings.inline_send_author, True) if self._es_is_expanded("inline_send_enabled") else None,
-            self._make_es_child("inline_send_description", strings.inline_send_description, True) if self._es_is_expanded("inline_send_enabled") else None,
-            self._make_es_child("inline_send_install", strings.inline_send_install, True) if self._es_is_expanded("inline_send_enabled") else None,
-            Divider(text=_fmt_inline_str(str(strings.inline_search_divider))),
-            Header(text=strings.misc_header),
-            Switch(
-                key="show_startup_status",
-                text=strings.show_startup_status,
-                subtext=strings.show_startup_status_desc,
-                default=False,
-                icon="msg_info",
-                link_alias="show_startup_status"
-            ),
-            Switch(
-                key="fuzzy_search",
-                text=strings.fuzzy_search,
-                subtext=strings.fuzzy_search_desc,
-                default=True,
-                icon="msg_search",
-                link_alias="fuzzy_search"
-            ),
-            Switch(
-                key="live_search",
-                text=strings.live_search,
-                subtext=strings.live_search_desc,
-                default=False,
-                icon="msg_search",
-                link_alias="live_search"
-            ),
-            Switch(
-                key="static_online_status",
-                text=strings.static_online_status,
-                subtext=strings.static_online_status_desc,
-                default=False,
-                icon="msg_online",
-                link_alias="static_online_status"
-            ),
-            Switch(
-                key="show_from_repo",
-                text=strings.show_from_repo,
-                subtext=strings.show_from_repo_desc,
-                default=False,
-                icon="msg_channel",
-                link_alias="show_from_repo"
-            ),
-        ]
-
-        items.append(Switch(
-            key="disable_achievements_notify",
-            text=strings.disable_achievements_notify,
-            subtext=strings.disable_achievements_notify_desc,
-            default=False,
-            icon="msg_gift_premium",
-            link_alias="disable_achievements_notify"
-        ))
-
-        items.append(Divider())
-        items.append(Header(text=strings.updating_plugins_header))
-        items.append(Switch(
-            key="show_updates_on_startup",
-            text=strings.show_updates_on_startup,
-            subtext=strings.show_updates_on_startup_desc,
-            default=False,
-            icon="msg_download",
-            link_alias="show_updates_on_startup"
-        ))
-        items.append(Text(
-            text=strings.clear_ignore_list,
-            subtext=strings.clear_ignore_list_desc,
-            icon="msg_delete",
-            on_click=self._onClearIgnoreListClick
-        ))
 
         items.append(Divider())
 
@@ -2111,18 +2019,11 @@ class OtherSettings:
 
         items.append(Divider(text=strings.cache_header_desc))
 
-        items.append(Header(text=strings.file_system_settings_header))
-        items.append(Switch(
-            key="highlight_syntax",
-            text=strings.highlight_syntax,
-            subtext=strings.highlight_syntax_subtext,
-            default=True
-        ))
-        items.append(Switch(
-            key="hidden_files",
-            text=strings.hidden_files,
-            subtext=strings.hidden_files_subtext,
-            default=False
+        items.append(Text(
+            text=strings.file_system_settings_header,
+            subtext=strings.file_system_settings_nav_desc,
+            icon="msg_filehq",
+            create_sub_fragment=self._open_file_settings_page
         ))
 
         return items

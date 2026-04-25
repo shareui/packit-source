@@ -185,10 +185,11 @@ _CHUNK_INTERVAL_S = 0.1         # 100 ms pause between subsequent chunks
 
 class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
 
-    def __init__(self, path: str):
+    def __init__(self, path: str, on_finish=None):
         super().__init__()
         self._path = path
         self._filename = os.path.basename(path)
+        self._on_finish = on_finish
         self._edit_mode = False
         self._content_view = None
         self._content_tv = None
@@ -224,6 +225,11 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
                 self._edit_tv = None
         except Exception as e:
             log(f"openFileFragment: onFragmentDestroy error: {e}")
+        try:
+            if self._on_finish is not None:
+                self._on_finish()
+        except Exception as e:
+            log(f"openFileFragment: onFragmentDestroy on_finish error: {e}")
 
     def getTitle(self):
         return self._filename
@@ -603,7 +609,7 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
             log(f"openFileFragment: _do_reset error: {e}")
 
 
-def open_file(path: str, binary: bool = False):
+def open_file(path: str, binary: bool = False, on_finish=None):
     # called on UI thread
     log(f"openFileFragment: open_file path={path} binary={binary}")
     try:
@@ -619,7 +625,7 @@ def open_file(path: str, binary: bool = False):
         if not frag:
             log("openFileFragment: open_file no fragment")
             return
-        delegate = OpenFileFragment(path)
+        delegate = OpenFileFragment(path, on_finish=on_finish)
         new_frag = UniversalFragment(delegate)
         frag.presentFragment(new_frag)
         try:

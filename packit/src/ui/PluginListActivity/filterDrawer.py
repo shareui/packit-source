@@ -136,7 +136,7 @@ def _collect_app_versions(plugins):
 
 class SortDrawer:
     def __init__(self, act, content_view, plugins, selected_tags, on_apply,
-                 selected_authors=None, selected_app_versions=None):
+                 selected_authors=None, selected_app_versions=None, selected_saved=None):
         self.act = act
         self.content_view = content_view
         self._decor_view = act.getWindow().getDecorView()
@@ -158,6 +158,11 @@ class SortDrawer:
         self._app_version_rows = {}
         self._app_versions_expanded = False
         self._current_app_versions = set(selected_app_versions) if selected_app_versions else set()
+
+        # saved filter: set of "saved" and/or "unsaved", both active by default
+        self._saved_rows = {}
+        self._saved_expanded = False
+        self._current_saved = set(selected_saved) if selected_saved else {"saved", "unsaved"}
 
         self._overlay = None
         self._drawer = None
@@ -230,6 +235,11 @@ class SortDrawer:
             appver_lp.setMargins(0, AndroidUtilities.dp(8), 0, 0)
             self._appver_section_view = self._build_generic_section(inner, bg, "app_versions")
             inner.addView(self._appver_section_view, appver_lp)
+
+            saved_lp = LinearLayout.LayoutParams(-1, -2)
+            saved_lp.setMargins(0, AndroidUtilities.dp(8), 0, 0)
+            self._saved_section_view = self._build_generic_section(inner, bg, "saved")
+            inner.addView(self._saved_section_view, saved_lp)
 
             scroll.addView(inner, FrameLayout.LayoutParams(-1, -2))
 
@@ -623,6 +633,7 @@ class SortDrawer:
             self._current_selected = set(self._tags_summary.keys())
             self._current_authors = set(self._authors_summary.keys())
             self._current_app_versions = set(self._app_versions_summary.keys())
+            self._current_saved = {"saved", "unsaved"}
             self._refresh_rows()
 
         def on_apply(v):
@@ -630,6 +641,7 @@ class SortDrawer:
                 set(self._current_selected),
                 set(self._current_authors),
                 set(self._current_app_versions),
+                set(self._current_saved),
             )
             self.close()
 
@@ -643,7 +655,7 @@ class SortDrawer:
         return outer
 
     def _build_generic_section(self, parent, drawer_bg, section_key):
-        # section_key: "authors" | "app_versions"
+        # section_key: "authors" | "app_versions" | "saved"
         act = self.act
         try:
             sec_bg = Theme.getColor(Theme.key_dialogLineProgressBackground)
@@ -672,6 +684,11 @@ class SortDrawer:
                 title_tv.setText(strings["authors_section_title"])
             except Exception:
                 title_tv.setText("Authors")
+        elif section_key == "saved":
+            try:
+                title_tv.setText(strings["saved_section_title"])
+            except Exception:
+                title_tv.setText("Saved Plugins")
         else:
             try:
                 title_tv.setText(strings["app_version_section_title"])
@@ -705,6 +722,8 @@ class SortDrawer:
 
         if section_key == "authors":
             self._authors_list = items_list
+        elif section_key == "saved":
+            self._saved_list = items_list
         else:
             self._app_versions_list = items_list
 
@@ -712,6 +731,9 @@ class SortDrawer:
             if section_key == "authors":
                 self._authors_expanded = not self._authors_expanded
                 expanded = self._authors_expanded
+            elif section_key == "saved":
+                self._saved_expanded = not self._saved_expanded
+                expanded = self._saved_expanded
             else:
                 self._app_versions_expanded = not self._app_versions_expanded
                 expanded = self._app_versions_expanded
@@ -810,6 +832,41 @@ class SortDrawer:
                 rows_dict = self._author_rows
                 list_view = self._authors_list
                 label_fn = lambda k: k
+            elif section_key == "saved":
+                self._saved_list.removeAllViews()
+                self._saved_rows.clear()
+                saved_items = {
+                    "saved": str(strings["saved_filter_saved"]) if "saved_filter_saved" in dir(strings) else "Saved plugins",
+                    "unsaved": str(strings["saved_filter_unsaved"]) if "saved_filter_unsaved" in dir(strings) else "Unsaved plugins",
+                }
+                try:
+                    saved_items = {
+                        "saved": str(strings["saved_filter_saved"]),
+                        "unsaved": str(strings["saved_filter_unsaved"]),
+                    }
+                except Exception:
+                    pass
+                if not self._current_saved:
+                    self._current_saved = {"saved", "unsaved"}
+                for key, label in saved_items.items():
+                    is_sel = key in self._current_saved
+                    row, border, name_tv = self._build_tag_row(label, 0, is_sel)
+
+                    def make_saved_handler(k, bdr, ntv):
+                        def handler(v):
+                            if k in self._current_saved:
+                                self._current_saved.discard(k)
+                            else:
+                                self._current_saved.add(k)
+                            self._update_row_style(bdr, ntv, k in self._current_saved)
+                        return handler
+
+                    row.setOnClickListener(OnClickListener(make_saved_handler(key, border, name_tv)))
+                    row_lp = LinearLayout.LayoutParams(-1, -2)
+                    row_lp.setMargins(0, 0, 0, AndroidUtilities.dp(6))
+                    self._saved_list.addView(row, row_lp)
+                    self._saved_rows[key] = (row, border, name_tv)
+                return
             else:
                 self._app_versions_list.removeAllViews()
                 self._app_version_rows.clear()
@@ -881,6 +938,8 @@ class SortDrawer:
             self._update_row_style(border, name_tv, key in self._current_authors)
         for key, (row, border, name_tv) in self._app_version_rows.items():
             self._update_row_style(border, name_tv, key in self._current_app_versions)
+        for key, (row, border, name_tv) in self._saved_rows.items():
+            self._update_row_style(border, name_tv, key in self._current_saved)
 
     def _register_back_callback(self):
         try:
@@ -910,16 +969,19 @@ class SortDrawer:
         except Exception as e:
             log(f"SortDrawer._unregister_back_callback error: {e}")
 
-    def open(self, selected_tags, selected_authors=None, selected_app_versions=None):
+    def open(self, selected_tags, selected_authors=None, selected_app_versions=None, selected_saved=None):
         try:
             self._current_selected = set(selected_tags) if selected_tags else set()
             if selected_authors is not None:
                 self._current_authors = set(selected_authors)
             if selected_app_versions is not None:
                 self._current_app_versions = set(selected_app_versions)
+            if selected_saved is not None:
+                self._current_saved = set(selected_saved)
             self._populate_tags()
             self._populate_generic("authors")
             self._populate_generic("app_versions")
+            self._populate_generic("saved")
             self._overlay.setVisibility(View.VISIBLE)
             self._overlay.setClickable(True)
             self._is_open = True
@@ -1012,11 +1074,11 @@ class SortDrawer:
 
 
 def show_tag_drawer(act, content_view, plugins, selected_tags, on_apply,
-                    selected_authors=None, selected_app_versions=None):
+                    selected_authors=None, selected_app_versions=None, selected_saved=None):
     try:
         drawer = SortDrawer(act, content_view, plugins, selected_tags, on_apply,
-                            selected_authors, selected_app_versions)
-        drawer.open(selected_tags, selected_authors, selected_app_versions)
+                            selected_authors, selected_app_versions, selected_saved)
+        drawer.open(selected_tags, selected_authors, selected_app_versions, selected_saved)
         return drawer
     except Exception as e:
         log(f"show_tag_drawer error: {e}")

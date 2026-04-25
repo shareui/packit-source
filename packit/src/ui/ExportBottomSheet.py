@@ -591,7 +591,6 @@ def show(plugins, on_export):
             outer.addView(dark_container, dark_lp)
             export_states = {
                 "settings": False,
-                "locally": True
             }
             def _createOptionCheckboxRow(act, text, checked_state_key, checkbox_ref=None):
                 checkbox = CheckBox2(act, 21, None)
@@ -716,15 +715,7 @@ def show(plugins, on_export):
             _apply_press_scale(settings_container)
             options_row.addView(settings_container, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL, 0, 0, AndroidUtilities.dp(8), 0))
 
-            locally_checkbox_ref = [None]
-            locally_container = _createOptionCheckboxRow(
-                act,
-                str(strings["utilities_export_locally"]),
-                "locally",
-                locally_checkbox_ref
-            )
-            _apply_press_scale(locally_container)
-            options_row.addView(locally_container, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL))
+
             options_scroll = ScrollView(act)
             options_scroll.setHorizontalScrollBarEnabled(False)
             options_scroll.setVerticalScrollBarEnabled(False)
@@ -779,13 +770,8 @@ def show(plugins, on_export):
                     BulletinHelper.show_error(strings["utilities_export_empty"])
                     return
                 incl_settings = export_states["settings"]
-                locally = export_states["locally"]
-                if not locally:
-                    sheet.dismiss()
-                    BulletinHelper.show_error(strings["not_ready_yet"])
-                    return
                 sheet.dismiss()
-                on_export(selected, incl_settings, locally)
+                on_export(selected, incl_settings, True)
 
             export_btn = _createButton(act, str(strings["utilities_export_btn"]), True, _onExport)
             _apply_press_scale(export_btn)

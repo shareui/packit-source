@@ -7,6 +7,12 @@ def build_interface_page(other_settings, ctx):
         Header(text=strings.interface_header),
         other_settings._build_sort_menu_design_item(ctx),
         other_settings._build_font_picker_item(ctx),
+        Text(
+            text=strings.edit_plugin_card,
+            subtext=strings.edit_plugin_card_desc,
+            icon="msg_edit",
+            create_sub_fragment=other_settings._open_card_editor
+        ),
         Switch(
             key="hide_unavailable_plugins",
             text=strings.hide_unavailable_plugins,

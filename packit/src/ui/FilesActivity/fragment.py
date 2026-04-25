@@ -46,7 +46,7 @@ except Exception as e:
     import android_utils as _au; _au.log(f"filesActivity: import elyx.strings failed: {e}")
 
 
-def _open_file(path, icon_view=None):
+def _open_file(path, icon_view=None, delegate=None):
     try:
         from client_utils import run_on_queue
 
@@ -100,7 +100,24 @@ def _open_file(path, icon_view=None):
                 def _present():
                     if icon_view is not None:
                         _restore_icon(icon_id[0])
-                    open_file(path)
+                    # disable back callback so it doesn't intercept back in OpenFileFragment
+                    if delegate is not None:
+                        try:
+                            cb = delegate._back_callback
+                            if cb is not None:
+                                cb.setEnabled(False)
+                        except Exception:
+                            pass
+                    open_file(path, on_finish=_on_file_closed if delegate is not None else None)
+
+                def _on_file_closed():
+                    # re-enable back callback when returning from OpenFileFragment
+                    try:
+                        cb = delegate._back_callback
+                        if cb is not None:
+                            cb.setEnabled(True)
+                    except Exception:
+                        pass
 
                 run_on_ui_thread(_present)
             except Exception as e:
@@ -754,7 +771,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                     size = ""
                 row, iv = _make_row(act, name, size, file_icon_id, t, is_dir=False,
                                     on_menu=lambda btn, p=full: self._open_menu(btn, p))
-                row.setOnClickListener(OnClickListener(lambda v, p=full, icon=iv: _open_file(p, icon)))
+                row.setOnClickListener(OnClickListener(lambda v, p=full, icon=iv: _open_file(p, icon, delegate=self)))
                 _apply_press_scale(row)
                 list_root.addView(row, LayoutHelper.createLinear(-1, -2))
                 if i < len(files) - 1:
@@ -1034,19 +1051,36 @@ def show_files_browser(plugin=None):
                 except Exception as e:
                     log(f"filesActivity: Failed to add back button: {e}")
                 try:
+                    from org.telegram.ui.ActionBar import ActionBar as TgActionBar
+
+                    class _BackClickListener(dynamic_proxy(TgActionBar.ActionBarMenuOnItemClick)):
+                        def __init__(self):
+                            super().__init__()
+
+                        def onItemClick(self, mid):
+                            if mid == -1:
+                                if len(delegate._stack) > 1:
+                                    delegate._stack.pop()
+                                    run_on_ui_thread(lambda: delegate._render())
+                                    if len(delegate._stack) <= 1:
+                                        delegate._unregister_back_callback()
+                                else:
+                                    new_frag.finishFragment()
+                            elif mid == 1:
+                                delegate._do_create_file()
+
+                    action_bar.setActionBarMenuOnItemClick(_BackClickListener())
+                    log("filesActivity: action bar back click listener set")
+                except Exception as e:
+                    log(f"filesActivity: Failed to set action bar click listener: {e}")
+                try:
                     log("filesActivity: creating menu")
                     menu = action_bar.createMenu()
                     log(f"filesActivity: menu created: {menu}")
                     add_icon = _resolve_icon("msg_addbot")
                     log(f"filesActivity: icon id: {add_icon}")
-                    add_btn = menu.addItemWithWidth(1, add_icon, AndroidUtilities.dp(54))
-                    log(f"filesActivity: add_btn: {add_btn}")
-
-                    add_btn.setOnClickListener(OnClickListener(lambda v: (
-                        log("filesActivity: add_btn clicked"),
-                        delegate._do_create_file()
-                    )))
-                    log("filesActivity: OnClickListener set on add_btn")
+                    menu.addItemWithWidth(1, add_icon, AndroidUtilities.dp(54))
+                    log("filesActivity: add_btn added to menu")
                 except Exception as e:
                     log(f"filesActivity: show_files_browser menu error: {e}")
             delegate._frag_ref[0] = new_frag
