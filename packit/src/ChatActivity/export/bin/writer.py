@@ -10,12 +10,13 @@ try:
 except Exception as e:
     import android_utils as _au; _au.log(f"exportBin.writer: import failed: {e}")
 
-_BLOCK_KEYS = ["achievements", "installDate", "localConfig"]
+_BLOCK_KEYS = ["achievements", "installDate", "localConfig", "saved_plugins"]
 
 _FILE_NAMES = {
-    "achievements": "achievements.json",
-    "installDate":  "installDate.json",
-    "localConfig":  "localConfig.json",
+    "achievements":  "achievements.json",
+    "installDate":   "installDate.json",
+    "localConfig":   "localConfig.json",
+    "saved_plugins": "saved_plugins.json",
 }
 
 
@@ -60,7 +61,7 @@ def _read_achievements_block() -> str:
             _load_account, _get_current_account_id
         )
         account_id = _get_current_account_id()
-        data = _load_account(account_id)
+        data, _ = _load_account(account_id)
         content = json.dumps({account_id: data}, ensure_ascii=False)
         log(f"exportBin: achievements block read ({len(content)} bytes)")
         return content
@@ -69,9 +70,23 @@ def _read_achievements_block() -> str:
         return "{}"
 
 
+def _read_saved_plugins_block() -> str:
+    try:
+        from ....ui.PluginActivity.fragment import _read_saved_plugins
+        data = _read_saved_plugins()
+        content = json.dumps(data, ensure_ascii=False)
+        log(f"exportBin: saved_plugins block read ({len(data)} items)")
+        return content
+    except Exception as e:
+        log(f"exportBin: saved_plugins block read error: {e}")
+        return "[]"
+
+
 def _read_block(key: str) -> str:
     if key == "achievements":
         return _read_achievements_block()
+    if key == "saved_plugins":
+        return _read_saved_plugins_block()
     path = os.path.join(_get_configs_dir(), _FILE_NAMES[key])
     if not os.path.exists(path):
         log(f"exportBin: block '{key}' not found, using {{}}")
@@ -91,16 +106,29 @@ def _rand_suffix(n: int = 4) -> str:
     return "".join(random.choices(string.ascii_lowercase, k=n))
 
 
-def build_binary() -> bytes:
+def build_binary(
+    include_local_config: bool = True,
+    include_achievements: bool = True,
+    include_saved_plugins: bool = True,
+) -> bytes:
     user_id    = _get_user_id()
     install_ts = _get_install_ts()
     ts         = int(time.time())
     log(f"exportBin: write user_id={user_id} install_ts={install_ts} ts={ts}")
+    log(f"exportBin: flags local_config={include_local_config} achievements={include_achievements} saved_plugins={include_saved_plugins}")
 
     lib = _get_lib()
 
-    keys     = json.dumps(_BLOCK_KEYS)
-    payloads = json.dumps([_read_block(k) for k in _BLOCK_KEYS])
+    active_keys = ["installDate"]
+    if include_achievements:
+        active_keys.append("achievements")
+    if include_local_config:
+        active_keys.append("localConfig")
+    if include_saved_plugins:
+        active_keys.append("saved_plugins")
+
+    keys     = json.dumps(active_keys)
+    payloads = json.dumps([_read_block(k) for k in active_keys])
 
     import tempfile
     with tempfile.NamedTemporaryFile(suffix=".packit", delete=False) as f:

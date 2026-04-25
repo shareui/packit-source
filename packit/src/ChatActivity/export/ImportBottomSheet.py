@@ -17,7 +17,7 @@ def show_import_bottom_sheet(fragment, num_blocks: int, on_confirm, import_level
             xp_into = import_xp
         else:
             from ...ui.AchievementsActivity.service.AchivementsEngine import get_level_info, _load_account
-            data = _load_account()
+            data, _ = _load_account()
             level, xp_into, _ = get_level_info(data)
 
         activity = fragment.getParentActivity()

@@ -173,7 +173,7 @@ class ProfileSettings:
         except Exception as e:
             log(f"profile._show_achievements: error: {e}")
 
-    def _do_export(self):
+    def _do_export(self, include_local_config: bool, include_achievements: bool, include_saved_plugins: bool):
         try:
             from ..ChatActivity.export.bin.writer import build_binary, _rand_suffix
             from android_utils import run_on_ui_thread
@@ -181,7 +181,11 @@ class ProfileSettings:
             from java.io import File, FileOutputStream
             import os
 
-            data = build_binary()
+            data = build_binary(
+                include_local_config=include_local_config,
+                include_achievements=include_achievements,
+                include_saved_plugins=include_saved_plugins,
+            )
 
             try:
                 from elyx import settings as elyxSettings
@@ -390,7 +394,11 @@ class ProfileSettings:
                     sheet.dismiss()
                 except Exception:
                     pass
-                t = threading.Thread(target=self._do_export, daemon=True)
+                t = threading.Thread(
+                    target=self._do_export,
+                    args=(checkboxStates[0], checkboxStates[1], checkboxStates[2]),
+                    daemon=True,
+                )
                 t.start()
 
             shareBtn.setOnClickListener(OnClickListener(onShare))
