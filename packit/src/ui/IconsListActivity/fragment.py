@@ -35,7 +35,7 @@ try:
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities, R as R_tg failed: {e}")
     from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
-from android_utils import OnClickListener
+from android_utils import OnClickListener, OnLongClickListener
 try:
     from com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment
 except Exception as e:
@@ -244,7 +244,7 @@ class InstallIconsUI:
         log(f"IconList.open: usable repos count={len(repos)}")
         if not repos:
             log("IconList.open: no usable repos, showing error bulletin")
-            BulletinHelper.show_error("No repositories configured")
+            BulletinHelper.show_error(str(strings["err_no_repos_configured"]))
             return
         skip_sel = settings.get("skip_repository_selection", False)
         log(f"IconList.open: skip_repository_selection={skip_sel}")
@@ -322,7 +322,7 @@ class InstallIconsUI:
                 log(f"IconList._open_all_repos_icons: total icons collected={len(all_icons)}")
                 run_on_ui_thread(lambda: self._update_current_fragment_icons(all_icons))
             except Exception as e:
-                BulletinHelper.show_error("Failed to load icons")
+                BulletinHelper.show_error(str(strings["err_failed_to_load_icons_simple"]))
                 log(f"IconList._open_all_repos_icons: fatal error: {e}")
         run_on_queue(load_task)
 
@@ -332,7 +332,7 @@ class InstallIconsUI:
         log(f"IconList._open_repo_icons: repo='{repo_name}' url='{repo_url}'")
         if not repo_url:
             log("IconList._open_repo_icons: empty url, aborting")
-            BulletinHelper.show_error("Repository URL is empty")
+            BulletinHelper.show_error(str(strings["err_repo_url_empty"]))
             return
         fragment = get_last_fragment()
         if not fragment:
@@ -384,7 +384,7 @@ class InstallIconsUI:
                 log(f"IconList._open_repo_icons: parsed icons count={len(icons)}")
                 run_on_ui_thread(lambda: self._update_current_fragment_icons(icons))
             except Exception as e:
-                BulletinHelper.show_error("An error occurred while downloading")
+                BulletinHelper.show_error(str(strings["err_download_failed_simple"]))
                 log(f"IconList._open_repo_icons: error for url='{repo_url}': {e}")
         run_on_queue(load_task)
 
@@ -1453,5 +1453,39 @@ class InstallIconsUI:
                 except Exception as ex:
                     log(f"icons: card click error: {ex}")
             card.setOnClickListener(OnClickListener(_on_click))
+
+            def _on_long_click(v, _icon=icon, _repo_id=self.repo_id):
+                try:
+                    icon_id = str(_icon.get("id") or "")
+                    link = f"tg://packit?install&repo={_repo_id}&icon={icon_id}"
+                    from android.content import ClipData
+                    clipboard = act.getSystemService(act.CLIPBOARD_SERVICE)
+                    clipboard.setPrimaryClip(ClipData.newPlainText("packit_icon_link", link))
+                    try:
+                        from hook_utils import find_class as _fc
+                        BulletinFactory = _fc("org.telegram.ui.Components.BulletinFactory")
+                        frag = get_last_fragment()
+                        container = v.getRootView()
+                        resource_provider = None
+                        try:
+                            resource_provider = frag.getResourceProvider()
+                        except Exception:
+                            pass
+                        icon_raw = getattr(R_tg.raw, "copy", getattr(R_tg.raw, "msg_copy", 0))
+                        BulletinFactory.of(container, resource_provider).createSimpleBulletin(
+                            icon_raw,
+                            str(strings["link_copied"])
+                        ).show()
+                    except Exception as _be:
+                        log(f"icons: copy bulletin error: {_be}")
+                    try:
+                        from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
+                        increment_category("Copying links")
+                    except Exception:
+                        pass
+                except Exception as ex:
+                    log(f"icons: card long click error: {ex}")
+                return True
+            card.setOnLongClickListener(OnLongClickListener(_on_long_click))
             self.install_ui._apply_press_scale(card)
             return card

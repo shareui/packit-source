@@ -353,7 +353,7 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
 
                                 # header
                                 header_tv = TextView(activity)
-                                header_tv.setText("Problematic plugins")
+                                header_tv.setText(str(strings["afp_problematic_plugins"]))
                                 header_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 17)
                                 header_tv.setTypeface(AndroidUtilities.bold())
                                 try:
@@ -404,7 +404,7 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                                                         AU2.addToClipboard(copy_text)
                                                     except Exception as ex:
                                                         log(f"ConfirmImportBottomSheet: err copy error: {ex}")
-                                                    tv.setText("Copied!")
+                                                    tv.setText(str(strings["afp_copied"]))
                                                     def _restore(ref=tv, orig=err_text):
                                                         ref.setText(orig)
                                                     run_on_ui_thread(_restore, 300)
@@ -453,7 +453,7 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
 
                                     # title: "There is an error in plugin {name}:"
                                     title_tv = TextView(activity)
-                                    title_tv.setText(f"There is an error in plugin {name}:")
+                                    title_tv.setText(str(strings("afp_error_in_plugin", name=name)))
                                     title_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
                                     title_tv.setGravity(Gravity.CENTER_HORIZONTAL)
                                     try:
@@ -498,7 +498,7 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                                 ok_count = total - len(errors)
                                 if ok_count > 0:
                                     footer_tv = TextView(activity)
-                                    footer_tv.setText("However, the rest of the plugins were installed successfully.")
+                                    footer_tv.setText(str(strings["afp_rest_installed"]))
                                     footer_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
                                     footer_tv.setGravity(Gravity.CENTER_HORIZONTAL)
                                     try:
@@ -521,7 +521,7 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                                 # copy all errors button
                                 copy_btn = ButtonWithCounterView(activity, True, fragment.getResourceProvider())
                                 copy_btn.setRound()
-                                copy_btn.setText("Copy all errors", False)
+                                copy_btn.setText(str(strings["afp_copy_all_errors"]), False)
 
                                 def _on_copy(v):
                                     all_text = "\n\n".join(
@@ -533,7 +533,7 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                                         AU2.addToClipboard(all_text)
                                     except Exception as ex:
                                         log(f"ConfirmImportBottomSheet: copy error: {ex}")
-                                    copy_btn.setText("Copied!", True)
+                                    copy_btn.setText(str(strings["afp_copied"]), True)
 
                                 copy_btn.setOnClickListener(OnClickListener(_on_copy))
                                 copy_lp = LinearLayout.LayoutParams(
@@ -592,7 +592,7 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                                         log(f"ConfirmImportBottomSheet: bulletin error: {e}")
                                 run_on_ui_thread(_show)
                             else:
-                                run_on_ui_thread(lambda: BulletinHelper.show_success("Import completed successfully!"))
+                                run_on_ui_thread(lambda: BulletinHelper.show_success(str(strings["afp_import_success"])))
 
                         def _run_installs():
                             try:

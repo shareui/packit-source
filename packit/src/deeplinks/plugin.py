@@ -71,7 +71,7 @@ def handle(url, repoManager):
 
         repo = _findRepo(repoManager, repoId)
         if not repo:
-            BulletinHelper.show_error(f"Repository '{repoId}' not found")
+            BulletinHelper.show_error(str(strings("err_repo_not_found", id=repoId)))
             return
 
         _openPluginProfile(repo, pluginId, repoId, repoManager)
@@ -84,12 +84,12 @@ def _openPluginProfile(repo: dict, pluginId: str, repoId: str, repoManager):
         try:
             pluginsUrl = _resolvePluginsUrl(repo)
             if not pluginsUrl:
-                run_on_ui_thread(lambda: BulletinHelper.show_error("Repository URL is empty"))
+                run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings.err_repo_url_empty)))
                 return
 
             r = requests.get(pluginsUrl, timeout=15)
             if r.status_code != 200:
-                run_on_ui_thread(lambda: BulletinHelper.show_error(f"Failed to load repository: HTTP {r.status_code}"))
+                run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings("err_repo_load_failed", code=r.status_code))))
                 return
 
             data = r.json()
@@ -112,7 +112,7 @@ def _openPluginProfile(repo: dict, pluginId: str, repoId: str, repoManager):
                         break
 
             if not plugin:
-                run_on_ui_thread(lambda: BulletinHelper.show_error(f"Plugin '{pluginId}' not found"))
+                run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings("err_plugin_not_found", id=pluginId))))
                 return
 
             from ..ui.PluginListActivity.fragment import InstallUI
@@ -130,6 +130,6 @@ def _openPluginProfile(repo: dict, pluginId: str, repoId: str, repoManager):
             run_on_ui_thread(_show)
         except Exception as e:
             log(f"deeplinks.plugin: fetch error: {e}")
-            run_on_ui_thread(lambda: BulletinHelper.show_error("An error occurred while loading plugin"))
+            run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings.err_plugin_load_failed)))
 
     run_on_queue(task)

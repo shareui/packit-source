@@ -5,6 +5,11 @@ from ui.alert import AlertDialogBuilder
 from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment
 
+try:
+    from elyx import strings
+except Exception as _e:
+    import android_utils as _au; _au.log(f"deepHandler: import strings failed: {_e}")
+
 from . import mainMenu
 from . import settings
 from . import deeplinkMenu
@@ -76,9 +81,9 @@ class PackItDeeplinkHook(MethodHook):
                 activity = fragment.getParentActivity() if fragment else None
                 if activity:
                     builder = AlertDialogBuilder(activity)
-                    builder.set_title("PackIt")
+                    builder.set_title(str(strings.packit))
                     builder.set_message(url)
-                    builder.set_positive_button("OK", lambda b, w: self.proceed_deeplink())
+                    builder.set_positive_button(str(strings.ok_button), lambda b, w: self.proceed_deeplink())
                     builder.set_on_cancel_listener(lambda b: self.proceed_deeplink())
                     builder.show()
                 else:

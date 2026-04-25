@@ -446,7 +446,7 @@ class InstallUI:
         except Exception:
             pass
         if not repos:
-            BulletinHelper.show_error("No repositories configured")
+            BulletinHelper.show_error(str(strings["err_no_repos_configured"]))
             return
         if settings.get("skip_repository_selection", False):
             self._open_all_repos_plugins()
@@ -571,7 +571,7 @@ class InstallUI:
 
                 run_on_ui_thread(lambda: self._update_current_fragment_plugins(all_plugins))
             except Exception as e:
-                BulletinHelper.show_error("Failed to load plugins")
+                BulletinHelper.show_error(str(strings["err_failed_to_load_plugins"]))
         run_on_queue(load_task)
 
     def _update_plugins_in_fragment(self, plugins):
@@ -587,7 +587,7 @@ class InstallUI:
         repo_name = repo.get("name") or strings["unnamed"]
         repo_url = (repo.get("url") or "").strip()
         if not repo_url:
-            BulletinHelper.show_error("Repository URL is empty")
+            BulletinHelper.show_error(str(strings["err_repo_url_empty"]))
             return
         fragment = get_last_fragment()
         if not fragment:
@@ -632,7 +632,7 @@ class InstallUI:
 
                 run_on_ui_thread(lambda: self._update_current_fragment_plugins(plugins))
             except Exception as e:
-                BulletinHelper.show_error("An error occurred while downloading")
+                BulletinHelper.show_error(str(strings["err_download_failed_simple"]))
         run_on_queue(load_task)
 
     def _update_current_fragment_plugins(self, plugins):
@@ -2560,108 +2560,14 @@ class InstallUI:
 
             def show_plugin_actions_menu(anchor_view):
                 try:
-                    popup_layout = ActionBarPopupWindow.ActionBarPopupWindowLayout(act)
-                    popup_layout.setBackgroundColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuBackground))
-                    popup_layout.setFitItems(True)
-                    popup_window_ref = [None]
-                    
-                    def create_menu_item(icon_res: int, title: str, action, is_red=False):
-                        item_frame = AFrame(act)
-                        item_frame.setMinimumWidth(AndroidUtilities.dp(160))
-                        item_frame.setClickable(True)
-                        item_frame.setFocusable(True)
-                        try:
-                            bg_color = Theme.getColor(Theme.key_dialogBackgroundGray) & 0x20FFFFFF | 0x10000000
-                            try:
-                                pressed_color = Theme.getColor(Theme.key_listSelector) & 0x40FFFFFF | 0x30000000
-                            except Exception:
-                                pressed_color = AColor.parseColor("#D0D0D0")
-                            btn_bg = GradientDrawable()
-                            btn_bg.setCornerRadius(AndroidUtilities.dp(10))
-                            btn_bg.setColor(bg_color)
-                            try:
-                                ripple_color = AColorStateList.valueOf(AColor.parseColor("#40000000"))
-                                pressed_bg = GradientDrawable()
-                                pressed_bg.setCornerRadius(AndroidUtilities.dp(10))
-                                pressed_bg.setColor(pressed_color)
-                                ripple_drawable = RippleDrawable(ripple_color, btn_bg, pressed_bg)
-                                item_frame.setBackground(ripple_drawable)
-                            except Exception:
-                                try:
-                                    item_frame.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                                        AndroidUtilities.dp(10),
-                                        bg_color,
-                                        pressed_color
-                                    ))
-                                except Exception:
-                                    item_frame.setBackground(btn_bg)
-                        except Exception:
-                            item_frame.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 2))
-                        
-                        item_content = ALinear(act)
-                        item_content.setOrientation(ALinear.HORIZONTAL)
-                        item_content.setGravity(AGravity.CENTER_VERTICAL)
-                        item_content.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12))
-                        
-                        icon = AImage(act)
-                        icon.setScaleType(AImage.ScaleType.CENTER)
-                        try:
-                            icon_drawable = ContextCompat.getDrawable(act, icon_res)
-                            if is_red:
-                                try:
-                                    red_color = Theme.getColor(Theme.key_text_RedRegular)
-                                except Exception:
-                                    red_color = AColor.parseColor("#FF3B30")
-                                icon_drawable.setColorFilter(red_color, PorterDuff.Mode.SRC_IN)
-                            else:
-                                try:
-                                    gray_color = Theme.getColor(Theme.key_dialogTextGray)
-                                except Exception:
-                                    gray_color = AColor.parseColor("#808080")
-                                icon_drawable.setColorFilter(gray_color, PorterDuff.Mode.SRC_IN)
-                            icon.setImageDrawable(icon_drawable)
-                        except Exception:
-                            icon.setImageResource(icon_res)
-                        
-                        item_content.addView(icon, LayoutHelper.createLinear(24, 24, AGravity.CENTER_VERTICAL, 0, 0, 12, 0))
-                        
-                        title_tv = AText(act)
-                        title_tv.setText(title)
-                        title_tv.setTextSize(14)
-                        try:
-                            if is_red:
-                                try:
-                                    red_color = Theme.getColor(Theme.key_text_RedRegular)
-                                except Exception:
-                                    red_color = AColor.parseColor("#FF3B30")
-                                title_tv.setTextColor(red_color)
-                            else:
-                                title_tv.setTextColor(Theme.getColor(Theme.key_actionBarDefaultSubmenuItem))
-                        except Exception:
-                            pass
-                        item_content.addView(title_tv, LayoutHelper.createLinear(-1, -2, 1.0, AGravity.CENTER_VERTICAL))
-                        item_frame.addView(item_content)
-                        
-                        def _on_click(*_):
-                            try:
-                                if popup_window_ref[0]:
-                                    popup_window_ref[0].dismiss()
-                            except Exception:
-                                pass
-                            try:
-                                action()
-                            except Exception:
-                                pass
-                        
-                        item_frame.setOnClickListener(OnClickListener(_on_click))
-                        popup_layout.addView(item_frame, LayoutHelper.createLinear(-1, -2))
-                    
+                    from ..contextMenu import show_plugin_context_menu
+
                     def do_download():
                         download_plugin_file(p)
                         try:
                             from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
                             increment_category("Downloading")
-                        except Exception as e:
+                        except Exception:
                             pass
 
                     def do_copy():
@@ -2669,7 +2575,7 @@ class InstallUI:
                         try:
                             from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
                             increment_category("Copying links")
-                        except Exception as e:
+                        except Exception:
                             pass
 
                     def do_share():
@@ -2677,7 +2583,7 @@ class InstallUI:
                         try:
                             from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
                             increment_category("Sharing")
-                        except Exception as e:
+                        except Exception:
                             pass
 
                     def do_code():
@@ -2685,7 +2591,7 @@ class InstallUI:
                         try:
                             from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
                             increment_category("Viewing code")
-                        except Exception as e:
+                        except Exception:
                             pass
 
                     def do_translate():
@@ -2696,46 +2602,17 @@ class InstallUI:
                         try:
                             from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
                             increment_category("Reporting")
-                        except Exception as e:
+                        except Exception:
                             pass
-                    
-                    icon_download = getattr(R_tg.drawable, 'msg_download', 0)
-                    icon_copy = getattr(R_tg.drawable, 'msg_copy', getattr(R_tg.drawable, 'msg_copy_filled', 0))
-                    icon_share = getattr(R_tg.drawable, 'msg_share', 0)
-                    icon_code = getattr(R_tg.drawable, 'msg_view_file', 0)
-                    icon_report = getattr(R_tg.drawable, 'msg_report', 0)
-                    icon_translate = getattr(R_tg.drawable, 'msg_replace', 0)
-                    
 
-                    menu_items = [
-                        (icon_copy, strings["copy_link"], do_copy, False, "_s_relocate_copy"),
-                        (icon_share, strings["share"], do_share, False, "_s_relocate_share"),
-                        (icon_code, strings["code"], do_code, False, "_s_relocate_code"),
-                        (icon_download, strings["download"], do_download, False, "_s_relocate_download"),
-                        (icon_translate, strings["translate"], do_translate, False, "_s_relocate_translate"),
-                        (icon_report, strings["report"], do_report, True, "_s_relocate_report"),
-                    ]
-                    
-                    for icon_res, title, action, is_red, attr_key in menu_items:
-                        if not getattr(self, attr_key, False):
-                            create_menu_item(icon_res, title, action, is_red)
-                    
-                    popup_window = ActionBarPopupWindow(popup_layout, -2, -2)
-                    popup_window_ref[0] = popup_window
-                    popup_window.setOutsideTouchable(True)
-                    popup_window.setClippingEnabled(True)
-                    popup_window.setAnimationStyle(R_tg.style.PopupContextAnimation)
-                    popup_window.setFocusable(True)
-                    popup_layout.measure(
-                        AView.MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(1000), AView.MeasureSpec.AT_MOST),
-                        AView.MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(1000), AView.MeasureSpec.AT_MOST)
-                    )
-                    location = [0, 0]
-                    anchor_view.getLocationInWindow(location)
-                    popup_x = location[0] + anchor_view.getWidth() - popup_layout.getMeasuredWidth()
-                    popup_y = location[1] - popup_layout.getMeasuredHeight()
-                    popup_window.showAtLocation(anchor_view, AGravity.TOP | AGravity.LEFT, popup_x, popup_y)
-                    popup_window.dimBehind()
+                    show_plugin_context_menu(anchor_view.getRootView(), anchor_view, [
+                        {"icon": "msg_copy",      "text": str(strings["copy_link"]), "action": do_copy,      "show": not getattr(self, "_s_relocate_copy",      False)},
+                        {"icon": "msg_share",     "text": str(strings["share"]),     "action": do_share,     "show": not getattr(self, "_s_relocate_share",     False)},
+                        {"icon": "msg_view_file", "text": str(strings["code"]),      "action": do_code,      "show": not getattr(self, "_s_relocate_code",      False)},
+                        {"icon": "msg_download",  "text": str(strings["download"]),  "action": do_download,  "show": not getattr(self, "_s_relocate_download",  False)},
+                        {"icon": "msg_replace",   "text": str(strings["translate"]), "action": do_translate, "show": not getattr(self, "_s_relocate_translate", False)},
+                        {"icon": "msg_report",    "text": str(strings["report"]),    "action": do_report,    "show": not getattr(self, "_s_relocate_report",    False), "red": True},
+                    ])
                 except Exception as e:
                     pass
 
