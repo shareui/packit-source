@@ -1764,82 +1764,127 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             tv.setPadding(0, AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8))
             return tv
 
-        changelog_url = str(p.get("changelog") or "").strip()
-
         fetched_changelog = [""]  # shared ref for translate button
+
+        def _apply_cl_card_press(card):
+            from android.view import MotionEvent
+            from java import dynamic_proxy
+            class _TL(dynamic_proxy(View.OnTouchListener)):
+                def __init__(self):
+                    super().__init__()
+                def onTouch(self, v, event):
+                    try:
+                        action = event.getActionMasked()
+                        if action == MotionEvent.ACTION_DOWN:
+                            v.animate().scaleX(0.96).scaleY(0.96).setDuration(100).start()
+                        elif action in (MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL):
+                            v.animate().scaleX(1.0).scaleY(1.0).setDuration(200).start()
+                    except Exception:
+                        pass
+                    return False
+            card.setOnTouchListener(_TL())
 
         def _build_changelog_content():
             wrap = LinearLayout(act)
             wrap.setOrientation(LinearLayout.VERTICAL)
 
-            spinner_frame = FrameLayout(act)
-            try:
-                from org.telegram.ui.Components import CircularProgressDrawable
-                spin_color = Theme.getColor(Theme.key_featuredStickers_addButton)
-                d = CircularProgressDrawable(spin_color)
+            current_version = str(p.get("version") or "")
+            # None means field absent; [] means field exists but no text
+            current_cl = p.get("changelog")
+            versions_map = p.get("versions") or {}
+
+            # entries: (version_str, cl_or_none, is_latest)
+            # cl_or_none is None if changelog field absent, list otherwise
+            entries = []
+            entries.append((current_version, current_cl, True))
+            for v in reversed(list(versions_map.keys())):
+                vdata = versions_map[v]
+                cl_raw = vdata.get("changelog") if "changelog" in vdata else None
+                entries.append((v, cl_raw, False))
+
+            for version_str, cl, is_latest in entries:
+                card = LinearLayout(act)
+                card.setOrientation(LinearLayout.VERTICAL)
+                card.setPadding(
+                    AndroidUtilities.dp(14), AndroidUtilities.dp(12),
+                    AndroidUtilities.dp(14), AndroidUtilities.dp(12)
+                )
+                card_bg = _make_card_bg(act, 14)
+                if card_bg:
+                    card.setBackground(card_bg)
+
+                label = f"v{version_str} (latest)" if is_latest else f"v{version_str}"
+
+                # changelog text from index 1 (index 0 is the link)
+                cl_text = None
+                if isinstance(cl, list) and len(cl) > 1:
+                    cl_text = str(cl[1]).strip() or None
+
+                # link is always at index 0
+                cl_link = str(cl[0]).strip() if isinstance(cl, list) and len(cl) > 0 else None
+
+                cl_absent = cl is None
+
+                ver_tv = TextView(act)
+                ver_tv.setText(label)
+                ver_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+                ver_tv.setTextColor(text_color)
                 try:
-                    d.size = float(AndroidUtilities.dp(24))
-                    d.thickness = float(AndroidUtilities.dp(2))
+                    ver_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
                 except Exception:
-                    pass
-                self._changelog_spinner = d
-                spin_iv = ImageView(act)
-                spin_iv.setImageDrawable(d)
-                spin_iv.setScaleType(ImageView.ScaleType.CENTER)
-                spinner_frame.addView(spin_iv, LayoutHelper.createFrame(32, 32, Gravity.CENTER, 0, 8, 0, 8))
-            except Exception:
-                pass
-            wrap.addView(spinner_frame, LayoutHelper.createLinear(-1, -2))
+                    ver_tv.setTypeface(AndroidUtilities.bold())
 
-            content_tv = TextView(act)
-            content_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
-            content_tv.setVisibility(View.GONE)
-            wrap.addView(content_tv, LayoutHelper.createLinear(-1, -2))
+                if cl_text:
+                    # version label left-aligned
+                    card.addView(ver_tv, LayoutHelper.createLinear(-2, -2))
+                    body_tv = TextView(act)
+                    body_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+                    body_tv.setTextColor(gray_color)
+                    body_tv.setLineSpacing(AndroidUtilities.dp(2), 1.0)
+                    try:
+                        from com.exteragram.messenger.utils.text import LocaleUtils
+                        from android.text.method import LinkMovementMethod
+                        body_tv.setText(LocaleUtils.fullyFormatText(cl_text))
+                        body_tv.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
+                        body_tv.setMovementMethod(LinkMovementMethod.getInstance())
+                    except Exception:
+                        body_tv.setText(cl_text)
+                    card.addView(body_tv, LayoutHelper.createLinear(-1, -2, 0, 6, 0, 0))
+                elif cl_absent:
+                    # no changelog field at all — show "not provided" below version
+                    card.addView(ver_tv, LayoutHelper.createLinear(-2, -2))
+                    no_cl_tv = TextView(act)
+                    no_cl_tv.setText("Changelog was not provided.")
+                    no_cl_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+                    no_cl_tv.setTextColor(gray_color)
+                    card.addView(no_cl_tv, LayoutHelper.createLinear(-1, -2, 0, 6, 0, 0))
+                else:
+                    # field exists but no text — version label left-aligned
+                    card.addView(ver_tv, LayoutHelper.createLinear(-2, -2))
 
-            def _show_text(text, centered=True):
-                spinner_frame.setVisibility(View.GONE)
-                content_tv.setVisibility(View.VISIBLE)
-                if centered:
-                    content_tv.setGravity(Gravity.CENTER_HORIZONTAL)
-                    content_tv.setTextColor(gray_color)
-                    content_tv.setPadding(0, AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8))
-                content_tv.setText(text)
-
-            if not changelog_url:
-                _show_text(str(strings.pp_changelog_empty))
-                return wrap
-
-            import threading
-            import requests as _req
-
-            def _fetch():
-                try:
-                    r = _req.get(changelog_url, timeout=10)
-                    if r.status_code != 200:
-                        run_on_ui_thread(lambda: _show_text(str(strings.pp_changelog_empty)))
-                        return
-                    md = r.text
-                    fetched_changelog[0] = md
-                    def _apply(t=md):
+                if cl_link:
+                    card.setClickable(True)
+                    card.setFocusable(True)
+                    _apply_cl_card_press(card)
+                    def _on_card_click(v, _url=cl_link):
                         try:
-                            spinner_frame.setVisibility(View.GONE)
-                            content_tv.setVisibility(View.VISIBLE)
-                            content_tv.setGravity(Gravity.LEFT)
-                            content_tv.setTextColor(text_color)
-                            content_tv.setLineSpacing(AndroidUtilities.dp(3), 1.0)
-                            from com.exteragram.messenger.utils.text import LocaleUtils
-                            from android.text.method import LinkMovementMethod
-                            content_tv.setText(LocaleUtils.fullyFormatText(t))
-                            content_tv.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
-                            content_tv.setMovementMethod(LinkMovementMethod.getInstance())
-                        except Exception:
-                            _show_text(t, centered=False)
-                    run_on_ui_thread(_apply)
-                except Exception as e:
-                    log(f"pluginProfile: changelog fetch error: {e}")
-                    run_on_ui_thread(lambda: _show_text(str(strings.pp_changelog_empty)))
+                            if Browser and Uri:
+                                Browser.openUrl(act, Uri.parse(_url), True, True, True, None, None, False, False, False)
+                        except Exception as e:
+                            log(f"pluginProfile: changelog card openUrl error: {e}")
+                    card.setOnClickListener(OnClickListener(_on_card_click))
 
-            threading.Thread(target=_fetch, daemon=True).start()
+                card_lp = LinearLayout.LayoutParams(-1, -2)
+                card_lp.bottomMargin = AndroidUtilities.dp(8)
+                wrap.addView(card, card_lp)
+
+            hint_tv = TextView(act)
+            hint_tv.setText("Click on any version")
+            hint_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
+            hint_tv.setTextColor(gray_color)
+            hint_tv.setGravity(Gravity.CENTER_HORIZONTAL)
+            wrap.addView(hint_tv, LayoutHelper.createLinear(-1, -2, 0, 4, 0, 0))
+
             return wrap
 
         _tab_builders = [_build_desc_content, _build_stub_content, _build_changelog_content]
@@ -1879,6 +1924,18 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             _move_indicator(tab_btns[idx], animate=True)
             # rebuild content
             tab_content.removeAllViews()
+            # changelog tab has its own per-version cards — no shared container style
+            if idx == 2:
+                tab_content.setBackground(None)
+                tab_content.setPadding(0, 0, 0, 0)
+            else:
+                tab_content_bg2 = _make_card_bg(act)
+                if tab_content_bg2:
+                    tab_content.setBackground(tab_content_bg2)
+                tab_content.setPadding(
+                    AndroidUtilities.dp(16), AndroidUtilities.dp(14),
+                    AndroidUtilities.dp(16), AndroidUtilities.dp(14)
+                )
             try:
                 tab_content.addView(_tab_builders[idx](), LayoutHelper.createLinear(-1, -2))
             except Exception as e:
@@ -1927,7 +1984,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         def _switch_tab(idx, tab_btns):
             _orig_switch_tab(idx, tab_btns)
             desc_extra.setVisibility(View.VISIBLE if idx == 0 else View.GONE)
-            translate_bar.setVisibility(View.VISIBLE if idx == 2 and changelog_url else View.GONE)
+            translate_bar.setVisibility(View.GONE)
 
         for i, tb in enumerate(tab_btns):
             def _on_tab_click(v, _i=i, _btns=tab_btns):
