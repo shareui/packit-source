@@ -1320,6 +1320,15 @@ class InstallUI:
                 import math
                 from android.graphics.drawable import GradientDrawable as _GD
                 
+                squareFab = True
+                try:
+                    from hook_utils import find_class as _find_class
+                    _ExteraConfig = _find_class("com.exteragram.messenger.ExteraConfig")
+                    raw = _ExteraConfig.squareFab
+                    squareFab = bool(raw)
+                except Exception as e:
+                    pass
+
                 def _make_fab_bg(color, size_dp=56, isSquare=False):
                     bg = _GD()
                     if isSquare:
@@ -1336,16 +1345,12 @@ class InstallUI:
                 scroll_top_pill.setFocusable(True)
                 try:
                     btn_base = Theme.getColor(Theme.key_featuredStickers_addButton)
-                    from android.graphics import Color
-                    r = (btn_base >> 16) & 0xFF
-                    g = (btn_base >> 8) & 0xFF
-                    b = btn_base & 0xFF
-                    transparent_btn_base = Color.argb(180, r, g, b)
-                    scroll_top_pill.setBackground(_make_fab_bg(transparent_btn_base, 40))
+                    scroll_top_pill.setBackground(_make_fab_bg(btn_base, 56, squareFab))
                 except Exception:
                     pass
 
-                fab_size = AndroidUtilities.dp(40)
+                fab_size = AndroidUtilities.dp(56)
+                fab_margin = AndroidUtilities.dp(16)
                 arrow_icon = ImageView(act)
                 arrow_icon_id = self.install_ui._resolve_icon("msg_to_beginning")
                 arrow_icon.setImageResource(arrow_icon_id)
@@ -1354,13 +1359,13 @@ class InstallUI:
                 except Exception:
                     pass
                 arrow_icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
-                scroll_top_pill.addView(arrow_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
+                scroll_top_pill.addView(arrow_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(26), AndroidUtilities.dp(26), Gravity.CENTER))
                 
                 pill_wrapper.addView(scroll_top_pill, FrameLayout.LayoutParams(fab_size, fab_size))
                 
                 pill_lp = FrameLayout.LayoutParams(fab_size, fab_size, Gravity.BOTTOM | Gravity.END)
-                pill_lp.rightMargin = AndroidUtilities.dp(16)
-                pill_lp.bottomMargin = AndroidUtilities.dp(20)
+                pill_lp.rightMargin = fab_margin
+                pill_lp.bottomMargin = fab_margin
             else:
                 scroll_top_pill = LinearLayout(act)
                 scroll_top_pill.setOrientation(LinearLayout.HORIZONTAL)
@@ -1461,42 +1466,43 @@ class InstallUI:
                 except Exception:
                     pass
 
-            class PillTouchListener(dynamic_proxy(View.OnTouchListener)):
-                def onTouch(self, v, ev):
-                    action = ev.getActionMasked()
-                    if action == MotionEvent.ACTION_DOWN:
-                        _drag_start_raw_y[0] = ev.getRawY()
-                        _is_dragging[0] = False
-                        pill_wrapper.animate().cancel()
-                        return False
-                    if action == MotionEvent.ACTION_MOVE:
-                        dy = ev.getRawY() - _drag_start_raw_y[0]
-                        if not _is_dragging[0]:
-                            if abs(dy) > AndroidUtilities.dp(4):
-                                _is_dragging[0] = True
-                                scroll_top_pill.setPressed(False)
-                            else:
-                                return False
-                        # direct property set — no animator overhead on MOVE
-                        translation = dy if dy < 0 else dy * 0.25
-                        pill_wrapper.setTranslationY(translation)
-                        progress = max(0.0, min(1.0, -translation / AndroidUtilities.dp(80)))
-                        pill_wrapper.setAlpha(1.0 - progress * 0.5)
-                        return True
-                    if action == MotionEvent.ACTION_UP or action == MotionEvent.ACTION_CANCEL:
-                        if not _is_dragging[0]:
+            if not scroll_bottom_right:
+                class PillTouchListener(dynamic_proxy(View.OnTouchListener)):
+                    def onTouch(self, v, ev):
+                        action = ev.getActionMasked()
+                        if action == MotionEvent.ACTION_DOWN:
+                            _drag_start_raw_y[0] = ev.getRawY()
+                            _is_dragging[0] = False
+                            pill_wrapper.animate().cancel()
                             return False
-                        _is_dragging[0] = False
-                        dy = ev.getRawY() - _drag_start_raw_y[0]
-                        if action == MotionEvent.ACTION_UP and dy < _DISMISS_THRESHOLD_DY:
-                            _drag_dismissed[0] = True
-                            _animate_dismiss_up()
-                        else:
-                            _animate_snap_back()
-                        return True
-                    return False
+                        if action == MotionEvent.ACTION_MOVE:
+                            dy = ev.getRawY() - _drag_start_raw_y[0]
+                            if not _is_dragging[0]:
+                                if abs(dy) > AndroidUtilities.dp(4):
+                                    _is_dragging[0] = True
+                                    scroll_top_pill.setPressed(False)
+                                else:
+                                    return False
+                            # direct property set — no animator overhead on MOVE
+                            translation = dy if dy < 0 else dy * 0.25
+                            pill_wrapper.setTranslationY(translation)
+                            progress = max(0.0, min(1.0, -translation / AndroidUtilities.dp(80)))
+                            pill_wrapper.setAlpha(1.0 - progress * 0.5)
+                            return True
+                        if action == MotionEvent.ACTION_UP or action == MotionEvent.ACTION_CANCEL:
+                            if not _is_dragging[0]:
+                                return False
+                            _is_dragging[0] = False
+                            dy = ev.getRawY() - _drag_start_raw_y[0]
+                            if action == MotionEvent.ACTION_UP and dy < _DISMISS_THRESHOLD_DY:
+                                _drag_dismissed[0] = True
+                                _animate_dismiss_up()
+                            else:
+                                _animate_snap_back()
+                            return True
+                        return False
 
-            scroll_top_pill.setOnTouchListener(PillTouchListener())
+                scroll_top_pill.setOnTouchListener(PillTouchListener())
             scroll_top_pill.setOnClickListener(OnClickListener(lambda v: _scroll_to_top_smooth()))
 
             class ScrollListener(dynamic_proxy(View.OnScrollChangeListener)):
