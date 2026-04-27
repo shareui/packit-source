@@ -184,55 +184,33 @@ def show(plugins: list, count: int, file_path: str = "", total_count: int = 0, s
                     )
                     container.addView(iv, iv_lp)
                 else:
-                    # fallback: circle 20% smaller than icon, msg_plugins inside (5% smaller than circle)
-                    circle_dp = int(size_dp * 0.8)
-                    icon_dp = int(circle_dp * 0.85)
+                    # fallback stub matching InstallPluginBottomSheet: circle 78dp, icon plugins_filled with 16dp padding
                     try:
                         from org.telegram.ui.ActionBar import Theme
                         from android.widget import ImageView
-                        from android.graphics import PorterDuff
+                        from android.graphics import PorterDuffColorFilter, PorterDuff
                         from org.telegram.messenger import R as R_tg
-
-                        try:
-                            circle_color = Theme.getColor(Theme.key_featuredStickers_addButton)
-                        except Exception as e:
-                            log(f"ImportBottomSheet: fallback circle color error: {e}")
-                            circle_color = 0xFF4A90D9
-
-                        circle_bg = GradientDrawable()
-                        circle_bg.setShape(GradientDrawable.OVAL)
-                        circle_bg.setColor(circle_color)
-
-                        circle_view = FrameLayout(activity)
-                        circle_view.setBackground(circle_bg)
 
                         icon_view = ImageView(activity)
                         icon_view.setScaleType(ImageView.ScaleType.FIT_CENTER)
+                        icon_view.setImageResource(R_tg.drawable.plugins_filled)
+                        icon_view.setColorFilter(PorterDuffColorFilter(
+                            Theme.getColor(Theme.key_featuredStickers_buttonText),
+                            PorterDuff.Mode.SRC_IN
+                        ))
+                        p = AndroidUtilities.dp(16)
+                        icon_view.setPadding(p, p, p, p)
+                        icon_view.setBackground(Theme.createCircleDrawable(
+                            AndroidUtilities.dp(78),
+                            Theme.getColor(Theme.key_featuredStickers_addButton)
+                        ))
 
-                        try:
-                            icon_view.setImageResource(R_tg.drawable.msg_plugins)
-                        except Exception as e:
-                            log(f"ImportBottomSheet: fallback setImageResource error: {e}")
-
-                        try:
-                            icon_color = Theme.getColor(Theme.key_featuredStickers_buttonText)
-                            icon_view.setColorFilter(icon_color, PorterDuff.Mode.SRC_IN)
-                        except Exception as e:
-                            log(f"ImportBottomSheet: fallback setColorFilter error: {e}")
-
-                        icon_lp = FrameLayout.LayoutParams(
-                            AndroidUtilities.dp(icon_dp),
-                            AndroidUtilities.dp(icon_dp),
+                        stub_lp = FrameLayout.LayoutParams(
+                            AndroidUtilities.dp(78),
+                            AndroidUtilities.dp(78),
                             Gravity.CENTER
                         )
-                        circle_view.addView(icon_view, icon_lp)
-
-                        circle_lp = FrameLayout.LayoutParams(
-                            AndroidUtilities.dp(circle_dp),
-                            AndroidUtilities.dp(circle_dp),
-                            Gravity.CENTER
-                        )
-                        container.addView(circle_view, circle_lp)
+                        container.addView(icon_view, stub_lp)
                     except Exception as e:
                         log(f"ImportBottomSheet: fallback icon error: {e}")
 

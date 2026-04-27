@@ -1717,16 +1717,25 @@ class InstallUI:
                 empty_container.setOrientation(LinearLayout.VERTICAL)
                 empty_container.setGravity(Gravity.CENTER)
                 empty_container.setPadding(0, AndroidUtilities.dp(60), 0, AndroidUtilities.dp(60))
-                ghost_icon = ImageView(act)
+                stub_size_dp = self._s_icon_size_dp
+                stub_view = ImageView(act)
                 try:
-                    R_tg = find_class("org.telegram.messenger.R")
-                    icon_id = getattr(R_tg.drawable, "ayu_ghost")
-                    ghost_icon.setImageResource(icon_id)
-                    ghost_icon.setColorFilter(self.secondary_text_color)
+                    from android.graphics import PorterDuffColorFilter, PorterDuff
+                    stub_view.setScaleType(ImageView.ScaleType.FIT_CENTER)
+                    stub_view.setImageResource(R_tg.drawable.plugins_filled)
+                    stub_view.setColorFilter(PorterDuffColorFilter(
+                        Theme.getColor(Theme.key_featuredStickers_buttonText),
+                        PorterDuff.Mode.SRC_IN
+                    ))
+                    p_stub = AndroidUtilities.dp(16)
+                    stub_view.setPadding(p_stub, p_stub, p_stub, p_stub)
+                    stub_view.setBackground(Theme.createCircleDrawable(
+                        AndroidUtilities.dp(stub_size_dp),
+                        Theme.getColor(Theme.key_featuredStickers_addButton)
+                    ))
                 except Exception:
                     pass
-                ghost_icon.setLayoutParams(LayoutHelper.createLinear(AndroidUtilities.dp(64), AndroidUtilities.dp(64)))
-                empty_container.addView(ghost_icon, LayoutHelper.createLinear(-2, -2, 0, 0, 0, 16))
+                empty_container.addView(stub_view, LayoutHelper.createLinear(stub_size_dp, stub_size_dp, 0, 0, 0, 16))
                 empty = TextView(act)
                 empty.setText(strings["no_plugins"])
                 empty.setGravity(Gravity.CENTER)
@@ -1830,16 +1839,25 @@ class InstallUI:
                 empty_container.setGravity(Gravity.CENTER)
                 empty_container.setPadding(0, AndroidUtilities.dp(60), 0, AndroidUtilities.dp(60))
                 
-                ghost_icon = ImageView(act)
+                stub_size_dp = self._s_icon_size_dp
+                stub_view = ImageView(act)
                 try:
-                    R_tg = find_class("org.telegram.messenger.R")
-                    icon_id = getattr(R_tg.drawable, "ayu_ghost")
-                    ghost_icon.setImageResource(icon_id)
-                    ghost_icon.setColorFilter(self.secondary_text_color)
+                    from android.graphics import PorterDuffColorFilter, PorterDuff
+                    stub_view.setScaleType(ImageView.ScaleType.FIT_CENTER)
+                    stub_view.setImageResource(R_tg.drawable.plugins_filled)
+                    stub_view.setColorFilter(PorterDuffColorFilter(
+                        Theme.getColor(Theme.key_featuredStickers_buttonText),
+                        PorterDuff.Mode.SRC_IN
+                    ))
+                    p_stub = AndroidUtilities.dp(16)
+                    stub_view.setPadding(p_stub, p_stub, p_stub, p_stub)
+                    stub_view.setBackground(Theme.createCircleDrawable(
+                        AndroidUtilities.dp(stub_size_dp),
+                        Theme.getColor(Theme.key_featuredStickers_addButton)
+                    ))
                 except Exception:
                     pass
-                ghost_icon.setLayoutParams(LayoutHelper.createLinear(AndroidUtilities.dp(64), AndroidUtilities.dp(64)))
-                empty_container.addView(ghost_icon, LayoutHelper.createLinear(-2, -2, 0, 0, 0, 16))
+                empty_container.addView(stub_view, LayoutHelper.createLinear(stub_size_dp, stub_size_dp, 0, 0, 0, 16))
                 
                 empty = TextView(act)
                 empty.setText(strings["no_plugins"])
@@ -2075,14 +2093,34 @@ class InstallUI:
             
             icon_str = p.get("icon")
             show_icon = (icon_str and icon_str != "Unknown") and self._s_card_show_icon
-            if not show_icon and self._s_show_default_sticker and self._s_card_show_icon:
-                icon_str = "Plugins_Stickers/0"
-                show_icon = True
+            show_stub = not show_icon and self._s_show_default_sticker and self._s_card_show_icon
             icon_size_dp = self._s_icon_size_dp
             top_row = LinearLayout(act)
             top_row.setOrientation(LinearLayout.HORIZONTAL)
             top_row.setGravity(Gravity.TOP)
             container.addView(top_row, LayoutHelper.createLinear(-1, -2))
+            if show_stub:
+                try:
+                    from android.graphics import PorterDuffColorFilter, PorterDuff
+                    stub_view = ImageView(act)
+                    stub_view.setScaleType(ImageView.ScaleType.FIT_CENTER)
+                    stub_view.setImageResource(R_tg.drawable.plugins_filled)
+                    stub_view.setColorFilter(PorterDuffColorFilter(
+                        Theme.getColor(Theme.key_featuredStickers_buttonText),
+                        PorterDuff.Mode.SRC_IN
+                    ))
+                    p_stub = AndroidUtilities.dp(16)
+                    stub_view.setPadding(p_stub, p_stub, p_stub, p_stub)
+                    stub_view.setBackground(Theme.createCircleDrawable(
+                        AndroidUtilities.dp(icon_size_dp),
+                        Theme.getColor(Theme.key_featuredStickers_addButton)
+                    ))
+                    stub_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(icon_size_dp), AndroidUtilities.dp(icon_size_dp))
+                    stub_lp.rightMargin = AndroidUtilities.dp(12)
+                    stub_lp.topMargin = AndroidUtilities.dp(5)
+                    top_row.addView(stub_view, stub_lp)
+                except Exception as e:
+                    log(f"PluginList: stub icon error: {e}")
             if show_icon:
                 try:
                     icon_view = BackupImageView(act)
