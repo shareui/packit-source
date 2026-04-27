@@ -231,19 +231,19 @@ class DocumentationSettings:
             Header(text=strings.for_devs),
 
             Text(
-                text=strings.creating_own_repo,
-                subtext=strings.creating_own_repo_desc,
-                icon="msg_edit",
-                on_click=self._openRepoGuide,
-                link_alias="creating_own_repo"
-            ),
-            Text(
                 text=strings.publish_ur_plugin,
                 subtext=strings.publish_ur_plugin_desc,
                 icon="filled_add_album",
                 accent=True,
                 on_click=self._openPublishPlugin,
                 link_alias="publish_ur_plugin"
+            ),
+            Text(
+                text=strings.creating_own_repo,
+                subtext=strings.creating_own_repo_desc,
+                icon="msg_edit",
+                on_click=self._openRepoGuide,
+                link_alias="creating_own_repo"
             ),
             Text(
                 text=strings.deeplinks,

@@ -266,8 +266,8 @@ class ProfileSettings:
 
     def _open_export_sheet(self):
         try:
-            from android.widget import LinearLayout, TextView, FrameLayout
-            from android.view import Gravity
+            from android.widget import LinearLayout, TextView, FrameLayout, ScrollView
+            from android.view import Gravity, View, MotionEvent
             from android.util import TypedValue
             from android.graphics import Color
             from android.graphics.drawable import GradientDrawable
@@ -275,6 +275,7 @@ class ProfileSettings:
             from org.telegram.ui.ActionBar import Theme, BottomSheet
             from org.telegram.ui.Components import LayoutHelper, CheckBox2
             from android_utils import OnClickListener
+            from java import dynamic_proxy
 
             frag = get_last_fragment()
             if not frag:
@@ -285,29 +286,58 @@ class ProfileSettings:
 
             dp = AndroidUtilities.dp
 
-            builder = BottomSheet.Builder(ctx)
+            sheet = BottomSheet(ctx, False, frag.getResourceProvider())
+            sheet.setApplyBottomPadding(False)
+            sheet.setApplyTopPadding(False)
+            sheet.setCanDismissWithSwipe(False)
 
-            root = LinearLayout(ctx)
-            root.setOrientation(LinearLayout.VERTICAL)
-            root.setPadding(dp(16), dp(8), dp(16), dp(16))
-
-            title = TextView(ctx)
-            title.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
-            title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20)
-            title.setGravity(Gravity.CENTER)
+            outer = LinearLayout(ctx)
+            outer.setOrientation(LinearLayout.VERTICAL)
             try:
-                title.setTypeface(AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_MEDIUM))
+                bg = GradientDrawable()
+                bg.setShape(GradientDrawable.RECTANGLE)
+                bg.setCornerRadii([
+                    dp(20), dp(20),
+                    dp(20), dp(20),
+                    0, 0, 0, 0,
+                ])
+                bg.setColor(Theme.getColor(Theme.key_dialogBackground))
+                outer.setBackground(bg)
+            except Exception:
+                try:
+                    outer.setBackgroundColor(Theme.getColor(Theme.key_dialogBackground))
+                except Exception:
+                    pass
+
+            pad_h = 20
+
+            title_tv = TextView(ctx)
+            title_tv.setText(str(strings["export_bs_title"]))
+            title_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20)
+            try:
+                title_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+                title_tv.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
             except Exception:
                 pass
-            title.setText(str(strings["export_bs_title"]))
-            root.addView(title, LayoutHelper.createLinear(-1, -2, Gravity.CENTER_HORIZONTAL, 0, 16, 0, 8))
 
-            subtitle = TextView(ctx)
-            subtitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
-            subtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
-            subtitle.setGravity(Gravity.CENTER)
-            subtitle.setText(str(strings["export_bs_subtitle"]))
-            root.addView(subtitle, LayoutHelper.createLinear(-1, -2, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 20))
+            subtitle_tv = TextView(ctx)
+            subtitle_tv.setText(str(strings["export_bs_subtitle"]))
+            subtitle_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            subtitle_tv.setSingleLine(True)
+            try:
+                subtitle_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+            except Exception:
+                pass
+
+            title_col = LinearLayout(ctx)
+            title_col.setOrientation(LinearLayout.VERTICAL)
+            title_col.setGravity(Gravity.CENTER_HORIZONTAL)
+            title_tv.setGravity(Gravity.CENTER)
+            subtitle_tv.setGravity(Gravity.CENTER)
+            title_col.addView(title_tv, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_HORIZONTAL))
+            title_col.addView(subtitle_tv, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_HORIZONTAL, 0, 4, 0, 0))
+
+            outer.addView(title_col, LayoutHelper.createLinear(-1, -2, pad_h, 16, pad_h, 16))
 
             checkboxStates = [True, True, True]
             checkboxLabels = [
@@ -317,38 +347,57 @@ class ProfileSettings:
             ]
             checkboxViews = []
 
+            def _apply_press_scale(view):
+                try:
+                    class _TouchListener(dynamic_proxy(View.OnTouchListener)):
+                        def __init__(self):
+                            super().__init__()
+                        def onTouch(self, v, event):
+                            try:
+                                action = event.getActionMasked()
+                                if action == MotionEvent.ACTION_DOWN:
+                                    v.animate().scaleX(0.93).scaleY(0.93).setDuration(100).start()
+                                elif action in (MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL):
+                                    v.animate().scaleX(1.0).scaleY(1.0).setDuration(200).start()
+                            except Exception:
+                                pass
+                            return False
+                    view.setOnTouchListener(_TouchListener())
+                except Exception:
+                    pass
+
             def makeCheckRow(i, labelText):
-                from org.telegram.ui.Components import ScaleStateListAnimator
-
-                rowBg = GradientDrawable()
-                rowBg.setShape(GradientDrawable.RECTANGLE)
-                rowBg.setCornerRadius(dp(10))
-                rowBg.setColor(Theme.getColor(Theme.key_windowBackgroundGray))
-
                 row = LinearLayout(ctx)
                 row.setOrientation(LinearLayout.HORIZONTAL)
                 row.setGravity(Gravity.CENTER_VERTICAL)
-                row.setBackground(rowBg)
-                row.setPadding(dp(14), dp(12), dp(14), dp(12))
+                row.setPadding(dp(12), dp(10), dp(12), dp(10))
                 row.setClickable(True)
+                row.setFocusable(True)
+                try:
+                    row_bg = GradientDrawable()
+                    row_bg.setShape(GradientDrawable.RECTANGLE)
+                    row_bg.setCornerRadius(dp(12))
+                    row_bg.setColor(Theme.getColor(Theme.key_dialogBackground))
+                    row.setBackground(row_bg)
+                except Exception:
+                    pass
 
                 cb = CheckBox2(ctx, 21, frag.getResourceProvider())
-                cb.setColor(
-                    Theme.key_radioBackgroundChecked,
-                    Theme.key_checkboxDisabled,
-                    Theme.key_checkboxCheck,
-                )
+                cb.setColor(Theme.key_radioBackgroundChecked, Theme.key_radioBackground, Theme.key_checkboxCheck)
                 cb.setDrawUnchecked(True)
+                cb.setDrawBackgroundAsArc(14)
                 cb.setChecked(True, False)
-                cb.setDrawBackgroundAsArc(10)
                 checkboxViews.append(cb)
 
                 label = TextView(ctx)
-                label.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
-                label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
                 label.setText(str(labelText))
+                label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+                try:
+                    label.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
+                except Exception:
+                    pass
 
-                row.addView(cb, LayoutHelper.createLinear(21, 21, Gravity.CENTER_VERTICAL, 0, 0, 12, 0))
+                row.addView(cb, LayoutHelper.createLinear(dp(21), dp(21), Gravity.CENTER_VERTICAL, 0, 0, dp(8), 0))
                 row.addView(label, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
 
                 def makeToggle(idx, checkbox):
@@ -358,38 +407,63 @@ class ProfileSettings:
                     return onClick
 
                 row.setOnClickListener(OnClickListener(makeToggle(i, cb)))
-                ScaleStateListAnimator.apply(row, 0.05, 1.5)
+                _apply_press_scale(row)
                 return row
 
+            checkboxes_list = LinearLayout(ctx)
+            checkboxes_list.setOrientation(LinearLayout.VERTICAL)
+
             for i, label in enumerate(checkboxLabels):
-                bottomMargin = 8 if i < len(checkboxLabels) - 1 else 20
                 rowView = makeCheckRow(i, label)
-                root.addView(rowView, LayoutHelper.createLinear(-1, -2, 0, 0, 0, bottomMargin))
+                row_lp = LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8 if i < len(checkboxLabels) - 1 else 0)
+                checkboxes_list.addView(rowView, row_lp)
 
-            shareBtn = TextView(ctx)
-            shareBtn.setText(str(strings["export_bs_share"]))
-            shareBtn.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
-            shareBtn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+            checkbox_row_px = dp(54)
+            checkboxes_scroll = ScrollView(ctx)
+            checkboxes_scroll.setNestedScrollingEnabled(True)
+            checkboxes_scroll.setVerticalScrollBarEnabled(False)
+            checkboxes_scroll.addView(checkboxes_list)
+
+            class _ScrollTouchListener(dynamic_proxy(View.OnTouchListener)):
+                def __init__(self):
+                    super().__init__()
+                def onTouch(self, v, event):
+                    try:
+                        action = event.getActionMasked()
+                        if action == MotionEvent.ACTION_DOWN:
+                            v.getParent().requestDisallowInterceptTouchEvent(True)
+                        elif action in (MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL):
+                            v.getParent().requestDisallowInterceptTouchEvent(False)
+                    except Exception:
+                        pass
+                    return False
+
+            checkboxes_scroll.setOnTouchListener(_ScrollTouchListener())
+            scroll_height_px = len(checkboxLabels) * checkbox_row_px
+            dark_container = FrameLayout(ctx)
+            dark_field_color = Theme.getColor(Theme.key_windowBackgroundGray)
+            dark_bg = GradientDrawable()
+            dark_bg.setShape(GradientDrawable.RECTANGLE)
+            dark_bg.setCornerRadius(dp(18))
+            dark_bg.setColor(dark_field_color)
+            dark_container.setBackground(dark_bg)
+            
+            checkboxes_scroll.setPadding(dp(12), dp(16), dp(12), dp(16))
+            dark_container.addView(checkboxes_scroll, FrameLayout.LayoutParams(-1, -1))
+            
             try:
-                shareBtn.setTypeface(AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_MEDIUM))
-            except Exception:
-                pass
-            shareBtn.setGravity(Gravity.CENTER)
-            shareBtn.setPadding(dp(16), dp(12), dp(16), dp(12))
-            try:
-                btnBg = GradientDrawable()
-                btnBg.setShape(GradientDrawable.RECTANGLE)
-                btnBg.setCornerRadius(dp(8))
-                btnBg.setColor(Theme.getColor(Theme.key_featuredStickers_addButton))
-                shareBtn.setBackground(btnBg)
-            except Exception:
-                shareBtn.setBackgroundColor(Theme.getColor(Theme.key_featuredStickers_addButton))
-            root.addView(shareBtn, LayoutHelper.createLinear(-1, -2))
+                checkboxes_scroll.setVerticalFadingEdgeEnabled(True)
+                checkboxes_scroll.setHorizontalFadingEdgeEnabled(False)
+                checkboxes_scroll.setFadingEdgeLength(dp(20))
+            except Exception as e:
+                log(f"profile: fading edge error: {e}")
+            
+            dark_lp = LinearLayout.LayoutParams(-1, scroll_height_px + dp(70))
+            dark_lp.leftMargin = dp(pad_h)
+            dark_lp.rightMargin = dp(pad_h)
+            outer.addView(dark_container, dark_lp)
 
-            builder.setCustomView(root)
-            sheet = builder.create()
-
-            def onShare(v):
+            def onShare():
                 try:
                     sheet.dismiss()
                 except Exception:
@@ -401,7 +475,29 @@ class ProfileSettings:
                 )
                 t.start()
 
-            shareBtn.setOnClickListener(OnClickListener(onShare))
+            export_btn = FrameLayout(ctx)
+            base = Theme.getColor(Theme.key_featuredStickers_addButton)
+            pressed = Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
+            export_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(28), base, pressed))
+            export_btn.setPadding(0, dp(14), 0, dp(14))
+            export_btn.setClickable(True)
+            export_btn.setFocusable(True)
+
+            btn_tv = TextView(ctx)
+            btn_tv.setText(str(strings["export_bs_share"]))
+            btn_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
+            btn_tv.setGravity(Gravity.CENTER)
+            try:
+                btn_tv.setTypeface(AndroidUtilities.bold())
+                btn_tv.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
+            except Exception:
+                pass
+            export_btn.addView(btn_tv, FrameLayout.LayoutParams(-1, -2))
+            export_btn.setOnClickListener(OnClickListener(lambda v: onShare()))
+            _apply_press_scale(export_btn)
+            outer.addView(export_btn, LayoutHelper.createLinear(-1, -2, pad_h, 24, pad_h, 16))
+
+            sheet.setCustomView(outer)
             sheet.show()
         except Exception as e:
             log(f"profile._open_export_sheet: error: {e}")

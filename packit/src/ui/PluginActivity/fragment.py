@@ -1718,7 +1718,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             buttons_row.addView(copy_btn, cp_lp)
 
             if readme_url:
-                extended_btn = _make_text_btn("msg_info", str(strings["plugin_view_button"]))
+                more_btn = _make_icon_only_btn("msg_info")
 
                 def _raw_to_github(url):
                     # https://raw.githubusercontent.com/user/repo/refs/heads/branch/path
@@ -1743,14 +1743,16 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                         pass
                     return url
 
-                def onExtendedClick(v, _url=readme_url, _act=act):
+                def onMoreClick(v, _url=readme_url, _act=act):
                     try:
                         if Browser and Uri:
                             Browser.openUrl(_act, Uri.parse(_raw_to_github(_url)), True, True, True, None, None, False, False, False)
                     except Exception as ex:
-                        log(f"pluginProfile: extended_btn openUrl error: {ex}")
-                extended_btn.setOnClickListener(OnClickListener(onExtendedClick))
-                buttons_row.addView(extended_btn, LinearLayout.LayoutParams(0, -2, 1.0))
+                        log(f"pluginProfile: more_btn openUrl error: {ex}")
+                more_btn.setOnClickListener(OnClickListener(onMoreClick))
+
+                more_lp = LinearLayout.LayoutParams(-2, -2)
+                buttons_row.addView(more_btn, more_lp)
 
             wrap.addView(buttons_row, LayoutHelper.createLinear(-1, -2))
             return wrap
