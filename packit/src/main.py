@@ -129,8 +129,10 @@ class PackItPlugin(BasePlugin):
         try:
             from .ui.AchievementsActivity.service.AchivementsEngine import sync_accounts, sync_completed, _load_account, _save_account
             sync_accounts()
-            data, _ = sync_completed(_load_account())
-            _save_account(data)
+            loaded, load_ok = _load_account()
+            data, _ = sync_completed(loaded)
+            if load_ok:
+                _save_account(data)
         except Exception as e:
             log(f"PackIt: achievements sync error: {e}")
         try:

@@ -1,7 +1,6 @@
-import traceback
 from android_utils import log, run_on_ui_thread
 from hook_utils import find_class, get_private_field
-from base_plugin import MethodReplacement
+from base_plugin import MethodHook
 from client_utils import get_last_fragment
 
 # expandable groups defined in OtherSettings.build()
@@ -38,35 +37,20 @@ def setup_fast_expandable_hook(plugin, other_settings):
 
         plugin_id = plugin.id
 
-        class LoadPluginSettingsHook(MethodReplacement):
-            def replace_hooked_method(self, param):
+        class LoadPluginSettingsHook(MethodHook):
+            def after_hooked_method(self, param):
                 try:
                     requested_id = str(param.args[0]) if param.args[0] is not None else None
-                    caller = "".join(traceback.format_stack()[-4:-1]).strip().replace("\n", " | ")
-                    log(f"fastExpandableHook: loadPluginSettings called id={requested_id} | {caller}")
                     if requested_id != plugin_id:
-                        return param.method.invoke(param.thisObject, param.args)
-                    return _fast_reload(param, plugin_id, other_settings)
+                        return
+                    result = _fast_reload(param, plugin_id, other_settings)
+                    if result is not None:
+                        param.setResult(result)
                 except Exception as e:
-                    log(f"fastExpandableHook: replace error: {e}")
-                    try:
-                        return param.method.invoke(param.thisObject, param.args)
-                    except Exception:
-                        return None
+                    log(f"fastExpandableHook: hook error: {e}")
 
-        try:
-            StringClass = find_class("java.lang.String")
-            method = PythonEngineClass.getDeclaredMethod("loadPluginSettings", StringClass)
-            method.setAccessible(True)
-            log(f"fastExpandableHook: method found: {method}")
-            ref = plugin.hook_method(method, LoadPluginSettingsHook(plugin))
-            log(f"fastExpandableHook: hook installed: {ref}")
-            return ref
-        except Exception as e:
-            log(f"fastExpandableHook: getDeclaredMethod failed: {e}, trying hook_all_methods")
-            refs = plugin.hook_all_methods(PythonEngineClass, "loadPluginSettings", LoadPluginSettingsHook(plugin))
-            log(f"fastExpandableHook: hook_all_methods result: {refs}")
-            return refs[0] if refs else None
+        refs = plugin.hook_all_methods(PythonEngineClass, "loadPluginSettings", LoadPluginSettingsHook())
+        return refs[0] if refs else None
 
     except Exception as e:
         log(f"fastExpandableHook: setup error: {e}")

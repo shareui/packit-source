@@ -124,7 +124,6 @@ def setup_settings_activity_hook(plugin):
                         log(f"settingsActivityHook: package check error: {e}")
 
                     items.add(extera_idx + insert_offset, packit_item)
-                    log(f"settingsActivityHook: inserted PackIt button at {extera_idx + insert_offset}")
                 except Exception as e:
                     log(f"settingsActivityHook: FillItemsHook error: {e}")
 
@@ -162,16 +161,12 @@ def setup_settings_activity_hook(plugin):
                         return
                     if int(uItem.id) != _PACKIT_SETTINGS_ID:
                         return
-                    log("settingsActivityHook: BindViewHook fired for packit item")
                     view = param.args[0]
                     icon_view = view.getIconView()
                     from android.graphics import PorterDuff
                     from org.telegram.ui.ActionBar import Theme
                     if not Theme.isCurrentThemeMonet():
                         icon_view.setColorFilter(_ICON_FG_COLOR, PorterDuff.Mode.SRC_IN)
-                        log("settingsActivityHook: icon color applied")
-                    else:
-                        log("settingsActivityHook: monet theme, skipping color override")
                 except Exception as e:
                     log(f"settingsActivityHook: BindViewHook error: {e}")
 
@@ -179,7 +174,6 @@ def setup_settings_activity_hook(plugin):
             fill_method = SA.getClass().getDeclaredMethod("fillItems", ArrayList, UniversalAdapter)
             fill_method.setAccessible(True)
             hooks.append(plugin.hook_method(fill_method, FillItemsHook()))
-            log("settingsActivityHook: fillItems hooked")
         except Exception as e:
             log(f"settingsActivityHook: fillItems hook error: {e}")
 
@@ -197,9 +191,6 @@ def setup_settings_activity_hook(plugin):
             if bind_method:
                 bind_method.setAccessible(True)
                 hooks.append(plugin.hook_method(bind_method, BindViewHook()))
-                log("settingsActivityHook: bindView hooked")
-            else:
-                log("settingsActivityHook: bindView(5) not found")
         except Exception as e:
             log(f"settingsActivityHook: bindView hook error: {e}")
 
@@ -215,9 +206,6 @@ def setup_settings_activity_hook(plugin):
             if click_method:
                 click_method.setAccessible(True)
                 hooks.append(plugin.hook_method(click_method, OnClickHook()))
-                log("settingsActivityHook: onClick hooked")
-            else:
-                log("settingsActivityHook: onClick(5) not found")
         except Exception as e:
             log(f"settingsActivityHook: onClick hook error: {e}")
 
