@@ -195,28 +195,41 @@ def _resolveIcon(name):
 
 def _createRadioIndicator(act, is_selected):
     indicator = FrameLayout(act)
-    circle = GradientDrawable()
-    circle.setShape(GradientDrawable.OVAL)
+    dp20 = AndroidUtilities.dp(20)
+    indicator.setLayoutParams(FrameLayout.LayoutParams(dp20, dp20))
+
+    accent_color = Theme.getColor(Theme.key_featuredStickers_addButton)
+    bg_color = Theme.getColor(Theme.key_dialogBackground)
+    gray_color = Theme.getColor(Theme.key_dialogTextGray2)
+
     if is_selected:
-        try:
-            circle.setColor(Theme.getColor(Theme.key_featuredStickers_addButton))
-        except Exception:
-            circle.setColor(ctypes.c_int32(0xFF2AABEE).value)
-        dot = View(act)
-        dot_bg = GradientDrawable()
-        dot_bg.setShape(GradientDrawable.OVAL)
-        dot_bg.setColor(_COLOR_WHITE)
-        dot.setBackground(dot_bg)
-        indicator.addView(dot, FrameLayout.LayoutParams(
-            AndroidUtilities.dp(8), AndroidUtilities.dp(8), Gravity.CENTER
-        ))
+        outer_ring = GradientDrawable()
+        outer_ring.setShape(GradientDrawable.OVAL)
+        outer_ring.setColor(accent_color)
+        indicator.setBackground(outer_ring)
+
+        middle_ring = View(act)
+        middle_size = AndroidUtilities.dp(16)
+        middle_bg = GradientDrawable()
+        middle_bg.setShape(GradientDrawable.OVAL)
+        middle_bg.setColor(bg_color)
+        middle_ring.setBackground(middle_bg)
+        indicator.addView(middle_ring, FrameLayout.LayoutParams(middle_size, middle_size, Gravity.CENTER))
+
+        inner_dot = View(act)
+        inner_size = AndroidUtilities.dp(10)
+        inner_bg = GradientDrawable()
+        inner_bg.setShape(GradientDrawable.OVAL)
+        inner_bg.setColor(accent_color)
+        inner_dot.setBackground(inner_bg)
+        indicator.addView(inner_dot, FrameLayout.LayoutParams(inner_size, inner_size, Gravity.CENTER))
     else:
-        circle.setColor(Color.TRANSPARENT)
-        try:
-            circle.setStroke(AndroidUtilities.dp(2), Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
-        except Exception:
-            circle.setStroke(AndroidUtilities.dp(2), ctypes.c_int32(0xFF888888).value)
-    indicator.setBackground(circle)
+        circle_bg = GradientDrawable()
+        circle_bg.setShape(GradientDrawable.OVAL)
+        circle_bg.setColor(bg_color)
+        circle_bg.setStroke(AndroidUtilities.dp(2), gray_color)
+        indicator.setBackground(circle_bg)
+
     return indicator
 
 
