@@ -1051,28 +1051,25 @@ def show_files_browser(plugin=None):
                 except Exception as e:
                     log(f"filesActivity: Failed to add back button: {e}")
                 try:
+                    back_button = action_bar.getBackButton()
+                    if back_button:
+                        def _on_back_click(v):
+                            new_frag.finishFragment()
+                        back_button.setOnClickListener(OnClickListener(_on_back_click))
+                except Exception as e:
+                    log(f"filesActivity: Failed to set back button click listener: {e}")
+                try:
                     from org.telegram.ui.ActionBar import ActionBar as TgActionBar
-
-                    class _BackClickListener(dynamic_proxy(TgActionBar.ActionBarMenuOnItemClick)):
+                    class _MenuClickListener(dynamic_proxy(TgActionBar.ActionBarMenuOnItemClick)):
                         def __init__(self):
                             super().__init__()
-
                         def onItemClick(self, mid):
-                            if mid == -1:
-                                if len(delegate._stack) > 1:
-                                    delegate._stack.pop()
-                                    run_on_ui_thread(lambda: delegate._render())
-                                    if len(delegate._stack) <= 1:
-                                        delegate._unregister_back_callback()
-                                else:
-                                    new_frag.finishFragment()
-                            elif mid == 1:
+                            if mid == 1:
                                 delegate._do_create_file()
-
-                    action_bar.setActionBarMenuOnItemClick(_BackClickListener())
-                    log("filesActivity: action bar back click listener set")
+                    action_bar.setActionBarMenuOnItemClick(_MenuClickListener())
+                    log("filesActivity: action bar menu click listener set")
                 except Exception as e:
-                    log(f"filesActivity: Failed to set action bar click listener: {e}")
+                    log(f"filesActivity: Failed to set menu click listener: {e}")
                 try:
                     log("filesActivity: creating menu")
                     menu = action_bar.createMenu()
