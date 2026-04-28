@@ -776,7 +776,7 @@ def _packit_send_plugin_info(self, plugin_data):
             entity_via = TLRPC.TL_messageEntityTextUrl()
             entity_via.offset = current_offset
             entity_via.length = len(packit_text)
-            entity_via.url = "https://t.me/packitGround/8"
+            entity_via.url = "https://t.me/packitX"
             entities.append(entity_via)
 
         message_text = "".join(message_parts)
