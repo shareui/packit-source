@@ -59,7 +59,7 @@ def show_icon_sort_menu(install_ui, act, current_sort_type, on_sort_selected):
             sort_title.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
         except Exception:
             sort_title.setTypeface(AndroidUtilities.bold())
-        sort_title.setText(strings["sort_title"])
+        sort_title.setText(strings["sort_title_icons"])
         sort_title.setGravity(Gravity.CENTER)
         sort_root.addView(sort_title, LayoutHelper.createFrame(-1, -2, Gravity.TOP, 0, 16, 0, 16))
 
