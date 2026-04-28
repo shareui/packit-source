@@ -106,28 +106,45 @@ def show_icon_sort_menu(install_ui, act, current_sort_type, on_sort_selected):
             option_layout.setOrientation(LinearLayout.HORIZONTAL)
             option_layout.setGravity(Gravity.CENTER_VERTICAL)
 
-            if is_current and not use_classic_design:
-                check_circle = FrameLayout(act)
-                check_circle_size = AndroidUtilities.dp(20)
-                check_circle_params = LinearLayout.LayoutParams(check_circle_size, check_circle_size)
-                check_circle_params.rightMargin = AndroidUtilities.dp(12)
-                circle_bg = GradientDrawable()
-                circle_bg.setShape(GradientDrawable.OVAL)
-                circle_bg.setColor(Theme.getColor(Theme.key_featuredStickers_addButton))
-                circle_bg.setStroke(AndroidUtilities.dp(1), Color.WHITE)
-                check_circle.setBackground(circle_bg)
-                dot = View(act)
-                dot_bg = GradientDrawable()
-                dot_bg.setShape(GradientDrawable.OVAL)
-                dot_bg.setColor(Color.WHITE)
-                dot.setBackground(dot_bg)
-                check_circle.addView(dot, FrameLayout.LayoutParams(AndroidUtilities.dp(8), AndroidUtilities.dp(8), Gravity.CENTER))
-                option_layout.addView(check_circle, check_circle_params)
-            elif not use_classic_design:
-                empty_space = View(act)
-                empty_space_params = LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
-                empty_space_params.rightMargin = AndroidUtilities.dp(12)
-                option_layout.addView(empty_space, empty_space_params)
+            if not use_classic_design:
+                radio_circle = FrameLayout(act)
+                radio_size = AndroidUtilities.dp(20)
+                radio_params = LinearLayout.LayoutParams(radio_size, radio_size)
+                radio_params.rightMargin = AndroidUtilities.dp(12)
+
+                accent_color = Theme.getColor(Theme.key_featuredStickers_addButton)
+                bg_color = Theme.getColor(Theme.key_dialogBackground)
+                gray_color = Theme.getColor(Theme.key_dialogTextGray2)
+
+                if is_current:
+                    outer_ring = GradientDrawable()
+                    outer_ring.setShape(GradientDrawable.OVAL)
+                    outer_ring.setColor(accent_color)
+                    radio_circle.setBackground(outer_ring)
+
+                    middle_ring = View(act)
+                    middle_size = AndroidUtilities.dp(16)
+                    middle_bg = GradientDrawable()
+                    middle_bg.setShape(GradientDrawable.OVAL)
+                    middle_bg.setColor(bg_color)
+                    middle_ring.setBackground(middle_bg)
+                    radio_circle.addView(middle_ring, FrameLayout.LayoutParams(middle_size, middle_size, Gravity.CENTER))
+
+                    inner_dot = View(act)
+                    inner_size = AndroidUtilities.dp(10)
+                    inner_bg = GradientDrawable()
+                    inner_bg.setShape(GradientDrawable.OVAL)
+                    inner_bg.setColor(accent_color)
+                    inner_dot.setBackground(inner_bg)
+                    radio_circle.addView(inner_dot, FrameLayout.LayoutParams(inner_size, inner_size, Gravity.CENTER))
+                else:
+                    circle_bg = GradientDrawable()
+                    circle_bg.setShape(GradientDrawable.OVAL)
+                    circle_bg.setColor(bg_color)
+                    circle_bg.setStroke(AndroidUtilities.dp(2), gray_color)
+                    radio_circle.setBackground(circle_bg)
+
+                option_layout.addView(radio_circle, radio_params)
 
             icon = ImageView(act)
             icon_name = _SORT_ICONS.get(sort_type)
