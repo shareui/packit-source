@@ -174,6 +174,7 @@
   "repo_add_disclaimer": "PackIt is not responsible for the content of {0}. All rights and responsibility belong to the owner, {1}.\n\nPlugin count: {2}",
   "repo_add_no_repometa": "Repository has no metadata. Add anyway?\n\nPlugin count: {0}",
   "sort_title": "Sort Plugins",
+  "sort_title_icons": "Sort Icons",
   "sort_alpha_az": "Alphabetically A-Z",
   "sort_alpha_za": "Alphabetically Z-A",
   "sort_by_authors": "By Authors (A-Z)",
