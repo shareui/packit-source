@@ -1,7 +1,7 @@
 from android.widget import LinearLayout, TextView, FrameLayout
 from android.util import TypedValue
 from android.graphics.drawable import GradientDrawable
-from android.view import Gravity, MotionEvent
+from android.view import Gravity, MotionEvent, View
 from android_utils import run_on_ui_thread, log, OnClickListener
 from client_utils import get_last_fragment
 try:
@@ -81,6 +81,7 @@ def _show_beta_dialog():
         msg_tv.setText(strings.beta_dialog_message)
         msg_tv.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
         msg_tv.setLineSpacing(AndroidUtilities.dp(2), 1.0)
+        msg_tv.setGravity(Gravity.CENTER)
         root.addView(msg_tv, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 20))
 
         try:

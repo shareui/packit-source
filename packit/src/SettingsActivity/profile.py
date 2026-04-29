@@ -370,7 +370,7 @@ class ProfileSettings:
                 row = LinearLayout(ctx)
                 row.setOrientation(LinearLayout.HORIZONTAL)
                 row.setGravity(Gravity.CENTER_VERTICAL)
-                row.setPadding(dp(12), dp(10), dp(12), dp(10))
+                row.setPadding(dp(12), dp(6), dp(12), dp(6))
                 row.setClickable(True)
                 row.setFocusable(True)
                 try:
@@ -418,7 +418,7 @@ class ProfileSettings:
                 row_lp = LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8 if i < len(checkboxLabels) - 1 else 0)
                 checkboxes_list.addView(rowView, row_lp)
 
-            checkbox_row_px = dp(54)
+            checkbox_row_px = dp(46)
             checkboxes_scroll = ScrollView(ctx)
             checkboxes_scroll.setNestedScrollingEnabled(True)
             checkboxes_scroll.setVerticalScrollBarEnabled(False)
