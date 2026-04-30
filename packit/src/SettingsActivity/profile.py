@@ -266,7 +266,7 @@ class ProfileSettings:
 
     def _open_export_sheet(self):
         try:
-            from android.widget import LinearLayout, TextView, FrameLayout, ScrollView
+            from android.widget import LinearLayout, TextView, FrameLayout
             from android.view import Gravity, View, MotionEvent
             from android.util import TypedValue
             from android.graphics import Color
@@ -391,7 +391,13 @@ class ProfileSettings:
 
                 label = TextView(ctx)
                 label.setText(str(labelText))
-                label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+                label.setMaxLines(1)
+                label.setSingleLine(True)
+                try:
+                    label.setAutoSizeTextTypeWithDefaults(TextView.AUTO_SIZE_TEXT_TYPE_UNIFORM)
+                    label.setAutoSizeTextTypeUniformWithConfiguration(8, 15, 1, TypedValue.COMPLEX_UNIT_DIP)
+                except Exception:
+                    label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
                 try:
                     label.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
                 except Exception:
@@ -418,28 +424,6 @@ class ProfileSettings:
                 row_lp = LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8 if i < len(checkboxLabels) - 1 else 0)
                 checkboxes_list.addView(rowView, row_lp)
 
-            checkbox_row_px = dp(46)
-            checkboxes_scroll = ScrollView(ctx)
-            checkboxes_scroll.setNestedScrollingEnabled(True)
-            checkboxes_scroll.setVerticalScrollBarEnabled(False)
-            checkboxes_scroll.addView(checkboxes_list)
-
-            class _ScrollTouchListener(dynamic_proxy(View.OnTouchListener)):
-                def __init__(self):
-                    super().__init__()
-                def onTouch(self, v, event):
-                    try:
-                        action = event.getActionMasked()
-                        if action == MotionEvent.ACTION_DOWN:
-                            v.getParent().requestDisallowInterceptTouchEvent(True)
-                        elif action in (MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL):
-                            v.getParent().requestDisallowInterceptTouchEvent(False)
-                    except Exception:
-                        pass
-                    return False
-
-            checkboxes_scroll.setOnTouchListener(_ScrollTouchListener())
-            scroll_height_px = len(checkboxLabels) * checkbox_row_px
             dark_container = FrameLayout(ctx)
             dark_field_color = Theme.getColor(Theme.key_windowBackgroundGray)
             dark_bg = GradientDrawable()
@@ -447,18 +431,11 @@ class ProfileSettings:
             dark_bg.setCornerRadius(dp(18))
             dark_bg.setColor(dark_field_color)
             dark_container.setBackground(dark_bg)
-            
-            checkboxes_scroll.setPadding(dp(12), dp(16), dp(12), dp(16))
-            dark_container.addView(checkboxes_scroll, FrameLayout.LayoutParams(-1, -1))
-            
-            try:
-                checkboxes_scroll.setVerticalFadingEdgeEnabled(True)
-                checkboxes_scroll.setHorizontalFadingEdgeEnabled(False)
-                checkboxes_scroll.setFadingEdgeLength(dp(20))
-            except Exception as e:
-                log(f"profile: fading edge error: {e}")
-            
-            dark_lp = LinearLayout.LayoutParams(-1, scroll_height_px + dp(70))
+
+            checkboxes_list.setPadding(dp(12), dp(16), dp(12), dp(16))
+            dark_container.addView(checkboxes_list, FrameLayout.LayoutParams(-1, -2))
+
+            dark_lp = LinearLayout.LayoutParams(-1, -2)
             dark_lp.leftMargin = dp(pad_h)
             dark_lp.rightMargin = dp(pad_h)
             outer.addView(dark_container, dark_lp)
