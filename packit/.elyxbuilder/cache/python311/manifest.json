@@ -1,0 +1,562 @@
+{
+  "MainActivity.py": {
+    "mtime": 1776873398.0,
+    "size": 14751
+  },
+  "__init__.py": {
+    "mtime": 1776873398.0,
+    "size": 23
+  },
+  "RepositoryManager.py": {
+    "mtime": 1776873398.0,
+    "size": 15516
+  },
+  "core.py": {
+    "mtime": 1777546444.5886602,
+    "size": 28245
+  },
+  "nativeLoader.py": {
+    "mtime": 1776873398.0,
+    "size": 13655
+  },
+  "standaloneHooks/addIconsFab.py": {
+    "mtime": 1776873398.0,
+    "size": 4273
+  },
+  "standaloneHooks/__init__.py": {
+    "mtime": 1777545896.5526605,
+    "size": 0
+  },
+  "standaloneHooks/settingsActivityHook.py": {
+    "mtime": 1777266218.0,
+    "size": 9143
+  },
+  "standaloneHooks/addPluginFab.py": {
+    "mtime": 1776980710.0,
+    "size": 10076
+  },
+  "SettingsActivity/icons.py": {
+    "mtime": 1776873398.0,
+    "size": 14687
+  },
+  "SettingsActivity/debugItems.py": {
+    "mtime": 1776873398.0,
+    "size": 1666
+  },
+  "SettingsActivity/deeplinks.py": {
+    "mtime": 1776873398.0,
+    "size": 5367
+  },
+  "SettingsActivity/repos.py": {
+    "mtime": 1776873398.0,
+    "size": 31529
+  },
+  "SettingsActivity/profile.py": {
+    "mtime": 1777527444.0,
+    "size": 34090
+  },
+  "SettingsActivity/__init__.py": {
+    "mtime": 1777545896.5126605,
+    "size": 0
+  },
+  "SettingsActivity/docs.py": {
+    "mtime": 1777265676.0,
+    "size": 10767
+  },
+  "SettingsActivity/utilities.py": {
+    "mtime": 1776873398.0,
+    "size": 5056
+  },
+  "SettingsActivity/contributors.py": {
+    "mtime": 1776873398.0,
+    "size": 19509
+  },
+  "SettingsActivity/settings.py": {
+    "mtime": 1777528916.0,
+    "size": 84509
+  },
+  "SettingsActivity/service/__init__.py": {
+    "mtime": 1777545896.5246603,
+    "size": 0
+  },
+  "SettingsActivity/service/pluginsExport.py": {
+    "mtime": 1776873398.0,
+    "size": 11867
+  },
+  "SettingsActivity/service/fastExpandableHook.py": {
+    "mtime": 1777277646.0,
+    "size": 5893
+  },
+  "SettingsActivity/SubSettings/fileSettings.py": {
+    "mtime": 1776993834.0,
+    "size": 548
+  },
+  "SettingsActivity/SubSettings/sfx.py": {
+    "mtime": 1776921388.0,
+    "size": 1334
+  },
+  "SettingsActivity/SubSettings/PluginCardEditor.py": {
+    "mtime": 1776873398.0,
+    "size": 71199
+  },
+  "SettingsActivity/SubSettings/interface.py": {
+    "mtime": 1777024364.0,
+    "size": 10482
+  },
+  "SettingsActivity/SubSettings/updplugins.py": {
+    "mtime": 1776993466.0,
+    "size": 687
+  },
+  "SettingsActivity/SubSettings/__init__.py": {
+    "mtime": 1777545896.5086606,
+    "size": 0
+  },
+  "SettingsActivity/SubSettings/inline.py": {
+    "mtime": 1776982266.0,
+    "size": 2567
+  },
+  "SettingsActivity/SubSettings/misc.py": {
+    "mtime": 1776994440.0,
+    "size": 3351
+  },
+  "SettingsActivity/SubSettings/pluginProfile.py": {
+    "mtime": 1776873398.0,
+    "size": 398
+  },
+  "SettingsActivity/SubSettings/comps.py": {
+    "mtime": 1776909996.0,
+    "size": 363
+  },
+  "SettingsActivity/SubSettings/hotkeys.py": {
+    "mtime": 1776873398.0,
+    "size": 2098
+  },
+  "deeplinks/install.py": {
+    "mtime": 1776873398.0,
+    "size": 16764
+  },
+  "deeplinks/__init__.py": {
+    "mtime": 1776873398.0,
+    "size": 80
+  },
+  "deeplinks/pkill.py": {
+    "mtime": 1776873398.0,
+    "size": 1116
+  },
+  "deeplinks/plugin.py": {
+    "mtime": 1776873398.0,
+    "size": 4469
+  },
+  "deeplinks/repo.py": {
+    "mtime": 1776873398.0,
+    "size": 10951
+  },
+  "deeplinks/deepHandler.py": {
+    "mtime": 1776873398.0,
+    "size": 4108
+  },
+  "deeplinks/docs.py": {
+    "mtime": 1776873398.0,
+    "size": 374
+  },
+  "deeplinks/problems.py": {
+    "mtime": 1776873398.0,
+    "size": 735
+  },
+  "deeplinks/contributors.py": {
+    "mtime": 1776873398.0,
+    "size": 390
+  },
+  "deeplinks/deeplinkMenu.py": {
+    "mtime": 1776873398.0,
+    "size": 387
+  },
+  "deeplinks/forum.py": {
+    "mtime": 1776873398.0,
+    "size": 726
+  },
+  "deeplinks/mainMenu.py": {
+    "mtime": 1776873398.0,
+    "size": 539
+  },
+  "deeplinks/settings.py": {
+    "mtime": 1776873398.0,
+    "size": 1248
+  },
+  "deeplinks/update.py": {
+    "mtime": 1776873398.0,
+    "size": 5953
+  },
+  "deeplinks/other.py": {
+    "mtime": 1776873398.0,
+    "size": 385
+  },
+  "deeplinks/secret/premium.py": {
+    "mtime": 1776873398.0,
+    "size": 1928
+  },
+  "deeplinks/secret/__init__.py": {
+    "mtime": 1777545896.5326605,
+    "size": 0
+  },
+  "deeplinks/secret/terraria.py": {
+    "mtime": 1776873398.0,
+    "size": 2167
+  },
+  "DialogsActivity/pillWidget.py": {
+    "mtime": 1777528334.0,
+    "size": 17331
+  },
+  "DialogsActivity/PackitUpdateSheet.py": {
+    "mtime": 1776873398.0,
+    "size": 12347
+  },
+  "DialogsActivity/__init__.py": {
+    "mtime": 1777545896.4966605,
+    "size": 0
+  },
+  "DialogsActivity/button.py": {
+    "mtime": 1776873398.0,
+    "size": 2846
+  },
+  "DialogsActivity/btnPluginsMenu.py": {
+    "mtime": 1776873398.0,
+    "size": 2313
+  },
+  "DialogsActivity/chatDialogButton.py": {
+    "mtime": 1776873398.0,
+    "size": 21174
+  },
+  "DialogsActivity/btnCAB.py": {
+    "mtime": 1776873398.0,
+    "size": 9161
+  },
+  "ChatActivity/ImportBottomSheet.py": {
+    "mtime": 1777277916.0,
+    "size": 38164
+  },
+  "ChatActivity/__init__.py": {
+    "mtime": 1776873398.0,
+    "size": 1
+  },
+  "ChatActivity/afpFile.py": {
+    "mtime": 1776873398.0,
+    "size": 6500
+  },
+  "ChatActivity/ConfirmImportBottomSheet.py": {
+    "mtime": 1777527652.0,
+    "size": 39659
+  },
+  "ChatActivity/pluginAutocomplete.py": {
+    "mtime": 1777527262.0,
+    "size": 33362
+  },
+  "ChatActivity/LinksIcons/linksBottomSheet.py": {
+    "mtime": 1776873398.0,
+    "size": 10560
+  },
+  "ChatActivity/LinksIcons/__init__.py": {
+    "mtime": 1776873398.0,
+    "size": 55
+  },
+  "ChatActivity/SecurityBottomSheets/hashBottomSheet.py": {
+    "mtime": 1776873398.0,
+    "size": 35630
+  },
+  "ChatActivity/SecurityBottomSheets/__init__.py": {
+    "mtime": 1776873398.0,
+    "size": 112
+  },
+  "ChatActivity/SecurityBottomSheets/signaturesBottomSheet.py": {
+    "mtime": 1776873398.0,
+    "size": 20616
+  },
+  "ChatActivity/export/DecryptorBottomSheet.py": {
+    "mtime": 1777072504.0,
+    "size": 5697
+  },
+  "ChatActivity/export/ImportBottomSheet.py": {
+    "mtime": 1777527262.0,
+    "size": 5016
+  },
+  "ChatActivity/export/__init__.py": {
+    "mtime": 1777545896.4806604,
+    "size": 0
+  },
+  "ChatActivity/export/bin/writer.py": {
+    "mtime": 1777072724.0,
+    "size": 5352
+  },
+  "ChatActivity/export/bin/__init__.py": {
+    "mtime": 1777545896.4926605,
+    "size": 0
+  },
+  "ChatActivity/export/bin/reader.py": {
+    "mtime": 1776873398.0,
+    "size": 3397
+  },
+  "utils/drawable.py": {
+    "mtime": 1777074138.0,
+    "size": 2527
+  },
+  "utils/paths.py": {
+    "mtime": 1776873402.0,
+    "size": 1436
+  },
+  "utils/__init__.py": {
+    "mtime": 1777545896.6326604,
+    "size": 0
+  },
+  "utils/app_version.py": {
+    "mtime": 1776873398.0,
+    "size": 1183
+  },
+  "utils/importFailed.py": {
+    "mtime": 1776873398.0,
+    "size": 650
+  },
+  "utils/hashUtil.py": {
+    "mtime": 1776873398.0,
+    "size": 4340
+  },
+  "utils/media.py": {
+    "mtime": 1776873398.0,
+    "size": 2181
+  },
+  "utils/copy.py": {
+    "mtime": 1776873398.0,
+    "size": 1622
+  },
+  "utils/localConfig.py": {
+    "mtime": 1776873398.0,
+    "size": 4882
+  },
+  "utils/share.py": {
+    "mtime": 1776873398.0,
+    "size": 5473
+  },
+  "utils/installIndex.py": {
+    "mtime": 1776873830.0,
+    "size": 11969
+  },
+  "other/text.py": {
+    "mtime": 1776873398.0,
+    "size": 812
+  },
+  "other/__init__.py": {
+    "mtime": 1777545896.5406604,
+    "size": 0
+  },
+  "other/everyone.py": {
+    "mtime": 1776873398.0,
+    "size": 3546
+  },
+  "other/badges.py": {
+    "mtime": 1776873398.0,
+    "size": 13316
+  },
+  "other/isBeta.py": {
+    "mtime": 1777527262.0,
+    "size": 6165
+  },
+  "ui/viewUtils.py": {
+    "mtime": 1776873398.0,
+    "size": 1761
+  },
+  "ui/FontManager.py": {
+    "mtime": 1776873398.0,
+    "size": 4860
+  },
+  "ui/__init__.py": {
+    "mtime": 1777545896.6206605,
+    "size": 0
+  },
+  "ui/contextMenu.py": {
+    "mtime": 1777011386.0,
+    "size": 2779
+  },
+  "ui/FontPickerBottomSheet.py": {
+    "mtime": 1777527262.0,
+    "size": 16993
+  },
+  "ui/DeeplinkBottomSheets.py": {
+    "mtime": 1776873398.0,
+    "size": 21902
+  },
+  "ui/ExportBottomSheet.py": {
+    "mtime": 1776981614.0,
+    "size": 32590
+  },
+  "ui/PluginActivity/__init__.py": {
+    "mtime": 1777545896.5966604,
+    "size": 0
+  },
+  "ui/PluginActivity/versionPicker.py": {
+    "mtime": 1776873398.0,
+    "size": 36675
+  },
+  "ui/PluginActivity/fragment.py": {
+    "mtime": 1777265676.0,
+    "size": 117325
+  },
+  "ui/PluginListActivity/RepoBottomSheet.py": {
+    "mtime": 1776873398.0,
+    "size": 12202
+  },
+  "ui/PluginListActivity/__init__.py": {
+    "mtime": 1777545896.6046605,
+    "size": 0
+  },
+  "ui/PluginListActivity/SortBottomSheet.py": {
+    "mtime": 1777527262.0,
+    "size": 11598
+  },
+  "ui/PluginListActivity/translation.py": {
+    "mtime": 1776873398.0,
+    "size": 10611
+  },
+  "ui/PluginListActivity/depsSheet.py": {
+    "mtime": 1776873398.0,
+    "size": 25689
+  },
+  "ui/PluginListActivity/tgChannelSheet.py": {
+    "mtime": 1776874836.0,
+    "size": 5133
+  },
+  "ui/PluginListActivity/filterDrawer.py": {
+    "mtime": 1776968990.0,
+    "size": 45439
+  },
+  "ui/PluginListActivity/fragment.py": {
+    "mtime": 1777290832.0,
+    "size": 128772
+  },
+  "ui/PluginListActivity/TagsBottomSheet.py": {
+    "mtime": 1776873398.0,
+    "size": 13774
+  },
+  "ui/PluginListActivity/service/filterEngine.py": {
+    "mtime": 1776873398.0,
+    "size": 1279
+  },
+  "ui/PluginListActivity/service/InstallDismissHook.py": {
+    "mtime": 1776873398.0,
+    "size": 1934
+  },
+  "ui/PluginListActivity/service/__init__.py": {
+    "mtime": 1777545896.6126604,
+    "size": 0
+  },
+  "ui/PluginListActivity/service/PluginActions.py": {
+    "mtime": 1776873398.0,
+    "size": 10436
+  },
+  "ui/PluginListActivity/service/ReportService.py": {
+    "mtime": 1776873398.0,
+    "size": 1012
+  },
+  "ui/PluginListActivity/service/SearchEngine.py": {
+    "mtime": 1776873398.0,
+    "size": 8656
+  },
+  "ui/AchievementsActivity/__init__.py": {
+    "mtime": 1777545896.5606604,
+    "size": 0
+  },
+  "ui/AchievementsActivity/fragment.py": {
+    "mtime": 1776873398.0,
+    "size": 33645
+  },
+  "ui/AchievementsActivity/service/__init__.py": {
+    "mtime": 1777545896.5726604,
+    "size": 0
+  },
+  "ui/AchievementsActivity/service/AchivementsEngine.py": {
+    "mtime": 1776898256.0,
+    "size": 18489
+  },
+  "ui/FilesActivity/openFileFragment.py": {
+    "mtime": 1776968276.0,
+    "size": 26435
+  },
+  "ui/FilesActivity/__init__.py": {
+    "mtime": 1777545896.5806603,
+    "size": 0
+  },
+  "ui/FilesActivity/infoDialog.py": {
+    "mtime": 1776873398.0,
+    "size": 13500
+  },
+  "ui/FilesActivity/packlight.py": {
+    "mtime": 1776873398.0,
+    "size": 4422
+  },
+  "ui/FilesActivity/fragment.py": {
+    "mtime": 1777527262.0,
+    "size": 45176
+  },
+  "ui/pluginsUpdates/hideDialog.py": {
+    "mtime": 1776873398.0,
+    "size": 11747
+  },
+  "ui/pluginsUpdates/__init__.py": {
+    "mtime": 1777545896.6246605,
+    "size": 0
+  },
+  "ui/pluginsUpdates/startupSheet.py": {
+    "mtime": 1776873398.0,
+    "size": 29686
+  },
+  "ui/pluginsUpdates/clearIgnoreListDialog.py": {
+    "mtime": 1776873398.0,
+    "size": 16485
+  },
+  "ui/pluginsUpdates/fragment.py": {
+    "mtime": 1776873398.0,
+    "size": 44241
+  },
+  "ui/IconsListActivity/RepoBottomSheet.py": {
+    "mtime": 1776873398.0,
+    "size": 11075
+  },
+  "ui/IconsListActivity/__init__.py": {
+    "mtime": 1777545896.5886605,
+    "size": 0
+  },
+  "ui/IconsListActivity/SortBottomSheet.py": {
+    "mtime": 1777527262.0,
+    "size": 10725
+  },
+  "ui/IconsListActivity/fragment.py": {
+    "mtime": 1777023380.0,
+    "size": 74143
+  },
+  "scl/scl.py": {
+    "mtime": 1776873398.0,
+    "size": 1870
+  },
+  "scl/native.py": {
+    "mtime": 1776873398.0,
+    "size": 11540
+  },
+  "scl/__init__.py": {
+    "mtime": 1776873398.0,
+    "size": 329
+  },
+  "scl/errors.py": {
+    "mtime": 1776873398.0,
+    "size": 76
+  },
+  "scl/opts.py": {
+    "mtime": 1776873398.0,
+    "size": 486
+  },
+  "scl/value.py": {
+    "mtime": 1776873398.0,
+    "size": 3873
+  },
+  "scl/doc.py": {
+    "mtime": 1776873398.0,
+    "size": 2195
+  }
+}
