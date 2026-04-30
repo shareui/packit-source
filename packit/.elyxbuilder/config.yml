@@ -1,0 +1,8 @@
+zipFormat: eaf
+source: packit/src
+buildNameUncompiled: "{name}-{version}"
+buildNameCompiled: "{name}-{version}-3.11"
+ignoreAll:
+  - packit/.elyxbuilder/cache/*
+compilationIgnore:
+  - packit/src/main.py

@@ -27,7 +27,7 @@ import signal
 
 _install_listeners = []
 _install_listeners_lock = threading.Lock()
-
+# test2
 
 def add_install_listener(fn):
     # fn(plugin_id: str) called on UI thread after successful install
