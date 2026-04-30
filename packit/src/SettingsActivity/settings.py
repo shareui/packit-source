@@ -1055,7 +1055,7 @@ class SortDesignCard(Base):
         from android.animation import ValueAnimator
         from android.view.animation import DecelerateInterpolator
         from android.view import View
-        from android.widget import ImageView
+        from android.widget import ImageView, FrameLayout
         from java import dynamic_proxy
         from hook_utils import find_class
         from elyx import settings as _settings
@@ -1133,15 +1133,32 @@ class SortDesignCard(Base):
 
                 if not isClassic:
                     dot = FrameLayout(context)
-                    dotSize = dp(8)
-                    dotBg = GradientDrawable()
-                    dotBg.setShape(GradientDrawable.OVAL)
+                    dotSize = dp(12)
                     if isSelected:
-                        dotBg.setColor(accentColor)
-                        dotBg.setStroke(dp(1), Color.WHITE)
+                        outerBg = GradientDrawable()
+                        outerBg.setShape(GradientDrawable.OVAL)
+                        outerBg.setColor(accentColor)
+                        dot.setBackground(outerBg)
+
+                        middleView = View(context)
+                        middleBg = GradientDrawable()
+                        middleBg.setShape(GradientDrawable.OVAL)
+                        middleBg.setColor(dialogBg)
+                        middleView.setBackground(middleBg)
+                        dot.addView(middleView, FrameLayout.LayoutParams(dp(9), dp(9), Gravity.CENTER))
+
+                        innerView = View(context)
+                        innerBg = GradientDrawable()
+                        innerBg.setShape(GradientDrawable.OVAL)
+                        innerBg.setColor(accentColor)
+                        innerView.setBackground(innerBg)
+                        dot.addView(innerView, FrameLayout.LayoutParams(dp(5), dp(5), Gravity.CENTER))
                     else:
-                        dotBg.setColor(0x00000000)
-                    dot.setBackground(dotBg)
+                        emptyBg = GradientDrawable()
+                        emptyBg.setShape(GradientDrawable.OVAL)
+                        emptyBg.setColor(0x00000000)
+                        emptyBg.setStroke(dp(1), dialogTextGray)
+                        dot.setBackground(emptyBg)
                     dotLp = LinearLayout.LayoutParams(dotSize, dotSize)
                     dotLp.rightMargin = dp(5)
                     optRow.addView(dot, dotLp)

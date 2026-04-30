@@ -349,7 +349,7 @@
   "plugin_unavailable": "Unavailable",
   "plugin_version_below_min": "The app version is below the minimum. Can be hidden in the settings.",
   "ok_button": "OK",
-  "profile_title": "{first_name} profile",
+  "profile_title": "{first_name}",
   "profile_achievements": "Achievements",
   "profile_statistics": "Statistics",
   "profile_export_db": "Export database",

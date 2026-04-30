@@ -30,7 +30,7 @@ def _selected_size(file_path: str, plugins: list) -> int:
 def _format_size(size_bytes: int) -> str:
     if size_bytes < 1024 * 1024:
         return f"{size_bytes / 1024:.1f} KB"
-    return f"{size_bytes / (1024 * 1024):.2f} GB"
+    return f"{size_bytes / (1024 * 1024):.2f} MB"
 
 
 def _merge_plugin_settings(file_path: str, plugin_ids: list):

@@ -154,8 +154,8 @@ def _register_pill(plugin):
             pid,
             _PILL_LABEL,
             icon_res,
-            -1,
-            -1,
+            -8695125,   # top: #7B52AB purple
+            -10801024,  # bottom: #5B3080 dark purple
             _PackitPillCreator(PackitPill)
         )
         _restore_visibility()
