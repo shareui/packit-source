@@ -395,6 +395,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
         outer.addView(scroll, LayoutHelper.createLinear(-1, 0, 1.0))
 
         self._render()
+        self._inject_fab()
         return self._content_view
 
     def _rel_path(self, path):
@@ -682,6 +683,94 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             dialog.show()
         except Exception as e:
             log(f"filesActivity: _do_create_file error: {e}")
+
+    def _inject_fab(self):
+        try:
+            import math
+            from android.widget import FrameLayout, ImageView
+            from android.view import Gravity, MotionEvent, View
+            from android.graphics.drawable import GradientDrawable
+            from java import dynamic_proxy
+
+            act = self._act
+            dp = AndroidUtilities.dp
+
+            squareFab = True
+            try:
+                ExteraConfig = find_class("com.exteragram.messenger.ExteraConfig")
+                squareFab = bool(ExteraConfig.squareFab)
+            except Exception:
+                pass
+
+            try:
+                btn_color = Theme.getColor(Theme.key_featuredStickers_addButton)
+                icon_color = Theme.getColor(Theme.key_featuredStickers_buttonText)
+            except Exception:
+                from android.graphics import Color
+                btn_color = Color.parseColor("#2196F3")
+                icon_color = 0xFFFFFFFF
+
+            fab_size_dp = 56
+            fab_size = dp(fab_size_dp)
+            fab_margin = dp(16)
+
+            bg = GradientDrawable()
+            if squareFab:
+                bg.setShape(GradientDrawable.RECTANGLE)
+                corner = dp(float(math.ceil(fab_size_dp * 16.0 / 56.0)))
+                bg.setCornerRadius(corner)
+            else:
+                bg.setShape(GradientDrawable.OVAL)
+            bg.setColor(btn_color)
+
+            fab = FrameLayout(act)
+            fab.setClickable(True)
+            fab.setFocusable(True)
+            fab.setBackground(bg)
+            try:
+                fab.setElevation(dp(4))
+            except Exception:
+                pass
+
+            fab_icon = ImageView(act)
+            fab_icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+            icon_id = _resolve_icon("msg_addbot")
+            if icon_id:
+                fab_icon.setImageResource(icon_id)
+                fab_icon.setColorFilter(icon_color)
+            fab.addView(fab_icon, FrameLayout.LayoutParams(fab_size, fab_size))
+
+            delegate_ref = self
+
+            fab.setOnClickListener(OnClickListener(lambda v: delegate_ref._do_create_file()))
+
+            def _on_touch(v, event):
+                try:
+                    action = event.getActionMasked()
+                    if action == MotionEvent.ACTION_DOWN:
+                        fab.animate().scaleX(0.88).scaleY(0.88).alpha(0.72).setDuration(120).start()
+                    elif action in (MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL):
+                        fab.animate().scaleX(1.0).scaleY(1.0).alpha(1.0).setDuration(220).start()
+                except Exception:
+                    pass
+                return False
+
+            class _TL(dynamic_proxy(View.OnTouchListener)):
+                def onTouch(self, v, event):
+                    return _on_touch(v, event)
+
+            fab.setOnTouchListener(_TL())
+
+            fab_lp = FrameLayout.LayoutParams(fab_size, fab_size)
+            fab_lp.gravity = Gravity.BOTTOM | Gravity.END
+            fab_lp.rightMargin = fab_margin
+            fab_lp.bottomMargin = fab_margin
+
+            self._content_view.addView(fab, fab_lp)
+            fab.bringToFront()
+            log("filesActivity: FAB injected")
+        except Exception as e:
+            log(f"filesActivity: _inject_fab error: {e}")
 
     def _do_delete(self, path):
         try:
@@ -1058,28 +1147,7 @@ def show_files_browser(plugin=None):
                         back_button.setOnClickListener(OnClickListener(_on_back_click))
                 except Exception as e:
                     log(f"filesActivity: Failed to set back button click listener: {e}")
-                try:
-                    from org.telegram.ui.ActionBar import ActionBar as TgActionBar
-                    class _MenuClickListener(dynamic_proxy(TgActionBar.ActionBarMenuOnItemClick)):
-                        def __init__(self):
-                            super().__init__()
-                        def onItemClick(self, mid):
-                            if mid == 1:
-                                delegate._do_create_file()
-                    action_bar.setActionBarMenuOnItemClick(_MenuClickListener())
-                    log("filesActivity: action bar menu click listener set")
-                except Exception as e:
-                    log(f"filesActivity: Failed to set menu click listener: {e}")
-                try:
-                    log("filesActivity: creating menu")
-                    menu = action_bar.createMenu()
-                    log(f"filesActivity: menu created: {menu}")
-                    add_icon = _resolve_icon("msg_addbot")
-                    log(f"filesActivity: icon id: {add_icon}")
-                    menu.addItemWithWidth(1, add_icon, AndroidUtilities.dp(54))
-                    log("filesActivity: add_btn added to menu")
-                except Exception as e:
-                    log(f"filesActivity: show_files_browser menu error: {e}")
+
             delegate._frag_ref[0] = new_frag
         except Exception as e:
             log(f"filesActivity: show_files_browser actionBar error: {e}")
