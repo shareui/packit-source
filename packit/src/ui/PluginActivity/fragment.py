@@ -1793,18 +1793,20 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             current_version = str(p.get("version") or "")
             # None means field absent; [] means field exists but no text
             current_cl = p.get("changelog")
+            current_size = str(p.get("size") or "").strip()
             versions_map = p.get("versions") or {}
 
-            # entries: (version_str, cl_or_none, is_latest)
+            # entries: (version_str, cl_or_none, is_latest, size_str)
             # cl_or_none is None if changelog field absent, list otherwise
             entries = []
-            entries.append((current_version, current_cl, True))
+            entries.append((current_version, current_cl, True, current_size))
             for v in reversed(list(versions_map.keys())):
                 vdata = versions_map[v]
                 cl_raw = vdata.get("changelog") if "changelog" in vdata else None
-                entries.append((v, cl_raw, False))
+                v_size = str(vdata.get("size") or "").strip()
+                entries.append((v, cl_raw, False, v_size))
 
-            for version_str, cl, is_latest in entries:
+            for version_str, cl, is_latest, entry_size in entries:
                 card = LinearLayout(act)
                 card.setOrientation(LinearLayout.VERTICAL)
                 card.setPadding(
@@ -1815,15 +1817,16 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 if card_bg:
                     card.setBackground(card_bg)
 
-                label = f"v{version_str} (latest)" if is_latest else f"v{version_str}"
+                label = f"v{version_str}"
 
-                # changelog text from index 1 (index 0 is the link)
-                cl_text = None
-                if isinstance(cl, list) and len(cl) > 1:
-                    cl_text = str(cl[1]).strip() or None
+                # index 0: link or "None"; index 1: +diff; index 2: -diff
+                cl_raw_link = str(cl[0]).strip() if isinstance(cl, list) and len(cl) > 0 else None
+                # "None" at index 0 means author explicitly omitted changelog
+                cl_is_none = cl_raw_link == "None"
+                cl_link = cl_raw_link if not cl_is_none else None
 
-                # link is always at index 0
-                cl_link = str(cl[0]).strip() if isinstance(cl, list) and len(cl) > 0 else None
+                cl_diff_add = str(cl[1]).strip() if isinstance(cl, list) and len(cl) > 1 else None
+                cl_diff_rem = str(cl[2]).strip() if isinstance(cl, list) and len(cl) > 2 else None
 
                 cl_absent = cl is None
 
@@ -1836,35 +1839,102 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 except Exception:
                     ver_tv.setTypeface(AndroidUtilities.bold())
 
-                if cl_text:
-                    # version label left-aligned
-                    card.addView(ver_tv, LayoutHelper.createLinear(-2, -2))
-                    body_tv = TextView(act)
-                    body_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
-                    body_tv.setTextColor(gray_color)
-                    body_tv.setLineSpacing(AndroidUtilities.dp(2), 1.0)
-                    try:
-                        from com.exteragram.messenger.utils.text import LocaleUtils
-                        from android.text.method import LinkMovementMethod
-                        body_tv.setText(LocaleUtils.fullyFormatText(cl_text))
-                        body_tv.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
-                        body_tv.setMovementMethod(LinkMovementMethod.getInstance())
-                    except Exception:
-                        body_tv.setText(cl_text)
-                    card.addView(body_tv, LayoutHelper.createLinear(-1, -2, 0, 6, 0, 0))
-                elif cl_absent:
-                    # no changelog field at all — show "not provided" below version
-                    card.addView(ver_tv, LayoutHelper.createLinear(-2, -2))
+                # header row: version label left, latest chip (if latest), size chip right
+                header_row = LinearLayout(act)
+                header_row.setOrientation(LinearLayout.HORIZONTAL)
+                header_row.setGravity(Gravity.CENTER_VERTICAL)
+                header_row.addView(ver_tv, LayoutHelper.createLinear(-2, -2))
+                if is_latest:
+                    latest_chip = _make_chip(act, str(strings.pp_changelog_latest), "key_color_green")
+                    latest_chip_lp = LinearLayout.LayoutParams(-2, -2)
+                    latest_chip_lp.leftMargin = AndroidUtilities.dp(6)
+                    header_row.addView(latest_chip, latest_chip_lp)
+                spacer = View(act)
+                header_row.addView(spacer, LayoutHelper.createLinear(0, 0, 1.0))
+                size_text = entry_size if entry_size else str(strings.pp_changelog_size_empty)
+                size_chip = _make_chip(act, size_text, "key_color_cyan")
+                header_row.addView(size_chip, LinearLayout.LayoutParams(-2, -2))
+                card.addView(header_row, LayoutHelper.createLinear(-1, -2))
+
+                if cl_absent:
+                    # changelog field absent entirely
                     no_cl_tv = TextView(act)
-                    no_cl_tv.setText("Changelog was not provided.")
+                    no_cl_tv.setText(str(strings.pp_changelog_missing))
                     no_cl_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
                     no_cl_tv.setTextColor(gray_color)
                     card.addView(no_cl_tv, LayoutHelper.createLinear(-1, -2, 0, 6, 0, 0))
-                else:
-                    # field exists but no text — version label left-aligned
-                    card.addView(ver_tv, LayoutHelper.createLinear(-2, -2))
+                elif cl_diff_add is not None and cl_diff_rem is not None:
+                    # both diffs present — colored +N -N row
+                    diff_row = LinearLayout(act)
+                    diff_row.setOrientation(LinearLayout.HORIZONTAL)
+                    diff_row.setGravity(Gravity.CENTER_VERTICAL)
 
-                if cl_link:
+                    add_tv = TextView(act)
+                    add_tv.setText(cl_diff_add)
+                    add_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+                    try:
+                        add_tv.setTextColor(Theme.getColor(Theme.key_avatar_backgroundGreen))
+                    except Exception:
+                        add_tv.setTextColor(0xFF4CAF50)
+                    diff_row.addView(add_tv, LayoutHelper.createLinear(-2, -2))
+
+                    rem_tv = TextView(act)
+                    rem_tv.setText(f"  {cl_diff_rem}")
+                    rem_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+                    try:
+                        rem_tv.setTextColor(Theme.getColor(Theme.key_avatar_backgroundRed))
+                    except Exception:
+                        rem_tv.setTextColor(0xFFF44336)
+                    diff_row.addView(rem_tv, LayoutHelper.createLinear(-2, -2))
+
+                    card.addView(diff_row, LayoutHelper.createLinear(-2, -2, 0, 6, 0, 0))
+                elif cl_diff_add is not None or cl_diff_rem is not None:
+                    # only one diff present — show both, missing one as ?
+                    partial_tv = TextView(act)
+                    add_part = cl_diff_add if cl_diff_add is not None else "+?"
+                    rem_part = cl_diff_rem if cl_diff_rem is not None else "-?"
+                    partial_tv.setText(f"{add_part}  {rem_part}")
+                    partial_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+                    try:
+                        partial_tv.setTextColor(Theme.getColor(Theme.key_dialogTextGray3))
+                    except Exception:
+                        partial_tv.setTextColor(gray_color)
+                    card.addView(partial_tv, LayoutHelper.createLinear(-2, -2, 0, 6, 0, 0))
+                elif not cl_is_none and not cl_absent:
+                    # no diffs and not "None" — binary or empty
+                    binary_tv = TextView(act)
+                    binary_tv.setText(str(strings.pp_changelog_binary))
+                    binary_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+                    binary_tv.setTextColor(gray_color)
+                    card.addView(binary_tv, LayoutHelper.createLinear(-1, -2, 0, 6, 0, 0))
+
+                if cl_is_none:
+                    # author explicitly set "None" — tap shows bulletin
+                    card.setClickable(True)
+                    card.setFocusable(True)
+                    _apply_cl_card_press(card)
+                    def _on_none_click(v):
+                        try:
+                            from hook_utils import find_class as _fc
+                            BulletinFactory = _fc("org.telegram.ui.Components.BulletinFactory")
+                            frag = self._fragment_ref[0]
+                            container = self.content_view
+                            resource_provider = None
+                            try:
+                                resource_provider = frag.getResourceProvider()
+                            except Exception:
+                                pass
+                            from hook_utils import find_class as _fc2
+                            R_tg = _fc2("org.telegram.messenger.R")
+                            icon_raw = getattr(R_tg.raw, "info", 0)
+                            BulletinFactory.of(container, resource_provider).createSimpleBulletin(
+                                icon_raw,
+                                str(strings.pp_changelog_none_provided)
+                            ).show()
+                        except Exception as e:
+                            log(f"pluginProfile: changelog none bulletin error: {e}")
+                    card.setOnClickListener(OnClickListener(_on_none_click))
+                elif cl_link:
                     card.setClickable(True)
                     card.setFocusable(True)
                     _apply_cl_card_press(card)
