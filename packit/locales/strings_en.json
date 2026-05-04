@@ -664,7 +664,7 @@
   "pp_required_version": "{} required",
   "pp_tab_description": "Description",
   "pp_tab_gallery": "Gallery",
-  "pp_tab_changes": "Changes",
+  "pp_tab_changes": "History",
   "pp_changelog_loading": "Loading...",
   "pp_changelog_empty": "There is no changelog for this plugin.",
   "pp_changelog_missing": "Changelog is missing",
@@ -706,7 +706,7 @@
   "inline_search_clear_field": "Clear the input field",
   "inline_search_clear_field_desc": "After submitting the plugin, it clears the input field.",
   "inline_view_guide": "View guide",
-  "plugin_profile_header": "Plugin Profile",
+  "plugin_profile_header": "Plugin Page",
   "plugin_profile_subtext": "When you open a plugin in the catalogue",
   "show_extended_desc": "Show extended description",
   "show_extended_desc_desc": "Load and display the readme instead of the standard description.",
@@ -723,7 +723,7 @@
   "hash_function_sha256_short": "Sha256",
   "hash_function_bithash_sub": "~5x faster",
   "hash_function_sha256_sub": "Max compatibility",
-  "hash_function_desc": "Bithash is 5 times faster on 64kb+ files, but has some margin of error.",
+  "hash_function_desc": "BitHash is 5x faster than Sha256. But it has no cryptography.",
   "sort_menu_design": "Sort Menu Style",
   "sort_menu_design_modern": "Modern",
   "sort_menu_design_classic": "Classic",
@@ -922,5 +922,8 @@
   "pce_desc_preview": "Plugin description text that shows below the name and author.",
   "pce_chips_gravity": "Chips gravity",
   "pce_color_label": "Color",
-  "settings_free_space": "Free: {space}"
+  "settings_free_space": "Free: {space}",
+  "il_icon_count": "{count} icons",
+  "filter_version_or_higher": "{version} or higher",
+  "filter_version_or_lower": "{version} or lower"
 }
