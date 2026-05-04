@@ -528,7 +528,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             edit.setSelection(len(name))
             edit.setTextColor(TgTheme.getColor(TgTheme.key_dialogTextBlack))
             edit.setHintColor(TgTheme.getColor(TgTheme.key_groupcreate_hintText))
-            edit.setHintText("Enter name")
+            edit.setHintText(str(strings["fs_enter_name"]))
             edit.setFocusable(True)
             edit.setInputType(0x20001)  # TYPE_CLASS_TEXT | TYPE_TEXT_FLAG_CAP_SENTENCES
             edit.setCursorColor(TgTheme.getColor(TgTheme.key_windowBackgroundWhiteInputFieldActivated))
@@ -617,7 +617,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             edit.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18)
             edit.setTextColor(TgTheme.getColor(TgTheme.key_dialogTextBlack))
             edit.setHintColor(TgTheme.getColor(TgTheme.key_groupcreate_hintText))
-            edit.setHintText("File name")
+            edit.setHintText(str(strings["fs_file_name"]))
             edit.setFocusable(True)
             edit.setInputType(0x20001)  # TYPE_CLASS_TEXT | TYPE_TEXT_FLAG_CAP_SENTENCES
             edit.setCursorColor(TgTheme.getColor(TgTheme.key_windowBackgroundWhiteInputFieldActivated))
@@ -632,7 +632,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
 
             dialog_ref = [None]
             builder = TgAlertDialog.Builder(act)
-            builder.setTitle("New File")
+            builder.setTitle(str(strings["fs_new_file_title"]))
             builder.makeCustomMaxHeight()
             builder.setView(layout)
             builder.setWidth(AndroidUtilities.dp(292))
@@ -781,9 +781,9 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             msg = f"Delete {'folder' if is_dir else 'file'} \"{name}\"?"
 
             builder = AlertDialogBuilder(act)
-            builder.set_title("Delete")
+            builder.set_title(str(strings["fs_delete_title"]))
             builder.set_message(msg)
-            builder.set_negative_button("Cancel", lambda b, w: b.dismiss())
+            builder.set_negative_button(str(strings["cancel_button"]), lambda b, w: b.dismiss())
 
             def on_yes(b, w):
                 try:
@@ -801,7 +801,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                 except Exception as e:
                     log(f"filesActivity: delete error: {e}")
 
-            builder.set_positive_button("Delete", on_yes)
+            builder.set_positive_button(str(strings["fs_delete_title"]), on_yes)
             try:
                 builder.make_button_red(AlertDialogBuilder.BUTTON_POSITIVE)
             except Exception as e:
@@ -831,7 +831,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
 
             if not dirs and not files:
                 empty_tv = TextView(act)
-                empty_tv.setText("Empty folder")
+                empty_tv.setText(str(strings["fs_empty_folder"]))
                 empty_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
                 empty_tv.setTextColor(t["text_gray"])
                 empty_tv.setGravity(Gravity.CENTER)

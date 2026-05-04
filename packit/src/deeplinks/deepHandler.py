@@ -5,6 +5,11 @@ from ui.alert import AlertDialogBuilder
 from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment
 
+try:
+    from elyx import strings as _dh_strings
+except Exception:
+    _dh_strings = None
+
 from . import mainMenu
 from . import settings
 from . import deeplinkMenu
@@ -76,9 +81,9 @@ class PackItDeeplinkHook(MethodHook):
                 activity = fragment.getParentActivity() if fragment else None
                 if activity:
                     builder = AlertDialogBuilder(activity)
-                    builder.set_title("PackIt")
+                    builder.set_title(str(_dh_strings["packit"]) if _dh_strings else "PackIt")
                     builder.set_message(url)
-                    builder.set_positive_button("OK", lambda b, w: self.proceed_deeplink())
+                    builder.set_positive_button(str(_dh_strings["dl_packit_ok"]) if _dh_strings else "OK", lambda b, w: self.proceed_deeplink())
                     builder.set_on_cancel_listener(lambda b: self.proceed_deeplink())
                     builder.show()
                 else:

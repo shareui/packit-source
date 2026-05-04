@@ -652,7 +652,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
 
             if release_date:
                 date_tv = TextView(act)
-                date_tv.setText(_format_date(release_date, "Release date"))
+                date_tv.setText(_format_date(release_date, str(strings["pp_release_date"])))
                 date_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
                 date_tv.setTextColor(text_color)
                 date_tv.setSingleLine(True)
@@ -667,7 +667,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             effective_update = update_date if update_date else release_date
             if effective_update:
                 update_tv = TextView(act)
-                update_tv.setText(_format_date(effective_update, "Last updated"))
+                update_tv.setText(_format_date(effective_update, str(strings["pp_last_updated"])))
                 update_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
                 update_tv.setTextColor(text_color)
                 update_tv.setSingleLine(True)
@@ -1246,7 +1246,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             archived_banner.addView(arc_icon, LayoutHelper.createLinear(20, 20, Gravity.CENTER_VERTICAL, 0, 0, 10, 0))
 
             arc_tv = TextView(act)
-            arc_tv.setText(f"This plugin was archived by the owner on {_parse_archived_date(archived_raw)}. The plugin will no longer be updated.")
+            arc_tv.setText(str(strings("pp_archived_text", date=_parse_archived_date(archived_raw))))
             arc_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
             arc_tv.setTextColor(archived_color)
             try:
@@ -1276,7 +1276,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                         .setMultilineText(True)
                         .setBgColor(Theme.getColor(Theme.key_undo_background))
                         .setTextColor(Theme.getColor(Theme.key_undo_infoColor))
-                        .setText("The plugin will no longer be updated. But it might still work.")
+                        .setText(str(strings["pp_archived_hint"]))
                         .setTextAlign(Layout.Alignment.ALIGN_CENTER)
                         .allowBlur(True)
                         .setRounding(AndroidUtilities.dp(12))
@@ -1759,7 +1759,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
 
         def _build_stub_content():
             tv = TextView(act)
-            tv.setText("It's not ready yet.")
+            tv.setText(str(strings["pp_not_ready"]))
             tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
             tv.setTextColor(gray_color)
             tv.setGravity(Gravity.CENTER_HORIZONTAL)
@@ -1951,7 +1951,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 wrap.addView(card, card_lp)
 
             hint_tv = TextView(act)
-            hint_tv.setText("Click on any version")
+            hint_tv.setText(str(strings["pp_click_version_hint"]))
             hint_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
             hint_tv.setTextColor(gray_color)
             hint_tv.setGravity(Gravity.CENTER_HORIZONTAL)

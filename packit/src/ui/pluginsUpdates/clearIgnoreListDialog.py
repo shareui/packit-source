@@ -325,7 +325,7 @@ def show_clear_ignore_list_dialog(act):
         input_container.setPadding(dp(16), 0, dp(16), 0)
 
         edit_text = EditTextBoldCursor(act)
-        edit_text.setHint("Enter plugin ID")
+        edit_text.setHint(str(strings["ignore_plugin_id_hint"]))
         edit_text.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
         edit_text.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
         edit_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)

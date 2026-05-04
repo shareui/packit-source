@@ -92,19 +92,19 @@ def _run_update_single(repoManager, repoId: str):
 
             target = next((r for r in repos if r.get("id") == repoId), None)
             if not target:
-                run_on_ui_thread(lambda: BulletinHelper.show_error(f"Repository '{repoId}' not found"))
+                run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings("dl_repo_not_found", repo_id=repoId))))
                 return
 
             url = (target.get("url") or "").strip()
             if not url:
-                run_on_ui_thread(lambda: BulletinHelper.show_error(f"Repository '{repoId}' has no URL"))
+                run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings("dl_update_repo_no_url", repo_id=repoId))))
                 return
 
             try:
                 r = requests.get(url, timeout=10)
                 if r.status_code != 200:
                     log(f"update deeplink: HTTP {r.status_code} for {url}")
-                    run_on_ui_thread(lambda: BulletinHelper.show_error(f"HTTP {r.status_code}"))
+                    run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings("dl_update_repo_http_error", code=r.status_code))))
                     return
                 data = r.json()
                 repometa = data.get("repometa")
@@ -112,7 +112,7 @@ def _run_update_single(repoManager, repoId: str):
 
                 if not repometa or not rmRid:
                     log(f"update deeplink: no repometa for '{url}'")
-                    run_on_ui_thread(lambda: BulletinHelper.show_error("Repository has no metadata"))
+                    run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings["dl_update_repo_no_meta"])))
                     return
 
                 cachePath = os.path.join(cacheDir, f"{rmRid}.json")

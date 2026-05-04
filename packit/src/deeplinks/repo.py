@@ -138,7 +138,7 @@ def _show_confirm_sheet(repometa, pluginCount, name, link, icon, repoManager):
             return
 
         if not repometa or not repometa.get("rm_rid"):
-            BulletinHelper.show_error("Repository has no metadata")
+            BulletinHelper.show_error(str(strings["dl_repo_no_metadata"]))
             return
 
         rm_url = str(repometa.get("rm_url") or link)
@@ -209,7 +209,7 @@ def _show_confirm_sheet(repometa, pluginCount, name, link, icon, repoManager):
                     currentRepos = repoManager.getRepositories()
                     for existing in currentRepos:
                         if existing.get("id") == rm_rid or existing.get("url") == link:
-                            BulletinHelper.show_error("Repository already added")
+                            BulletinHelper.show_error(str(strings["dl_repo_already_added"]))
                             sheet.dismiss()
                             return
 

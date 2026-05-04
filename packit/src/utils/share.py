@@ -6,6 +6,18 @@ from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment
 from java.io import File, FileOutputStream
 
+try:
+    from elyx import strings as _share_strings
+except Exception:
+    _share_strings = None
+
+
+def _ss(key):
+    try:
+        return str(_share_strings[key])
+    except Exception:
+        return key
+
 
 def share_plugin_file(plugin_info: dict, display_name: str, activity):
     threading.Thread(target=_do_share, args=(plugin_info, display_name), daemon=True).start()
@@ -19,11 +31,11 @@ def _do_share(plugin_info: dict, display_name: str):
 
         plugin_id = plugin_info.get("id")
         if not plugin_id:
-            run_on_ui_thread(lambda: BulletinHelper.show_error("Plugin has no id"))
+            run_on_ui_thread(lambda: BulletinHelper.show_error(_ss("share_plugin_no_id")))
             return
         link = plugin_info.get("link") or plugin_info.get("raw")
         if not link:
-            run_on_ui_thread(lambda: BulletinHelper.show_error("Plugin has no download link"))
+            run_on_ui_thread(lambda: BulletinHelper.show_error(_ss("share_plugin_no_link")))
             return
 
         fragment = get_last_fragment()
@@ -68,7 +80,7 @@ def _do_share(plugin_info: dict, display_name: str):
         r = requests.get(link, timeout=30)
         if r.status_code != 200:
             run_on_ui_thread(dismiss_spinner)
-            run_on_ui_thread(lambda: BulletinHelper.show_error("Failed to download plugin for sharing"))
+            run_on_ui_thread(lambda: BulletinHelper.show_error(_ss("share_failed")))
             return
         temp_file = File(file_path)
         if temp_file.exists():
@@ -127,10 +139,10 @@ def _do_share(plugin_info: dict, display_name: str):
                 frag.showDialog(share_alert)
             except Exception as e:
                 log(f"share: open_share error: {e}")
-                BulletinHelper.show_error("Failed to share plugin")
+                BulletinHelper.show_error(_ss("share_failed"))
 
         run_on_ui_thread(open_share)
     except Exception as e:
         log(f"share: _do_share error: {e}")
         from android_utils import run_on_ui_thread
-        run_on_ui_thread(lambda: BulletinHelper.show_error("Failed to share plugin"))
+        run_on_ui_thread(lambda: BulletinHelper.show_error(_ss("share_failed")))

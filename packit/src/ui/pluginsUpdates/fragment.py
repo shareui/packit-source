@@ -35,7 +35,7 @@ from android_utils import OnClickListener
 
 import requests
 try:
-    from elyx import settings
+    from elyx import settings, strings
 except Exception as e:
     log(f"pluginsUpdates: import elyx.settings failed: {e}")
     from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
@@ -518,7 +518,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         bg.setCornerRadius(AndroidUtilities.dp(6))
         bg.setColor(fill)
         tv = TextView(act)
-        tv.setText(f"From {repo_name} repository")
+        tv.setText(str(strings("from_repo_chip", repo_name=repo_name)))
         tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
         tv.setTextColor(text_color)
         tv.setBackground(bg)
