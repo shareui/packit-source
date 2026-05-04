@@ -3,6 +3,11 @@ import os
 
 from android_utils import log
 
+try:
+    from elyx import strings as _strings
+except Exception:
+    _strings = None
+
 CHECK_SO_PATHS = False
 
 _BASE = "/plugins/ElyxPlugins/shareui_packit/packit/native"
@@ -152,7 +157,7 @@ def showNativeErrorSheet(libName: str, error: str):
                 title.setTextColor(sheet.getThemedColor(Theme.key_windowBackgroundWhiteBlackText))
                 title.setTextSize(1, 20.0)
                 title.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
-                title.setText("Error in native library!")
+                title.setText(str(_strings["native_error_title"]) if _strings else "Error in native library!")
                 linear.addView(title, LayoutHelper.createFrame(-1, -2.0, 0, 24.0, 12.0, 24.0, 0.0))
 
                 # main text
@@ -160,7 +165,7 @@ def showNativeErrorSheet(libName: str, error: str):
                 desc.setGravity(Gravity.CENTER_HORIZONTAL)
                 desc.setTextColor(sheet.getThemedColor(Theme.key_windowBackgroundWhiteBlackText))
                 desc.setTextSize(1, 15.0)
-                desc.setText(f"Unfortunately, an error occurred in the native library {libName} :(")
+                desc.setText(str(_strings("native_error_desc", lib_name=libName)) if _strings else f"Unfortunately, an error occurred in the native library {libName} :(")
                 linear.addView(desc, LayoutHelper.createFrame(-1, -2.0, 0, 24.0, 8.0, 24.0, 0.0))
 
                 # error text (red)
@@ -174,7 +179,7 @@ def showNativeErrorSheet(libName: str, error: str):
                 # Report a bug button
                 report_btn = ButtonWithCounterView(activity, True, rp)
                 report_btn.setRound()
-                report_btn.setText("Report a bug", False)
+                report_btn.setText(str(_strings["native_report_bug"]) if _strings else "Report a bug", False)
 
                 class _ReportClick(dynamic_proxy(View.OnClickListener)):
                     def onClick(self, v):
@@ -193,7 +198,7 @@ def showNativeErrorSheet(libName: str, error: str):
                 close_btn = ButtonWithCounterView(activity, False, rp)
                 close_btn.setRound()
                 close_btn.setNeutral()
-                close_btn.setText("Close", False)
+                close_btn.setText(str(_strings["close_button"]) if _strings else "Close", False)
 
                 class _CloseClick(dynamic_proxy(View.OnClickListener)):
                     def onClick(self, v):

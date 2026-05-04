@@ -395,7 +395,7 @@ def _showEditPathDialog(context, pathView, freeView):
             except Exception as e:
                 log(f"other: save download_path error: {e}")
             pathView.setText(newPath)
-            freeView.setText(f"Free: {_getFreeSpace(newPath)}")
+            freeView.setText(str(strings("settings_free_space", space=_getFreeSpace(newPath))))
             AndroidUtilities.hideKeyboard(input)
             dialog.dismiss()
 
@@ -462,7 +462,7 @@ def _buildDownloadPathCard(context, currentPath):
 
         freeSpace = _getFreeSpace(currentPath)
         freeView = TextView(context)
-        freeView.setText(f"Free: {freeSpace}")
+        freeView.setText(str(strings("settings_free_space", space=freeSpace)))
         freeView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
         freeView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
         textBlock.addView(freeView, LayoutHelper.createLinear(-2, -2))

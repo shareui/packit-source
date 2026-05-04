@@ -8,6 +8,10 @@ from ui.bulletin import BulletinHelper
 from android.widget import ProgressBar, LinearLayout
 from java import dynamic_proxy
 try:
+    from elyx import strings as _strings
+except Exception:
+    _strings = None
+try:
     from org.telegram.messenger import ApplicationLoader, AndroidUtilities
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
@@ -27,6 +31,16 @@ import signal
 
 _install_listeners = []
 _install_listeners_lock = threading.Lock()
+
+
+def _s(key, **kwargs):
+    # safe string lookup with fallback to key
+    try:
+        if kwargs:
+            return str(_strings(key, **kwargs))
+        return str(_strings[key])
+    except Exception:
+        return key
 # test2
 
 def add_install_listener(fn):
@@ -191,7 +205,7 @@ def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button,
             PluginsController.getInstance().showInstallDialog(fragment, temp_path, True)
 
     except Exception as e:
-        BulletinHelper.show_error(f"Failed to open install dialog: {e}")
+        BulletinHelper.show_error(_s("core_failed_install_dialog", error=e))
         try:
             if on_finish:
                 on_finish(False)
@@ -224,7 +238,7 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
     url = plugin_info.get("link") or plugin_info.get("raw")
 
     if not plugin_id or not url:
-        BulletinHelper.show_error("Plugin has no link")
+        BulletinHelper.show_error(_s("core_plugin_no_link"))
         try:
             if on_finish:
                 run_on_ui_thread(lambda: on_finish(False))
@@ -263,7 +277,7 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
         dlg = None
     else:
         builder = AlertDialogBuilder(ctx, AlertDialogBuilder.ALERT_TYPE_LOADING)
-        builder.set_title("Downloading...")
+        builder.set_title(_s("downloading_progress_title"))
         builder.set_cancelable(False)
         dlg = builder.show()
         dlg.set_progress(0)
@@ -389,7 +403,7 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
         except Exception as e:
             log(f"core.install_plugin: error downloading '{plugin_id}' from '{url}': {e}")
             _dismiss_dialog(dlg)
-            run_on_ui_thread(lambda: BulletinHelper.show_error("An error occurred while downloading"))
+            run_on_ui_thread(lambda: BulletinHelper.show_error(_s("core_download_error")))
             try:
                 if on_finish:
                     run_on_ui_thread(lambda: on_finish(False))
@@ -407,7 +421,7 @@ def install_icon_pack(icon_info: dict):
     version = str(icon_info.get("version") or "1.0")
 
     if not pack_id or not url:
-        BulletinHelper.show_error("Icon pack has no link")
+        BulletinHelper.show_error(_s("core_iconpack_no_link"))
         return
 
     fragment = get_last_fragment()
@@ -417,7 +431,7 @@ def install_icon_pack(icon_info: dict):
     from ui.alert import AlertDialogBuilder
     ctx = fragment.getContext()
     builder = AlertDialogBuilder(ctx, AlertDialogBuilder.ALERT_TYPE_LOADING)
-    builder.set_title("Downloading...")
+    builder.set_title(_s("downloading_progress_title"))
     builder.set_cancelable(False)
     dlg = builder.show()
     dlg.set_progress(0)
@@ -428,7 +442,7 @@ def install_icon_pack(icon_info: dict):
             if r.status_code != 200:
                 log(f"core.install_icon_pack: HTTP {r.status_code} for '{pack_id}'")
                 _dismiss_dialog(dlg)
-                run_on_ui_thread(lambda: BulletinHelper.show_error(f"Download failed: HTTP {r.status_code}"))
+                run_on_ui_thread(lambda: BulletinHelper.show_error(_s("core_iconpack_http_error", code=r.status_code)))
                 return
 
             from .utils.paths import getIconPackTmpPath
@@ -482,7 +496,7 @@ def install_icon_pack(icon_info: dict):
 
             if parsed_pack is None:
                 log(f"core.install_icon_pack: parsePackFromZip returned None for '{pack_id}'")
-                run_on_ui_thread(lambda: BulletinHelper.show_error("Failed to read icon pack"))
+                run_on_ui_thread(lambda: BulletinHelper.show_error(_s("core_iconpack_read_failed")))
                 return
 
             def open_sheet(pp=parsed_pack):
@@ -515,12 +529,12 @@ def install_icon_pack(icon_info: dict):
                                     if result:
                                         if enableAfterInstall:
                                             run_on_ui_thread(lambda: IconManager.INSTANCE.setActiveCustomPack(pack_id))
-                                        run_on_ui_thread(lambda: BulletinHelper.show_success(f"'{name}' installed"))
+                                        run_on_ui_thread(lambda: BulletinHelper.show_success(_s("core_iconpack_installed", name=name)))
                                     else:
-                                        run_on_ui_thread(lambda: BulletinHelper.show_error("Installation failed"))
+                                        run_on_ui_thread(lambda: BulletinHelper.show_error(_s("core_installation_failed")))
                                 except Exception as ex:
                                     log(f"core.install_icon_pack: installPack error: {ex}")
-                                    run_on_ui_thread(lambda: BulletinHelper.show_error(f"Error: {ex}"))
+                                    run_on_ui_thread(lambda: BulletinHelper.show_error(_s("core_error_generic", error=ex)))
                                 finally:
                                     try:
                                         os.remove(tmp_path)
@@ -532,13 +546,13 @@ def install_icon_pack(icon_info: dict):
                     frag.showDialog(sheet)
                 except Exception as ex:
                     log(f"core.install_icon_pack: open_sheet error: {ex}")
-                    BulletinHelper.show_error(f"Failed to open install sheet: {ex}")
+                    BulletinHelper.show_error(_s("core_install_sheet_failed", error=ex))
 
             run_on_ui_thread(open_sheet)
         except Exception as e:
             log(f"core.install_icon_pack: error: {e}")
             _dismiss_dialog(dlg)
-            run_on_ui_thread(lambda: BulletinHelper.show_error("An error occurred while downloading"))
+            run_on_ui_thread(lambda: BulletinHelper.show_error(_s("core_iconpack_download_error")))
 
     threading.Thread(target=task, daemon=True).start()
 

@@ -338,7 +338,7 @@ def show_info_dialog(act, name: str, info: dict):
         close_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(12), accent, accent_pressed))
 
         close_tv = TextView(act)
-        close_tv.setText("OK")
+        close_tv.setText(str(strings["info_dialog_ok"]))
         close_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
         close_tv.setGravity(Gravity.CENTER)
         close_tv.setPadding(dp(16), dp(13), dp(16), dp(13))

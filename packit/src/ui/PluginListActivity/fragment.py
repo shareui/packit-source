@@ -446,7 +446,7 @@ class InstallUI:
         except Exception:
             pass
         if not repos:
-            BulletinHelper.show_error("No repositories configured")
+            BulletinHelper.show_error(str(strings["pl_no_repos"]))
             return
         if settings.get("skip_repository_selection", False):
             self._open_all_repos_plugins()
@@ -571,7 +571,7 @@ class InstallUI:
 
                 run_on_ui_thread(lambda: self._update_current_fragment_plugins(all_plugins))
             except Exception as e:
-                BulletinHelper.show_error("Failed to load plugins")
+                BulletinHelper.show_error(str(strings["pl_load_failed"]))
         run_on_queue(load_task)
 
     def _update_plugins_in_fragment(self, plugins):
@@ -587,7 +587,7 @@ class InstallUI:
         repo_name = repo.get("name") or strings["unnamed"]
         repo_url = (repo.get("url") or "").strip()
         if not repo_url:
-            BulletinHelper.show_error("Repository URL is empty")
+            BulletinHelper.show_error(str(strings["pl_repo_url_empty"]))
             return
         fragment = get_last_fragment()
         if not fragment:
@@ -632,7 +632,7 @@ class InstallUI:
 
                 run_on_ui_thread(lambda: self._update_current_fragment_plugins(plugins))
             except Exception as e:
-                BulletinHelper.show_error("An error occurred while downloading")
+                BulletinHelper.show_error(str(strings["pl_download_error"]))
         run_on_queue(load_task)
 
     def _update_current_fragment_plugins(self, plugins):

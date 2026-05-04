@@ -304,7 +304,7 @@ class SortDrawer:
         try:
             title_tv.setText(strings["tags_section_title"])
         except Exception:
-            title_tv.setText("Tags")
+            title_tv.setText(str(strings["filter_tags_title"]))
         title_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
         try:
             title_tv.setTypeface(AndroidUtilities.bold())
@@ -589,7 +589,7 @@ class SortDrawer:
         try:
             reset_tv.setText(strings["reset_button"])
         except Exception:
-            reset_tv.setText("Reset")
+            reset_tv.setText(str(strings["filter_reset"]))
         reset_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
         reset_tv.setGravity(Gravity.CENTER)
         reset_tv.setTextColor(accent)
@@ -612,7 +612,7 @@ class SortDrawer:
         try:
             apply_tv.setText(strings["apply_button"])
         except Exception:
-            apply_tv.setText("Apply")
+            apply_tv.setText(str(strings["apply_button"]))
         apply_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
         apply_tv.setGravity(Gravity.CENTER)
         try:
