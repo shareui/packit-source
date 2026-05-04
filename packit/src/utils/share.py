@@ -64,10 +64,11 @@ def _do_share(plugin_info: dict, display_name: str):
         run_on_ui_thread(show_spinner)
 
         try:
-            from elyx import settings
-            download_path = settings.get("download_path", "/storage/emulated/0/Download")
+            from org.telegram.messenger import ApplicationLoader
+            ctx = ApplicationLoader.applicationContext
+            download_path = ctx.getCacheDir().getAbsolutePath()
         except Exception:
-            download_path = "/storage/emulated/0/Download"
+            download_path = "/data/data/com.exteragram.messenger/cache"
 
         url_filename = link.rstrip("/").rsplit("/", 1)[-1].split("?", 1)[0]
         _, url_ext = os.path.splitext(url_filename)
