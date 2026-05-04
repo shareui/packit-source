@@ -1363,7 +1363,7 @@ class InstallIconsUI:
                     fill_color = ctypes.c_int32((0x33 << 24) | (r << 16) | (g << 8) | b).value
                     text_color = ctypes.c_int32((0xFF << 24) | (r << 16) | (g << 8) | b).value
                     count_pill = TextView(act)
-                    count_pill.setText(f"{icon_count} icons")
+                    count_pill.setText(str(strings["il_icon_count"]).replace("{count}", str(icon_count)))
                     count_pill.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 10)
                     count_pill.setGravity(Gravity.CENTER)
                     try:

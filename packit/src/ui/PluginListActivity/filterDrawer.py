@@ -108,9 +108,17 @@ def _format_app_version(expr):
         return str(expr)
     s = str(expr).strip()
     if s.startswith(">=") or s.startswith("=>"):
-        return s[2:].strip() + " or higher"
+        v = s[2:].strip()
+        try:
+            return str(strings["filter_version_or_higher"]).replace("{version}", v)
+        except Exception:
+            return v + " or higher"
     if s.startswith("<=") or s.startswith("=<"):
-        return s[2:].strip() + " or lower"
+        v = s[2:].strip()
+        try:
+            return str(strings["filter_version_or_lower"]).replace("{version}", v)
+        except Exception:
+            return v + " or lower"
     if s.startswith("=="):
         return s[2:].strip()
     return s

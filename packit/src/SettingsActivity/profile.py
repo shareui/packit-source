@@ -323,7 +323,6 @@ class ProfileSettings:
             subtitle_tv = TextView(ctx)
             subtitle_tv.setText(str(strings["export_bs_subtitle"]))
             subtitle_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
-            subtitle_tv.setSingleLine(True)
             try:
                 subtitle_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
             except Exception:
