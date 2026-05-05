@@ -156,5 +156,5 @@ class DeeplinksSettings:
                 link_alias="dl_restart"
             ),
 
-            Divider(text="Complete documentation is available [here](https://github.com/shareui/packit/blob/main/docs/deeplinks.md) in markdown."),
+            Divider(text=str(strings["deeplinks_docs_footer"])),
         ]

@@ -426,7 +426,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     total_installed += len(_read_index(None, rm_rid))
 
                 if total_installed == 0:
-                    run_on_ui_thread(lambda: self._show_empty("You have not installed any plugins from PackIt", "utyan_empty") if alive[0] else None)
+                    run_on_ui_thread(lambda: self._show_empty(str(strings["updates_no_plugins_installed"]), "utyan_empty") if alive[0] else None)
                     return
 
                 updates = _filter_ignored(None, _check_updates(None))
@@ -436,14 +436,14 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         return
                     self._hide_spinner()
                     if not updates:
-                        self._show_empty("All plugins of the current version", "done")
+                        self._show_empty(str(strings["updates_all_up_to_date"]), "done")
                     else:
                         self._show_updates(updates)
 
                 run_on_ui_thread(on_done)
             except Exception as e:
                 log(f"pluginsUpdates: task error: {e}")
-                run_on_ui_thread(lambda: self._show_empty("Failed to check updates", "error") if alive[0] else None)
+                run_on_ui_thread(lambda: self._show_empty(str(strings["updates_failed_to_check"]), "error") if alive[0] else None)
 
         run_on_queue(task)
 
@@ -1058,7 +1058,7 @@ def show_updates_fragment(plugin=None):
         new_frag = UniversalFragment(delegate)
         frag.presentFragment(new_frag)
         try:
-            new_frag.setTitle("Updates", False, 0)
+            new_frag.setTitle(str(strings["updates_title"]), False, 0)
             action_bar = new_frag.getActionBar()
             if action_bar:
                 action_bar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))

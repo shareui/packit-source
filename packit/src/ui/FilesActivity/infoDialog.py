@@ -120,7 +120,7 @@ def _copy_to_clipboard(decor, label: str, text: str):
         AndroidUtilities.addToClipboard(text)
         BulletinFactory.of(decor, None).createSimpleBulletin(
             R_tg.raw.copy,
-            f"{label} copied to clipboard!"
+            str(strings["info_copied"]).format(label=label)
         ).show()
     except Exception as e:
         log(f"infoDialog: _copy_to_clipboard error: {e}")
@@ -220,23 +220,26 @@ def _build_display(info: dict) -> list:
 
     path = info.get("full_path")
     if path:
-        rows.append(("Path", path, path, "menu_storage_path"))
+        rows.append((str(strings["info_path"]), path, path, "menu_storage_path"))
 
     is_dir = info.get("is_dir", False)
     ext = info.get("extension", "")
     if is_dir:
-        type_label = "Directory"
+        type_label = str(strings["info_type_dir"])
     else:
-        type_label = f"File ({ext})" if ext and ext != "(none)" else "File"
-    rows.append(("Type", type_label, type_label, "msg_filehq"))
+        if ext and ext != "(none)":
+            type_label = str(strings["info_type_file_ext"]).format(ext=ext)
+        else:
+            type_label = str(strings["info_type_file"])
+    rows.append((str(strings["info_type_file"]), type_label, type_label, "msg_filehq"))
 
     if is_dir:
         children = info.get("children")
         if children is not None:
-            rows.append(("Items", str(children), str(children), "msg_addfolder"))
+            rows.append((str(strings["info_items"]), str(children), str(children), "msg_addfolder"))
         dir_size = info.get("dir_size_human")
         if dir_size:
-            rows.append(("Content size", dir_size, dir_size, "msg_filled_storageusage"))
+            rows.append((str(strings["info_content_size"]), dir_size, dir_size, "msg_filled_storageusage"))
     else:
         size_bytes = info.get("size_bytes")
         size_human = info.get("size_human", "")
@@ -248,15 +251,15 @@ def _build_display(info: dict) -> list:
             else:
                 size_display = size_human
                 size_copy = size_human
-            rows.append(("Size", size_display, size_copy, "msg_filled_storageusage"))
+            rows.append((str(strings["info_size"]), size_display, size_copy, "msg_filled_storageusage"))
 
     modified = info.get("modified")
     if modified:
-        rows.append(("Modified", modified, modified, "msg_calendar2"))
+        rows.append((str(strings["info_modified"]), modified, modified, "msg_calendar2"))
 
     created = info.get("created")
     if created:
-        rows.append(("Created", created, created, "msg_calendar"))
+        rows.append((str(strings["info_created"]), created, created, "msg_calendar"))
 
     return rows
 

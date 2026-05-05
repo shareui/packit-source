@@ -630,17 +630,19 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 if diff_days < 0:
                     return f"{prefix}: {raw}"
                 if diff_days == 0:
-                    ago = "Today"
+                    ago = str(strings["date_ago_today"])
                 elif diff_days == 1:
-                    ago = "Yesterday"
+                    ago = str(strings["date_ago_yesterday"])
                 elif diff_days < 30:
-                    ago = f"{diff_days} days ago"
+                    ago = str(strings("date_ago_days", n=diff_days))
                 elif diff_days < 365:
                     months = diff_days // 30
-                    ago = f"{months} month ago" if months == 1 else f"{months} months ago"
+                    key = "date_ago_month" if months == 1 else "date_ago_months"
+                    ago = str(strings(key, n=months))
                 else:
                     years = diff_days // 365
-                    ago = f"{years} year ago" if years == 1 else f"{years} years ago"
+                    key = "date_ago_year" if years == 1 else "date_ago_years"
+                    ago = str(strings(key, n=years))
                 return f"{prefix}: {ago}"
             except Exception:
                 return f"{prefix}: {raw}"

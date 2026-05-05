@@ -543,7 +543,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
 
             dialog_ref = [None]
             builder = TgAlertDialog.Builder(act)
-            builder.setTitle("Rename")
+            builder.setTitle(str(strings["fs_rename"]))
             builder.makeCustomMaxHeight()
             builder.setView(layout)
             builder.setWidth(AndroidUtilities.dp(292))
@@ -576,7 +576,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                     if dialog_ref[0]:
                         dialog_ref[0].dismiss()
 
-            builder.setNegativeButton("Cancel", _CancelListener())
+            builder.setNegativeButton(str(strings["cancel_button"]), _CancelListener())
 
             class _ShowListener(_dp(_AD.OnShowListener)):
                 def __init__(self): super().__init__()
@@ -589,7 +589,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                 def __init__(self): super().__init__()
                 def onDismiss(self, dialog): AndroidUtilities.hideKeyboard(edit)
 
-            builder.setPositiveButton("Rename", _OkListener())
+            builder.setPositiveButton(str(strings["fs_rename"]), _OkListener())
             dialog = builder.create()
             dialog_ref[0] = dialog
             dialog.setDismissDialogByButtons(False)
@@ -662,7 +662,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                     if dialog_ref[0]:
                         dialog_ref[0].dismiss()
 
-            builder.setNegativeButton("Cancel", _CancelListener())
+            builder.setNegativeButton(str(strings["cancel_button"]), _CancelListener())
 
             class _ShowListener(_dp(_AD.OnShowListener)):
                 def __init__(self): super().__init__()
@@ -674,7 +674,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                 def __init__(self): super().__init__()
                 def onDismiss(self, dialog): AndroidUtilities.hideKeyboard(edit)
 
-            builder.setPositiveButton("Create", _OkListener())
+            builder.setPositiveButton(str(strings["fs_create"]), _OkListener())
             dialog = builder.create()
             dialog_ref[0] = dialog
             dialog.setDismissDialogByButtons(False)
@@ -1060,10 +1060,10 @@ def _show_entry_menu(act, anchor_view, path, on_rename, on_delete, on_copy):
             item.setOnClickListener(OnClickListener(_click))
             popup_layout.addView(item, LayoutHelper.createLinear(-1, -2))
 
-        create_item("msg_edit", "Rename", on_rename)
-        create_item("msg_copy", "Copy path", on_copy)
-        create_item("msg_info", "Info", lambda: _show_file_info(act, path))
-        create_item("msg_delete", "Delete", on_delete, is_red=True)
+        create_item("msg_edit", str(strings["fs_rename"]), on_rename)
+        create_item("msg_copy", str(strings["fs_copy_path"]), on_copy)
+        create_item("msg_info", str(strings["fs_info"]), lambda: _show_file_info(act, path))
+        create_item("msg_delete", str(strings["fs_delete_title"]), on_delete, is_red=True)
 
         popup_window = ActionBarPopupWindow(popup_layout, -2, -2)
         popup_window_ref[0] = popup_window
