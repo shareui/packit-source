@@ -74,8 +74,8 @@ _BUTTON_DEFAULTS = {
     "relocate_download":   False,
     "relocate_translate":  False,
     "relocate_report":     False,
-    "show_details_button":  True,
-    "show_view_button":     True,
+    "show_details_button":  False,
+    "show_view_button":     False,
 }
 
 

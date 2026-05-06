@@ -26,22 +26,19 @@ SHOWUPD = False
 
 
 def _parse_version(ver: str) -> tuple:
-    # "1.1.0-dev.400" -> (1, 1, 0, 400)
-    # "1.1.0"         -> (1, 1, 0, inf)  # release > any dev build
+    # strips everything except digits and dots, then splits by dot
+    # "1.0.0-rel.1" -> "1.0.0.1" -> (1, 0, 0, 1)
+    # "1.0.0"       -> (1, 0, 0)
     try:
-        if "-dev." in ver:
-            base, dev_str = ver.split("-dev.", 1)
-            dev_n = int(dev_str)
-        else:
-            base = ver
-            dev_n = 10 ** 9
-        parts = [int(x) for x in base.split(".")]
-        while len(parts) < 3:
-            parts.append(0)
-        return (parts[0], parts[1], parts[2], dev_n)
+        import re
+        clean = re.sub(r"[^0-9.]", ".", ver)
+        # collapse multiple consecutive dots
+        clean = re.sub(r"\.{2,}", ".", clean).strip(".")
+        parts = [int(x) for x in clean.split(".") if x]
+        return tuple(parts)
     except Exception as e:
         log(f"updateSheet: _parse_version error for '{ver}': {e}")
-        return (0, 0, 0, 0)
+        return (0,)
 
 
 def _is_newer(remote: str, current: str) -> bool:
