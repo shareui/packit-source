@@ -298,7 +298,7 @@ class CacheCard(Base):
     def refresh(self):
         try:
             size, count = _getCacheInfo(self._cache_dir)
-            self._sizeView.setText(f"{size} • {count} files")
+            self._sizeView.setText(str(strings.cache_size_label).format(size=size, count=count))
         except Exception as e:
             log(f"CacheCard refresh error: {e}")
 
