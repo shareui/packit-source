@@ -1698,6 +1698,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             translate_btn.setOnClickListener(OnClickListener(onTranslateClick))
 
             copy_btn = _make_icon_only_btn("msg_copy")
+            _copy_hint_ref = [None]
 
             def onCopyClick(v, _desc=desc):
                 try:
@@ -1705,10 +1706,53 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     clipboard_manager = act.getSystemService(act.CLIPBOARD_SERVICE)
                     clip = ClipData.newPlainText("Plugin description", _desc)
                     clipboard_manager.setPrimaryClip(clip)
-                    from ui.bulletin import BulletinHelper
-                    BulletinHelper.show_success(strings.get("copied_to_clipboard", "Скопировано в буфер обмена"))
                 except Exception as e:
                     log(f"pluginProfile: copy description error: {e}")
+                try:
+                    from org.telegram.ui.Stories.recorder import HintView2
+                    from android.text import Layout
+                    prev = _copy_hint_ref[0]
+                    if prev is not None:
+                        try:
+                            prev.hide()
+                            prev.getParent().removeView(prev)
+                        except Exception:
+                            pass
+                        _copy_hint_ref[0] = None
+                    dv = act.getWindow().getDecorView()
+                    hint = (
+                        HintView2(v.getContext(), 3)
+                        .setMultilineText(True)
+                        .setBgColor(Theme.getColor(Theme.key_undo_background))
+                        .setTextColor(Theme.getColor(Theme.key_undo_infoColor))
+                        .setText(str(strings["afp_copied"]))
+                        .setTextAlign(Layout.Alignment.ALIGN_CENTER)
+                        .allowBlur(True)
+                        .setRounding(AndroidUtilities.dp(12))
+                    )
+                    try:
+                        hint.setMaxWidthPx(HintView2.cutInFancyHalf(hint.getText(), hint.getTextPaint()))
+                    except Exception:
+                        pass
+                    dv.addView(hint, LayoutHelper.createFrame(-1, 100, 55, 32, 0, 32, 0))
+                    _copy_hint_ref[0] = hint
+                    def _position():
+                        try:
+                            loc = [0, 0]
+                            v.getLocationInWindow(loc)
+                            dv_loc = [0, 0]
+                            dv.getLocationInWindow(dv_loc)
+                            cell_y = loc[1] - dv_loc[1]
+                            center_x = float(loc[0] - dv_loc[0]) + float(v.getMeasuredWidth()) / 2.0
+                            hint.setTranslationY(float(cell_y - AndroidUtilities.dp(100) - AndroidUtilities.dp(6)))
+                            hint.setJointPx(0.0, float(-AndroidUtilities.dp(32)) + center_x)
+                            hint.setDuration(3500)
+                            hint.show()
+                        except Exception as e:
+                            log(f"pluginProfile: copy hint position error: {e}")
+                    run_on_ui_thread(_position)
+                except Exception as e:
+                    log(f"pluginProfile: copy hint error: {e}")
             copy_btn.setOnClickListener(OnClickListener(onCopyClick))
 
             tr_lp = LinearLayout.LayoutParams(-2, -2)
