@@ -345,7 +345,7 @@ class InstallUI:
             return f"{bytes_val / 1024:.2f} KB"
         return f"{bytes_val / (1024 * 1024):.2f} MB"
 
-    def _make_info_chip(self, act, text, color_key):
+    def _make_info_chip(self, act, text, color_key, size_sp=11):
         import ctypes
         try:
             color = Theme.getColor(getattr(Theme, color_key))
@@ -362,7 +362,7 @@ class InstallUI:
         bg.setColor(fill)
         tv = TextView(act)
         tv.setText(text)
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, size_sp)
         tv.setTextColor(text_color)
         tv.setBackground(bg)
         tv.setPadding(
@@ -1612,6 +1612,9 @@ class InstallUI:
             self._s_show_deps = settings.get("show_plugin_deps_count", False)
             self._s_show_view_button = settings.get("show_view_button", True)
             self._s_show_details_button = settings.get("show_details_button", True)
+            self._s_chip_ver_size = float(settings.get("chip_ver_size", 11))
+            self._s_chip_deps_size = float(settings.get("chip_deps_size", 11))
+            self._s_chip_size_size = float(settings.get("chip_size_size", 11))
             self._s_fuzzy_search = settings.get("fuzzy_search", False)
             self._s_relocate_copy = settings.get("relocate_copy_link", False)
             self._s_relocate_share = settings.get("relocate_share", False)
@@ -2358,7 +2361,7 @@ class InstallUI:
                 if show_min_ver:
                     min_ver = p.get("app_version")
                     if min_ver:
-                        chip = self.install_ui._make_info_chip(act, str(min_ver), "key_avatar_background2Blue")
+                        chip = self.install_ui._make_info_chip(act, str(min_ver), "key_avatar_background2Blue", self._s_chip_ver_size)
                         chip_lp = LinearLayout.LayoutParams(-2, -2)
                         chip_lp.bottomMargin = AndroidUtilities.dp(4)
                         chips_col.addView(chip, chip_lp)
@@ -2368,7 +2371,7 @@ class InstallUI:
                     dep_count = len(deps)
                     if dep_count > 0:
                         dep_label = "library" if dep_count == 1 else "libraries"
-                        chip = self.install_ui._make_info_chip(act, f"{dep_count} {dep_label}", "key_color_purple")
+                        chip = self.install_ui._make_info_chip(act, f"{dep_count} {dep_label}", "key_color_purple", self._s_chip_deps_size)
                         chip_lp = LinearLayout.LayoutParams(-2, -2)
                         chip_lp.bottomMargin = AndroidUtilities.dp(4)
                         chips_col.addView(chip, chip_lp)
@@ -2376,7 +2379,7 @@ class InstallUI:
                 if show_size:
                     size_str = p.get("size")
                     if size_str:
-                        chip = self.install_ui._make_info_chip(act, str(size_str), "key_color_cyan")
+                        chip = self.install_ui._make_info_chip(act, str(size_str), "key_color_cyan", self._s_chip_size_size)
                         chips_col.addView(chip, LinearLayout.LayoutParams(-2, -2))
 
                 chips_lp = LinearLayout.LayoutParams(-2, -2)

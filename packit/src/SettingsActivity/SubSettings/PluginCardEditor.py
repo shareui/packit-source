@@ -730,9 +730,6 @@ class PluginCardPreview:
     }
 
     def _chip_color(self, chip_key):
-        saved = _gs(f"{chip_key}_color")
-        if saved:
-            return int(saved)
         info = self._CHIP_DEFAULTS.get(chip_key, {})
         try:
             return Theme.getColor(getattr(Theme, info.get("color_key", "key_windowBackgroundWhiteGrayText")))
@@ -1128,6 +1125,9 @@ class PluginCardEditorPage:
 
             self.settings_root = LinearLayout(ctx)
             self.settings_root.setOrientation(LinearLayout.VERTICAL)
+            self.settings_root.setClickable(True)
+            self.settings_root.setFocusable(False)
+            self.settings_root.setBackgroundColor(0x00000000)
             self.settings_root.setPadding(0, AndroidUtilities.dp(4), 0, AndroidUtilities.dp(24))
             self.settings_scroll.addView(self.settings_root, LayoutHelper.createScroll(-1, -2, 0))
 
@@ -1135,14 +1135,14 @@ class PluginCardEditorPage:
 
             settings_bg = GradientDrawable()
             settings_bg.setShape(GradientDrawable.RECTANGLE)
-            settings_bg.setCornerRadii(jarray(jfloat)([
-                float(AndroidUtilities.dp(14)), float(AndroidUtilities.dp(14)),
-                float(AndroidUtilities.dp(14)), float(AndroidUtilities.dp(14)),
-                0.0, 0.0,
-                0.0, 0.0,
-            ]))
+            settings_bg.setCornerRadius(float(AndroidUtilities.dp(24)))
             settings_bg.setColor(ctypes.c_int32(Theme.getColor(Theme.key_windowBackgroundWhite)).value)
             self.settings_scroll.setBackground(settings_bg)
+            # ScrollView does not clip children to its own background shape by default,
+            # so the LinearLayout content overdraws the top rounded corners.
+            # clipToOutline tells the View system to clip drawing to the outline defined
+            # by the background drawable — this is the missing piece.
+            self.settings_scroll.setClipToOutline(True)
 
             container = LinearLayout(ctx)
             container.setOrientation(LinearLayout.VERTICAL)
@@ -1155,7 +1155,12 @@ class PluginCardEditorPage:
 
             container.addView(self.settings_scroll, LayoutHelper.createLinear(-1, -2))
 
-            return [Custom(view=container)]
+            # asCustomShadow (viewType -4) excludes the item from the RecyclerListView
+            # white section background drawn in dispatchDraw — that background was painting
+            # over the top rounded corners of settings_scroll despite clipToOutline.
+            # isShadow(-4) = true, so the section renderer skips this cell entirely.
+            from org.telegram.ui.Components import UItem as _UItem
+            return [Custom(item=_UItem.asCustomShadow(container))]
         except Exception as e:
             log(f"PluginCardEditor: build error: {e}")
             return []
@@ -1265,7 +1270,7 @@ class PluginCardEditorPage:
         row.addView(tv, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8))
         btn_row = LinearLayout(ctx)
         btn_row.setOrientation(LinearLayout.HORIZONTAL)
-        gravities = [("Left", Gravity.LEFT), ("Center", Gravity.CENTER_HORIZONTAL), ("Right", Gravity.RIGHT)]
+        gravities = [(str(strings["pce_gravity_left"]), Gravity.LEFT), (str(strings["pce_gravity_center"]), Gravity.CENTER_HORIZONTAL), (str(strings["pce_gravity_right"]), Gravity.RIGHT)]
         btns = []
         preview = self.preview
 
@@ -1325,75 +1330,7 @@ class PluginCardEditorPage:
         self._header(ctx, str(label))
         # size slider
         self._slider(ctx, "Size (sp)", f"{chip_key}_size", 9, 18, 11)
-        # color picker row
-        color_row = LinearLayout(ctx)
-        color_row.setOrientation(LinearLayout.HORIZONTAL)
-        color_row.setGravity(Gravity.CENTER_VERTICAL)
-        color_row.setMinimumHeight(AndroidUtilities.dp(50))
-        color_row.setClickable(True)
-        color_row.setFocusable(True)
-        color_row.setBackground(Theme.createSelectorDrawable(
-            ctypes.c_int32(Theme.getColor(Theme.key_listSelector)).value, 2
-        ))
-        lbl = TextView(ctx)
-        lbl.setText(str(strings["pce_color_label"]))
-        lbl.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16.0)
-        lbl.setTextColor(ctypes.c_int32(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText)).value)
-        color_row.addView(lbl, LayoutHelper.createLinear(0, -2, 1.0, 23, 0, 12, 0))
 
-        color_circle = View(ctx)
-        preview = self.preview
-
-        def _update_circle():
-            c = preview._chip_color(chip_key) if preview else 0
-            bg = GradientDrawable()
-            bg.setShape(GradientDrawable.OVAL)
-            bg.setColor(ctypes.c_int32(c).value)
-            color_circle.setBackground(bg)
-
-        _update_circle()
-        color_row.addView(color_circle, LayoutHelper.createLinear(24, 24, 0, 0, 23, 0))
-
-        class ColorRowClick(dynamic_proxy(View.OnClickListener)):
-            def onClick(self, v):
-                try:
-                    from org.telegram.ui.Components.Paint import ColorPickerBottomSheet
-                    from java import jclass, dynamic_proxy as dyp
-                    PipetteDelegate = jclass("org.telegram.ui.Components.Paint.ColorPickerBottomSheet$PipetteDelegate")
-                    Consumer = jclass("androidx.core.util.Consumer")
-
-                    class _DummyPipette(dyp(PipetteDelegate)):
-                        def onStartColorPipette(self): pass
-                        def onStopColorPipette(self): pass
-                        def getContainerView(self): return None
-                        def getSnapshotDrawingView(self): return None
-                        def onDrawImageOverCanvas(self, b, c): pass
-                        def isPipetteVisible(self): return False
-                        def isPipetteAvailable(self): return False
-                        def onColorSelected(self, c): pass
-
-                    class _Consumer(dyp(Consumer)):
-                        def accept(self, color):
-                            c = int(color)
-                            _cs(f"{chip_key}_color", c)
-                            if preview:
-                                run_on_ui_thread(lambda: (
-                                    preview._refresh_chip(chip_key),
-                                    _update_circle()
-                                ))
-
-                    from java import jint as _jint
-                    cur = preview._chip_color(chip_key) if preview else 0
-                    picker = ColorPickerBottomSheet(ctx, None)
-                    picker.setPipetteDelegate(_DummyPipette())
-                    picker.setColorListener(_Consumer())
-                    picker.setColor(_jint(ctypes.c_int32(cur).value))
-                    picker.show()
-                except Exception as e:
-                    log(f"chip color picker error: {e}")
-
-        color_row.setOnClickListener(ColorRowClick())
-        self.settings_root.addView(color_row, LayoutHelper.createLinear(-1, -2))
 
     def _hint_divider(self, ctx):
         # hint as bottom divider with text — like Divider(text=...) in native settings
@@ -1431,6 +1368,9 @@ class PluginCardEditorPage:
             cell = TextCheckCell(ctx)
             current_val = bool(_gs(key))
             cell.setTextAndCheck(str(label), current_val, False)
+            cell.setBackground(Theme.createSelectorDrawable(
+                ctypes.c_int32(Theme.getColor(Theme.key_listSelector)).value, 2
+            ))
             preview = self.preview
 
             class CellClick(dynamic_proxy(View.OnClickListener)):
@@ -1481,6 +1421,9 @@ class PluginCardEditorPage:
             cell = TextCheckCell(ctx)
             current_val = bool(_gs(key))
             cell.setTextAndCheck(str(label), current_val, False)
+            cell.setBackground(Theme.createSelectorDrawable(
+                ctypes.c_int32(Theme.getColor(Theme.key_listSelector)).value, 2
+            ))
             preview = self.preview
 
             class CellClick(dynamic_proxy(View.OnClickListener)):
@@ -1518,6 +1461,9 @@ class PluginCardEditorPage:
             from org.telegram.ui.Cells import TextCheckCell
             cell = TextCheckCell(ctx)
             cell.setTextAndCheck(str(label), bool(_gs(key)), False)
+            cell.setBackground(Theme.createSelectorDrawable(
+                ctypes.c_int32(Theme.getColor(Theme.key_listSelector)).value, 2
+            ))
             preview = self.preview
 
             class CellClick(dynamic_proxy(View.OnClickListener)):
@@ -1536,6 +1482,8 @@ class PluginCardEditorPage:
     def _slider(self, ctx, label, key, min_val, max_val, default):
         ll = LinearLayout(ctx)
         ll.setOrientation(LinearLayout.VERTICAL)
+        ll.setClickable(False)
+        ll.setFocusable(False)
         ll.setPadding(
             AndroidUtilities.dp(23), AndroidUtilities.dp(10),
             AndroidUtilities.dp(23), AndroidUtilities.dp(10)
