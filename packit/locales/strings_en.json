@@ -922,6 +922,9 @@
     "pce_tags_placeholder": "+ tags",
     "pce_desc_preview": "Plugin description text that shows below the name and author.",
     "pce_chips_gravity": "Chips gravity",
+    "pce_gravity_left": "Left",
+    "pce_gravity_center": "Center",
+    "pce_gravity_right": "Right",
     "pce_color_label": "Color",
     "settings_free_space": "Free: {space}",
     "il_icon_count": "{count} icons",
@@ -952,5 +955,6 @@
     "info_content_size": "Content size",
     "info_size": "Size",
     "info_modified": "Modified",
-    "info_created": "Created"
+    "info_created": "Created",
+    "pp_forked_from": "Forked from [{name}]({url})"
 }
