@@ -952,5 +952,6 @@
     "info_content_size": "Размер содержимого",
     "info_size": "Размер",
     "info_modified": "Изменён",
-    "info_created": "Создан"
+    "info_created": "Создан",
+    "pp_forked_from": "Основано на [{name}]({url})"
 }

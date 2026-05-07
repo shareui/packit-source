@@ -1195,6 +1195,29 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
 
         hero.addView(bottom_row, LayoutHelper.createLinear(-1, -2))
 
+        forked = p.get("forked")
+        if isinstance(forked, list) and len(forked) >= 2:
+            forked_name = str(forked[0])
+            forked_url = str(forked[1])
+            forked_raw = str(strings.pp_forked_from).format(name=forked_name, url=forked_url)
+            forked_tv = TextView(act)
+            forked_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
+            forked_tv.setTextColor(gray_color)
+            forked_tv.setGravity(Gravity.START)
+            try:
+                forked_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+            except Exception:
+                forked_tv.setTypeface(AndroidUtilities.bold())
+            try:
+                from com.exteragram.messenger.utils.text import LocaleUtils
+                from android.text.method import LinkMovementMethod
+                forked_tv.setText(LocaleUtils.fullyFormatText(forked_raw))
+                forked_tv.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
+                forked_tv.setMovementMethod(LinkMovementMethod.getInstance())
+            except Exception:
+                forked_tv.setText(forked_raw)
+            hero.addView(forked_tv, LayoutHelper.createLinear(-2, -2, Gravity.START, 0, 8, 0, 0))
+
         # archived banner
         archived_raw = str(p.get("archived") or "").strip()
         if archived_raw:

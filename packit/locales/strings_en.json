@@ -952,5 +952,6 @@
     "info_content_size": "Content size",
     "info_size": "Size",
     "info_modified": "Modified",
-    "info_created": "Created"
+    "info_created": "Created",
+    "pp_forked_from": "Forked from [{name}]({url})"
 }
