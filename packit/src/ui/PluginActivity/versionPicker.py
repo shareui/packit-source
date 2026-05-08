@@ -657,7 +657,7 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
                             icon_raw = getattr(R_tg.raw, "copy", getattr(R_tg.raw, "msg_copy", 0))
                             BulletinFactory.of(container, resource_provider).createSimpleBulletin(
                                 icon_raw,
-                                "The link with the version has been copied to the clipboard!"
+                                str(strings["pp_version_link_copied"])
                             ).show()
                         except Exception as be:
                             log(f"version_picker: bulletin error: {be}")

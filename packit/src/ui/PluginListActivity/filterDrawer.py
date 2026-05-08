@@ -918,8 +918,17 @@ class SortDrawer:
                 self._current_selected = set(self._tags_summary.keys())
 
             for tag_name, count in self._tags_summary.items():
+                # use localized label for unsorted, keep key internal
+                if tag_name == filterEngine._UNSORTED_KEY:
+                    try:
+                        from elyx import strings as _s
+                        display_name = str(_s["filter_tag_unsorted"])
+                    except Exception:
+                        display_name = "Unsorted"
+                else:
+                    display_name = tag_name
                 is_sel = tag_name in self._current_selected
-                row, border, name_tv = self._build_tag_row(tag_name, count, is_sel)
+                row, border, name_tv = self._build_tag_row(display_name, count, is_sel)
 
                 def make_handler(name, bdr, ntv):
                     def handler(v):
