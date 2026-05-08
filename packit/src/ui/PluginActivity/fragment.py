@@ -480,16 +480,39 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         except Exception as e:
             log(f"pluginProfile: register_bulletin_container error: {e}")
 
-        scroll = ScrollView(act)
+        try:
+            from extera_utils.classes import Base, java_subclass, joverride
+            from android.widget import ScrollView as _SV
+
+            @java_subclass(_SV)
+            class _CappedScrollView(Base):
+                @joverride()
+                def overScrollBy(self, deltaX, deltaY, scrollX, scrollY,
+                                 scrollRangeX, scrollRangeY,
+                                 maxOverScrollX, maxOverScrollY, isTouchEvent):
+                    # hard cap: no more than 8dp overscroll in either direction
+                    cap = AndroidUtilities.dp(8)
+                    return super().overScrollBy(
+                        deltaX, deltaY, scrollX, scrollY,
+                        scrollRangeX, scrollRangeY,
+                        maxOverScrollX, cap, isTouchEvent
+                    )
+
+            _scroll_instance = _CappedScrollView.new_instance(act)
+            scroll = _scroll_instance.java
+        except Exception:
+            scroll = ScrollView(act)
         scroll.setFillViewport(True)
         scroll.setVerticalScrollBarEnabled(False)
+        scroll.setOverScrollMode(ScrollView.OVER_SCROLL_IF_CONTENT_SCROLLS)
+        scroll.setClipToPadding(False)
         self.content_view.addView(scroll, FrameLayout.LayoutParams(-1, -1))
 
         root = LinearLayout(act)
         root.setOrientation(LinearLayout.VERTICAL)
         root.setPadding(
             AndroidUtilities.dp(16), AndroidUtilities.dp(16),
-            AndroidUtilities.dp(16), AndroidUtilities.dp(88)
+            AndroidUtilities.dp(16), AndroidUtilities.dp(88) + 24
         )
         scroll.addView(root)
 
@@ -2621,7 +2644,15 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             sub_parts.append(desc[:40] + ("…" if len(desc) > 40 else ""))
         if sub_parts:
             sub_tv = TextView(act)
-            sub_tv.setText("  ·  ".join(sub_parts))
+            sub_text = "  ·  ".join(sub_parts)
+            try:
+                from com.exteragram.messenger.utils.text import LocaleUtils
+                from android.text.method import LinkMovementMethod
+                sub_tv.setText(LocaleUtils.fullyFormatText(sub_text))
+                sub_tv.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
+                sub_tv.setMovementMethod(LinkMovementMethod.getInstance())
+            except Exception:
+                sub_tv.setText(sub_text)
             sub_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
             sub_tv.setTextColor(gray_color)
             sub_tv.setSingleLine(True)
