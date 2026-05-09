@@ -1,7 +1,7 @@
 name: PackIt
 description: "{plugin_description} [shareui/packit-source](https://github.com/shareui/packit-source)"
 id: shareui_packit
-version: "0.0.0-rc.19"
+version: "0.0.0-rc.31"
 author: "@packitX"
 app_version: ">=12.5.1"
 sdk_version: ">=1.4.3.2"
@@ -16,4 +16,20 @@ buildNum: 47
 buildDate: 2026-05-09
 pythonVer: 3.11
 sourceHash: 7ba9cd29bc48a6964838af70b9d690459a9d864e534efef7dbf8c50af6bcf33b # Sha256
+elybVer: 0.3.0
+
+# elyxbuilder info
+compiled: false
+buildNum: 55
+buildDate: 2026-05-09
+pythonVer: 3.11
+sourceHash: 35af49d6564ba6e45b2d8214f914fa18066b4eae0e8e60eacc96d62c42b83459 # Sha256
+elybVer: 0.3.0
+
+# elyxbuilder info
+compiled: false
+buildNum: 57
+buildDate: 2026-05-09
+pythonVer: 3.11
+sourceHash: fbebf7c8dd1c1fb052080d8fbfaedcbefdc67b8f0b351f3f762cf8d2f759d4ab # Sha256
 elybVer: 0.3.0

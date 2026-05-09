@@ -958,5 +958,9 @@
   "info_modified": "Modified",
   "info_created": "Created",
   "pp_forked_from": "Forked from [{name}]({url})",
-  "pp_version_link_copied": "The link with the version has been copied to the clipboard!"
+  "pp_version_link_copied": "The link with the version has been copied to the clipboard!",
+  "updates_btn_refresh": "Refresh",
+  "updates_btn_ignore": "Ignore",
+  "updates_btn_update_all": "Update all",
+  "updates_btn_ignore_list": "Ignore list"
 }
