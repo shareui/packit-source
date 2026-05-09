@@ -122,6 +122,26 @@ def _version_tuple(v: str):
     return tuple(int(p) for p in parts) if parts else (0,)
 
 
+def _extract_diff(repo_info: dict, local_version: str):
+    # returns (add_str, rem_str) from versions[local_version].changelog, or None if absent
+    if not local_version:
+        return None
+    versions = repo_info.get("versions")
+    if not isinstance(versions, dict):
+        return None
+    vdata = versions.get(local_version)
+    if not isinstance(vdata, dict):
+        return None
+    cl = vdata.get("changelog")
+    if not isinstance(cl, list) or len(cl) < 3:
+        return None
+    add_str = str(cl[1]).strip()
+    rem_str = str(cl[2]).strip()
+    if not add_str and not rem_str:
+        return None
+    return (add_str, rem_str)
+
+
 def _check_updates(pkg: str) -> list:
     # returns list of dicts: {id, repo_id, local_version, repo_version, reason}
     # reason: "hash_diff_newer" "state_changed"
@@ -185,6 +205,7 @@ def _check_updates(pkg: str) -> list:
                     "repo_version": str(repo_info.get("version") or ""),
                     "state": str(repo_info.get("state") or ""),
                     "reason": "hash_diff_newer",
+                    "diff": _extract_diff(repo_info, str(entry.get("version") or "")),
                 })
                 continue
 
@@ -212,6 +233,7 @@ def _check_updates(pkg: str) -> list:
                     "repo_version": str(repo_info.get("version") or ""),
                     "state": str(repo_info.get("state") or ""),
                     "reason": "state_changed",
+                    "diff": _extract_diff(repo_info, str(entry.get("version") or "")),
                 })
 
     return updates
@@ -299,6 +321,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         self._spinner = None
         self._spinner_container = None
         self._active_listeners = []
+        self._card_count = [0]
+        self._done_count = [0]
 
     def onFragmentCreate(self, *_):
         pass
@@ -363,12 +387,14 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         self._content_view = FrameLayout(act)
         self._content_view.setBackgroundColor(bg)
 
+        from android.widget import ScrollView
+        scroll = ScrollView(act)
+        scroll.setFillViewport(True)
+
         self._results_container = LinearLayout(act)
         self._results_container.setOrientation(LinearLayout.VERTICAL)
-        self._content_view.addView(
-            self._results_container,
-            FrameLayout.LayoutParams(-1, -1)
-        )
+        scroll.addView(self._results_container, FrameLayout.LayoutParams(-1, -2))
+        self._content_view.addView(scroll, FrameLayout.LayoutParams(-1, -1))
 
         self._spinner_container = None
         try:
@@ -605,31 +631,51 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 icon_lp.rightMargin = dp(12)
                 top_row.addView(icon_view, icon_lp)
 
-                pack_name, index_str = icon_str.split("/", 1)
-                sticker_index = int(index_str)
-                mdc = MediaDataController.getInstance(0)
-                ss = None
-                try:
-                    ss = mdc.getStickerSetByName(pack_name)
-                except Exception:
-                    pass
-                if not ss:
+                def try_load_icon(view=icon_view, istr=icon_str, size=icon_size_dp):
                     try:
-                        ss = mdc.getStickerSetByEmojiOrName(pack_name)
+                        pack_name, index_str = istr.split("/", 1)
+                        sticker_index = int(index_str)
+                        mdc = MediaDataController.getInstance(0)
+                        ss = None
+                        try:
+                            ss = mdc.getStickerSetByName(pack_name)
+                        except Exception:
+                            ss = None
+                        if not ss:
+                            try:
+                                ss = mdc.getStickerSetByEmojiOrName(pack_name)
+                            except Exception:
+                                ss = None
+                        if ss and getattr(ss, "documents", None) and ss.documents.size() > sticker_index:
+                            doc = ss.documents.get(sticker_index)
+                            view.setImage(
+                                ImageLocation.getForDocument(doc),
+                                f"{size}_{size}",
+                                None, None, 0, 1
+                            )
+                            return True
+                        return False
+                    except Exception:
+                        return False
+
+                if not try_load_icon():
+                    try:
+                        pack_name = icon_str.split("/", 1)[0]
+                        MediaDataController.getInstance(0).loadStickersByEmojiOrName(pack_name, False, False)
                     except Exception:
                         pass
-                if ss and getattr(ss, "documents", None) and ss.documents.size() > sticker_index:
-                    doc = ss.documents.get(sticker_index)
-                    icon_view.setImage(
-                        ImageLocation.getForDocument(doc),
-                        f"{icon_size_dp}_{icon_size_dp}",
-                        None, None, 0, 1
-                    )
-                else:
-                    try:
-                        mdc.loadStickersByEmojiOrName(pack_name, False, False)
-                    except Exception:
-                        pass
+
+                    def _retry_load(loader=try_load_icon):
+                        import time
+                        for delay in (0.5, 1.0, 2.0, 3.0):
+                            time.sleep(delay)
+                            try:
+                                if run_on_ui_thread(loader):
+                                    return
+                            except Exception:
+                                pass
+
+                    threading.Thread(target=_retry_load, daemon=True).start()
             except Exception as e:
                 log(f"pluginsUpdates: icon init error for '{pid}': {e}")
 
@@ -671,6 +717,37 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
         from android.widget import ImageView as _ImageView
         from hook_utils import find_class as _find_class
+
+        diff = item.get("diff")
+        if isinstance(diff, tuple) and len(diff) == 2:
+            add_str, rem_str = diff
+            diff_row = LinearLayout(act)
+            diff_row.setOrientation(LinearLayout.HORIZONTAL)
+            diff_row.setGravity(Gravity.CENTER_VERTICAL)
+            diff_row_lp = LinearLayout.LayoutParams(-2, -2)
+            diff_row_lp.topMargin = dp(2)
+
+            if add_str:
+                add_tv = TextView(act)
+                add_tv.setText(add_str)
+                add_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
+                try:
+                    add_tv.setTextColor(Theme.getColor(Theme.key_avatar_backgroundGreen))
+                except Exception:
+                    add_tv.setTextColor(0xFF4CAF50)
+                diff_row.addView(add_tv, LinearLayout.LayoutParams(-2, -2))
+
+            if rem_str:
+                rem_tv = TextView(act)
+                rem_tv.setText(f"  {rem_str}" if add_str else rem_str)
+                rem_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
+                try:
+                    rem_tv.setTextColor(Theme.getColor(Theme.key_avatar_backgroundRed))
+                except Exception:
+                    rem_tv.setTextColor(0xFFF44336)
+                diff_row.addView(rem_tv, LinearLayout.LayoutParams(-2, -2))
+
+            col.addView(diff_row, diff_row_lp)
 
         try:
             R_tg = _find_class("org.telegram.messenger.R")
@@ -946,6 +1023,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     remove_install_listener(listener_ref[0])
                     listener_ref[0] = None
                     set_btn_state("done")
+                    self._on_plugin_done()
 
                 listener_ref[0] = on_installed
                 add_install_listener(on_installed)
@@ -957,6 +1035,123 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 run_on_ui_thread(lambda: set_btn_state("idle"))
 
         run_on_queue(task)
+
+    def _on_plugin_done(self):
+        self._done_count[0] += 1
+        if self._done_count[0] >= self._card_count[0] and self._card_count[0] > 0 and self._alive[0]:
+            run_on_ui_thread(self._remove_all_cards_then_empty)
+
+    def _remove_all_cards_then_empty(self):
+        try:
+            from android.animation import ObjectAnimator, AnimatorSet, Animator
+            container = self._results_container
+            count = container.getChildCount()
+            if count == 0:
+                self._show_all_up_to_date()
+                return
+
+            finished = [0]
+
+            class _FadeListener(dynamic_proxy(Animator.AnimatorListener)):
+                def __init__(self, view, fragment, total):
+                    super().__init__()
+                    self._view = view
+                    self._fragment = fragment
+                    self._total = total
+
+                def onAnimationEnd(self, *args):
+                    try:
+                        parent = self._view.getParent()
+                        if parent is not None:
+                            parent.removeView(self._view)
+                    except Exception:
+                        pass
+                    finished[0] += 1
+                    if finished[0] >= self._total and self._fragment._alive[0]:
+                        self._fragment._show_all_up_to_date()
+
+                def onAnimationStart(self, *args): pass
+                def onAnimationCancel(self, *args): pass
+                def onAnimationRepeat(self, *args): pass
+
+            for i in range(count):
+                child = container.getChildAt(i)
+                if child is None:
+                    finished[0] += 1
+                    continue
+                fade = ObjectAnimator.ofFloat(child, "alpha", child.getAlpha(), 0.0)
+                slide = ObjectAnimator.ofFloat(child, "translationX", 0.0, float(AndroidUtilities.dp(40)))
+                anim = AnimatorSet()
+                anim.playTogether(fade, slide)
+                anim.setDuration(200)
+                anim.setStartDelay(i * 40)
+                anim.addListener(_FadeListener(child, self, count))
+                anim.start()
+        except Exception as e:
+            log(f"pluginsUpdates: _remove_all_cards_then_empty error: {e}")
+            self._show_all_up_to_date()
+
+    def _on_card_removed(self):
+        self._card_count[0] -= 1
+        if self._card_count[0] <= 0 and self._alive[0]:
+            run_on_ui_thread(self._show_all_up_to_date)
+
+    def _show_all_up_to_date(self):
+        try:
+            from android.animation import ObjectAnimator
+            empty_card = self._build_all_up_to_date_card()
+            empty_card.setAlpha(0.0)
+            lp = FrameLayout.LayoutParams(-2, -2)
+            lp.gravity = Gravity.CENTER
+            dp = AndroidUtilities.dp
+            lp.leftMargin = dp(16)
+            lp.rightMargin = dp(16)
+            lp.topMargin = dp(-80)
+            self._content_view.addView(empty_card, lp)
+            fade_in = ObjectAnimator.ofFloat(empty_card, "alpha", 0.0, 1.0)
+            fade_in.setDuration(300)
+            fade_in.start()
+        except Exception as e:
+            log(f"pluginsUpdates: _show_all_up_to_date error: {e}")
+
+    def _build_all_up_to_date_card(self):
+        act = self._act
+        dp = AndroidUtilities.dp
+
+        card = LinearLayout(act)
+        card.setOrientation(LinearLayout.VERTICAL)
+        card.setGravity(Gravity.CENTER)
+        card.setPadding(dp(24), dp(28), dp(24), dp(28))
+        try:
+            bg = GradientDrawable()
+            bg.setCornerRadius(dp(16))
+            bg.setColor(Theme.getColor(Theme.key_windowBackgroundGray))
+            card.setBackground(bg)
+        except Exception:
+            pass
+
+        try:
+            from org.telegram.ui.Components import RLottieImageView
+            from org.telegram.messenger import R as R_tg
+            lottie = RLottieImageView(act)
+            lottie.setAnimation(getattr(R_tg.raw, "done"), dp(144), dp(144))
+            lottie.setAutoRepeat(False)
+            lottie.playAnimation()
+            lottie_lp = LinearLayout.LayoutParams(dp(144), dp(144))
+            lottie_lp.gravity = Gravity.CENTER_HORIZONTAL
+            lottie_lp.bottomMargin = dp(12)
+            card.addView(lottie, lottie_lp)
+        except Exception as e:
+            log(f"pluginsUpdates: _build_all_up_to_date_card lottie error: {e}")
+
+        tv = TextView(act)
+        tv.setText(str(strings["updates_all_up_to_date"]))
+        tv.setTextColor(self._text_gray)
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+        tv.setGravity(Gravity.CENTER)
+        card.addView(tv, LinearLayout.LayoutParams(-2, -2))
+
+        return card
 
     def _remove_card(self, card_view):
         try:
@@ -972,6 +1167,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
             measured_height = [card_view.getHeight()]
 
+            fragment_ref = self
+
             class _ExitListener(dynamic_proxy(Animator.AnimatorListener)):
                 def onAnimationEnd(self, *args):
                     try:
@@ -980,6 +1177,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                             parent = card_view.getParent()
                             if parent is not None:
                                 parent.removeView(card_view)
+                            fragment_ref._on_card_removed()
                             return
 
                         lp = card_view.getLayoutParams()
@@ -1003,6 +1201,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                                         parent.removeView(card_view)
                                 except Exception:
                                     pass
+                                fragment_ref._on_card_removed()
                             def onAnimationStart(self, *args): pass
                             def onAnimationCancel(self, *args): pass
                             def onAnimationRepeat(self, *args): pass
@@ -1018,6 +1217,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                                 parent.removeView(card_view)
                         except Exception:
                             pass
+                        fragment_ref._on_card_removed()
 
                 def onAnimationStart(self, *args): pass
                 def onAnimationCancel(self, *args): pass
@@ -1033,6 +1233,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     parent.removeView(card_view)
             except Exception:
                 pass
+            self._on_card_removed()
 
     def _show_updates(self, updates: list):
         try:
@@ -1041,6 +1242,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             container = self._results_container
             container.setPadding(dp(12), dp(12), dp(12), dp(12))
 
+            self._card_count[0] = len(updates)
+            self._done_count[0] = 0
             for item in updates:
                 card, lp = self._make_update_card(act, item)
                 container.addView(card, lp)

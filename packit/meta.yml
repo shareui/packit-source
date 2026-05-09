@@ -1,7 +1,7 @@
 name: PackIt
 description: "{plugin_description} [shareui/packit-source](https://github.com/shareui/packit-source)"
 id: shareui_packit
-version: "0.0.0-rc.13"
+version: "0.0.0-rc.19"
 author: "@packitX"
 app_version: ">=12.5.1"
 sdk_version: ">=1.4.3.2"
@@ -9,3 +9,11 @@ elyx_version: ">=0.9.2b"
 icon: plugin232/17
 
 # кстати тебя врядли выложат в utilits. Ты пофакту, повторил kpm. А как бы в utils правило второй вариант нельзя выкладыватьб
+
+# elyxbuilder info
+compiled: false
+buildNum: 47
+buildDate: 2026-05-09
+pythonVer: 3.11
+sourceHash: 7ba9cd29bc48a6964838af70b9d690459a9d864e534efef7dbf8c50af6bcf33b # Sha256
+elybVer: 0.3.0
