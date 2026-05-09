@@ -16,6 +16,8 @@ CLI-инструмент для сборки Elyx-плагинов.
 
 ## Команды
 
+> Все команды запускаются из корня проекта — директории, в которой находится `refmap.yml`.
+
 ### `elyb --version`
 
 Показывает версию ElyxBuilder.
@@ -78,10 +80,27 @@ elyb build -p aes-256 mypassword
 | `-c`, `--compile` | Скомпилировать `.py` → `.pyc` (Python 3.11) |
 | `-r`, `--reset` | Очистить кэш компиляции перед сборкой (только с `--compile`) |
 | `-p METHOD PASS` | Зашифровать архив |
+| `-ni`, `--no-info` | Не добавлять блок с информацией elyxbuilder в `meta.yml` |
 
 `--ast` и `--compile` взаимоисключающие.
 
 Результат кладётся в `builds/`.
+
+#### Информация о сборке
+
+Перед упаковкой elyxbuilder дописывает блок с комментарием в `meta.yml` внутри архива. Файл на диске не изменяется.
+
+```yaml
+# elyxbuilder info
+compiled: true/false
+buildNum: 5
+buildDate: 2026-05-09
+pythonVer: 3.11
+sourceHash: a3f2...
+elybVer: 0.3.0
+```
+
+Используйте `-ni` / `--no-info`, чтобы пропустить этот блок.
 
 #### Компиляция (`--compile`)
 
