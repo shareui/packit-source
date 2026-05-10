@@ -320,9 +320,11 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         self._alive = [True]
         self._spinner = None
         self._spinner_container = None
+        self._scroll_view = None
         self._active_listeners = []
         self._card_count = [0]
         self._done_count = [0]
+        self._current_updates = []
 
     def onFragmentCreate(self, *_):
         pass
@@ -396,6 +398,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         scroll.addView(self._results_container, FrameLayout.LayoutParams(-1, -2))
         # bottom padding reserves space for the floating button bar (~120dp)
         scroll.setPadding(0, 0, 0, dp(120))
+        self._scroll_view = scroll
         self._content_view.addView(scroll, FrameLayout.LayoutParams(-1, -1))
 
         self._spinner_container = None
@@ -435,26 +438,12 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         return self._content_view
 
     def _add_button_bar(self, act, dp):
-        # island sizing: 60% of screen width, centered
-        try:
-            display = act.getWindowManager().getDefaultDisplay()
-            from android.graphics import Point
-            size = Point()
-            display.getSize(size)
-            screen_w = size.x
-        except Exception as e:
-            log(f"pluginsUpdates: _add_button_bar screen size error: {e}")
-            screen_w = dp(360)
-
-        island_w = int(screen_w * 0.60)
-
-        # corner radii:
-        # island outer corner = 32dp (pill-ish)
-        # inner buttons = island_corner - island_padding = 32 - 10 = 22dp
-        island_r = dp(32)
-        btn_r = dp(22)
-        island_pad = dp(10)
-        btn_gap = dp(6)
+        # layout: two floating elements bottom-center
+        #   left_island  — pill with icon-only buttons: [Refresh] [Ignore] (full) | [Refresh] [Ignore list] (empty)
+        #   right_btn    — square button: [Update all icon] (full mode only)
+        #
+        # both animate in/out together via _bar_island (left) and _bar_right_btn
+        # _bar_island is the primary animation target; right_btn mirrors it
 
         try:
             accent = Theme.getColor(Theme.key_featuredStickers_addButton)
@@ -468,115 +457,182 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             log(f"pluginsUpdates: _add_button_bar accent_text color error: {e}")
             accent_text = 0xFFFFFFFF
 
-        # island container
-        island = LinearLayout(act)
-        island.setOrientation(LinearLayout.VERTICAL)
-        island.setPadding(island_pad, island_pad, island_pad, island_pad)
-        island.setElevation(float(dp(10)))
+        island_r = dp(32)
+        btn_r = dp(22)
+        island_pad = dp(10)
+        btn_gap = dp(6)
+        self._bar_btn_gap = btn_gap
+        icon_size = dp(22)
+        icon_pad = dp(14)   # padding around icon inside each icon button
 
-        island_bg = GradientDrawable()
-        island_bg.setShape(GradientDrawable.RECTANGLE)
-        island_bg.setCornerRadius(float(island_r))
-        try:
-            island_bg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite))
-        except Exception as e:
-            log(f"pluginsUpdates: _add_button_bar island bg color error: {e}")
-            island_bg.setColor(0xFFFFFFFF)
-        island.setBackground(island_bg)
-
-        def makeBtn(label: str):
-            btn = TextView(act)
-            btn.setText(label)
-            btn.setGravity(Gravity.CENTER)
-            btn.setSingleLine(True)
+        def _make_island_bg():
+            bg = GradientDrawable()
+            bg.setShape(GradientDrawable.RECTANGLE)
+            bg.setCornerRadius(float(island_r))
             try:
-                btn.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
-            except Exception as e:
-                log(f"pluginsUpdates: makeBtn typeface error: {e}")
-            btn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
-            btn.setTextColor(accent_text)
+                bg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite))
+            except Exception:
+                bg.setColor(0xFFFFFFFF)
+            return bg
 
+        def _make_icon_btn(res_name: str):
+            # square icon-only button with accent background
+            btn = TextView(act)
+            btn.setGravity(Gravity.CENTER)
+            btn.setPadding(icon_pad, icon_pad, icon_pad, icon_pad)
+            btn.setClickable(True)
+            btn.setFocusable(True)
             bg = GradientDrawable()
             bg.setShape(GradientDrawable.RECTANGLE)
             bg.setCornerRadius(float(btn_r))
             bg.setColor(accent)
-
             btn.setBackground(bg)
-            btn.setPadding(dp(12), dp(11), dp(12), dp(11))
-            btn.setClickable(True)
-            btn.setFocusable(True)
+            # icon centered via compound drawable with no text
+            try:
+                from org.telegram.messenger import R as R_tg
+                from android.graphics import PorterDuff
+                from androidx.core.content import ContextCompat
+                res_id = getattr(R_tg.drawable, res_name, 0)
+                if res_id:
+                    d = ContextCompat.getDrawable(act, res_id).mutate()
+                    d.setBounds(0, 0, icon_size, icon_size)
+                    d.setColorFilter(accent_text, PorterDuff.Mode.SRC_IN)
+                    btn.setCompoundDrawablesRelative(d, None, None, None)
+            except Exception as e:
+                log(f"pluginsUpdates: _make_icon_btn '{res_name}' error: {e}")
             return btn
 
-        # island layout (full mode):
-        #   row1: [Refresh] [Ignore]   ← top_row (GONE in empty mode)
-        #   row2: [Update all]         ← update_all_btn (GONE in empty mode)
-        #
-        # island layout (empty mode):
-        #   row1: [Refresh]            ← empty_refresh_row (GONE in full mode)
-        #   row2: [Ignore list]        ← ignore_list_row (GONE if ignore list empty, or full mode)
+        # two separate islands: full_row (refresh+ignore+download) and empty_row (refresh+ignore_list)
+        # switching between them is done by GONE/VISIBLE on the whole island — no layout jump
+        # because only one island is VISIBLE at a time, bar_frame wraps exactly to the visible one
 
-        # full mode row1: [Refresh] [Ignore]
-        top_row = LinearLayout(act)
-        top_row.setOrientation(LinearLayout.HORIZONTAL)
+        # --- full island: [refresh] [ignore] ---
+        full_island = LinearLayout(act)
+        full_island.setOrientation(LinearLayout.HORIZONTAL)
+        full_island.setPadding(island_pad, island_pad, island_pad, island_pad)
+        full_island.setElevation(float(dp(10)))
+        full_island.setBackground(_make_island_bg())
 
-        refresh_btn = makeBtn(str(strings["updates_btn_refresh"]))
-        ignore_btn = makeBtn(str(strings["updates_btn_ignore"]))
+        refresh_btn = _make_icon_btn("msg_reset")
+        ignore_btn = _make_icon_btn("msg_mute")
 
-        refresh_lp = LinearLayout.LayoutParams(0, -2, 1.0)
-        refresh_lp.rightMargin = btn_gap
-        top_row.addView(refresh_btn, refresh_lp)
-        top_row.addView(ignore_btn, LinearLayout.LayoutParams(0, -2, 1.0))
+        r_lp = LinearLayout.LayoutParams(-2, -2)
+        r_lp.rightMargin = btn_gap
+        full_island.addView(refresh_btn, r_lp)
+        full_island.addView(ignore_btn, LinearLayout.LayoutParams(-2, -2))
 
-        top_row_lp = LinearLayout.LayoutParams(-1, -2)
-        top_row_lp.bottomMargin = btn_gap
-        island.addView(top_row, top_row_lp)
+        # --- empty island: [refresh with text] [ignore_list] ---
+        empty_island = LinearLayout(act)
+        empty_island.setOrientation(LinearLayout.HORIZONTAL)
+        empty_island.setPadding(island_pad, island_pad, island_pad, island_pad)
+        empty_island.setElevation(float(dp(10)))
+        empty_island.setBackground(_make_island_bg())
 
-        # full mode row2: [Update all]
-        update_all_btn = makeBtn(str(strings["updates_btn_update_all"]))
-        update_all_btn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
-        update_all_btn.setPadding(dp(12), dp(13), dp(12), dp(13))
-        island.addView(update_all_btn, LinearLayout.LayoutParams(-1, -2))
+        empty_refresh_btn = TextView(act)
+        empty_refresh_btn.setGravity(Gravity.CENTER)
+        empty_refresh_btn.setPadding(icon_pad, icon_pad, icon_pad, icon_pad)
+        empty_refresh_btn.setClickable(True)
+        empty_refresh_btn.setFocusable(True)
+        empty_refresh_btn.setText(str(strings["updates_btn_refresh"]))
+        empty_refresh_btn.setTextColor(accent_text)
+        empty_refresh_btn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+        try:
+            empty_refresh_btn.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+        except Exception:
+            pass
+        try:
+            from org.telegram.messenger import R as R_tg
+            from android.graphics import PorterDuff
+            from androidx.core.content import ContextCompat
+            res_id = getattr(R_tg.drawable, "msg_reset", 0)
+            if res_id:
+                d = ContextCompat.getDrawable(act, res_id).mutate()
+                d.setBounds(0, 0, icon_size, icon_size)
+                d.setColorFilter(accent_text, PorterDuff.Mode.SRC_IN)
+                empty_refresh_btn.setCompoundDrawablesRelative(d, None, None, None)
+                empty_refresh_btn.setCompoundDrawablePadding(dp(6))
+        except Exception as e:
+            log(f"pluginsUpdates: empty_refresh_btn icon error: {e}")
+        er_bg = GradientDrawable()
+        er_bg.setShape(GradientDrawable.RECTANGLE)
+        er_bg.setCornerRadius(float(btn_r))
+        er_bg.setColor(accent)
+        empty_refresh_btn.setBackground(er_bg)
 
-        # empty mode row1: [Refresh]  — separate full-width button, hidden by default
-        empty_refresh_btn = makeBtn(str(strings["updates_btn_refresh"]))
-        empty_refresh_btn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
-        empty_refresh_btn.setPadding(dp(12), dp(13), dp(12), dp(13))
-        empty_refresh_lp = LinearLayout.LayoutParams(-1, -2)
-        empty_refresh_lp.bottomMargin = btn_gap
-        island.addView(empty_refresh_btn, empty_refresh_lp)
+        ignore_list_btn = _make_icon_btn("list_mute")
 
-        # empty mode row2: [Ignore list] — hidden by default, shown only when ignore list non-empty
-        ignore_list_btn = makeBtn(str(strings["updates_btn_ignore_list"]))
-        ignore_list_btn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
-        ignore_list_btn.setPadding(dp(12), dp(13), dp(12), dp(13))
-        island.addView(ignore_list_btn, LinearLayout.LayoutParams(-1, -2))
+        er_lp = LinearLayout.LayoutParams(-2, -2)
+        er_lp.rightMargin = btn_gap
+        empty_island.addView(empty_refresh_btn, er_lp)
+        empty_island.addView(ignore_list_btn, LinearLayout.LayoutParams(-2, -2))
 
-        gone = 8    # View.GONE
-        # start in full mode: hide empty-mode widgets
-        empty_refresh_btn.setVisibility(gone)
-        ignore_list_btn.setVisibility(gone)
+        # start hidden — shown after load
+        empty_island.setVisibility(8)
+
+        # --- right button (Update all) ---
+        btn_square = icon_pad * 2 + icon_size
+
+        right_btn = _make_icon_btn("msg_download")
+        right_btn_bg = GradientDrawable()
+        right_btn_bg.setShape(GradientDrawable.RECTANGLE)
+        right_btn_bg.setCornerRadius(float(btn_square // 2))
+        right_btn_bg.setColor(accent)
+        right_btn.setBackground(right_btn_bg)
+        right_btn.setPadding(icon_pad, icon_pad, icon_pad, icon_pad)
+        right_btn.setElevation(float(dp(10)))
+
+        bottom_margin = dp(20)
+        island_gap = dp(10)
+
+        # bar_frame holds both islands stacked; only one visible at a time so wrap_content is correct
+        from android.widget import FrameLayout as _FrameLayout
+        bar_frame = _FrameLayout(act)
+        bar_frame.addView(full_island, _FrameLayout.LayoutParams(-2, -2))
+        bar_frame.addView(empty_island, _FrameLayout.LayoutParams(-2, -2))
+
+        bar_row = LinearLayout(act)
+        bar_row.setOrientation(LinearLayout.HORIZONTAL)
+        bar_row.setGravity(Gravity.CENTER_VERTICAL)
+
+        left_lp = LinearLayout.LayoutParams(-2, -2)
+        left_lp.rightMargin = island_gap
+        bar_row.addView(bar_frame, left_lp)
+
+        right_lp = LinearLayout.LayoutParams(btn_square, btn_square)
+        bar_row.addView(right_btn, right_lp)
+
+        row_lp = FrameLayout.LayoutParams(-2, -2)
+        row_lp.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL
+        row_lp.bottomMargin = bottom_margin
+        self._content_view.addView(bar_row, row_lp)
+
+        # allow right_btn to animate beyond bar_row bounds without being clipped
+        bar_row.setClipChildren(False)
+        self._content_view.setClipChildren(False)
+
+        self._bar_row = bar_row
+
+        bar_row.setAlpha(0.0)
+        bar_row.setScaleX(0.85)
+        bar_row.setScaleY(0.85)
+        bar_row.setTranslationY(float(dp(16)))
 
         self._bar_refresh_btn = refresh_btn
         self._bar_ignore_btn = ignore_btn
-        self._bar_update_all_btn = update_all_btn
+        self._bar_update_all_btn = right_btn
+        self._bar_update_all_btn_animated = False
         self._bar_empty_refresh_btn = empty_refresh_btn
         self._bar_ignore_list_btn = ignore_list_btn
-        self._bar_island = island
-        self._bar_top_row = top_row
-        self._bar_island_w = island_w
-        # empty mode: ~60% still, island height shrinks naturally via GONE children
-        self._bar_island_bottom_margin = dp(20)
-
-        island_lp = FrameLayout.LayoutParams(island_w, -2)
-        island_lp.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL
-        island_lp.bottomMargin = dp(20)
-        self._content_view.addView(island, island_lp)
-
-        # hidden until load finishes
-        island.setAlpha(0.0)
-        island.setScaleX(0.85)
-        island.setScaleY(0.85)
-        island.setTranslationY(float(dp(16)))
+        self._bar_full_island = full_island
+        self._bar_empty_island = empty_island
+        self._bar_island = bar_row
+        self._bar_left_island = full_island
+        self._bar_right_btn = right_btn
+        self._bar_top_row = full_island
+        self._bar_btn_gap = btn_gap
+        self._bar_island_bottom_margin = bottom_margin
+        self._bar_btn_square = btn_square
+        self._bar_island_gap = island_gap
 
         ignore_list_btn.setOnClickListener(OnClickListener(lambda v: self._open_ignore_list_dialog()))
         empty_refresh_btn.setOnClickListener(OnClickListener(lambda v: self._on_refresh_click()))
@@ -590,8 +646,83 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             log(f"pluginsUpdates: _open_ignore_list_dialog error: {e}")
 
     def _on_refresh_click(self):
-        # stub — functionality not implemented yet
-        pass
+        try:
+            from android.animation import AnimatorSet, ObjectAnimator, Animator
+            from android.view.animation import AccelerateInterpolator
+            from java import dynamic_proxy
+
+            island = self._bar_island
+            dp = AndroidUtilities.dp
+
+            try:
+                display = self._act.getWindowManager().getDefaultDisplay()
+                from android.graphics import Point
+                pt = Point()
+                display.getSize(pt)
+                screen_h = float(pt.y)
+            except Exception:
+                screen_h = float(dp(800))
+
+            fly_out = ObjectAnimator.ofFloat(island, "translationY", 0.0, screen_h * 0.4)
+            fly_out.setDuration(260)
+            fly_out.setInterpolator(AccelerateInterpolator(1.8))
+
+            fade_out = ObjectAnimator.ofFloat(island, "alpha", 1.0, 0.0)
+            fade_out.setDuration(180)
+            fade_out.setInterpolator(AccelerateInterpolator())
+
+            out_set = AnimatorSet()
+            out_set.playTogether(fly_out, fade_out)
+
+            fragment_ref = self
+
+            class _OutDone(dynamic_proxy(Animator.AnimatorListener)):
+                def __init__(self): super().__init__()
+                def onAnimationEnd(self, *args):
+                    try:
+                        # reset bar_row to pre-show state
+                        island.setTranslationY(float(dp(16)))
+                        island.setScaleX(0.85)
+                        island.setScaleY(0.85)
+                        island.setAlpha(0.0)
+
+                        # clear results and any empty/up-to-date cards
+                        fragment_ref._results_container.removeAllViews()
+                        content = fragment_ref._content_view
+                        sc = fragment_ref._spinner_container
+                        # remove only ephemeral cards (empty/up-to-date), keep scroll/spinner/island
+                        keep = {fragment_ref._scroll_view, sc, fragment_ref._bar_island}
+                        i = content.getChildCount() - 1
+                        while i >= 0:
+                            child = content.getChildAt(i)
+                            if child not in keep:
+                                content.removeViewAt(i)
+                            i -= 1
+
+                        # show spinner again
+                        if sc is not None:
+                            sc.setVisibility(0)
+                            try:
+                                drawable = fragment_ref._spinner.getDrawable()
+                                from org.telegram.ui.Components import CircularProgressDrawable
+                                if isinstance(drawable, CircularProgressDrawable):
+                                    drawable.start()
+                            except Exception:
+                                pass
+
+                        fragment_ref._card_count[0] = 0
+                        fragment_ref._done_count[0] = 0
+                        fragment_ref._start_load()
+                    except Exception as e:
+                        log(f"pluginsUpdates: _on_refresh_click reset error: {e}")
+                def onAnimationStart(self, *args): pass
+                def onAnimationCancel(self, *args): pass
+                def onAnimationRepeat(self, *args): pass
+
+            out_set.addListener(_OutDone())
+            out_set.start()
+        except Exception as e:
+            log(f"pluginsUpdates: _on_refresh_click error: {e}")
 
     def _has_any_ignored(self) -> bool:
         # returns True if at least one plugin is in any repo ignore list
@@ -608,67 +739,68 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         return False
 
     def _show_bar(self):
-        # animates island in from hidden state (called once after load finishes)
+        # animates the whole bar row (contains left island + right btn) in from hidden state
         try:
             from android.animation import AnimatorSet, ObjectAnimator
             from android.view.animation import DecelerateInterpolator, OvershootInterpolator
 
-            island = self._bar_island
+            row = self._bar_island  # bar_row is the animation target
 
-            fade = ObjectAnimator.ofFloat(island, "alpha", 0.0, 1.0)
+            fade = ObjectAnimator.ofFloat(row, "alpha", 0.0, 1.0)
             fade.setDuration(220)
             fade.setInterpolator(DecelerateInterpolator())
 
-            scale_x = ObjectAnimator.ofFloat(island, "scaleX", island.getScaleX(), 1.0)
-            scale_x.setDuration(320)
-            scale_x.setInterpolator(OvershootInterpolator(1.4))
+            sx = ObjectAnimator.ofFloat(row, "scaleX", row.getScaleX(), 1.0)
+            sx.setDuration(320)
+            sx.setInterpolator(OvershootInterpolator(1.4))
 
-            scale_y = ObjectAnimator.ofFloat(island, "scaleY", island.getScaleY(), 1.0)
-            scale_y.setDuration(320)
-            scale_y.setInterpolator(OvershootInterpolator(1.4))
+            sy = ObjectAnimator.ofFloat(row, "scaleY", row.getScaleY(), 1.0)
+            sy.setDuration(320)
+            sy.setInterpolator(OvershootInterpolator(1.4))
 
-            trans = ObjectAnimator.ofFloat(island, "translationY", island.getTranslationY(), 0.0)
-            trans.setDuration(300)
-            trans.setInterpolator(OvershootInterpolator(1.2))
+            tr = ObjectAnimator.ofFloat(row, "translationY", row.getTranslationY(), 0.0)
+            tr.setDuration(300)
+            tr.setInterpolator(OvershootInterpolator(1.2))
 
             s = AnimatorSet()
-            s.playTogether(fade, scale_x, scale_y, trans)
+            s.playTogether(fade, sx, sy, tr)
             s.start()
         except Exception as e:
             log(f"pluginsUpdates: _show_bar error: {e}")
             try:
-                self._bar_island.setAlpha(1.0)
-                self._bar_island.setScaleX(1.0)
-                self._bar_island.setScaleY(1.0)
-                self._bar_island.setTranslationY(0.0)
+                row = self._bar_island
+                row.setAlpha(1.0)
+                row.setScaleX(1.0)
+                row.setScaleY(1.0)
+                row.setTranslationY(0.0)
             except Exception:
                 pass
 
     def _apply_bar_empty_mode(self, empty: bool):
-        # applies visibility changes instantly, no animation
+        # switches between two separate islands via GONE/VISIBLE on the whole island view
+        # this avoids layout jump because bar_frame wraps to whichever island is visible
         try:
             gone = 8
             visible = 0
             if empty:
-                self._bar_top_row.setVisibility(gone)
-                self._bar_update_all_btn.setVisibility(gone)
-                self._bar_empty_refresh_btn.setVisibility(visible)
+                self._bar_full_island.setVisibility(gone)
+                self._bar_right_btn.setVisibility(gone)
                 has_ignored = self._has_any_ignored()
+                self._bar_empty_island.setVisibility(visible)
                 self._bar_ignore_list_btn.setVisibility(visible if has_ignored else gone)
             else:
-                self._bar_top_row.setVisibility(visible)
-                self._bar_update_all_btn.setVisibility(visible)
-                self._bar_empty_refresh_btn.setVisibility(gone)
-                self._bar_ignore_list_btn.setVisibility(gone)
+                self._bar_empty_island.setVisibility(gone)
+                self._bar_full_island.setVisibility(visible)
+                self._bar_right_btn.setVisibility(visible)
         except Exception as e:
             log(f"pluginsUpdates: _apply_bar_empty_mode error: {e}")
 
     def _set_bar_empty_mode(self, empty: bool):
-        # old island flies off screen downward, new state slides in from random left or right edge
+        # island flies down off screen, inner buttons swapped while invisible, slides back up
+        # visibility is swapped before out-anim to avoid layout jump in onAnimationEnd
         try:
-            import random
             from android.animation import AnimatorSet, ObjectAnimator, Animator
-            from android.view.animation import AccelerateInterpolator, DecelerateInterpolator, OvershootInterpolator
+            from android.view.animation import AccelerateInterpolator, DecelerateInterpolator
             from java import dynamic_proxy
 
             island = self._bar_island
@@ -679,27 +811,22 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 from android.graphics import Point
                 pt = Point()
                 display.getSize(pt)
-                screen_w = float(pt.x)
                 screen_h = float(pt.y)
             except Exception:
-                screen_w = float(dp(360))
                 screen_h = float(dp(800))
 
-            # choose a random side for the incoming island: -1 = left, +1 = right
-            side = random.choice([-1, 1])
-            in_start_x = screen_w * side  # starts fully off-screen
+            drop = screen_h - island.getY() + float(dp(20))
 
-            # out: fly straight down off screen
-            fly_out_y = ObjectAnimator.ofFloat(island, "translationY", 0.0, screen_h * 0.4)
-            fly_out_y.setDuration(300)
-            fly_out_y.setInterpolator(AccelerateInterpolator(1.8))
+            fly_out = ObjectAnimator.ofFloat(island, "translationY", 0.0, drop)
+            fly_out.setDuration(320)
+            fly_out.setInterpolator(AccelerateInterpolator(2.0))
 
             fade_out = ObjectAnimator.ofFloat(island, "alpha", 1.0, 0.0)
             fade_out.setDuration(200)
-            fade_out.setInterpolator(AccelerateInterpolator())
+            fade_out.setInterpolator(AccelerateInterpolator(1.2))
 
             out_set = AnimatorSet()
-            out_set.playTogether(fly_out_y, fade_out)
+            out_set.playTogether(fly_out, fade_out)
 
             fragment_ref = self
 
@@ -708,24 +835,22 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
                 def onAnimationEnd(self, *args):
                     try:
-                        # reset position: offscreen horizontally, back to original Y
-                        island.setTranslationY(0.0)
-                        island.setTranslationX(in_start_x)
-                        island.setAlpha(0.0)
-
+                        # swap inner buttons while island is already invisible and off-screen
                         fragment_ref._apply_bar_empty_mode(empty)
 
-                        # in: slide from side to center
-                        slide_in_x = ObjectAnimator.ofFloat(island, "translationX", in_start_x, 0.0)
-                        slide_in_x.setDuration(380)
-                        slide_in_x.setInterpolator(DecelerateInterpolator(2.2))
+                        # reset position below screen, then animate back up — no layout pass, no jump
+                        island.setTranslationY(drop)
+
+                        fly_in = ObjectAnimator.ofFloat(island, "translationY", drop, 0.0)
+                        fly_in.setDuration(400)
+                        fly_in.setInterpolator(DecelerateInterpolator(2.5))
 
                         fade_in = ObjectAnimator.ofFloat(island, "alpha", 0.0, 1.0)
-                        fade_in.setDuration(200)
+                        fade_in.setDuration(250)
                         fade_in.setInterpolator(DecelerateInterpolator())
 
                         in_set = AnimatorSet()
-                        in_set.playTogether(slide_in_x, fade_in)
+                        in_set.playTogether(fly_in, fade_in)
                         in_set.start()
                     except Exception as e:
                         log(f"pluginsUpdates: bar anim in error: {e}")
@@ -1405,57 +1530,80 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
     def _on_card_removed(self):
         self._card_count[0] -= 1
-        if self._card_count[0] == 1 and self._alive[0]:
+        remaining = self._card_count[0]
+        if remaining == 1 and self._alive[0]:
             run_on_ui_thread(self._hide_update_all_btn_animated)
-        elif self._card_count[0] <= 0 and self._alive[0]:
+        elif remaining <= 0 and self._alive[0]:
             run_on_ui_thread(self._show_all_up_to_date)
+        elif remaining > 1 and self._alive[0]:
+            run_on_ui_thread(self._update_update_all_btn_text)
+
+    def _update_update_all_btn_text(self):
+        # icon-only button — no text to update
+        pass
 
     def _hide_update_all_btn_animated(self):
+        # right_btn flies right off screen, fades out before reaching clip boundary
         try:
-            from android.animation import ValueAnimator, AnimatorSet, ObjectAnimator, Animator
+            from android.animation import AnimatorSet, ObjectAnimator, Animator
+            from android.view.animation import AccelerateInterpolator
             from java import dynamic_proxy
 
-            btn = self._bar_update_all_btn
-            h = btn.getHeight()
+            btn = self._bar_right_btn
+            dp = AndroidUtilities.dp
 
+            try:
+                display = self._act.getWindowManager().getDefaultDisplay()
+                from android.graphics import Point
+                pt = Point()
+                display.getSize(pt)
+                screen_w = float(pt.x)
+            except Exception:
+                screen_w = float(dp(360))
+
+            loc = [0, 0]
+            btn.getLocationOnScreen(loc)
+            btn_right_on_screen = float(loc[0]) + float(btn.getWidth())
+            throw = screen_w - btn_right_on_screen + screen_w + float(dp(20))
+
+            slide = ObjectAnimator.ofFloat(btn, "translationX", 0.0, throw)
+            slide.setDuration(320)
+            slide.setInterpolator(AccelerateInterpolator(2.2))
+
+            # fade completes well before btn reaches screen edge — seamless disappear
             fade = ObjectAnimator.ofFloat(btn, "alpha", 1.0, 0.0)
             fade.setDuration(160)
+            fade.setInterpolator(AccelerateInterpolator(1.8))
 
-            if h > 0:
-                lp = btn.getLayoutParams()
+            fragment_ref = self
 
-                collapse = ValueAnimator.ofInt(h, 0)
-                collapse.setDuration(180)
-                collapse.setStartDelay(100)
+            class _Done(dynamic_proxy(Animator.AnimatorListener)):
+                def onAnimationEnd(self, *args):
+                    try:
+                        btn.setVisibility(4)
+                        btn.setTranslationX(0.0)
+                        btn.setAlpha(1.0)
+                        # shift bar_row to center: half of (btn_square + island_gap)
+                        shift = float(fragment_ref._bar_btn_square + fragment_ref._bar_island_gap) / 2.0
+                        from android.view.animation import DecelerateInterpolator as _DI
+                        center_anim = ObjectAnimator.ofFloat(fragment_ref._bar_island, "translationX", 0.0, shift)
+                        center_anim.setDuration(300)
+                        center_anim.setInterpolator(_DI(2.0))
+                        center_anim.start()
+                    except Exception as e:
+                        log(f"pluginsUpdates: center shift error: {e}")
+                def onAnimationStart(self, *args): pass
+                def onAnimationCancel(self, *args): pass
+                def onAnimationRepeat(self, *args): pass
 
-                class _UpdateListener(dynamic_proxy(ValueAnimator.AnimatorUpdateListener)):
-                    def onAnimationUpdate(self, anim):
-                        try:
-                            lp.height = int(anim.getAnimatedValue())
-                            btn.setLayoutParams(lp)
-                        except Exception:
-                            pass
-
-                class _EndListener(dynamic_proxy(Animator.AnimatorListener)):
-                    def onAnimationEnd(self, *args):
-                        btn.setVisibility(8)
-                    def onAnimationStart(self, *args): pass
-                    def onAnimationCancel(self, *args): pass
-                    def onAnimationRepeat(self, *args): pass
-
-                collapse.addUpdateListener(_UpdateListener())
-                collapse.addListener(_EndListener())
-
-                s = AnimatorSet()
-                s.playTogether(fade, collapse)
-                s.start()
-            else:
-                fade.start()
-                btn.setVisibility(8)
+            s = AnimatorSet()
+            s.playTogether(slide, fade)
+            s.addListener(_Done())
+            s.start()
         except Exception as e:
             log(f"pluginsUpdates: _hide_update_all_btn_animated error: {e}")
             try:
-                self._bar_update_all_btn.setVisibility(8)
+                self._bar_right_btn.setVisibility(4)
             except Exception:
                 pass
 
@@ -1599,6 +1747,35 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 pass
             self._on_card_removed()
 
+    def _on_update_all_click(self):
+        updates = getattr(self, "_current_updates", [])
+        if not updates:
+            return
+        # trigger _install_update for every card that isn't done yet
+        # find download_btn per card via container children — simpler: re-use _install_update per item
+        container = self._results_container
+        count = container.getChildCount()
+        for i in range(count):
+            child = container.getChildAt(i)
+            if child is None:
+                continue
+            # match item by index — cards are added in same order as updates
+            if i < len(updates):
+                item = updates[i]
+                # find the download_btn inside the card: top_row → last child (FrameLayout)
+                try:
+                    from android.widget import LinearLayout as _LL, FrameLayout as _FL
+                    from android.widget import ImageView as _IV
+                    top_row = child.getChildAt(0)
+                    if not isinstance(top_row, _LL):
+                        continue
+                    dl_btn = top_row.getChildAt(top_row.getChildCount() - 1)
+                    dl_icon = dl_btn.getChildAt(0) if isinstance(dl_btn, _FL) else None
+                    if dl_btn.isEnabled():
+                        self._install_update(item, dl_btn, dl_icon, self._act)
+                except Exception as e:
+                    log(f"pluginsUpdates: _on_update_all_click card {i} error: {e}")
+
     def _show_updates(self, updates: list):
         try:
             act = self._act
@@ -1607,10 +1784,21 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             container.setPadding(dp(12), dp(12), dp(12), dp(12))
 
             self._apply_bar_empty_mode(False)
-            if len(updates) == 1:
-                self._bar_update_all_btn.setVisibility(8)
+            self._current_updates = list(updates)
+            count = len(updates)
+            if count == 1:
+                # only one update — hide right button (Update all not needed)
+                self._bar_right_btn.setVisibility(8)
+            else:
+                # restore right_btn in case it was hidden or collapsed
+                self._bar_right_btn.setVisibility(0)
+                self._bar_right_btn.setAlpha(1.0)
+                self._bar_right_btn.setTranslationY(0.0)
+                # reset bar_row centering shift from previous hide animation
+                self._bar_island.setTranslationX(0.0)
+                self._bar_right_btn.setOnClickListener(OnClickListener(lambda v: self._on_update_all_click()))
             self._show_bar()
-            self._card_count[0] = len(updates)
+            self._card_count[0] = count
             self._done_count[0] = 0
             for item in updates:
                 card, lp = self._make_update_card(act, item)
