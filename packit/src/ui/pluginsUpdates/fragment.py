@@ -1,7 +1,7 @@
 import json
 import os
 import threading
-
+# lazy to fix allupdate state
 from android.view import Gravity, MotionEvent, View
 from android.util import TypedValue
 from android.graphics.drawable import GradientDrawable
@@ -123,23 +123,46 @@ def _version_tuple(v: str):
 
 
 def _extract_diff(repo_info: dict, local_version: str):
-    # returns (add_str, rem_str) from versions[local_version].changelog, or None if absent
+    # accumulates numeric diff from changelogs of all versions strictly newer than local_version
+    # changelog format: [title, "+N", "-M"] — numbers are extracted and summed across versions
     if not local_version:
         return None
     versions = repo_info.get("versions")
     if not isinstance(versions, dict):
         return None
-    vdata = versions.get(local_version)
-    if not isinstance(vdata, dict):
+
+    import re as _re
+
+    local_t = _version_tuple(local_version)
+
+    newer = sorted(
+        [(k, v) for k, v in versions.items() if isinstance(v, dict) and _version_tuple(k) >= local_t],
+        key=lambda x: _version_tuple(x[0])
+    )
+    if not newer:
         return None
-    cl = vdata.get("changelog")
-    if not isinstance(cl, list) or len(cl) < 3:
+
+    total_add = 0
+    total_rem = 0
+    has_data = False
+    for _, vdata in newer:
+        cl = vdata.get("changelog")
+        if not isinstance(cl, list) or len(cl) < 3:
+            continue
+        add_nums = _re.findall(r"\d+", str(cl[1]))
+        rem_nums = _re.findall(r"\d+", str(cl[2]))
+        if add_nums:
+            total_add += int(add_nums[0])
+            has_data = True
+        if rem_nums:
+            total_rem += int(rem_nums[0])
+            has_data = True
+
+    if not has_data:
         return None
-    add_str = str(cl[1]).strip()
-    rem_str = str(cl[2]).strip()
-    if not add_str and not rem_str:
-        return None
-    return (add_str, rem_str)
+    add_result = f"+{total_add}" if total_add else ""
+    rem_result = f"-{total_rem}" if total_rem else ""
+    return (add_result, rem_result)
 
 
 def _check_updates(pkg: str) -> list:
@@ -325,6 +348,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         self._card_count = [0]
         self._done_count = [0]
         self._current_updates = []
+        self._is_loading = False
 
     def onFragmentCreate(self, *_):
         pass
@@ -439,8 +463,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
     def _add_button_bar(self, act, dp):
         # layout: two floating elements bottom-center
-        #   left_island  — pill with icon-only buttons: [Refresh] [Ignore] (full) | [Refresh] [Ignore list] (empty)
-        #   right_btn    — square button: [Update all icon] (full mode only)
+        #   left_island  - pill with icon-only buttons: [Refresh] [Ignore] (full) | [Refresh] [Ignore list] (empty)
+        #   right_btn    - square button: [Update all icon] (full mode only)
         #
         # both animate in/out together via _bar_island (left) and _bar_right_btn
         # _bar_island is the primary animation target; right_btn mirrors it
@@ -637,15 +661,40 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         ignore_list_btn.setOnClickListener(OnClickListener(lambda v: self._open_ignore_list_dialog()))
         empty_refresh_btn.setOnClickListener(OnClickListener(lambda v: self._on_refresh_click()))
         refresh_btn.setOnClickListener(OnClickListener(lambda v: self._on_refresh_click()))
+        ignore_btn.setOnClickListener(OnClickListener(lambda v: self._on_ignore_all_click()))
 
     def _open_ignore_list_dialog(self):
         try:
             from .clearIgnoreListDialog import show_clear_ignore_list_dialog
-            show_clear_ignore_list_dialog(self._act)
+            show_clear_ignore_list_dialog(self._act, on_close=self._on_refresh_click)
         except Exception as e:
             log(f"pluginsUpdates: _open_ignore_list_dialog error: {e}")
 
+    def _on_ignore_all_click(self):
+        updates = getattr(self, "_current_updates", [])
+        if not updates:
+            return
+
+        def on_confirm():
+            def task():
+                try:
+                    for item in updates:
+                        _ignore_until_next(None, item["id"], item.get("repo_id", ""), item.get("repo_version", ""))
+                except Exception as e:
+                    log(f"pluginsUpdates: _on_ignore_all_click task error: {e}")
+                run_on_ui_thread(self._on_refresh_click)
+
+            run_on_queue(task)
+
+        try:
+            from .hideAllDialog import show_hide_all_dialog
+            show_hide_all_dialog(self._act, on_confirm)
+        except Exception as e:
+            log(f"pluginsUpdates: _on_ignore_all_click error: {e}")
+
     def _on_refresh_click(self):
+        if self._is_loading:
+            return
         try:
             from android.animation import AnimatorSet, ObjectAnimator, Animator
             from android.view.animation import AccelerateInterpolator
@@ -675,6 +724,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             out_set.playTogether(fly_out, fade_out)
 
             fragment_ref = self
+            fragment_ref._is_loading = True
 
             class _OutDone(dynamic_proxy(Animator.AnimatorListener)):
                 def __init__(self): super().__init__()
@@ -788,6 +838,25 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 has_ignored = self._has_any_ignored()
                 self._bar_empty_island.setVisibility(visible)
                 self._bar_ignore_list_btn.setVisibility(visible if has_ignored else gone)
+                # when ignore list not empty: icon-only (no text, no drawable padding)
+                # when ignore list empty: icon + text, stretched to two-button width
+                dp = AndroidUtilities.dp
+                btn_square = self._bar_btn_square
+                btn = self._bar_empty_refresh_btn
+                if has_ignored:
+                    btn.setText("")
+                    btn.setCompoundDrawablePadding(0)
+                    btn.setMinWidth(0)
+                    lp = LinearLayout.LayoutParams(-2, -2)
+                    lp.rightMargin = self._bar_btn_gap
+                else:
+                    from elyx import strings as _strings
+                    btn.setText(str(_strings["updates_btn_refresh"]))
+                    btn.setCompoundDrawablePadding(dp(6))
+                    two_btn_w = btn_square * 2 + self._bar_btn_gap
+                    btn.setMinWidth(two_btn_w)
+                    lp = LinearLayout.LayoutParams(-2, -2)
+                btn.setLayoutParams(lp)
             else:
                 self._bar_empty_island.setVisibility(gone)
                 self._bar_full_island.setVisibility(visible)
@@ -840,6 +909,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
                         # reset position below screen, then animate back up — no layout pass, no jump
                         island.setTranslationY(drop)
+                        island.setTranslationX(0.0)
 
                         fly_in = ObjectAnimator.ofFloat(island, "translationY", drop, 0.0)
                         fly_in.setDuration(400)
@@ -866,6 +936,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             self._apply_bar_empty_mode(empty)
 
     def _start_load(self):
+        self._is_loading = True
         alive = self._alive
 
         def task():
@@ -887,7 +958,34 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     total_installed += len(_read_index(None, rm_rid))
 
                 if total_installed == 0:
-                    run_on_ui_thread(lambda: self._show_empty(str(strings["updates_no_plugins_installed"]), "utyan_empty") if alive[0] else None)
+                    self._is_loading = False
+                    total_available = 0
+                    for repo in repos:
+                        rm_rid = str(repo.get("id") or "")
+                        repo_url = str(repo.get("url") or "").strip()
+                        if not rm_rid or not repo_url:
+                            continue
+                        try:
+                            plugins_url = _get_repo_plugins_url(None, rm_rid, repo_url)
+                            total_available += len(_fetch_repo_plugins(plugins_url))
+                        except Exception:
+                            pass
+                    def _open_catalog():
+                        try:
+                            from ..PluginListActivity.fragment import InstallUI
+                            InstallUI(self._plugin).open()
+                        except Exception as e:
+                            log(f"pluginsUpdates: _open_catalog error: {e}")
+                    chip = str(strings("updates_empty_available_chip", count=total_available)) if total_available > 0 else None
+                    run_on_ui_thread(lambda: self._show_empty(
+                        str(strings["updates_no_plugins_installed"]),
+                        "utyan_empty",
+                        action_label=str(strings["install_plugin"]),
+                        action_icon="menu_shop",
+                        on_action=_open_catalog,
+                        title=str(strings["updates_empty_title"]),
+                        chip_text=chip,
+                    ) if alive[0] else None)
                     return
 
                 updates = _filter_ignored(None, _check_updates(None))
@@ -895,16 +993,17 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 def on_done():
                     if not alive[0]:
                         return
+                    self._is_loading = False
                     self._hide_spinner()
                     if not updates:
-                        self._show_empty(str(strings["updates_all_up_to_date"]), "done")
+                        self._show_empty(str(strings["updates_all_up_to_date"]), "done", title=str(strings["updates_up_to_date_title"]))
                     else:
                         self._show_updates(updates)
 
                 run_on_ui_thread(on_done)
             except Exception as e:
                 log(f"pluginsUpdates: task error: {e}")
-                run_on_ui_thread(lambda: self._show_empty(str(strings["updates_failed_to_check"]), "error") if alive[0] else None)
+                run_on_ui_thread(lambda: (setattr(self, '_is_loading', False), self._show_empty(str(strings["updates_failed_to_check"]), "error", title=str(strings["updates_error_title"]))) if alive[0] else None)
 
         run_on_queue(task)
 
@@ -915,7 +1014,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         except Exception as e:
             log(f"pluginsUpdates: _hide_spinner error: {e}")
 
-    def _show_empty(self, message: str, anim_name: str = "done"):
+    def _show_empty(self, message: str, anim_name: str = "done", action_label: str = None, action_icon: str = None, on_action=None, title: str = None, chip_text: str = None):
         try:
             self._hide_spinner()
             self._apply_bar_empty_mode(True)
@@ -954,7 +1053,101 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             tv.setTextColor(self._text_gray)
             tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
             tv.setGravity(Gravity.CENTER)
+
+            if title:
+                title_tv = TextView(act)
+                title_tv.setText(title)
+                title_tv.setTextColor(self._text_primary)
+                title_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 17)
+                title_tv.setGravity(Gravity.CENTER)
+                try:
+                    title_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+                except Exception:
+                    pass
+                title_lp = LinearLayout.LayoutParams(-2, -2)
+                title_lp.gravity = Gravity.CENTER_HORIZONTAL
+                title_lp.bottomMargin = dp(4)
+                card.addView(title_tv, title_lp)
+
             card.addView(tv, LinearLayout.LayoutParams(-2, -2))
+
+            if action_label and on_action:
+                try:
+                    accent = Theme.getColor(Theme.key_featuredStickers_addButton)
+                    accent_text = Theme.getColor(Theme.key_featuredStickers_buttonText)
+                except Exception:
+                    accent = 0xFF2196F3
+                    accent_text = 0xFFFFFFFF
+
+                btn = TextView(act)
+                btn.setText(action_label)
+                btn.setTextColor(accent_text)
+                btn.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+                btn.setGravity(Gravity.CENTER)
+                btn_pad_h = dp(20)
+                btn_pad_v = dp(10)
+                btn.setPadding(btn_pad_h, btn_pad_v, btn_pad_h, btn_pad_v)
+                btn.setClickable(True)
+                btn.setFocusable(True)
+                try:
+                    btn.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+                except Exception:
+                    pass
+
+                if action_icon:
+                    try:
+                        from org.telegram.messenger import R as R_tg
+                        from android.graphics import PorterDuff
+                        from androidx.core.content import ContextCompat
+                        icon_size = dp(16)
+                        res_id = getattr(R_tg.drawable, action_icon, 0)
+                        if res_id:
+                            d = ContextCompat.getDrawable(act, res_id).mutate()
+                            d.setBounds(0, 0, icon_size, icon_size)
+                            d.setColorFilter(accent_text, PorterDuff.Mode.SRC_IN)
+                            btn.setCompoundDrawablesRelative(d, None, None, None)
+                            btn.setCompoundDrawablePadding(dp(6))
+                    except Exception as e:
+                        log(f"pluginsUpdates: _show_empty action icon error: {e}")
+
+                btn_bg = GradientDrawable()
+                btn_bg.setShape(GradientDrawable.RECTANGLE)
+                btn_bg.setCornerRadius(float(dp(22)))
+                btn_bg.setColor(accent)
+                btn.setBackground(btn_bg)
+                btn.setElevation(float(dp(4)))
+                btn.setOnClickListener(OnClickListener(lambda v: on_action()))
+
+                btn_lp = LinearLayout.LayoutParams(-2, -2)
+                btn_lp.gravity = Gravity.CENTER_HORIZONTAL
+                btn_lp.topMargin = dp(18)
+                card.addView(btn, btn_lp)
+
+                if chip_text:
+                    import ctypes
+                    try:
+                        chip_color = Theme.getColor(Theme.key_avatar_background2Blue)
+                    except Exception:
+                        chip_color = 0xFF2196F3
+                    r = (chip_color >> 16) & 0xFF
+                    g = (chip_color >> 8) & 0xFF
+                    b = chip_color & 0xFF
+                    chip_fill = ctypes.c_int32((0x33 << 24) | (r << 16) | (g << 8) | b).value
+                    chip_text_color = ctypes.c_int32((0xFF << 24) | (r << 16) | (g << 8) | b).value
+                    chip_bg = GradientDrawable()
+                    chip_bg.setShape(GradientDrawable.RECTANGLE)
+                    chip_bg.setCornerRadius(float(dp(6)))
+                    chip_bg.setColor(chip_fill)
+                    chip_tv = TextView(act)
+                    chip_tv.setText(chip_text)
+                    chip_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
+                    chip_tv.setTextColor(chip_text_color)
+                    chip_tv.setBackground(chip_bg)
+                    chip_tv.setPadding(dp(7), dp(2), dp(7), dp(2))
+                    chip_lp = LinearLayout.LayoutParams(-2, -2)
+                    chip_lp.gravity = Gravity.CENTER_HORIZONTAL
+                    chip_lp.topMargin = dp(10)
+                    card.addView(chip_tv, chip_lp)
 
             card_lp = FrameLayout.LayoutParams(-2, -2)
             card_lp.gravity = Gravity.CENTER
@@ -1639,8 +1832,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             bg.setCornerRadius(dp(16))
             bg.setColor(Theme.getColor(Theme.key_windowBackgroundGray))
             card.setBackground(bg)
-        except Exception:
-            pass
+        except Exception as e:
+            log(f"pluginsUpdates: _build_all_up_to_date_card bg error: {e}")
 
         try:
             from org.telegram.ui.Components import RLottieImageView
@@ -1656,12 +1849,88 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         except Exception as e:
             log(f"pluginsUpdates: _build_all_up_to_date_card lottie error: {e}")
 
+        title_tv = TextView(act)
+        title_tv.setText(str(strings["updates_up_to_date_title"]))
+        title_tv.setTextColor(self._text_primary)
+        title_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 17)
+        title_tv.setGravity(Gravity.CENTER)
+        try:
+            title_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+        except Exception as e:
+            log(f"pluginsUpdates: _build_all_up_to_date_card title typeface error: {e}")
+        title_lp = LinearLayout.LayoutParams(-2, -2)
+        title_lp.gravity = Gravity.CENTER_HORIZONTAL
+        title_lp.bottomMargin = dp(4)
+        card.addView(title_tv, title_lp)
+
         tv = TextView(act)
         tv.setText(str(strings["updates_all_up_to_date"]))
         tv.setTextColor(self._text_gray)
         tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
         tv.setGravity(Gravity.CENTER)
         card.addView(tv, LinearLayout.LayoutParams(-2, -2))
+
+        try:
+            from com.exteragram.messenger.plugins import PluginsController
+            from hook_utils import find_class, get_private_field
+            ArrayList = find_class("java.util.ArrayList")
+            plugins_map = PluginsController.getInstance().plugins
+            plugin_list = ArrayList(plugins_map.values())
+            total = plugin_list.size()
+            active = 0
+            for j in range(total):
+                p = plugin_list.get(j)
+                try:
+                    if get_private_field(p, "isEnabled"):
+                        active += 1
+                except Exception:
+                    pass
+            total_packit = sum(len(_read_index(None, str(repo.get("id") or ""))) for repo in _get_repos() if repo.get("id"))
+
+            stat_row = LinearLayout(act)
+            stat_row.setOrientation(LinearLayout.HORIZONTAL)
+            stat_row.setGravity(Gravity.CENTER)
+
+            rows = [
+                (str(strings["updates_stat_installed"]), str(total)),
+                (str(strings["updates_stat_active"]),    str(active)),
+                (str(strings["updates_stat_packit"]),    str(total_packit)),
+            ]
+            for i, (label, value) in enumerate(rows):
+                cell = LinearLayout(act)
+                cell.setOrientation(LinearLayout.VERTICAL)
+                cell.setGravity(Gravity.CENTER)
+
+                val_tv = TextView(act)
+                val_tv.setText(value)
+                val_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18)
+                val_tv.setTextColor(self._text_primary)
+                val_tv.setGravity(Gravity.CENTER)
+                try:
+                    val_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+                except Exception as e:
+                    log(f"pluginsUpdates: stat val typeface error: {e}")
+
+                lbl_tv = TextView(act)
+                lbl_tv.setText(label)
+                lbl_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
+                lbl_tv.setTextColor(self._text_gray)
+                lbl_tv.setGravity(Gravity.CENTER)
+
+                cell.addView(val_tv, LinearLayout.LayoutParams(-2, -2))
+                cell.addView(lbl_tv, LinearLayout.LayoutParams(-2, -2))
+
+                cell_lp = LinearLayout.LayoutParams(-2, -2)
+                if i > 0:
+                    cell_lp.leftMargin = dp(28)
+                stat_row.addView(cell, cell_lp)
+
+            stat_lp = LinearLayout.LayoutParams(-2, -2)
+            stat_lp.gravity = Gravity.CENTER_HORIZONTAL
+            stat_lp.topMargin = dp(18)
+            card.addView(stat_row, stat_lp)
+        except Exception as e:
+            log(f"pluginsUpdates: _build_all_up_to_date_card stats error: {e}")
 
         return card
 
@@ -1747,34 +2016,225 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 pass
             self._on_card_removed()
 
+    def _install_update_silent(self, item: dict, download_btn=None, download_icon_view=None, act=None, on_done=None):
+        # silent install for non-elyx plugins: download → install_plugin_silent → mark done
+        # on_done() is called (on any thread) when install completes or fails
+        pid = item["id"]
+        repo_id = item.get("repo_id", "")
+        repos = _get_repos()
+        repo = None
+        for r in repos:
+            if str(r.get("id") or "") == repo_id:
+                repo = r
+                break
+        if not repo:
+            log(f"pluginsUpdates: _install_update_silent repo '{repo_id}' not found")
+            if on_done:
+                on_done()
+            return
+
+        def set_btn_state(state: str):
+            if download_btn is None:
+                return
+            try:
+                download_btn.setEnabled(state != "loading")
+                download_btn.removeAllViews()
+                btn_lp = FrameLayout.LayoutParams(AndroidUtilities.dp(32), AndroidUtilities.dp(32))
+                btn_lp.gravity = Gravity.CENTER
+                if state == "loading":
+                    try:
+                        from org.telegram.ui.Components import CircularProgressDrawable
+                        spin_color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon)
+                        d = CircularProgressDrawable(spin_color)
+                        try:
+                            d.size = float(AndroidUtilities.dp(20))
+                            d.thickness = float(AndroidUtilities.dp(2))
+                        except Exception:
+                            pass
+                        spin_iv = ImageView(act)
+                        spin_iv.setImageDrawable(d)
+                        spin_iv.setScaleType(ImageView.ScaleType.CENTER)
+                        download_btn.addView(spin_iv, btn_lp)
+                    except Exception as e:
+                        log(f"pluginsUpdates: _install_update_silent spinner error: {e}")
+                        if download_icon_view is not None:
+                            download_btn.addView(download_icon_view, btn_lp)
+                elif state == "done":
+                    download_btn.setEnabled(False)
+                    download_btn.setClickable(False)
+                    download_btn.setBackground(None)
+                    try:
+                        from hook_utils import find_class as _fc
+                        R_tg = _fc("org.telegram.messenger.R")
+                        check_icon_id = getattr(R_tg.drawable, "msg_select", 0)
+                    except Exception:
+                        check_icon_id = 0
+                    check_iv = ImageView(act)
+                    check_iv.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+                    check_iv.setPadding(AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6))
+                    if check_icon_id:
+                        check_iv.setImageResource(check_icon_id)
+                    try:
+                        green = Theme.getColor(Theme.key_avatar_backgroundGreen)
+                    except Exception:
+                        green = 0xFF4CAF50
+                    check_iv.setColorFilter(green)
+                    download_btn.addView(check_iv, btn_lp)
+                else:
+                    if download_icon_view is not None:
+                        download_btn.addView(download_icon_view, btn_lp)
+            except Exception as e:
+                log(f"pluginsUpdates: _install_update_silent set_btn_state error: {e}")
+
+        run_on_ui_thread(lambda: set_btn_state("loading"))
+
+        def task():
+            try:
+                from ...deeplinks.install import _resolvePluginsUrl
+                from ...core import install_plugin_silent
+                from ...utils.paths import getPluginsDir
+                import requests as _requests
+                import os as _os
+
+                plugins_url = _resolvePluginsUrl(repo)
+                if not plugins_url:
+                    log(f"pluginsUpdates: _install_update_silent no plugins url for '{repo_id}'")
+                    run_on_ui_thread(lambda: set_btn_state("idle"))
+                    if on_done:
+                        on_done()
+                    return
+
+                r = _requests.get(plugins_url, timeout=20, headers={"User-Agent": "PackIt/1.0"})
+                if r.status_code != 200:
+                    log(f"pluginsUpdates: _install_update_silent plugins list HTTP {r.status_code} for '{pid}'")
+                    run_on_ui_thread(lambda: set_btn_state("idle"))
+                    if on_done:
+                        on_done()
+                    return
+
+                data = r.json()
+                plugins_raw = data.get("plugins", {})
+                plugin = None
+                if isinstance(plugins_raw, dict):
+                    info = plugins_raw.get(pid)
+                    if isinstance(info, dict):
+                        plugin = {"id": pid, **info}
+                elif isinstance(plugins_raw, list):
+                    for p in plugins_raw:
+                        if isinstance(p, dict) and p.get("id") == pid:
+                            plugin = p
+                            break
+
+                if not plugin:
+                    log(f"pluginsUpdates: _install_update_silent plugin '{pid}' not found in repo")
+                    run_on_ui_thread(lambda: set_btn_state("idle"))
+                    if on_done:
+                        on_done()
+                    return
+
+                url = plugin.get("link") or plugin.get("raw")
+                if not url:
+                    log(f"pluginsUpdates: _install_update_silent no link for '{pid}'")
+                    run_on_ui_thread(lambda: set_btn_state("idle"))
+                    if on_done:
+                        on_done()
+                    return
+
+                log(f"pluginsUpdates: _install_update_silent downloading '{pid}'")
+                plugins_dir = getPluginsDir()
+                try:
+                    _os.makedirs(plugins_dir, exist_ok=True)
+                except Exception:
+                    pass
+                file_path = _os.path.join(plugins_dir, f".temp_{pid}.plugin")
+
+                dl = _requests.get(url, timeout=30, headers={"User-Agent": "PackIt/1.0"})
+                if dl.status_code != 200:
+                    log(f"pluginsUpdates: _install_update_silent download HTTP {dl.status_code} for '{pid}'")
+                    run_on_ui_thread(lambda: set_btn_state("idle"))
+                    if on_done:
+                        on_done()
+                    return
+                with open(file_path, "wb") as f:
+                    f.write(dl.content)
+                log(f"pluginsUpdates: _install_update_silent downloaded '{pid}', installing")
+
+                fragment_ref = self
+
+                def on_complete():
+                    log(f"pluginsUpdates: _install_update_silent installed '{pid}'")
+                    run_on_ui_thread(lambda: set_btn_state("done"))
+                    fragment_ref._on_plugin_done()
+                    if on_done:
+                        on_done()
+
+                def on_error(error):
+                    log(f"pluginsUpdates: _install_update_silent install error for '{pid}': {error}")
+                    run_on_ui_thread(lambda: set_btn_state("idle"))
+                    if on_done:
+                        on_done()
+
+                install_plugin_silent(file_path, plugin, repo_id, on_complete=on_complete, on_error=on_error)
+            except Exception as e:
+                log(f"pluginsUpdates: _install_update_silent task error for '{pid}': {e}")
+                run_on_ui_thread(lambda: set_btn_state("idle"))
+                if on_done:
+                    on_done()
+
+        run_on_queue(task)
+
     def _on_update_all_click(self):
+        if self._is_loading:
+            return
         updates = getattr(self, "_current_updates", [])
         if not updates:
             return
-        # trigger _install_update for every card that isn't done yet
-        # find download_btn per card via container children — simpler: re-use _install_update per item
+
+        from android.widget import LinearLayout as _LL, FrameLayout as _FL
+
+        # build list of (item, dl_btn, dl_icon) for cards that are still enabled
         container = self._results_container
-        count = container.getChildCount()
-        for i in range(count):
+        pending = []
+        for i in range(container.getChildCount()):
             child = container.getChildAt(i)
-            if child is None:
+            if child is None or i >= len(updates):
                 continue
-            # match item by index — cards are added in same order as updates
-            if i < len(updates):
-                item = updates[i]
-                # find the download_btn inside the card: top_row → last child (FrameLayout)
-                try:
-                    from android.widget import LinearLayout as _LL, FrameLayout as _FL
-                    from android.widget import ImageView as _IV
-                    top_row = child.getChildAt(0)
-                    if not isinstance(top_row, _LL):
-                        continue
-                    dl_btn = top_row.getChildAt(top_row.getChildCount() - 1)
-                    dl_icon = dl_btn.getChildAt(0) if isinstance(dl_btn, _FL) else None
-                    if dl_btn.isEnabled():
-                        self._install_update(item, dl_btn, dl_icon, self._act)
-                except Exception as e:
-                    log(f"pluginsUpdates: _on_update_all_click card {i} error: {e}")
+            try:
+                top_row = child.getChildAt(0)
+                if not isinstance(top_row, _LL):
+                    continue
+                dl_btn = top_row.getChildAt(top_row.getChildCount() - 1)
+                dl_icon = dl_btn.getChildAt(0) if isinstance(dl_btn, _FL) else None
+                if dl_btn.isEnabled():
+                    pending.append((updates[i], dl_btn, dl_icon))
+            except Exception as e:
+                log(f"pluginsUpdates: _on_update_all_click card {i} error: {e}")
+
+        if not pending:
+            return
+
+        # elyx plugins install in parallel via existing _install_update (shows install dialog)
+        # non-elyx plugins install sequentially via _install_update_silent: done[i] → start[i+1]
+        from ...core import _is_elyx_plugin
+
+        elyx_items = [(item, btn, icon) for item, btn, icon in pending if _is_elyx_plugin(item)]
+        silent_items = [(item, btn, icon) for item, btn, icon in pending if not _is_elyx_plugin(item)]
+
+        for item, btn, icon in elyx_items:
+            self._install_update(item, btn, icon, self._act)
+
+        if not silent_items:
+            return
+
+        # sequential chain: install silent_items[0], on done → install silent_items[1], ...
+        def run_chain(idx: int):
+            if idx >= len(silent_items):
+                return
+            item, btn, icon = silent_items[idx]
+            log(f"pluginsUpdates: update-all silent chain [{idx+1}/{len(silent_items)}] start '{item['id']}'")
+            self._install_update_silent(item, btn, icon, self._act, on_done=lambda: run_chain(idx + 1))
+
+        run_chain(0)
 
     def _show_updates(self, updates: list):
         try:
