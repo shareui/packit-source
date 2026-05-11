@@ -996,7 +996,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     self._is_loading = False
                     self._hide_spinner()
                     if not updates:
-                        self._show_empty(str(strings["updates_all_up_to_date"]), "done", title=str(strings["updates_up_to_date_title"]))
+                        self._show_all_up_to_date()
                     else:
                         self._show_updates(updates)
 
@@ -1803,7 +1803,16 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
     def _show_all_up_to_date(self):
         try:
             from android.animation import ObjectAnimator
-            self._set_bar_empty_mode(True)
+            # apply empty mode instantly: bar may already have residual translationX from
+            # _hide_update_all_btn_animated, so reset all transforms before animating in
+            self._apply_bar_empty_mode(True)
+            island = self._bar_island
+            island.setTranslationX(0.0)
+            island.setTranslationY(float(AndroidUtilities.dp(16)))
+            island.setScaleX(0.85)
+            island.setScaleY(0.85)
+            island.setAlpha(0.0)
+            self._show_bar()
             empty_card = self._build_all_up_to_date_card()
             empty_card.setAlpha(0.0)
             lp = FrameLayout.LayoutParams(-2, -2)
