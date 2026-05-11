@@ -745,6 +745,9 @@
   "ignore_mode_message": "Select the update ignore mode.",
   "ignore_mode_until_next": "Until the next update",
   "ignore_mode_forever": "Forever",
+  "ignore_all_title": "Ignore all plugins until next update?",
+  "yes": "Yes",
+  "no": "No",
   "cancel": "Cancel",
   "updating_plugins_header": "Updating plugins",
   "clear_ignore_list": "Clearing the ignore list",
@@ -958,5 +961,16 @@
   "info_modified": "Modified",
   "info_created": "Created",
   "pp_forked_from": "Forked from [{name}]({url})",
-  "pp_version_link_copied": "The link with the version has been copied to the clipboard!"
+  "pp_version_link_copied": "The link with the version has been copied to the clipboard!",
+  "updates_btn_refresh": "Refresh",
+  "updates_btn_ignore": "Ignore",
+  "updates_btn_update_all": "Update all",
+  "updates_btn_ignore_list": "Ignore list",
+  "updates_empty_title": "Install plugins!",
+  "updates_empty_available_chip": "Available to install: {count} plugins",
+  "updates_up_to_date_title": "All up to date!",
+  "updates_error_title": "Something went wrong",
+  "updates_stat_installed": "Installed",
+  "updates_stat_active": "Active",
+  "updates_stat_packit": "Via PackIt"
 }

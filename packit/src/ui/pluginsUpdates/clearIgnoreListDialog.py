@@ -244,7 +244,7 @@ def _remove_plugin_from_ignore_lists(pid: str):
         log(f"clearIgnoreListDialog: _remove_plugin_from_ignore_lists error: {e}")
 
 
-def show_clear_ignore_list_dialog(act):
+def show_clear_ignore_list_dialog(act, on_close=None):
     # shows custom dialog: Specific plugin (opens input) / Clear all / Cancel
     try:
         from android.widget import LinearLayout, TextView, FrameLayout
@@ -381,9 +381,9 @@ def show_clear_ignore_list_dialog(act):
                 if not pid:
                     return
                 AndroidUtilities.hideKeyboard(edit_text)
-                _dismiss(on_end=lambda: _remove_plugin_from_ignore_lists(pid))
+                _dismiss(on_end=lambda: (_remove_plugin_from_ignore_lists(pid), on_close() if on_close else None))
             else:
-                _dismiss(on_end=_clear_all_ignore_lists)
+                _dismiss(on_end=lambda: (_clear_all_ignore_lists(), on_close() if on_close else None))
 
         clear_all_btn.setOnClickListener(OnClickListener(_on_clear_all_click))
 

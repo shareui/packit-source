@@ -759,6 +759,9 @@
   "ignore_mode_message": "Выберите режим френдзоны обновлений.",
   "ignore_mode_until_next": "До следующего обновления",
   "ignore_mode_forever": "Навсегда",
+  "ignore_all_title": "Игнорировать все плагины до следующего обновления?",
+  "yes": "Да",
+  "no": "Нет",
   "cancel": "Отмена",
   "updating_plugins_header": "Обновление плагинов",
   "clear_ignore_list": "Очистка списка игнорирования",
@@ -940,7 +943,7 @@
   "date_ago_years": "{n} лет назад",
   "deeplinks_docs_footer": "Полная документация доступна [здесь](https://github.com/shareui/packit/blob/main/docs/deeplinks.md) в формате markdown.",
   "updates_no_plugins_installed": "Ты ещё не установил ни одного плагина из PackIt, а ну-ка быстро исправляй!",
-  "updates_all_up_to_date": "Все плагины актуальной версии! ^^",
+  "updates_all_up_to_date": "Все плагины актуальной версии! (˶ᵔ ᵕ ᵔ˶)",
   "updates_failed_to_check": "Не удалось проверить обновления",
   "updates_title": "Обновления",
   "fs_rename": "Переименовать",
@@ -958,5 +961,13 @@
   "info_modified": "Изменён",
   "info_created": "Создан",
   "pp_forked_from": "Основано на [{name}]({url})",
-  "pp_version_link_copied": "Ссылка с версией скопирована в буфер обмена!"
+  "pp_version_link_copied": "Ссылка с версией скопирована в буфер обмена!",
+  "updates_btn_refresh": "Проверить",
+  "updates_empty_title": "Установи плагины!",
+  "updates_empty_available_chip": "Доступно к установке: {count} плагинов",
+  "updates_up_to_date_title": "Всё актуально!",
+  "updates_error_title": "Что-то пошло не так",
+  "updates_stat_installed": "Установлено",
+  "updates_stat_active": "Активных",
+  "updates_stat_packit": "Через PackIt"
 }
