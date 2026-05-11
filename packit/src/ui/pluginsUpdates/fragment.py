@@ -9,7 +9,7 @@ from android.widget import FrameLayout, LinearLayout, TextView, ProgressBar, Ima
 from java import dynamic_proxy
 from android_utils import log, run_on_ui_thread
 from client_utils import get_last_fragment, run_on_queue
-
+# penis
 try:
     from org.telegram.ui.ActionBar import Theme
 except Exception as e:
@@ -996,7 +996,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     self._is_loading = False
                     self._hide_spinner()
                     if not updates:
-                        self._show_all_up_to_date()
+                        self._show_empty(str(strings["updates_all_up_to_date"]), "done", title=str(strings["updates_up_to_date_title"]))
                     else:
                         self._show_updates(updates)
 
@@ -1724,10 +1724,10 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
     def _on_card_removed(self):
         self._card_count[0] -= 1
         remaining = self._card_count[0]
-        if remaining <= 0 and self._alive[0]:
-            run_on_ui_thread(self._show_all_up_to_date)
-        elif remaining == 1 and self._alive[0]:
+        if remaining == 1 and self._alive[0]:
             run_on_ui_thread(self._hide_update_all_btn_animated)
+        elif remaining <= 0 and self._alive[0]:
+            run_on_ui_thread(self._show_all_up_to_date)
         elif remaining > 1 and self._alive[0]:
             run_on_ui_thread(self._update_update_all_btn_text)
 
@@ -1802,74 +1802,20 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
     def _show_all_up_to_date(self):
         try:
-            from android.animation import AnimatorSet, ObjectAnimator, Animator
-            from android.view.animation import AccelerateInterpolator
-            from java import dynamic_proxy
-
-            island = self._bar_island
-            dp = AndroidUtilities.dp
-
-            try:
-                display = self._act.getWindowManager().getDefaultDisplay()
-                from android.graphics import Point
-                pt = Point()
-                display.getSize(pt)
-                screen_h = float(pt.y)
-            except Exception:
-                screen_h = float(dp(800))
-
-            # cancel any in-flight right_btn slide before fly-out
-            try:
-                self._bar_right_btn.animate().cancel()
-                self._bar_right_btn.setTranslationX(0.0)
-                self._bar_right_btn.setAlpha(1.0)
-            except Exception:
-                pass
-
-            fly_out = ObjectAnimator.ofFloat(island, "translationY", island.getTranslationY(), screen_h * 0.4)
-            fly_out.setDuration(260)
-            fly_out.setInterpolator(AccelerateInterpolator(1.8))
-
-            fade_out = ObjectAnimator.ofFloat(island, "alpha", island.getAlpha(), 0.0)
-            fade_out.setDuration(180)
-            fade_out.setInterpolator(AccelerateInterpolator())
-
-            out_set = AnimatorSet()
-            out_set.playTogether(fly_out, fade_out)
-
+            from android.animation import ObjectAnimator
+            self._set_bar_empty_mode(True)
             empty_card = self._build_all_up_to_date_card()
             empty_card.setAlpha(0.0)
             lp = FrameLayout.LayoutParams(-2, -2)
             lp.gravity = Gravity.CENTER
+            dp = AndroidUtilities.dp
             lp.leftMargin = dp(16)
             lp.rightMargin = dp(16)
             lp.topMargin = dp(-80)
             self._content_view.addView(empty_card, lp)
-
-            fragment_ref = self
-
-            class _OutDone(dynamic_proxy(Animator.AnimatorListener)):
-                def __init__(self): super().__init__()
-                def onAnimationEnd(self, *args):
-                    try:
-                        fragment_ref._apply_bar_empty_mode(True)
-                        island.setTranslationX(0.0)
-                        island.setTranslationY(float(dp(16)))
-                        island.setScaleX(0.85)
-                        island.setScaleY(0.85)
-                        island.setAlpha(0.0)
-                        fragment_ref._show_bar()
-                        fade_in = ObjectAnimator.ofFloat(empty_card, "alpha", 0.0, 1.0)
-                        fade_in.setDuration(300)
-                        fade_in.start()
-                    except Exception as e:
-                        log(f"pluginsUpdates: _show_all_up_to_date bar-in error: {e}")
-                def onAnimationStart(self, *args): pass
-                def onAnimationCancel(self, *args): pass
-                def onAnimationRepeat(self, *args): pass
-
-            out_set.addListener(_OutDone())
-            out_set.start()
+            fade_in = ObjectAnimator.ofFloat(empty_card, "alpha", 0.0, 1.0)
+            fade_in.setDuration(300)
+            fade_in.start()
         except Exception as e:
             log(f"pluginsUpdates: _show_all_up_to_date error: {e}")
 
