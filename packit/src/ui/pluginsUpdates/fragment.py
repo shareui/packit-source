@@ -9,7 +9,7 @@ from android.widget import FrameLayout, LinearLayout, TextView, ProgressBar, Ima
 from java import dynamic_proxy
 from android_utils import log, run_on_ui_thread
 from client_utils import get_last_fragment, run_on_queue
-
+# penis
 try:
     from org.telegram.ui.ActionBar import Theme
 except Exception as e:
