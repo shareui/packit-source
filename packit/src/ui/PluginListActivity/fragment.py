@@ -2578,7 +2578,7 @@ class InstallUI:
                 translate_plugin(p)
 
             def do_report_relocated():
-                report_plugin(p, act)
+                report_plugin(p, act, repo_id=self.repo_id)
                 try:
                     from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
                     increment_category("Reporting")
@@ -2645,7 +2645,7 @@ class InstallUI:
                         translate_plugin(p)
 
                     def do_report():
-                        report_plugin(p, act)
+                        report_plugin(p, act, repo_id=self.repo_id)
                         try:
                             from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
                             increment_category("Reporting")

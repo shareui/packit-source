@@ -341,7 +341,7 @@ def _show_plugin_menu(act, p, anchor_view, repo_id: str = ""):
         options.add(_icon("msg_download"),  str(strings["download"]), _runnable(lambda: download_plugin_file(p)))
         options.addGap()
         options.add(_icon("msg_report"),    str(strings["report"]),   Theme.key_text_RedRegular, Theme.key_text_RedRegular,
-                    _runnable(lambda: report_plugin(p, act)))
+                    _runnable(lambda: report_plugin(p, act, repo_id=repo_id)))
 
         options.setSwipebackGravity(True, False)
         options.show()

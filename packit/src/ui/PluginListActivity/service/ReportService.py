@@ -1,27 +1,19 @@
-from android_utils import log
+from android_utils import log, run_on_ui_thread
 from client_utils import get_last_fragment
-from android.net import Uri
-try:
-    from org.telegram.messenger.browser import Browser
-except Exception:
-    Browser = None
 
-REPORT_URL = "https://t.me/c/packitGround/970"
 
-def report_plugin(plugin_info: dict, activity):
+def report_plugin(plugin_info: dict, activity, repo_id: str = ""):
     try:
         frag = get_last_fragment()
         act = frag.getParentActivity() if frag else activity
-        if act and Browser:
-            uri = Uri.parse(REPORT_URL)
-            Browser.openUrl(act, uri, True, True, True, None, None, False, False, False)
-        else:
-            from android.content import Intent
-            from org.telegram.messenger import ApplicationLoader
-            context = ApplicationLoader.applicationContext
-            intent = Intent(Intent.ACTION_VIEW)
-            intent.setData(Uri.parse(REPORT_URL))
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            context.startActivity(intent)
+        if not act:
+            log("report_plugin: no activity")
+            return
+        name = str(plugin_info.get("name") or plugin_info.get("id") or "")
+        rid = repo_id or str(plugin_info.get("repo_id") or "")
+        from ....ui.reportDialog import show_report_dialog
+        _name = name
+        _rid = rid
+        run_on_ui_thread(lambda: show_report_dialog(act, _name, _rid))
     except Exception as e:
-        log(f"Error in report_plugin: {e}")
+        log(f"report_plugin: error: {e}")

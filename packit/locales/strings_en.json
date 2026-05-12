@@ -972,5 +972,10 @@
   "updates_error_title": "Something went wrong",
   "updates_stat_installed": "Installed",
   "updates_stat_active": "Active",
-  "updates_stat_packit": "Via PackIt"
+  "updates_stat_packit": "Via PackIt",
+  "report_dialog_title": "Report",
+  "report_dialog_subtitle": "If you report a plugin {name}, the moderators of the corresponding repository will most likely review it.",
+  "report_dialog_select_reason": "Select a reason",
+  "report_dialog_describe": "Describe the problem",
+  "report_dialog_submit": "Submit for review"
 }
