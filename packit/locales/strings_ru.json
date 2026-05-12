@@ -974,5 +974,8 @@
   "report_dialog_subtitle": "Если вы пожалуетесь на плагин {name}, модераторы соответствующего репозитория, скорее всего, рассмотрят его.",
   "report_dialog_select_reason": "Выберите причину",
   "report_dialog_describe": "Опишите проблему",
-  "report_dialog_submit": "Отправить на проверку"
+  "report_dialog_submit": "Отправить на проверку",
+  "report_dialog_sent": "Жалоба успешно отправлена!",
+  "report_dialog_failed": "Не удалось отправить жалобу. Проверьте логи.",
+  "report_dialog_missing_field": "Отсутствует поле в метаинфо: {field}"
 }
