@@ -537,7 +537,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         full_island.setElevation(float(dp(10)))
         full_island.setBackground(_make_island_bg())
 
-        refresh_btn = _make_icon_btn("msg_reset")
+        refresh_btn = _make_icon_btn("msg_retry")
         ignore_btn = _make_icon_btn("msg_mute")
 
         r_lp = LinearLayout.LayoutParams(-2, -2)
@@ -568,7 +568,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             from org.telegram.messenger import R as R_tg
             from android.graphics import PorterDuff
             from androidx.core.content import ContextCompat
-            res_id = getattr(R_tg.drawable, "msg_reset", 0)
+            res_id = getattr(R_tg.drawable, "msg_retry", 0)
             if res_id:
                 d = ContextCompat.getDrawable(act, res_id).mutate()
                 d.setBounds(0, 0, icon_size, icon_size)
