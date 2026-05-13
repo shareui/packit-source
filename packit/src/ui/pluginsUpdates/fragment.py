@@ -875,6 +875,12 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             island = self._bar_island
             dp = AndroidUtilities.dp
 
+            # bar not yet visible — skip fly-out to avoid flash of full-mode buttons
+            if island.getAlpha() < 0.01:
+                self._apply_bar_empty_mode(empty)
+                self._show_bar()
+                return
+
             try:
                 display = self._act.getWindowManager().getDefaultDisplay()
                 from android.graphics import Point
@@ -890,7 +896,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             fly_out.setDuration(320)
             fly_out.setInterpolator(AccelerateInterpolator(2.0))
 
-            fade_out = ObjectAnimator.ofFloat(island, "alpha", 1.0, 0.0)
+            fade_out = ObjectAnimator.ofFloat(island, "alpha", island.getAlpha(), 0.0)
             fade_out.setDuration(200)
             fade_out.setInterpolator(AccelerateInterpolator(1.2))
 
@@ -996,7 +1002,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     self._is_loading = False
                     self._hide_spinner()
                     if not updates:
-                        self._show_empty(str(strings["updates_all_up_to_date"]), "done", title=str(strings["updates_up_to_date_title"]))
+                        self._show_all_up_to_date()
                     else:
                         self._show_updates(updates)
 

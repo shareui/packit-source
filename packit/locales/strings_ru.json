@@ -536,6 +536,7 @@
   "sfx_search": "Поиск",
   "sfx_clear_search": "Очистка поиска",
   "sfx_achievement": "Достижение",
+  "sfx_available_updates": "Уведомления об обновлениях",
   "show_plugin_size": "Размер плагина",
   "show_plugin_size_desc": "Отображает размер файла плагина, указанный в конфиге репозитория.",
   "show_plugin_min_version": "Минимальная версия",
@@ -747,6 +748,8 @@
   "show_from_repo_desc": "Показывать плашку \"Из репозитория {name}\" на каждой карточке обновления.",
   "show_updates_on_startup": "Список обновлённых плагинов",
   "show_updates_on_startup_desc": "При открытии приложения автоматически проверяет доступные обновления и отображает их на экране.",
+  "update_notifications": "Уведомления об обновлениях",
+  "update_notifications_desc": "При входе в приложение отображает уведомление с обновлениями плагинов.",
   "startup_updates_title": "Обновления",
   "startup_updates_subtitle": "Несколько плагинов были обновлены. Вот список… Я подожду, пока ты решишь, что с этим делать.",
   "startup_updates_update": "Обновить",
@@ -820,6 +823,8 @@
   "achiev_hint_secret_talking_about_you": "https://t.me/packitGround/232/4434",
   "achiev_title_secret_utils_rule": "Меня не выложат в utils :(",
   "achiev_hint_secret_utils_rule": "кстати тебя врядли выложат в utilits. Ты пофакту, повторил kpm. А как бы в utils правило второй вариант нельзя выкладыватьб",
+  "achiev_title_secret_aytist": "Ты нашёл аметист!",
+  "achiev_hint_secret_aytist": "Ты и правда нашёл аметист, теперь можешь не работать до конца жизни...",
   "tags_section_title": "Теги",
   "apply_button": "Применить",
   "authors_section_title": "Авторы",
@@ -977,5 +982,9 @@
   "report_dialog_submit": "Отправить на проверку",
   "report_dialog_sent": "Жалоба успешно отправлена!",
   "report_dialog_failed": "Не удалось отправить жалобу. Проверьте логи.",
-  "report_dialog_missing_field": "Отсутствует поле в метаинфо: {field}"
+  "report_dialog_missing_field": "Отсутствует поле в метаинфо: {field}",
+  "msg_plugins_updated": "{count} плагинов обновлено!",
+  "msg_plugins_open": "Открыть",
+  "msg_one_plugin_updated": "Один плагин обновлён!",
+  "msg_one_plugin_install": "Установить"
 }
