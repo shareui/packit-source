@@ -13,6 +13,14 @@ def build_updplugins_page(other_settings):
             icon="msg_download",
             link_alias="show_updates_on_startup"
         ),
+        Switch(
+            key="update_notifications_bulletin",
+            text=strings.update_notifications,
+            subtext=strings.update_notifications_desc,
+            default=False,
+            icon="msg_notifications",
+            link_alias="update_notifications_bulletin"
+        ),
         Text(
             text=strings.clear_ignore_list,
             subtext=strings.clear_ignore_list_desc,

@@ -172,6 +172,8 @@ class PackItPlugin(BasePlugin):
         self._check_for_update()
         if settings.get("show_updates_on_startup", False):
             self._check_startup_updates()
+        if settings.get("update_notifications_bulletin", False):
+            self._check_update_notifications_bulletin()
         launchTime = time.time() - self._launch_start
         log(f"PackIt was launched in {launchTime:.3f}s, launch time: {launchTime - self._init_time:.3f}s, initialization time: {self._init_time:.3f}s")
 
@@ -200,6 +202,124 @@ class PackItPlugin(BasePlugin):
             check_and_show_startup_updates(plugin=self)
         except Exception as e:
             log(f"PackIt: startup updates check error: {e}")
+
+    def _check_update_notifications_bulletin(self):
+        import threading
+
+        def task():
+            try:
+                from .ui.pluginsUpdates.fragment import _check_updates, _filter_ignored
+                updates = _filter_ignored(None, _check_updates(None))
+                if not updates:
+                    return
+                count = len(updates)
+                from elyx import strings
+                single = count == 1
+                if single:
+                    text = str(strings.msg_one_plugin_updated)
+                    btn_text = str(strings.msg_one_plugin_install)
+                    single_update = updates[0]
+                else:
+                    text = str(strings.msg_plugins_updated).format(count=count)
+                    btn_text = str(strings.msg_plugins_open)
+                    single_update = None
+
+                import time
+                time.sleep(2.5)
+
+                from android_utils import run_on_ui_thread
+                from client_utils import get_last_fragment
+                from org.telegram.ui.Components import BulletinFactory
+                from org.telegram.messenger import R as R_tg
+                from java import dynamic_proxy
+                from java.lang import Runnable
+
+                class _Runnable(dynamic_proxy(Runnable)):
+                    def __init__(self, fn):
+                        super().__init__()
+                        self._fn = fn
+                    def run(self):
+                        try:
+                            self._fn()
+                        except Exception as _e:
+                            log(f"PackIt: update bulletin runnable error: {_e}")
+
+                def show():
+                    try:
+                        fragment = get_last_fragment()
+                        if not fragment:
+                            return
+                        try:
+                            import os as _os
+                            from .utils.media import playSound
+                            _snd = _os.path.join(_os.path.dirname(__file__), "../res/sounds/available-updates.mp3")
+                            playSound(_snd, "sfx_available_updates")
+                        except Exception as _e:
+                            log(f"PackIt: update bulletin sound error: {_e}")
+                        if single_update is not None:
+                            def _install():
+                                try:
+                                    from .ui.pluginsUpdates.fragment import _get_repos, _get_repo_plugins_url
+                                    import requests as _req
+                                    pid = str(single_update.get("id") or "")
+                                    repo_id = str(single_update.get("repo_id") or "")
+                                    repos = _get_repos()
+                                    repo = next((r for r in repos if str(r.get("id") or "") == repo_id), None)
+                                    if not repo:
+                                        log(f"PackIt: update bulletin install: repo '{repo_id}' not found")
+                                        return
+                                    repo_url = str(repo.get("url") or "").strip()
+                                    plugins_url = _get_repo_plugins_url(None, repo_id, repo_url)
+                                    r = _req.get(plugins_url, timeout=20, headers={"User-Agent": "PackIt/1.0"})
+                                    if r.status_code != 200:
+                                        log(f"PackIt: update bulletin install: HTTP {r.status_code}")
+                                        return
+                                    data = r.json()
+                                    plugins_raw = data.get("plugins", {})
+                                    plugin = None
+                                    all_plugins = []
+                                    if isinstance(plugins_raw, dict):
+                                        for _pid, info in plugins_raw.items():
+                                            if isinstance(info, dict):
+                                                all_plugins.append({"id": _pid, **info})
+                                        info = plugins_raw.get(pid)
+                                        if isinstance(info, dict):
+                                            plugin = {"id": pid, **info}
+                                    elif isinstance(plugins_raw, list):
+                                        all_plugins = [p for p in plugins_raw if isinstance(p, dict)]
+                                        for p in plugins_raw:
+                                            if isinstance(p, dict) and p.get("id") == pid:
+                                                plugin = p
+                                                break
+                                    if not plugin:
+                                        log(f"PackIt: update bulletin install: plugin '{pid}' not found in repo")
+                                        return
+                                    from .core import install_plugin
+                                    run_on_ui_thread(lambda: install_plugin(plugin, all_plugins=all_plugins, rm_rid=repo_id))
+                                except Exception as _e:
+                                    log(f"PackIt: update bulletin install error: {_e}")
+                            from client_utils import run_on_queue
+                            _action = lambda: run_on_queue(_install)
+                        else:
+                            def _action():
+                                try:
+                                    from .ui.pluginsUpdates.fragment import show_updates_fragment
+                                    show_updates_fragment()
+                                except Exception as _e:
+                                    log(f"PackIt: update bulletin open error: {_e}")
+                        factory = BulletinFactory.of(fragment)
+                        bulletin = factory.createSimpleBulletin(
+                            R_tg.raw.info, text, btn_text, _Runnable(_action)
+                        )
+                        bulletin.show(True)
+                    except Exception as _e:
+                        log(f"PackIt: update bulletin show error: {_e}")
+
+                run_on_ui_thread(show)
+            except Exception as e:
+                log(f"PackIt: _check_update_notifications_bulletin error: {e}")
+
+        threading.Thread(target=task, daemon=True).start()
     
     def _check_identity_achievement(self):
         from org.telegram.messenger import UserConfig, MessagesController

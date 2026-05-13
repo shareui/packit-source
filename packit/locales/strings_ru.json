@@ -536,6 +536,7 @@
   "sfx_search": "Поиск",
   "sfx_clear_search": "Очистка поиска",
   "sfx_achievement": "Достижение",
+  "sfx_available_updates": "Уведомления об обновлениях",
   "show_plugin_size": "Размер плагина",
   "show_plugin_size_desc": "Отображает размер файла плагина, указанный в конфиге репозитория.",
   "show_plugin_min_version": "Минимальная версия",
@@ -977,5 +978,9 @@
   "report_dialog_submit": "Отправить на проверку",
   "report_dialog_sent": "Жалоба успешно отправлена!",
   "report_dialog_failed": "Не удалось отправить жалобу. Проверьте логи.",
-  "report_dialog_missing_field": "Отсутствует поле в метаинфо: {field}"
+  "report_dialog_missing_field": "Отсутствует поле в метаинфо: {field}",
+  "msg_plugins_updated": "{count} плагинов обновлено!",
+  "msg_plugins_open": "Открыть",
+  "msg_one_plugin_updated": "Один плагин обновлён!",
+  "msg_one_plugin_install": "Установить"
 }
