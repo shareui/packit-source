@@ -25,6 +25,7 @@ from . import pkill
 from . import plugin
 from .secret import premium
 from .secret import terraria
+from .secret import aytist
 
 
 class PackItDeeplinkHook(MethodHook):
@@ -74,6 +75,7 @@ class PackItDeeplinkHook(MethodHook):
             plugin.handle(url, self.plugin.repoManager)
             premium.handle(url)
             terraria.handle(url)
+            aytist.handle(url)
         except Exception as e:
             log(f"[PackIt] Error showing notification: {e}")
             try:
