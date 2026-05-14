@@ -124,7 +124,7 @@ class DocumentationSettings:
         self._openUrl("https://t.me/packitGround/13")
 
     def _openRepoGuide(self, view, *_):
-        self._openUrl("https://github.com/shareui/packit/blob/main/docs/ownrepo.md")
+        self._openUrl("https://github.com/shareui/packit/blob/main/docs/packitAPI.md")
 
     def _openBugReport(self, view, *_):
         self._openUrl("https://t.me/packitGround/85")
