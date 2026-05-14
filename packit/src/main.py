@@ -20,6 +20,7 @@ from .ChatActivity.LinksIcons import setup_links_buttons_hook
 from .standaloneHooks.settingsActivityHook import setup_settings_activity_hook
 from .SettingsActivity.service.fastExpandableHook import setup_fast_expandable_hook
 from .DialogsActivity.pillWidget import setup_pill_widget, _unregister_pill
+from .DialogsActivity.updatesWidget import setup_updates_widget
 from .ui.PluginListActivity.service.InstallDismissHook import setup_install_dismiss_hook
 from .ChatActivity.export.DecryptorBottomSheet import setup_packit_file_hook
 from .ChatActivity.afpFile import setup_afp_file_hook
@@ -165,6 +166,7 @@ class PackItPlugin(BasePlugin):
         self.settings_activity_hook_refs = setup_settings_activity_hook(self)
         self.fast_expandable_hook_ref = setup_fast_expandable_hook(self, self.settingsBuilder.otherSettings)
         setup_pill_widget(self)
+        setup_updates_widget(self)
         self.dialogs_menu_hook_ref = self.chatUI.setup_dialogs_menu_hook()
         self.everyone_hook_refs = _everyone.setup_hook(self)
         self.packit_hook_constructor_ref = setup_packit_autocomplete(self)

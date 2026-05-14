@@ -1,5 +1,20 @@
 from ui.settings import Header, Switch, Text
 from elyx import strings
+from android_utils import log
+
+
+def _open_pill_stack_settings(view):
+    try:
+        from hook_utils import find_class
+        from client_utils import get_last_fragment
+        PillStackPreferencesActivity = find_class("com.exteragram.messenger.pillstack.ui.PillStackPreferencesActivity")
+        if PillStackPreferencesActivity is None:
+            return
+        frag = get_last_fragment()
+        if frag:
+            frag.presentFragment(PillStackPreferencesActivity())
+    except Exception as e:
+        log(f"updplugins: _open_pill_stack_settings error: {e}")
 
 
 def build_updplugins_page(other_settings):
@@ -26,5 +41,11 @@ def build_updplugins_page(other_settings):
             subtext=strings.clear_ignore_list_desc,
             icon="msg_delete",
             on_click=other_settings._onClearIgnoreListClick
+        ),
+        Text(
+            text=strings.updplugins_pill_stack_settings,
+            subtext=strings.updplugins_pill_stack_settings_desc,
+            icon="msg_retry",
+            on_click=_open_pill_stack_settings
         ),
     ]

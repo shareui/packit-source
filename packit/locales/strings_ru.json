@@ -986,5 +986,11 @@
   "msg_plugins_updated": "{count} плагинов обновлено!",
   "msg_plugins_open": "Открыть",
   "msg_one_plugin_updated": "Один плагин обновлён!",
-  "msg_one_plugin_install": "Установить"
+  "msg_one_plugin_install": "Установить",
+  "updates_widget_up_to_date": "Актуально",
+  "updates_widget_one_update": "{count} обновление",
+  "updates_widget_many_updates": "{count} обновления",
+  "updates_widget_label": "Доступные обновления",
+  "updplugins_pill_stack_settings": "Виджет обновлений",
+  "updplugins_pill_stack_settings_desc": "К списку виджетов"
 }
