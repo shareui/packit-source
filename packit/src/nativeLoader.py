@@ -33,6 +33,20 @@ def showNativeErrorSheet(libName: str, error: str):
         def _show():
             try:
                 from client_utils import get_last_fragment
+                frag = get_last_fragment()
+                if not frag:
+                    # fragment not ready yet — retry after delay
+                    import time
+                    def _retry():
+                        time.sleep(1.5)
+                        run_on_ui_thread(_show)
+                    threading.Thread(target=_retry, daemon=True).start()
+                    return
+                activity = frag.getParentActivity()
+                if not activity:
+                    return
+                rp = frag.getResourceProvider()
+
                 from android.view import Gravity, View
                 from android.widget import FrameLayout, LinearLayout, TextView, ScrollView
                 from android.graphics import Color
@@ -46,14 +60,6 @@ def showNativeErrorSheet(libName: str, error: str):
                     from org.telegram.messenger.browser import Browser
                 except Exception:
                     Browser = None
-
-                frag = get_last_fragment()
-                if not frag:
-                    return
-                activity = frag.getParentActivity()
-                if not activity:
-                    return
-                rp = frag.getResourceProvider()
 
                 try:
                     from org.telegram.messenger import BuildVars, ApplicationLoader

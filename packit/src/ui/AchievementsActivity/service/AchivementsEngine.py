@@ -42,12 +42,16 @@ def _get_configs_dir() -> str:
     return getConfigsDir()
 
 
-def _get_db_path() -> str:
-    return f"{_get_configs_dir()}/achievements.packdb"
+def _get_db_path(account_id: str = None) -> str:
+    if account_id is None:
+        account_id = _get_current_account_id()
+    return f"{_get_configs_dir()}/achievements_{account_id}.packdb"
 
 
-def _get_snap_path() -> str:
-    return f"{_get_configs_dir()}/achievements_snap.packdb"
+def _get_snap_path(account_id: str = None) -> str:
+    if account_id is None:
+        account_id = _get_current_account_id()
+    return f"{_get_configs_dir()}/achievements_{account_id}_snap.packdb"
 
 
 def _hash_account_id(user_id: int) -> str:
@@ -89,7 +93,7 @@ def _open_db_from_file(path: str, account_id: str):
     out_len = ctypes.c_uint32(_BUF_SIZE)
     rc = _lib.packdb_read_raw(path.encode(), account_id.encode(), buf, ctypes.byref(out_len))
     if rc == -3:
-        log(f"packitdb: INVALID sig in {os.path.basename(path)} for {account_id}")
+        log(f"packitdb: INVALID sig in {os.path.basename(path)} for {account_id} (file exists, sig mismatch)")
         return None
     if rc != 0:
         log(f"packitdb: read_raw error {rc} for {os.path.basename(path)}")
@@ -158,10 +162,10 @@ def _load_account(account_id: str = None) -> tuple:
     if account_id is None:
         account_id = _get_current_account_id()
     os.makedirs(_get_configs_dir(), exist_ok=True)
-    db = _open_db_from_file(_get_db_path(), account_id)
+    db = _open_db_from_file(_get_db_path(account_id), account_id)
     if not db:
         log(f"packitdb: load failed for {account_id}, trying snapshot")
-        db = _open_db_from_file(_get_snap_path(), account_id)
+        db = _open_db_from_file(_get_snap_path(account_id), account_id)
         if not db:
             return {}, False
     data = _db_to_dict(db)
@@ -175,8 +179,8 @@ def _save_account(data: dict, account_id: str = None):
     if account_id is None:
         account_id = _get_current_account_id()
     os.makedirs(_get_configs_dir(), exist_ok=True)
-    db_path   = _get_db_path()
-    snap_path = _get_snap_path()
+    db_path   = _get_db_path(account_id)
+    snap_path = _get_snap_path(account_id)
 
     # snapshot current valid state before overwriting
     existing = _open_db_from_file(db_path, account_id)
@@ -196,11 +200,12 @@ def load_account_data_for_import(account_id: str, account_data: dict):
     if _lib is None:
         return
     os.makedirs(_get_configs_dir(), exist_ok=True)
-    db = _lib.packdb_open(_get_db_path().encode(), account_id.encode())
+    db_path = _get_db_path(account_id)
+    db = _lib.packdb_open(db_path.encode(), account_id.encode())
     if not db:
         return
     _dict_to_db(db, account_data)
-    _close_and_write(db, _get_db_path(), account_id)
+    _close_and_write(db, db_path, account_id)
 
 
 # XP system

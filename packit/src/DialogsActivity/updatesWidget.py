@@ -11,8 +11,6 @@ from com.exteragram.messenger.pillstack.ui.pills import BasePill
 from extera_utils.classes import Base, java_subclass, joverride, jfield, jgetmethod
 
 _PILL_ID = 880002
-_PREFS_NAME = "packit_updates_pill"
-
 _WRAP_CONTENT = -2
 _dp = AndroidUtilities.dp
 
@@ -102,7 +100,6 @@ class UpdatesPill(Base):
     @joverride()
     def onAttachedToWindow(self):
         super().onAttachedToWindow()
-        _sync_state_from_config()
         self.updateColors()
 
     @joverride()
@@ -170,6 +167,7 @@ def setup_updates_widget(plugin):
     log("UpdatesWidget: setup start")
     try:
         _plugin_ref[0] = plugin
+        _setup_save_hook(plugin)
         # check updates before registering so pill shows correct state from the start
         _prefetch_and_register(plugin)
         log("UpdatesWidget: setup scheduled")
@@ -177,6 +175,25 @@ def setup_updates_widget(plugin):
     except Exception as e:
         log(f"UpdatesWidget: setup error: {e}")
         return None
+
+
+def _setup_save_hook(plugin):
+    # hook PillStackConfig.savePillsLayout to capture state changes made in PillPreferences
+    try:
+        from hook_utils import find_class
+        from base_plugin import MethodHook
+        PillStackConfigClass = find_class("com.exteragram.messenger.pillstack.core.PillStackConfig")
+        method = PillStackConfigClass.getClass().getDeclaredMethod("savePillsLayout")
+        method.setAccessible(True)
+
+        class SaveLayoutHook(MethodHook):
+            def after_hooked_method(self, param):
+                _sync_state_from_config()
+
+        plugin.hook_method(method, SaveLayoutHook())
+        log("UpdatesWidget: savePillsLayout hook installed")
+    except Exception as e:
+        log(f"UpdatesWidget: _setup_save_hook error: {e}")
 
 
 def _prefetch_and_register(plugin):
@@ -196,35 +213,108 @@ def _prefetch_and_register(plugin):
     run_on_queue(task)
 
 
+def _get_prefs():
+    try:
+        from hook_utils import find_class
+        ApplicationLoader = find_class("org.telegram.messenger.ApplicationLoader")
+        return ApplicationLoader.applicationContext.getSharedPreferences("packit_updates_pill", 0)
+    except Exception:
+        return None
+
+
+def _get_saved_state():
+    try:
+        prefs = _get_prefs()
+        if prefs:
+            # default 0 = hidden (disabled by default)
+            return int(prefs.getInt("pill_state", 0))
+    except Exception:
+        pass
+    return 0
+
+
+def _set_saved_state(state):
+    try:
+        prefs = _get_prefs()
+        if prefs:
+            prefs.edit().putInt("pill_state", int(state)).apply()
+            log(f"UpdatesWidget: saved state={state}")
+    except Exception:
+        pass
+
+
+def _get_saved_index():
+    try:
+        prefs = _get_prefs()
+        if prefs:
+            return int(prefs.getInt("pill_index", -1))
+    except Exception:
+        pass
+    return -1
+
+
+def _set_saved_index(idx):
+    try:
+        prefs = _get_prefs()
+        if prefs:
+            prefs.edit().putInt("pill_index", int(idx)).apply()
+    except Exception:
+        pass
+
+
 def _ensure_visibility():
+    # restore pill position from own prefs; default state=0 means hidden
     try:
         active = getattr(PillStackConfig, "activePills", None)
         hidden = getattr(PillStackConfig, "hiddenPills", None)
         if active is None or hidden is None:
             return
         pid = jint(_PILL_ID)
-        already_known = False
-        try:
-            already_known = active.contains(pid) or hidden.contains(pid)
-        except Exception:
-            pass
-        if already_known:
-            return
         state = _get_saved_state()
-        if state == 0:
+        if state == 1:
+            idx = _get_saved_index()
+            _place_in_active(active, pid, idx)
+        else:
             try:
                 if not hidden.contains(pid):
                     hidden.add(pid)
-                    PillStackConfig.savePillsLayout()
             except Exception:
                 pass
-        else:
-            idx = _get_saved_index()
-            _place_in_active(active, pid, idx)
-            PillStackConfig.savePillsLayout()
+        PillStackConfig.savePillsLayout()
         log(f"UpdatesWidget: ensure_visibility state={state}")
     except Exception as e:
         log(f"UpdatesWidget: _ensure_visibility error: {e}")
+
+
+def _sync_state_from_config():
+    # called while pill is live — saves current pillstack state to own prefs
+    try:
+        active = getattr(PillStackConfig, "activePills", None)
+        hidden = getattr(PillStackConfig, "hiddenPills", None)
+        if active is None or hidden is None:
+            log("UpdatesWidget: _sync_state_from_config: lists not available")
+            return
+        pid = jint(_PILL_ID)
+        try:
+            if active.contains(pid):
+                _set_saved_state(1)
+                idx = _active_index(active, pid)
+                if idx >= 0:
+                    _set_saved_index(idx)
+                log(f"UpdatesWidget: sync -> active, idx={idx}")
+                return
+        except Exception:
+            pass
+        try:
+            if hidden.contains(pid):
+                _set_saved_state(0)
+                log("UpdatesWidget: sync -> hidden")
+                return
+        except Exception:
+            pass
+        log("UpdatesWidget: sync -> pill not found in either list")
+    except Exception as e:
+        log(f"UpdatesWidget: _sync_state_from_config error: {e}")
 
 
 def _register_pill(plugin):
@@ -399,53 +489,6 @@ def notify_updates_count(count: int):
     run_on_ui_thread(_notify_update)
 
 
-def _get_prefs():
-    try:
-        from hook_utils import find_class
-        ApplicationLoader = find_class("org.telegram.messenger.ApplicationLoader")
-        return ApplicationLoader.applicationContext.getSharedPreferences(_PREFS_NAME, 0)
-    except Exception:
-        return None
-
-
-def _get_saved_state():
-    try:
-        prefs = _get_prefs()
-        if prefs:
-            return int(prefs.getInt("pill_state", -1))
-    except Exception:
-        pass
-    return -1
-
-
-def _set_saved_state(state):
-    try:
-        prefs = _get_prefs()
-        if prefs:
-            prefs.edit().putInt("pill_state", int(state)).apply()
-    except Exception:
-        pass
-
-
-def _get_saved_index():
-    try:
-        prefs = _get_prefs()
-        if prefs:
-            return int(prefs.getInt("pill_index", -1))
-    except Exception:
-        pass
-    return -1
-
-
-def _set_saved_index(idx):
-    try:
-        prefs = _get_prefs()
-        if prefs:
-            prefs.edit().putInt("pill_index", int(idx)).apply()
-    except Exception:
-        pass
-
-
 def _active_index(active, pid_obj):
     try:
         idx = active.indexOf(pid_obj)
@@ -478,89 +521,6 @@ def _place_in_active(active, pid_obj, idx):
             active.add(pid_obj)
         except Exception:
             pass
-
-
-def _restore_visibility():
-    try:
-        state = _get_saved_state()
-        if state not in (0, 1):
-            return
-
-        active = getattr(PillStackConfig, "activePills", None)
-        hidden = getattr(PillStackConfig, "hiddenPills", None)
-        if active is None or hidden is None:
-            return
-
-        pid = jint(_PILL_ID)
-        idx = _get_saved_index()
-        changed = False
-
-        if state == 1:
-            try:
-                if hidden.contains(pid):
-                    hidden.remove(pid)
-                    changed = True
-            except Exception:
-                pass
-            try:
-                if not active.contains(pid):
-                    _place_in_active(active, pid, idx)
-                    changed = True
-                elif idx >= 0:
-                    cur = _active_index(active, pid)
-                    if cur != idx:
-                        _place_in_active(active, pid, idx)
-                        changed = True
-            except Exception:
-                pass
-        else:
-            try:
-                if active.contains(pid):
-                    active.remove(pid)
-                    changed = True
-            except Exception:
-                pass
-            try:
-                if not hidden.contains(pid):
-                    hidden.add(pid)
-                    changed = True
-            except Exception:
-                pass
-
-        if changed:
-            try:
-                PillStackConfig.savePillsLayout()
-            except Exception:
-                pass
-
-        log(f"UpdatesWidget: restored state={state} idx={idx}")
-    except Exception as e:
-        log(f"UpdatesWidget: _restore_visibility error: {e}")
-
-
-def _sync_state_from_config():
-    try:
-        active = getattr(PillStackConfig, "activePills", None)
-        hidden = getattr(PillStackConfig, "hiddenPills", None)
-        if active is None or hidden is None:
-            return
-        pid = jint(_PILL_ID)
-        try:
-            if active.contains(pid):
-                _set_saved_state(1)
-                idx = _active_index(active, pid)
-                if idx >= 0:
-                    _set_saved_index(idx)
-                return
-        except Exception:
-            pass
-        try:
-            if hidden.contains(pid):
-                _set_saved_state(0)
-        except Exception:
-            pass
-    except Exception as e:
-        log(f"UpdatesWidget: _sync_state_from_config error: {e}")
 
 
 def _sync_pillstack():
