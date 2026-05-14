@@ -989,5 +989,11 @@
   "report_dialog_submit": "Submit for review",
   "report_dialog_sent": "Report sent successfully!",
   "report_dialog_failed": "Report failed. Check the logs.",
-  "report_dialog_missing_field": "Missing field in metainfo: {field}"
+  "report_dialog_missing_field": "Missing field in metainfo: {field}",
+  "updates_widget_up_to_date": "Up to date",
+  "updates_widget_one_update": "{count} update",
+  "updates_widget_many_updates": "{count} updates",
+  "updates_widget_label": "Available updates",
+  "updplugins_pill_stack_settings": "Update widget",
+  "updplugins_pill_stack_settings_desc": "To the list of widgets"
 }

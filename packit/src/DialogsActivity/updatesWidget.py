@@ -10,20 +10,46 @@ from com.exteragram.messenger.pillstack.core import PillStackConfig, PillRegistr
 from com.exteragram.messenger.pillstack.ui.pills import BasePill
 from extera_utils.classes import Base, java_subclass, joverride, jfield, jgetmethod
 
-_PILL_ID = 880001
-_PILL_LABEL = "PackIt"
-_PREFS_NAME = "packit_pill"
-
-_ACTION_SETTINGS = 0
-_ACTION_INSTALL = 1
-_ACTION_ICONS = 2
+_PILL_ID = 880002
+_PREFS_NAME = "packit_updates_pill"
 
 _WRAP_CONTENT = -2
 _dp = AndroidUtilities.dp
 
+# green gradient for has-updates state
+_COLOR_GREEN_TOP    = -12345273
+_COLOR_GREEN_BOTTOM = -13730510
+# blue gradient for up-to-date state
+_COLOR_BLUE_TOP    = -14776091
+_COLOR_BLUE_BOTTOM = -15374912
+
+# cached updates count, refreshed on check
+_updates_count = [0]
+_updates_list = [[]]  # cached list of update dicts
+
+
+def _make_gradient_bg(color_top: int, color_bottom: int):
+    from android.graphics.drawable import GradientDrawable
+    from java import jarray, jint
+    colors = jarray(jint)([jint(color_top), jint(color_bottom)])
+    bg = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, colors)
+    bg.setCornerRadius(float(_dp(14)))
+    return bg
+
+
+def _apply_press_anim(layout, enabled: bool):
+    try:
+        from org.telegram.ui.Components import ScaleStateListAnimator
+        if enabled:
+            ScaleStateListAnimator.apply(layout)
+        else:
+            layout.setStateListAnimator(None)
+    except Exception as e:
+        log(f"UpdatesWidget: _apply_press_anim error: {e}")
+
 
 @java_subclass(BasePill)
-class PackitPill(Base):
+class UpdatesPill(Base):
     PILL_ID = _PILL_ID
 
     llayout = jfield("android.widget.LinearLayout")
@@ -56,7 +82,7 @@ class PackitPill(Base):
         layout.addView(icon_view, lp_icon)
 
         self.label_view = label = TextView(context)
-        label.setText(_PILL_LABEL)
+        label.setText(_get_label())
         label.setTextSize(13)
         label.setSingleLine(True)
         label.setIncludeFontPadding(False)
@@ -66,14 +92,8 @@ class PackitPill(Base):
         layout.addView(label, lp_label)
 
         self.setLoadingTargetView(layout)
-
-        try:
-            from org.telegram.ui.Components import ScaleStateListAnimator
-            ScaleStateListAnimator.apply(layout)
-        except Exception as e:
-            log(f"PillWidget: ScaleStateListAnimator error: {e}")
-
         self.updateColors()
+        _active_pill_ref[0] = self
 
     @joverride()
     def onUpdateData(self, force: bool):
@@ -88,39 +108,43 @@ class PackitPill(Base):
     @joverride()
     def onPillClicked(self):
         try:
-            run_on_ui_thread(lambda: _execute_action(_plugin_ref[0], _get_saved_action()))
+            pill_self = self
+            run_on_ui_thread(lambda: _on_click(_plugin_ref[0], pill_self))
         except Exception as e:
-            log(f"PillWidget: onPillClicked error: {e}")
+            log(f"UpdatesWidget: onPillClicked error: {e}")
 
     @joverride()
     def onPillLongClicked(self) -> bool:
         try:
             pill_java = self.java
-            run_on_ui_thread(lambda: _show_long_click_menu(_plugin_ref[0], pill_java))
+            run_on_ui_thread(lambda: _show_menu(_plugin_ref[0], pill_java))
             return True
         except Exception as e:
-            log(f"PillWidget: onPillLongClicked error: {e}")
+            log(f"UpdatesWidget: onPillLongClicked error: {e}")
             return False
 
     @joverride()
     def updateColors(self):
         try:
-            color = self.getThemedColor(Theme.key_windowBackgroundWhiteBlackText, 0.75)
-            bg_color = (
-                self.getThemedColor(Theme.key_windowBackgroundWhite)
-                if Theme.isCurrentThemeDark()
-                else Theme.multAlpha(color, 0.09)
-            )
-            self.llayout.setBackground(
-                Theme.createSimpleSelectorRoundRectDrawable(_dp(14), bg_color, Theme.multAlpha(color, 0.1))
-            )
+            has_updates = _updates_count[0] > 0
+            if has_updates:
+                color_top, color_bottom = _COLOR_GREEN_TOP, _COLOR_GREEN_BOTTOM
+            else:
+                color_top, color_bottom = _COLOR_BLUE_TOP, _COLOR_BLUE_BOTTOM
+
+            self.llayout.setBackground(_make_gradient_bg(color_top, color_bottom))
             if self.label_view:
-                self.label_view.setTextColor(color)
+                self.label_view.setTextColor(-1)  # white
+                self.label_view.setText(_get_label())
             if self.icon_view:
-                self.icon_view.setColorFilter(color, PorterDuff.Mode.SRC_IN)
+                icon_res = _get_icon_res()
+                if icon_res:
+                    self.icon_view.setImageResource(icon_res)
+                self.icon_view.setColorFilter(-1, PorterDuff.Mode.SRC_IN)  # white
             self.updateLoadingColors()
+            _apply_press_anim(self.llayout, has_updates)
         except Exception as e:
-            log(f"PillWidget: updateColors error: {e}")
+            log(f"UpdatesWidget: updateColors error: {e}")
 
     @joverride()
     def setPressed(self, pressed: bool):
@@ -129,7 +153,7 @@ class PackitPill(Base):
             self.llayout.setPressed(pressed)
 
 
-class _PackitPillCreator(dynamic_proxy(PillRegistry.PillCreator)):
+class _UpdatesPillCreator(dynamic_proxy(PillRegistry.PillCreator)):
     def __init__(self, pill_class):
         super().__init__()
         self.clazz = pill_class
@@ -139,23 +163,40 @@ class _PackitPillCreator(dynamic_proxy(PillRegistry.PillCreator)):
 
 
 _plugin_ref = [None]
+_active_pill_ref = [None]
 
 
-def setup_pill_widget(plugin):
-    log("PillWidget: setup start")
+def setup_updates_widget(plugin):
+    log("UpdatesWidget: setup start")
     try:
         _plugin_ref[0] = plugin
-        run_on_ui_thread(lambda: _register_pill(plugin))
-        log("PillWidget: setup scheduled")
+        # check updates before registering so pill shows correct state from the start
+        _prefetch_and_register(plugin)
+        log("UpdatesWidget: setup scheduled")
         return True
     except Exception as e:
-        log(f"PillWidget: setup error: {e}")
+        log(f"UpdatesWidget: setup error: {e}")
         return None
 
 
+def _prefetch_and_register(plugin):
+    from client_utils import run_on_queue
+
+    def task():
+        try:
+            from ..ui.pluginsUpdates.fragment import _check_updates, _filter_ignored
+            updates = _filter_ignored(None, _check_updates(None))
+            _updates_count[0] = len(updates)
+            _updates_list[0] = updates
+            log(f"UpdatesWidget: prefetch done, count={_updates_count[0]}")
+        except Exception as e:
+            log(f"UpdatesWidget: prefetch error: {e}")
+        run_on_ui_thread(lambda: _register_pill(plugin))
+
+    run_on_queue(task)
+
+
 def _ensure_visibility():
-    # if pillstack already knows about this pill (active or hidden) — trust it
-    # if not known yet — check saved state: restore if exists, add to active if first launch
     try:
         active = getattr(PillStackConfig, "activePills", None)
         hidden = getattr(PillStackConfig, "hiddenPills", None)
@@ -171,7 +212,6 @@ def _ensure_visibility():
             return
         state = _get_saved_state()
         if state == 0:
-            # was hidden — put in hidden
             try:
                 if not hidden.contains(pid):
                     hidden.add(pid)
@@ -179,51 +219,184 @@ def _ensure_visibility():
             except Exception:
                 pass
         else:
-            # state == 1 or unknown (first launch) — put in active
             idx = _get_saved_index()
             _place_in_active(active, pid, idx)
             PillStackConfig.savePillsLayout()
-        log(f"PillWidget: ensure_visibility state={state}")
+        log(f"UpdatesWidget: ensure_visibility state={state}")
     except Exception as e:
-        log(f"PillWidget: _ensure_visibility error: {e}")
+        log(f"UpdatesWidget: _ensure_visibility error: {e}")
 
 
 def _register_pill(plugin):
     try:
+        from elyx import strings
+        from hook_utils import find_class
         pid = jint(_PILL_ID)
-        icon_res = _get_icon_res()
+        # static name and icon for settings list — always shows "Available updates" / "Доступные обновления"
+        static_name = str(strings['updates_widget_label'])
+        R = find_class("org.telegram.messenger.R")
+        static_icon = int(getattr(R.drawable, "msg_retry", 0))
         pill_info = PillRegistry.PillInfo(
             pid,
-            _PILL_LABEL,
-            icon_res,
-            -8695125,   # top: #7B52AB purple
-            -10801024,  # bottom: #5B3080 dark purple
-            _PackitPillCreator(PackitPill)
+            static_name,
+            static_icon,
+            _COLOR_BLUE_TOP,
+            _COLOR_BLUE_BOTTOM,
+            _UpdatesPillCreator(UpdatesPill)
         )
         _ensure_visibility()
         PillRegistry.register(pill_info)
         _sync_pillstack()
         _notify_update()
-        log(f"PillWidget: registered id={_PILL_ID}")
+        log(f"UpdatesWidget: registered id={_PILL_ID}")
     except Exception as e:
-        log(f"PillWidget: _register_pill error: {e}")
-
-
-def _unregister_pill():
-    try:
-        PillRegistry.unregister(_PILL_ID)
-        log("PillWidget: unregistered")
-    except Exception as e:
-        log(f"PillWidget: _unregister_pill error: {e}")
+        log(f"UpdatesWidget: _register_pill error: {e}")
 
 
 def _get_icon_res():
     try:
         from hook_utils import find_class
         R = find_class("org.telegram.messenger.R")
-        return int(getattr(R.drawable, "msg_plugins", 0))
+        if _updates_count[0] > 0:
+            return int(getattr(R.drawable, "msg_download", 0))
+        return int(getattr(R.drawable, "msg_retry", 0))
     except Exception:
         return 0
+
+
+def _get_label():
+    from elyx import strings
+    count = _updates_count[0]
+    if count == 1:
+        return str(strings('updates_widget_one_update', count=count))
+    if count > 1:
+        return str(strings('updates_widget_many_updates', count=count))
+    return str(strings['updates_widget_up_to_date'])
+
+
+def _on_click(plugin, pill):
+    count = _updates_count[0]
+    if count == 1:
+        _install_single(plugin, _updates_list[0][0])
+    elif count > 1:
+        _open_updates(plugin)
+    else:
+        _run_check(plugin, pill)
+
+
+def _install_single(plugin, item):
+    # installs the single available update directly, then re-checks on success
+    from client_utils import run_on_queue
+    from ..ui.pluginsUpdates.fragment import _get_repos, _get_repo_plugins_url
+    import requests as _req
+
+    pid = str(item.get("id") or "")
+    repo_id = str(item.get("repo_id") or "")
+
+    def _on_installed(installed_pid):
+        if installed_pid != pid:
+            return
+        try:
+            from ..core import remove_install_listener
+            remove_install_listener(_on_installed)
+        except Exception as e:
+            log(f"UpdatesWidget: remove_install_listener error: {e}")
+        _run_check(plugin, _active_pill_ref[0])
+
+    def task():
+        try:
+            repos = _get_repos()
+            repo = next((r for r in repos if str(r.get("id") or "") == repo_id), None)
+            if not repo:
+                log(f"UpdatesWidget: _install_single repo '{repo_id}' not found")
+                return
+            repo_url = str(repo.get("url") or "").strip()
+            plugins_url = _get_repo_plugins_url(None, repo_id, repo_url)
+            r = _req.get(plugins_url, timeout=20, headers={"User-Agent": "PackIt/1.0"})
+            if r.status_code != 200:
+                log(f"UpdatesWidget: _install_single HTTP {r.status_code}")
+                return
+            data = r.json()
+            plugins_raw = data.get("plugins", {})
+            plugin_data = None
+            all_plugins = []
+            if isinstance(plugins_raw, dict):
+                for _pid, info in plugins_raw.items():
+                    if isinstance(info, dict):
+                        all_plugins.append({"id": _pid, **info})
+                info = plugins_raw.get(pid)
+                if isinstance(info, dict):
+                    plugin_data = {"id": pid, **info}
+            elif isinstance(plugins_raw, list):
+                all_plugins = [p for p in plugins_raw if isinstance(p, dict)]
+                for p in plugins_raw:
+                    if isinstance(p, dict) and p.get("id") == pid:
+                        plugin_data = p
+                        break
+            if not plugin_data:
+                log(f"UpdatesWidget: _install_single plugin '{pid}' not found in repo")
+                return
+            from ..core import install_plugin, add_install_listener
+            add_install_listener(_on_installed)
+            from android_utils import run_on_ui_thread
+            run_on_ui_thread(lambda: install_plugin(plugin_data, all_plugins=all_plugins, rm_rid=repo_id))
+        except Exception as e:
+            log(f"UpdatesWidget: _install_single task error: {e}")
+
+    run_on_queue(task)
+
+
+def _open_updates(plugin):
+    try:
+        from ..ui.pluginsUpdates.fragment import show_updates_fragment
+        show_updates_fragment(plugin)
+    except Exception as e:
+        log(f"UpdatesWidget: _open_updates error: {e}")
+
+
+def _run_check(plugin, pill=None):
+    # runs update check in background with loading animation like TonPill
+    from client_utils import run_on_queue
+
+    def start_loading():
+        try:
+            if pill is not None:
+                pill.animateSizeChange()
+                pill.startLoading()
+        except Exception as e:
+            log(f"UpdatesWidget: start_loading error: {e}")
+
+    def finish_loading(count, updates):
+        try:
+            _updates_count[0] = count
+            _updates_list[0] = updates
+            if pill is not None:
+                pill.animateSizeChange()
+                pill.stopLoading()
+                pill.updateColors()
+            _notify_update()
+        except Exception as e:
+            log(f"UpdatesWidget: finish_loading error: {e}")
+
+    run_on_ui_thread(start_loading)
+
+    def task():
+        try:
+            from ..ui.pluginsUpdates.fragment import _check_updates, _filter_ignored
+            updates = _filter_ignored(None, _check_updates(None))
+            count = len(updates)
+            run_on_ui_thread(lambda: finish_loading(count, updates))
+        except Exception as e:
+            log(f"UpdatesWidget: _run_check task error: {e}")
+            run_on_ui_thread(lambda: finish_loading(_updates_count[0], _updates_list[0]))
+
+    run_on_queue(task)
+
+
+def notify_updates_count(count: int):
+    # called externally to update badge count
+    _updates_count[0] = count
+    run_on_ui_thread(_notify_update)
 
 
 def _get_prefs():
@@ -269,25 +442,6 @@ def _set_saved_index(idx):
         prefs = _get_prefs()
         if prefs:
             prefs.edit().putInt("pill_index", int(idx)).apply()
-    except Exception:
-        pass
-
-
-def _get_saved_action():
-    try:
-        prefs = _get_prefs()
-        if prefs:
-            return int(prefs.getInt("pill_action", _ACTION_SETTINGS))
-    except Exception:
-        pass
-    return _ACTION_SETTINGS
-
-
-def _set_saved_action(action):
-    try:
-        prefs = _get_prefs()
-        if prefs:
-            prefs.edit().putInt("pill_action", int(action)).apply()
     except Exception:
         pass
 
@@ -379,9 +533,9 @@ def _restore_visibility():
             except Exception:
                 pass
 
-        log(f"PillWidget: restored state={state} idx={idx}")
+        log(f"UpdatesWidget: restored state={state} idx={idx}")
     except Exception as e:
-        log(f"PillWidget: _restore_visibility error: {e}")
+        log(f"UpdatesWidget: _restore_visibility error: {e}")
 
 
 def _sync_state_from_config():
@@ -406,7 +560,7 @@ def _sync_state_from_config():
         except Exception:
             pass
     except Exception as e:
-        log(f"PillWidget: _sync_state_from_config error: {e}")
+        log(f"UpdatesWidget: _sync_state_from_config error: {e}")
 
 
 def _sync_pillstack():
@@ -423,9 +577,9 @@ def _sync_pillstack():
             PillStackConfig.notifySettingsChanged()
         except Exception:
             pass
-        log("PillWidget: pillstack synced")
+        log("UpdatesWidget: pillstack synced")
     except Exception as e:
-        log(f"PillWidget: _sync_pillstack error: {e}")
+        log(f"UpdatesWidget: _sync_pillstack error: {e}")
 
 
 def _notify_update():
@@ -434,53 +588,10 @@ def _notify_update():
             try:
                 PillStackConfig.notifySettingsChanged()
             except Exception as e:
-                log(f"PillWidget: _notify_update inner error: {e}")
+                log(f"UpdatesWidget: _notify_update inner error: {e}")
         run_on_ui_thread(_do)
     except Exception as e:
-        log(f"PillWidget: _notify_update error: {e}")
-
-
-def _execute_action(plugin, action):
-    if action == _ACTION_INSTALL:
-        _open_install(plugin)
-    elif action == _ACTION_ICONS:
-        _open_icons(plugin)
-    else:
-        _open_settings(plugin)
-
-
-def _open_settings(plugin):
-    try:
-        from client_utils import get_last_fragment
-        from com.exteragram.messenger.plugins import PluginsController
-        from com.exteragram.messenger.plugins.ui import PluginSettingsActivity
-
-        fragment = get_last_fragment()
-        p = PluginsController.getInstance().plugins.get(plugin.id)
-        if p:
-            fragment.presentFragment(PluginSettingsActivity(p))
-        else:
-            from ui.bulletin import BulletinHelper
-            from elyx import strings
-            BulletinHelper.show_error(strings.plugin_not_found)
-    except Exception as e:
-        log(f"PillWidget: _open_settings error: {e}")
-
-
-def _open_install(plugin):
-    try:
-        from ..ui.PluginListActivity.fragment import InstallUI
-        InstallUI(plugin).open()
-    except Exception as e:
-        log(f"PillWidget: _open_install error: {e}")
-
-
-def _open_icons(plugin):
-    try:
-        from ..ui.IconsListActivity.fragment import InstallIconsUI
-        InstallIconsUI(plugin).open()
-    except Exception as e:
-        log(f"PillWidget: _open_icons error: {e}")
+        log(f"UpdatesWidget: _notify_update error: {e}")
 
 
 def _open_pill_stack_settings():
@@ -494,22 +605,13 @@ def _open_pill_stack_settings():
         if frag:
             frag.presentFragment(PillStackPreferencesActivity())
     except Exception as e:
-        log(f"PillWidget: _open_pill_stack_settings error: {e}")
+        log(f"UpdatesWidget: _open_pill_stack_settings error: {e}")
 
 
-def _action_label(action, strings):
-    if action == _ACTION_INSTALL:
-        return str(strings.install_plugin)
-    if action == _ACTION_ICONS:
-        return str(strings.install_icons)
-    return str(strings.pill_action_settings)
-
-
-def _show_long_click_menu(plugin, pill):
+def _show_menu(plugin, pill):
     try:
         from client_utils import get_last_fragment
         from org.telegram.ui.Components import ItemOptions
-        from org.telegram.ui.ActionBar import ActionBarMenuSubItem
         from org.telegram.messenger import R as R_tg
         from elyx import strings
 
@@ -517,85 +619,44 @@ def _show_long_click_menu(plugin, pill):
         if fragment is None:
             return
 
-        cur_action = _get_saved_action()
-
         options = ItemOptions.makeOptions(fragment, pill, True)
 
-        swipeback = options.makeSwipeback()
-        icon_back = int(getattr(R_tg.drawable, "ic_ab_back", 0))
-
-        def make_back_runnable():
+        def make_runnable(fn):
             class R(dynamic_proxy(JRunnable)):
                 def __init__(self):
                     super().__init__()
                 def run(self):
-                    options.closeSwipeback()
+                    fn()
             return R()
 
-        swipeback.add(icon_back, str(strings.pill_action_change), make_back_runnable())
-        swipeback.addGap()
+        icon_open = int(getattr(R_tg.drawable, "msg_plugins", 0))
+        options.add(icon_open, str(strings["updates_title"]), make_runnable(lambda: _open_updates(plugin)))
 
-        for action in (_ACTION_SETTINGS, _ACTION_INSTALL, _ACTION_ICONS):
-            label = _action_label(action, strings)
-            checked = (action == cur_action)
+        icon_refresh = int(getattr(R_tg.drawable, "msg_retry", 0))
+        options.add(icon_refresh, str(strings["updates_btn_refresh"]), make_runnable(lambda: _run_check(plugin, _active_pill_ref[0])))
 
-            def make_select_runnable(a=action):
-                class R(dynamic_proxy(JRunnable)):
-                    def __init__(self):
-                        super().__init__()
-                    def run(self):
-                        _set_saved_action(a)
-                        options.dismiss()
-                return R()
-
-            swipeback.addChecked(checked, label, make_select_runnable())
-
-        ctx = options.getContext()
-        sub = ActionBarMenuSubItem(ctx, False, False, None)
-        sub.setTextAndIcon(str(strings.pill_action_change), int(getattr(R_tg.drawable, "msg_mini_customize", 0)))
-        sub.setSubtext(_action_label(cur_action, strings))
-        sub.setItemHeight(56)
-
-        from android_utils import OnClickListener
-        sub.setOnClickListener(OnClickListener(lambda v: options.openSwipeback(swipeback)))
-
-        options.add(sub)
         options.addGap()
 
-        def make_channel_runnable():
-            class R(dynamic_proxy(JRunnable)):
-                def __init__(self):
-                    super().__init__()
-                def run(self):
-                    try:
-                        from client_utils import get_last_fragment
-                        from android.net import Uri
-                        from org.telegram.messenger.browser import Browser
-                        frag = get_last_fragment()
-                        act = frag.getParentActivity() if frag else None
-                        if act:
-                            Browser.openUrl(act, Uri.parse(str(strings.tg_channel_url)), True, True, True, None, None, False, False, False)
-                    except Exception as e:
-                        log(f"PillWidget: open channel error: {e}")
-            return R()
+        def open_channel():
+            try:
+                from android.net import Uri
+                from org.telegram.messenger.browser import Browser
+                frag = get_last_fragment()
+                act = frag.getParentActivity() if frag else None
+                if act:
+                    Browser.openUrl(act, Uri.parse(str(strings["tg_channel_url"])), True, True, True, None, None, False, False, False)
+            except Exception as e:
+                log(f"UpdatesWidget: open channel error: {e}")
 
         icon_channel = int(getattr(R_tg.drawable, "msg_channel", 0))
-        options.add(icon_channel, str(strings.packit_channel), make_channel_runnable())
+        options.add(icon_channel, str(strings["packit_channel"]), make_runnable(open_channel))
 
-        def make_pill_settings_runnable():
-            class R(dynamic_proxy(JRunnable)):
-                def __init__(self):
-                    super().__init__()
-                def run(self):
-                    _open_pill_stack_settings()
-            return R()
-
-        icon_pill = int(getattr(R_tg.drawable, "msg_settings", 0))
-        options.add(icon_pill, str(strings.deeplinks_settings), make_pill_settings_runnable())
+        icon_settings = int(getattr(R_tg.drawable, "msg_settings", 0))
+        options.add(icon_settings, str(strings["deeplinks_settings"]), make_runnable(_open_pill_stack_settings))
 
         options.setSwipebackGravity(True, False)
         options.setDrawScrim(False)
         options.setDimAlpha(0)
         options.show()
     except Exception as e:
-        log(f"PillWidget: _show_long_click_menu error: {e}")
+        log(f"UpdatesWidget: _show_menu error: {e}")
