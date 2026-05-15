@@ -4,6 +4,15 @@ from java import dynamic_proxy
 from android.content import DialogInterface
 
 
+def _show_bulletin(msg: str):
+    try:
+        from android_utils import run_on_ui_thread
+        from ui.bulletin import BulletinHelper
+        run_on_ui_thread(lambda: BulletinHelper.show_info(msg))
+    except Exception as e:
+        log(f"debugItems: _show_bulletin: {e}")
+
+
 def _test_native_error():
     try:
         _ = 123 / 0
@@ -73,13 +82,97 @@ def _migrate_achievements():
         _show_bulletin(f"Error: {e}")
 
 
-def _show_bulletin(msg: str):
+def _inspect_class():
     try:
-        from android_utils import run_on_ui_thread
-        from ui.bulletin import BulletinHelper
-        run_on_ui_thread(lambda: BulletinHelper.show_info(msg))
+        from org.telegram.ui.ActionBar import AlertDialog as TgAlertDialog, Theme as TgTheme
+        from org.telegram.ui.Components import EditTextBoldCursor
+        from android.widget import LinearLayout
+        from android.util import TypedValue
+        from org.telegram.messenger import AndroidUtilities
+        from org.telegram.ui.Components import LayoutHelper
+        from java import dynamic_proxy as _dp
+
+        frag = get_last_fragment()
+        if not frag:
+            return
+        act = frag.getParentActivity()
+        if not act:
+            return
+
+        layout = LinearLayout(act)
+        layout.setOrientation(LinearLayout.VERTICAL)
+
+        edit = EditTextBoldCursor(act)
+        edit.lineYFix = True
+        edit.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18)
+        edit.setHintText("com.example.ClassName")
+        edit.setTextColor(TgTheme.getColor(TgTheme.key_dialogTextBlack))
+        edit.setHintColor(TgTheme.getColor(TgTheme.key_groupcreate_hintText))
+        edit.setFocusable(True)
+        edit.setInputType(0x20001)
+        edit.setCursorColor(TgTheme.getColor(TgTheme.key_windowBackgroundWhiteInputFieldActivated))
+        edit.setLineColors(
+            TgTheme.getColor(TgTheme.key_windowBackgroundWhiteInputField),
+            TgTheme.getColor(TgTheme.key_windowBackgroundWhiteInputFieldActivated),
+            TgTheme.getColor(TgTheme.key_text_RedRegular)
+        )
+        edit.setBackground(None)
+        edit.setPadding(0, AndroidUtilities.dp(6), 0, AndroidUtilities.dp(6))
+        layout.addView(edit, LayoutHelper.createLinear(-1, -2, 24, 0, 24, 10))
+
+        dialog_ref = [None]
+
+        def on_ok(dialog, which):
+            class_name = str(edit.getText()).strip()
+            if not class_name:
+                return
+            if dialog_ref[0]:
+                dialog_ref[0].dismiss()
+            _dump_class_info(class_name)
+
+        class _OkListener(_dp(TgAlertDialog.OnButtonClickListener)):
+            def __init__(self): super().__init__()
+            def onClick(self, dialog, which): on_ok(dialog, which)
+
+        class _ShowListener(_dp(TgAlertDialog.OnShowListener)):
+            def __init__(self): super().__init__()
+            def onShow(self, dialog):
+                edit.requestFocus()
+                AndroidUtilities.showKeyboard(edit)
+
+        builder = TgAlertDialog.Builder(act)
+        builder.setTitle("Inspect class")
+        builder.makeCustomMaxHeight()
+        builder.setView(layout)
+        builder.setWidth(AndroidUtilities.dp(292))
+        builder.setPositiveButton("Inspect", _OkListener())
+        builder.setNegativeButton("Cancel", None)
+        dialog = builder.create()
+        dialog_ref[0] = dialog
+        dialog.setOnShowListener(_ShowListener())
+        dialog.show()
     except Exception as e:
-        log(f"debugItems: _show_bulletin: {e}")
+        log(f"debugItems._inspect_class: {e}")
+
+
+def _dump_class_info(class_name: str):
+    try:
+        from hook_utils import find_class
+        cls = find_class(class_name)
+        if not cls:
+            log(f"inspect: class not found: {class_name}")
+            return
+        java_cls = cls.getClass()
+        log(f"inspect: === {class_name} ===")
+        for m in java_cls.getDeclaredMethods():
+            params = [p.getName() for p in m.getParameterTypes()]
+            ret = m.getReturnType().getName()
+            log(f"inspect: method {m.getName()} params={params} -> {ret}")
+        for f in java_cls.getDeclaredFields():
+            log(f"inspect: field {f.getName()} type={f.getType().getName()}")
+        log(f"inspect: === end {class_name} ===")
+    except Exception as e:
+        log(f"debugItems._dump_class_info: {e}")
 
 
 def show_debug_menu():
@@ -103,6 +196,7 @@ def show_debug_menu():
             ("Native error", _test_native_error),
             ("Startup updates sheet", _trigger_startup_sheet),
             ("Migrate current account to new", _migrate_achievements),
+            ("Inspect class", _inspect_class),
         ]
 
         labels = jarray(JCharSequence)([item[0] for item in ITEMS])
