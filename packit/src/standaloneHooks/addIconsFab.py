@@ -6,41 +6,128 @@ from hook_utils import find_class
 
 def setup_icon_packs_activity_fab(plugin):
     try:
-        IconPacksActivityClass = find_class(
-            "com.exteragram.messenger.icons.ui.IconPacksActivity"
+        AppearanceClass = find_class(
+            "com.exteragram.messenger.preferences.appearance.AppearancePreferencesActivity"
         )
-        if IconPacksActivityClass is None:
-            log("addIconsFab: IconPacksActivity not found")
+        if AppearanceClass is None:
+            log("addIconsFab: AppearancePreferencesActivity not found")
             return None
 
-        ContextClass = find_class("android.content.Context")
-        create_view_method = IconPacksActivityClass.getClass().getDeclaredMethod(
-            "createView", ContextClass
-        )
-        create_view_method.setAccessible(True)
+        target = None
+        for m in AppearanceClass.getClass().getDeclaredMethods():
+            params = [p.getName() for p in m.getParameterTypes()]
+            if params == [
+                "org.telegram.ui.Components.UItem",
+                "android.view.View",
+                "int",
+                "float",
+                "float",
+            ]:
+                target = m
+                break
 
-        class IconPacksActivityCreateViewHook(MethodHook):
+        if target is None:
+            log("addIconsFab: onClick method not found in AppearancePreferencesActivity")
+            return None
+
+        target.setAccessible(True)
+
+        state = {"hook_ref": None, "installed": False}
+
+        class OnClickHook(MethodHook):
             def after_hooked_method(self_hook, param):
-                try:
-                    frag_view = param.getResult()
-                    if frag_view is None:
-                        return
-                    run_on_ui_thread(lambda: _inject_fab(plugin, frag_view))
-                except Exception as e:
-                    log(f"addIconsFab: after_hooked_method error: {e}")
+                if state["installed"]:
+                    return
+                hook_ref = _try_install_create_view_hook(plugin, param.thisObject)
+                if hook_ref is not None:
+                    state["hook_ref"] = hook_ref
+                    state["installed"] = True
 
-        hook_ref = plugin.hook_method(create_view_method, IconPacksActivityCreateViewHook())
-        log("addIconsFab: IconPacksActivity.createView hooked")
+        hook_ref = plugin.hook_method(target, OnClickHook())
+        log("addIconsFab: AppearancePreferencesActivity.onClick hooked, waiting for navigation")
         return hook_ref
     except Exception as e:
         log(f"addIconsFab: setup_icon_packs_activity_fab error: {e}")
         return None
 
 
+def _try_install_create_view_hook(plugin, appearance_instance):
+    try:
+        from client_utils import get_last_fragment
+        frag = get_last_fragment()
+        if frag is None:
+            log("addIconsFab: no last fragment after onClick")
+            return None
+
+        frag_class = frag.getClass()
+        real_name = frag_class.getName()
+        log(f"addIconsFab: last fragment = {real_name}")
+
+        # verify it's a BasePreferencesActivity subclass
+        superclass = frag_class.getSuperclass()
+        while superclass is not None:
+            if superclass.getName() == "com.exteragram.messenger.preferences.BasePreferencesActivity":
+                break
+            superclass = superclass.getSuperclass()
+        else:
+            log(f"addIconsFab: {real_name} is not a BasePreferencesActivity subclass, skipping")
+            return None
+
+        # find createView(Context) -> View by signature
+        create_view_method = None
+        for m in frag_class.getDeclaredMethods():
+            params = m.getParameterTypes()
+            if (len(params) == 1
+                    and params[0].getName() == "android.content.Context"
+                    and m.getReturnType().getName() == "android.view.View"):
+                create_view_method = m
+                break
+
+        if create_view_method is None:
+            log(f"addIconsFab: createView not found on {real_name}")
+            return None
+
+        create_view_method.setAccessible(True)
+        log(f"addIconsFab: found createView on {real_name}, installing hook")
+
+        class CreateViewHook(MethodHook):
+            def after_hooked_method(self_hook, param):
+                try:
+                    frag_view = param.getResult()
+                    if frag_view is None:
+                        log("addIconsFab: createView returned null")
+                        return
+                    log("addIconsFab: createView fired, injecting FAB")
+                    run_on_ui_thread(lambda: _inject_fab(plugin, frag_view))
+                except Exception as e:
+                    log(f"addIconsFab: after_hooked_method error: {e}")
+
+        hook_ref = plugin.hook_method(create_view_method, CreateViewHook())
+        log(f"addIconsFab: {real_name}.createView hooked")
+
+        # createView already ran for current visit — inject into live view immediately
+        try:
+            current_view = frag.getFragmentView()
+            if current_view is not None:
+                log("addIconsFab: injecting FAB into current live view")
+                run_on_ui_thread(lambda: _inject_fab(plugin, current_view))
+            else:
+                log("addIconsFab: getFragmentView returned null, will inject on next createView")
+        except Exception as e:
+            log(f"addIconsFab: immediate inject error: {e}")
+
+        return hook_ref
+    except Exception as e:
+        log(f"addIconsFab: _try_install_create_view_hook error: {e}")
+        return None
+
+
 def _inject_fab(plugin, frag_view):
+    log(f"addIconsFab: _inject_fab called, view={frag_view}")
     try:
         from elyx import settings
         if not settings.get("show_icon_packs_fab", True):
+            log("addIconsFab: show_icon_packs_fab is disabled, skipping")
             return
     except Exception:
         pass
@@ -92,8 +179,8 @@ def _inject_fab(plugin, frag_view):
             icon_id = getattr(R_tg.drawable, "msg_addbot", 0)
             fab_icon.setImageResource(icon_id)
             fab_icon.setColorFilter(Theme.getColor(Theme.key_chats_actionIcon))
-        except Exception:
-            pass
+        except Exception as e:
+            log(f"addIconsFab: icon setup error: {e}")
         fab.addView(fab_icon, FrameLayout.LayoutParams(-1, -1))
 
         def on_fab_click(v):
@@ -113,6 +200,6 @@ def _inject_fab(plugin, frag_view):
         frag_view.addView(fab, fab_lp)
         fab.bringToFront()
 
-        log("addIconsFab: FAB injected into IconPacksActivity")
+        log(f"addIconsFab: FAB injected, view child count={frag_view.getChildCount()}")
     except Exception as e:
         log(f"addIconsFab: _inject_fab error: {e}")

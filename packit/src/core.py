@@ -620,7 +620,7 @@ def install_plugin_silent(file_path: str, plugin_data: dict, repo_id: str, on_co
         from .utils.installIndex import set_pending, commit_pending
 
         Callback = gen(Utilities.Callback, "run")
-        python_engine = PluginsController.engines.get("python")
+        python_engine = PluginsController.getEngines().get("python")
 
         try:
             set_pending(plugin_data, repo_id)
@@ -674,7 +674,7 @@ def onlyLocalInstallNoUi(file_path: str, plugin_id: str, on_done):
         from org.telegram.messenger import Utilities
 
         Callback = gen(Utilities.Callback, "run")
-        python_engine = PluginsController.engines.get("python")
+        python_engine = PluginsController.getEngines().get("python")
 
         def on_enabled(error):
             if error:
@@ -688,9 +688,9 @@ def onlyLocalInstallNoUi(file_path: str, plugin_id: str, on_done):
             run_on_ui_thread(lambda: on_done(error))
 
         run_on_ui_thread(lambda: python_engine.loadPluginFromFile(file_path, None, Callback(on_installed)))
-    except Exception as e:
-        log(f"core.onlyLocalInstallNoUi: error for '{plugin_id}': {e}")
-        run_on_ui_thread(lambda: on_done(e))
+    except Exception as err:
+        log(f"core.onlyLocalInstallNoUi: error for '{plugin_id}': {err}")
+        run_on_ui_thread(lambda: on_done(err))
 
 
 class PackItCore:
