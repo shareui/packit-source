@@ -257,6 +257,23 @@ def _dump_class_info(class_name: str, methods: bool = True, fields: bool = True)
         log(f"debugItems._dump_class_info: {e}")
 
 
+def _check_build_info():
+    try:
+        from ..utils.buildInfo import (
+            getBuildClientName, getBuildClientPkg,
+            getCurrClientName, getCurrClientPkg,
+            getBuildStaticVersion, getClientVersion
+        )
+        log(f"buildInfo.getBuildClientName: {getBuildClientName()}")
+        log(f"buildInfo.getBuildClientPkg: {getBuildClientPkg()}")
+        log(f"buildInfo.getCurrClientName: {getCurrClientName()}")
+        log(f"buildInfo.getCurrClientPkg: {getCurrClientPkg()}")
+        log(f"buildInfo.getBuildStaticVersion: {getBuildStaticVersion()}")
+        log(f"buildInfo.getClientVersion: {getClientVersion()}")
+    except Exception as e:
+        log(f"debugItems._check_build_info: {e}")
+
+
 def show_debug_menu():
     try:
         from org.telegram.ui.ActionBar import AlertDialog
@@ -280,6 +297,7 @@ def show_debug_menu():
             ("Migrate current account to new", _migrate_achievements),
             ("Inspect class", _inspect_class),
             ("Inspect methods", _inspect_methods),
+            ("Check Build Info", _check_build_info),
         ]
 
         labels = jarray(JCharSequence)([item[0] for item in ITEMS])
