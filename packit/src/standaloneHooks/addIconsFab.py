@@ -64,7 +64,6 @@ def _try_install_create_view_hook(plugin, appearance_instance):
         log(f"addIconsFab: last fragment = {real_name}")
 
 
-        # verify it's a BasePreferencesActivity subclass
         superclass = frag_class.getSuperclass()
         while superclass is not None:
             if superclass.getName() == "com.exteragram.messenger.preferences.BasePreferencesActivity":
@@ -74,7 +73,6 @@ def _try_install_create_view_hook(plugin, appearance_instance):
             log(f"addIconsFab: {real_name} is not a BasePreferencesActivity subclass, skipping")
             return None
 
-        # find createView(Context) -> View by signature
         create_view_method = None
         for m in frag_class.getDeclaredMethods():
             params = m.getParameterTypes()
@@ -139,7 +137,6 @@ def _inject_fab(plugin, frag_view):
         from org.telegram.messenger import AndroidUtilities
         from org.telegram.ui.ActionBar import Theme
 
-        # same size/margins as FragmentFloatingButton.createDefaultLayoutParams(): 48dp, margin 20/14
         fab_size_dp = 48
         fab_size = AndroidUtilities.dp(fab_size_dp)
         margin_side = AndroidUtilities.dp(20)

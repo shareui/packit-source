@@ -4,9 +4,6 @@ from android_utils import log
 
 
 class _InstallSuccessHook(MethodHook):
-    # hooks obfuscated lambda: (InstallPluginBottomSheet, String loadError, BaseFragment)
-    # args[1]=loadError, null means successful install
-
     def after_hooked_method(self, param):
         try:
             error_str = param.args[1]
@@ -33,8 +30,6 @@ def setup_install_dismiss_hook(plugin) -> list:
             log("installDismissHook: InstallPluginBottomSheet not found")
             return hooks
 
-        # after R8/lsparanoid obfuscation lambda names change, so match by parameter types:
-        # (InstallPluginBottomSheet, String, BaseFragment)
         target = None
         for m in InstallSheet.getClass().getDeclaredMethods():
             params = m.getParameterTypes()
