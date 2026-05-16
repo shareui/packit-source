@@ -158,10 +158,59 @@ def _inspect_class():
 def _dump_class_info(class_name: str):
     try:
         from hook_utils import find_class
-        cls = find_class(class_name)
-        if not cls:
-            log(f"inspect: class not found: {class_name}")
+
+        cls = None
+        try:
+            cls = find_class(class_name)
+        except Exception as e:
+            log(f"inspect: find_class raised for {class_name}: {e}, trying classloader fallback")
+
+        if cls is None:
+            # try loading via classloader of the last fragment
+            try:
+                frag = get_last_fragment()
+                if frag is not None:
+                    cl = frag.getClass().getClassLoader()
+                    if cl is not None:
+                        cls = cl.loadClass(class_name)
+            except Exception as e:
+                log(f"inspect: classloader fallback failed for {class_name}: {e}")
+
+        if cls is None:
+            # last resort: scan dex entries for a class whose simple name matches
+            simple_name = class_name.split(".")[-1]
+            log(f"inspect: scanning dex for simple name '{simple_name}'...")
+            candidates = []
+            try:
+                from java.lang import Thread as JThread
+                from hook_utils import get_private_field
+                cl = JThread.currentThread().getContextClassLoader()
+                path_list = get_private_field(cl, "pathList")
+                dex_elements = get_private_field(path_list, "dexElements")
+                for elem in dex_elements:
+                    dex_file = get_private_field(elem, "dexFile")
+                    if dex_file is None:
+                        continue
+                    entries = dex_file.entries()
+                    while entries.hasMoreElements():
+                        entry = str(entries.nextElement())
+                        if entry.endswith(f".{simple_name}") or entry == simple_name:
+                            candidates.append(entry)
+            except Exception as e:
+                log(f"inspect: dex scan failed: {e}")
+
+            if candidates:
+                log(f"inspect: dex candidates for '{simple_name}': {candidates}")
+                _show_bulletin(f"Not found, dex has {len(candidates)} candidate(s) — check log")
+            else:
+                log(
+                    f"inspect: class not found: {class_name} — "
+                    f"check the fully qualified name. if the class is loaded dynamically or inside a plugin, "
+                    f"it may not be reachable via the default classloader."
+                )
+                _show_bulletin(f"Class not found: {class_name}")
             return
+
         java_cls = cls.getClass()
         log(f"inspect: === {class_name} ===")
         for m in java_cls.getDeclaredMethods():
