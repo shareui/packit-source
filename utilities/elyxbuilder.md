@@ -69,6 +69,10 @@ elyb build --ast
 elyb build --compile
 elyb build --compile --reset
 elyb build -p aes-256 mypassword
+elyb build -sv 1.0.0
+elyb build -sv 1.0.0 true
+elyb build -sc com.example.client
+elyb build -sc com.example.client myclient
 ```
 
 | Флаг | Описание |
@@ -81,6 +85,8 @@ elyb build -p aes-256 mypassword
 | `-r`, `--reset` | Очистить кэш компиляции перед сборкой (только с `--compile`) |
 | `-p METHOD PASS` | Зашифровать архив |
 | `-ni`, `--no-info` | Не добавлять блок с информацией elyxbuilder в `meta.yml` |
+| `-sv VERSION [APPEND]` | Добавить `static_ver` в блок информации о сборке; необязательный `APPEND=true` добавляет `-{version}` к имени архива (по умолчанию: `false`) |
+| `-sc PACKAGE [NAME]` | Добавить `client` в блок информации о сборке; необязательный `NAME` добавляет `-{name}` к имени архива |
 
 `--ast` и `--compile` взаимоисключающие.
 
@@ -98,7 +104,13 @@ buildDate: 2026-05-09
 pythonVer: 3.11
 sourceHash: a3f2...
 elybVer: 0.3.0
+static_ver: "1.0.0"
+client: "com.example.client"
 ```
+
+`static_ver` присутствует только при передаче `-sv` / `--static-version`. Если необязательный второй аргумент равен `true`, к имени архива добавляется `-{version}` (например, `MyPlugin-1.0.0.eaf`).
+
+`client` присутствует только при передаче `-sc` / `--static-client`. Если указан необязательный второй аргумент, к имени архива добавляется `-{name}` (например, `MyPlugin-myclient.eaf`).
 
 Используйте `-ni` / `--no-info`, чтобы пропустить этот блок.
 
