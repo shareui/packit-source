@@ -467,9 +467,9 @@ def install_icon_pack(icon_info: dict):
             # use kotlinx runBlocking which provides a proper coroutine context
             from hook_utils import find_class
 
-            IconPackStorage = find_class("com.exteragram.messenger.icons.IconPackStorage")
+            IconPackStorage = find_class("x.yj5")
             IconManager = find_class("com.exteragram.messenger.icons.IconManager")
-            InstallIconPackBottomSheet = find_class("com.exteragram.messenger.icons.ui.components.InstallIconPackBottomSheet")
+            InstallIconPackBottomSheet = find_class("x.jk5")
             File = find_class("java.io.File")
             tmp_file_obj = File(tmp_path)
 

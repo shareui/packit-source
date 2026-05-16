@@ -63,6 +63,7 @@ def _try_install_create_view_hook(plugin, appearance_instance):
         real_name = frag_class.getName()
         log(f"addIconsFab: last fragment = {real_name}")
 
+
         # verify it's a BasePreferencesActivity subclass
         superclass = frag_class.getSuperclass()
         while superclass is not None:
