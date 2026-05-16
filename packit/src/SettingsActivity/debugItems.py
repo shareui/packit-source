@@ -82,7 +82,7 @@ def _migrate_achievements():
         _show_bulletin(f"Error: {e}")
 
 
-def _inspect_class():
+def _show_class_input_dialog(title: str, on_submit):
     try:
         from org.telegram.ui.ActionBar import AlertDialog as TgAlertDialog, Theme as TgTheme
         from org.telegram.ui.Components import EditTextBoldCursor
@@ -128,7 +128,7 @@ def _inspect_class():
                 return
             if dialog_ref[0]:
                 dialog_ref[0].dismiss()
-            _dump_class_info(class_name)
+            on_submit(class_name)
 
         class _OkListener(_dp(TgAlertDialog.OnButtonClickListener)):
             def __init__(self): super().__init__()
@@ -141,7 +141,7 @@ def _inspect_class():
                 AndroidUtilities.showKeyboard(edit)
 
         builder = TgAlertDialog.Builder(act)
-        builder.setTitle("Inspect class")
+        builder.setTitle(title)
         builder.makeCustomMaxHeight()
         builder.setView(layout)
         builder.setWidth(AndroidUtilities.dp(292))
@@ -152,34 +152,62 @@ def _inspect_class():
         dialog.setOnShowListener(_ShowListener())
         dialog.show()
     except Exception as e:
-        log(f"debugItems._inspect_class: {e}")
+        log(f"debugItems._show_class_input_dialog: {e}")
 
 
-def _dump_class_info(class_name: str):
+def _inspect_class():
+    _show_class_input_dialog("Inspect class", lambda name: _dump_class_info(name, methods=True, fields=True))
+
+
+def _inspect_methods():
+    _show_class_input_dialog("Inspect methods", lambda name: _dump_class_info(name, methods=True, fields=False))
+
+
+def _resolve_java_class(class_name: str):
+    from hook_utils import find_class
+    cls = None
     try:
-        from hook_utils import find_class
-
-        cls = None
+        cls = find_class(class_name)
+    except Exception:
+        pass
+    if cls is None:
         try:
-            cls = find_class(class_name)
-        except Exception as e:
-            log(f"inspect: find_class raised for {class_name}: {e}, trying classloader fallback")
+            frag = get_last_fragment()
+            if frag is not None:
+                cl = frag.getClass().getClassLoader()
+                if cl is not None:
+                    cls = cl.loadClass(class_name)
+        except Exception:
+            pass
+    if cls is None:
+        return None, None
+    java_cls = None
+    try:
+        from java.lang import Thread as JThread
+        from java.lang import Class as JClass
+        cl = JThread.currentThread().getContextClassLoader()
+        java_cls = JClass.forName(class_name, True, cl)
+    except Exception:
+        pass
+    if java_cls is None:
+        try:
+            frag = get_last_fragment()
+            from java.lang import Class as JClass
+            cl = frag.getClass().getClassLoader()
+            java_cls = JClass.forName(class_name, True, cl)
+        except Exception:
+            pass
+    if java_cls is None:
+        java_cls = cls.getClass()
+    return cls, java_cls
 
-        if cls is None:
-            # try loading via classloader of the last fragment
-            try:
-                frag = get_last_fragment()
-                if frag is not None:
-                    cl = frag.getClass().getClassLoader()
-                    if cl is not None:
-                        cls = cl.loadClass(class_name)
-            except Exception as e:
-                log(f"inspect: classloader fallback failed for {class_name}: {e}")
 
-        if cls is None:
-            # last resort: scan dex entries for a class whose simple name matches
+def _dump_class_info(class_name: str, methods: bool = True, fields: bool = True):
+    try:
+        cls, java_cls = _resolve_java_class(class_name)
+        if java_cls is None:
+            # try dex scan
             simple_name = class_name.split(".")[-1]
-            log(f"inspect: scanning dex for simple name '{simple_name}'...")
             candidates = []
             try:
                 from java.lang import Thread as JThread
@@ -198,28 +226,33 @@ def _dump_class_info(class_name: str):
                             candidates.append(entry)
             except Exception as e:
                 log(f"inspect: dex scan failed: {e}")
-
             if candidates:
                 log(f"inspect: dex candidates for '{simple_name}': {candidates}")
                 _show_bulletin(f"Not found, dex has {len(candidates)} candidate(s) — check log")
             else:
-                log(
-                    f"inspect: class not found: {class_name} — "
-                    f"check the fully qualified name. if the class is loaded dynamically or inside a plugin, "
-                    f"it may not be reachable via the default classloader."
-                )
                 _show_bulletin(f"Class not found: {class_name}")
             return
-
-        java_cls = cls.getClass()
-        log(f"inspect: === {class_name} ===")
-        for m in java_cls.getDeclaredMethods():
-            params = [p.getName() for p in m.getParameterTypes()]
-            ret = m.getReturnType().getName()
-            log(f"inspect: method {m.getName()} params={params} -> {ret}")
-        for f in java_cls.getDeclaredFields():
-            log(f"inspect: field {f.getName()} type={f.getType().getName()}")
-        log(f"inspect: === end {class_name} ===")
+        if methods:
+            try:
+                for m in java_cls.getDeclaredMethods():
+                    try:
+                        params = [p.getName() for p in m.getParameterTypes()]
+                        ret = m.getReturnType().getName()
+                        log(f"method {m.getName()} {params} -> {ret}")
+                    except Exception as me:
+                        log(f"method dump error: {me}")
+            except Exception as e:
+                log(f"getDeclaredMethods failed: {e}")
+        if fields:
+            try:
+                for f in java_cls.getDeclaredFields():
+                    try:
+                        log(f"field {f.getName()} {f.getType().getName()}")
+                    except Exception as fe:
+                        log(f"field dump error: {fe}")
+            except Exception as e:
+                log(f"getDeclaredFields failed: {e}")
+        log(f"inspect done: {class_name}")
     except Exception as e:
         log(f"debugItems._dump_class_info: {e}")
 
@@ -246,6 +279,7 @@ def show_debug_menu():
             ("Startup updates sheet", _trigger_startup_sheet),
             ("Migrate current account to new", _migrate_achievements),
             ("Inspect class", _inspect_class),
+            ("Inspect methods", _inspect_methods),
         ]
 
         labels = jarray(JCharSequence)([item[0] for item in ITEMS])
