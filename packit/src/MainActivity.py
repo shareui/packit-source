@@ -352,5 +352,20 @@ class SettingsBuilder:
                 create_sub_fragment=self.contributorsSettings.build
             ),
             
-            Divider(),
+            Divider(text=self._build_client_label()),
         ]
+
+    def _build_client_label(self):
+        from .utils.buildInfo import getBuildClientName, getBuildStaticVersion
+
+        client_str = getBuildClientName()
+        static_ver = getBuildStaticVersion()
+
+        log(f"MainActivity: buildInfo client={client_str!r} static_ver={static_ver!r}")
+
+        if client_str == "Universal" and not static_ver:
+            return "Universal"
+
+        ver_str = static_ver if static_ver else "Universal"
+
+        return f"{client_str} {ver_str}"
