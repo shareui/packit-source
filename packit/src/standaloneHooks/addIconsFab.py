@@ -63,14 +63,9 @@ def _try_install_create_view_hook(plugin, appearance_instance):
         real_name = frag_class.getName()
         log(f"addIconsFab: last fragment = {real_name}")
 
-
-        superclass = frag_class.getSuperclass()
-        while superclass is not None:
-            if superclass.getName() == "com.exteragram.messenger.preferences.BasePreferencesActivity":
-                break
-            superclass = superclass.getSuperclass()
-        else:
-            log(f"addIconsFab: {real_name} is not a BasePreferencesActivity subclass, skipping")
+        # check fragment is the icons activity (obfuscated class, x.jk5 = OBF_IconsActivity_EXTERAGRAM)
+        if real_name != "x.jk5":
+            log(f"addIconsFab: {real_name} is not icons activity, skipping")
             return None
 
         create_view_method = None

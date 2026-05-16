@@ -29,6 +29,9 @@ except Exception as e:
 import time
 import signal
 
+OBF_IconPackStorage_EXTERAGRAM = "x.yj5"
+OBF_InstallIconPackBottomSheet_EXTERAGRAM = "x.jk5"
+
 _install_listeners = []
 _install_listeners_lock = threading.Lock()
 
@@ -466,10 +469,11 @@ def install_icon_pack(icon_info: dict):
             # must be called with a valid Continuation, not None
             # use kotlinx runBlocking which provides a proper coroutine context
             from hook_utils import find_class
+            from java import jclass
 
-            IconPackStorage = find_class("x.yj5")
+            IconPackStorage = jclass(OBF_IconPackStorage_EXTERAGRAM)
             IconManager = find_class("com.exteragram.messenger.icons.IconManager")
-            InstallIconPackBottomSheet = find_class("x.jk5")
+            InstallIconPackBottomSheet = find_class(OBF_InstallIconPackBottomSheet_EXTERAGRAM)
             File = find_class("java.io.File")
             tmp_file_obj = File(tmp_path)
 
