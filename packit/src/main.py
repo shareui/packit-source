@@ -26,6 +26,7 @@ from .ChatActivity.export.DecryptorBottomSheet import setup_packit_file_hook
 from .ChatActivity.afpFile import setup_afp_file_hook
 from .standaloneHooks.addPluginFab import setup_plugins_activity_fab
 from .standaloneHooks.addIconsFab import setup_icon_packs_activity_fab
+from .DialogsActivity.buildNotCorrect import setup_build_not_correct_check
 from .ChatActivity.pluginAutocomplete import (
     setup_packit_autocomplete,
     _packit_get_class,
@@ -127,6 +128,7 @@ class PackItPlugin(BasePlugin):
         if CHECK_SO_PATHS:
             checkSoPaths()
         LocalConfig.init()
+        setup_build_not_correct_check()
         try:
             from .utils.installIndex import purge_missing
             purge_missing()

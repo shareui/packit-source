@@ -992,5 +992,18 @@
   "updates_widget_many_updates": "{count} обновления",
   "updates_widget_label": "Доступные обновления",
   "updplugins_pill_stack_settings": "Виджет обновлений",
-  "updplugins_pill_stack_settings_desc": "К списку виджетов"
+  "updplugins_pill_stack_settings_desc": "К списку виджетов",
+  "updates_btn_ignore": "Игнорировать",
+  "updates_btn_update_all": "Обновить все",
+  "updates_btn_ignore_list": "Список игнорирования",
+  "build_not_correct_title": "Несовместимость",
+  "build_not_correct_client": "Сборка предназначена для {app_name}, но ваш клиент — {current_app_name}. Некоторые функции могут не работать.",
+  "build_not_correct_version": "Сборка предназначена для версии {build_version}, но версия вашего клиента — {client_version}. Некоторые функции могут не работать.",
+  "build_not_correct_both": "Сборка предназначена для {app_name} {app_version}, но вы используете {current_app_name} {current_app_version}. Многие функции могут не работать.",
+  "build_not_correct_client_short": "Эта сборка предназначена для другого клиента. Некоторые функции могут не работать.",
+  "build_not_correct_version_short": "Эта сборка предназначена для другой версии. Некоторые функции могут не работать.",
+  "build_not_correct_both_short": "Эта сборка предназначена для другого клиента и версии. Многие функции могут не работать.",
+  "build_not_correct_label_build": "Цель сборки",
+  "build_not_correct_label_yours": "Ваш клиент",
+  "build_not_correct_list_of_versions": "Список версий"
 }

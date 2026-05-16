@@ -47,6 +47,10 @@ def getCurrClientPkg():
 def getCurrClientName():
     return _resolveClientName(getCurrClientPkg())
     
+# return sourceHash from build info (sha256 of sources), or None if absent
+def getBuildHash():
+    return _readMeta().get("sourceHash")
+
 # return current client ver
 def getClientVersion():
     try:

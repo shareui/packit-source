@@ -995,5 +995,15 @@
   "updates_widget_many_updates": "{count} updates",
   "updates_widget_label": "Available updates",
   "updplugins_pill_stack_settings": "Update widget",
-  "updplugins_pill_stack_settings_desc": "To the list of widgets"
+  "updplugins_pill_stack_settings_desc": "To the list of widgets",
+  "build_not_correct_title": "Incompatibility",
+  "build_not_correct_client": "The build is intended for {app_name} but your client is {current_app_name}. Some functions may not work.",
+  "build_not_correct_version": "The build is for version {build_version}, but your client version is {client_version}. Some functions may not work.",
+  "build_not_correct_both": "The build is for {app_name} {app_version}, but you're using {current_app_name} {current_app_version}. Many functions may not work.",
+  "build_not_correct_client_short": "This build targets a different client. Some functions may not work.",
+  "build_not_correct_version_short": "This build targets a different version. Some functions may not work.",
+  "build_not_correct_both_short": "This build targets a different client and version. Many functions may not work.",
+  "build_not_correct_label_build": "Build target",
+  "build_not_correct_label_yours": "Your client",
+  "build_not_correct_list_of_versions": "List of versions"
 }

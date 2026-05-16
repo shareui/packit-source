@@ -4,5 +4,6 @@
   "showTgc": false,
   "installUiOpenCount": 0,
   "update_dismissed_ver": "",
-  "signatures": false
+  "signatures": false,
+  "build_not_correct_dismissed_hash": ""
 }
