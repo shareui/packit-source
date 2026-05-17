@@ -25,7 +25,7 @@ def build_misc_page(other_settings):
             key="live_search",
             text=strings.live_search,
             subtext=strings.live_search_desc,
-            default=False,
+            default=True,
             icon="msg_search",
             link_alias="live_search"
         ),

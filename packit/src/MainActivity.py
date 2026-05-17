@@ -31,6 +31,7 @@ except Exception as e:
     import android_utils as _au; _au.log(f"import com.exteragram.messenger.plugins.models import HeaderSetting failed: {e}")
     from .utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 from android.widget import FrameLayout, TextView, LinearLayout, ScrollView
+from android.graphics.drawable import GradientDrawable
 from android.view import Gravity
 from android.util import TypedValue
 try:
@@ -110,20 +111,29 @@ class SettingsBuilder:
                             item.settingItem = HeaderSetting("packit_header")
                             try:
                                 item.setTransparent(True)
-                            except:
-                                pass
+                            except Exception as e:
+                                log(f"MainActivity: setTransparent header error: {e}")
                             items.add(0, item)
                             items.add(1, UItem.asShadow())
-                    except Exception:
-                        pass
+
+                        footer = self.settings_builder._create_footer_view(activity.getContext())
+                        if footer:
+                            f_item = UItem.asCustom(footer)
+                            try:
+                                f_item.setTransparent(True)
+                            except Exception as e:
+                                log(f"MainActivity: setTransparent footer error: {e}")
+                            items.add(f_item)
+                    except Exception as e:
+                        log(f"MainActivity: hook after_hooked_method error: {e}")
 
             PSA = find_class("com.exteragram.messenger.plugins.ui.PluginSettingsActivity")
             if PSA:
                 method = PSA.getClass().getDeclaredMethod("fillItems", find_class("java.util.ArrayList"), find_class("org.telegram.ui.Components.UniversalAdapter"))
                 method.setAccessible(True)
                 return self.plugin.hook_method(method, PackitSettingsHeaderHook(self))
-        except Exception:
-            pass
+        except Exception as e:
+            log(f"MainActivity: _setup_settings_header_hook error: {e}")
         return None
 
     def _create_settings_header(self, context):
@@ -352,7 +362,7 @@ class SettingsBuilder:
                 create_sub_fragment=self.contributorsSettings.build
             ),
             
-            Divider(text=self._build_client_label()),
+            Divider(),
         ]
 
     def _build_client_label(self):
@@ -369,3 +379,45 @@ class SettingsBuilder:
         ver_str = static_ver if static_ver else "Universal"
 
         return f"{client_str} {ver_str}"
+
+    def _create_footer_view(self, context):
+        try:
+            root = LinearLayout(context)
+            root.setOrientation(LinearLayout.VERTICAL)
+            root.setGravity(Gravity.CENTER_HORIZONTAL)
+            root.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(8), AndroidUtilities.dp(12), AndroidUtilities.dp(16))
+
+            label = TextView(context)
+            label.setText(self._build_client_label())
+            label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+            label.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+            label.setGravity(Gravity.CENTER)
+
+            root.addView(label)
+
+            chip = TextView(context)
+            chip.setText("Powered by ElyxCore")
+            chip.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 10)
+            chip.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(2), AndroidUtilities.dp(8), AndroidUtilities.dp(2))
+            chip.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+            chip.setGravity(Gravity.CENTER)
+
+            cbg = GradientDrawable()
+            cbg.setCornerRadius(AndroidUtilities.dp(12))
+            dark = Theme.isCurrentThemeDark()
+            gray = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+            stroke_color = (gray & 0x40FFFFFF) if dark else 0x20000000
+            cbg.setStroke(AndroidUtilities.dp(1), stroke_color)
+            chip.setBackground(cbg)
+
+            clp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+            clp.topMargin = AndroidUtilities.dp(8)
+            root.addView(chip, clp)
+
+            return root
+        except Exception as e:
+            log(f"MainActivity: _create_footer_view error: {e}")
+            return None
+
+
+

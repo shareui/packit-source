@@ -459,7 +459,7 @@ class ContributorsSettings:
         if divider is not None:
             items.append(divider)
 
-        item = self._make_link_item("msg_channel", str(strings.personal_channel), "t.me/I_am_Vestr", lambda v: self._open_url("https://t.me/I_am_Vestr"))
+        item = self._make_link_item("msg_channel", str(strings.plugins_channel), "t.me/I_am_Vestr", lambda v: self._open_url("https://t.me/I_am_Vestr"))
         if item is not None:
             items.append(item)
             
