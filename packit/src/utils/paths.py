@@ -43,3 +43,6 @@ def getRepoIndexPath(rmRid: str) -> str:
 
 def getIconPackTmpPath(packId: str) -> str:
     return _cacheDir() + f"/packit_iconpack_{packId}.icons"
+
+def getClassesCachePath() -> str:
+    return _filesDir() + "/packit/.cache/classes/icons.json"

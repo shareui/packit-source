@@ -465,36 +465,294 @@ def install_icon_pack(icon_info: dict):
                         downloaded += len(chunk)
                         _set_progress(dlg, min(99, int(downloaded * 100 / total)))
 
-            # parse pack on background thread — parsePackFromZip is a suspend function
-            # must be called with a valid Continuation, not None
-            # use kotlinx runBlocking which provides a proper coroutine context
-            from hook_utils import find_class
             from java import jclass
 
-            IconPackStorage = jclass(OBF_IconPackStorage_EXTERAGRAM)
-            IconManager = find_class("com.exteragram.messenger.icons.IconManager")
-            InstallIconPackBottomSheet = find_class(OBF_InstallIconPackBottomSheet_EXTERAGRAM)
-            File = find_class("java.io.File")
-            tmp_file_obj = File(tmp_path)
+            IconPackStorageCls = jclass(OBF_IconPackStorage_EXTERAGRAM)
+            FileCls = jclass("java.io.File")
+            tmp_file_obj = FileCls(tmp_path)
 
-            result_holder = [None]
-            done_event = threading.Event()
+            # resolve InstallDelegate and InstallIconPackBottomSheet:
+            # 1. try cache, 2. fallback to OBF constants, 3. dex scan only if SRCH_OBF_ICONS_CLASSES=True
+            InstallIconPackBottomSheet = None
+            _install_delegate_name = None
+            InstallDelegate = None
+            _sheet_class_name = None
+            _cached_icon_pack_cls_name = None
 
-            Continuation = find_class("kotlin.coroutines.Continuation")
-            EmptyCoroutineContext = find_class("kotlin.coroutines.EmptyCoroutineContext")
+            def _load_classes_from_cache() -> bool:
+                try:
+                    from .utils.paths import getClassesCachePath
+                    import json as _j
+                    p = getClassesCachePath()
+                    if not os.path.exists(p):
+                        return False
+                    with open(p, "r") as f:
+                        data = _j.load(f)
+                    d = data.get("delegate")
+                    s = data.get("sheet")
+                    ip = data.get("icon_pack")
+                    if not d or not s:
+                        return False
+                    nonlocal _install_delegate_name, InstallDelegate, _sheet_class_name, InstallIconPackBottomSheet, _cached_icon_pack_cls_name
+                    _install_delegate_name = d
+                    InstallDelegate = jclass(d)
+                    _sheet_class_name = s
+                    InstallIconPackBottomSheet = jclass(s)
+                    if ip:
+                        _cached_icon_pack_cls_name = ip
+                    log(f"core.install_icon_pack: classes loaded from cache: delegate={d} sheet={s} icon_pack={ip}")
+                    return True
+                except Exception as e:
+                    log(f"core.install_icon_pack: cache load error: {e}")
+                    return False
 
-            class _ParseCont(dynamic_proxy(Continuation)):
-                def getContext(self):
-                    return EmptyCoroutineContext.INSTANCE
-                def resumeWith(self, result):
-                    # kotlin inline Result<T> at JVM level passes value directly on success
-                    result_holder[0] = result
-                    done_event.set()
+            def _save_classes_to_cache(delegate: str, sheet: str, icon_pack: str = ""):
+                try:
+                    from .utils.paths import getClassesCachePath
+                    import json as _j
+                    p = getClassesCachePath()
+                    os.makedirs(os.path.dirname(p), exist_ok=True)
+                    with open(p, "w") as f:
+                        _j.dump({"delegate": delegate, "sheet": sheet, "icon_pack": icon_pack}, f)
+                    log(f"core.install_icon_pack: classes cached: delegate={delegate} sheet={sheet} icon_pack={icon_pack}")
+                except Exception as e:
+                    log(f"core.install_icon_pack: cache save error: {e}")
 
-            IconPackStorage.INSTANCE.parsePackFromZip(tmp_file_obj, _ParseCont())
-            done_event.wait(timeout=30)
+            if not _load_classes_from_cache():
+                try:
+                    cl = IconPackStorageCls.getClass().getClassLoader()
+                    DexFileCls = jclass("dalvik.system.DexFile")
+                    appInfo = jclass("android.app.ActivityThread").currentApplication().getApplicationInfo()
+                    dex = DexFileCls(appInfo.sourceDir)
+                    entries = dex.entries()
+                    while entries.hasMoreElements():
+                        cname = str(entries.nextElement())
+                        # only scan short obfuscated names in same namespace
+                        if not (cname.startswith("x.") and len(cname) <= 8):
+                            continue
+                        try:
+                            cls = cl.loadClass(cname)
+                            if not cls.isInterface():
+                                continue
+                            methods = cls.getDeclaredMethods()
+                            if len(methods) != 1:
+                                continue
+                            pts = [p.getName() for p in methods[0].getParameterTypes()]
+                            if pts == ["boolean", "boolean"]:
+                                _install_delegate_name = cname
+                                log(f"core.install_icon_pack: InstallDelegate found via DexFile: {cname}")
+                                break
+                        except Exception:
+                            continue
+                    dex.close()
+                    if _install_delegate_name:
+                        InstallDelegate = jclass(_install_delegate_name)
+                except Exception as e:
+                    log(f"core.install_icon_pack: InstallDelegate DexFile scan error: {e}")
 
-            parsed_pack = result_holder[0]
+                try:
+                    cl_s = IconPackStorageCls.getClass().getClassLoader()
+                    DexFileCls_s = jclass("dalvik.system.DexFile")
+                    appInfo_s = jclass("android.app.ActivityThread").currentApplication().getApplicationInfo()
+                    dex_s = DexFileCls_s(appInfo_s.sourceDir)
+                    entries_s = dex_s.entries()
+                    while entries_s.hasMoreElements():
+                        cname_s = str(entries_s.nextElement())
+                        if not (cname_s.startswith("x.") and len(cname_s) <= 8):
+                            continue
+                        try:
+                            c_s = cl_s.loadClass(cname_s)
+                            if c_s.isInterface():
+                                continue
+                            for ctor_s in c_s.getDeclaredConstructors():
+                                pts_s = [p.getName() for p in ctor_s.getParameterTypes()]
+                                # ctor: (Context/Activity, IconPack, InstallDelegate)
+                                if (len(pts_s) == 3
+                                        and "Context" in pts_s[0]
+                                        and pts_s[1].startswith("x.") and len(pts_s[1]) <= 8
+                                        and _install_delegate_name
+                                        and pts_s[2] == _install_delegate_name):
+                                    _sheet_class_name = cname_s
+                                    log(f"core.install_icon_pack: InstallIconPackBottomSheet found via DexFile: {cname_s}")
+                                    break
+                        except Exception:
+                            pass
+                        if _sheet_class_name:
+                            break
+                    dex_s.close()
+                    if _sheet_class_name:
+                        InstallIconPackBottomSheet = jclass(_sheet_class_name)
+                except Exception as e:
+                    log(f"core.install_icon_pack: InstallIconPackBottomSheet DexFile scan error: {e}")
+
+                if _install_delegate_name and _sheet_class_name:
+                    _save_classes_to_cache(_install_delegate_name, _sheet_class_name)
+
+            if InstallIconPackBottomSheet is None:
+                log(f"core.install_icon_pack: InstallIconPackBottomSheet not found, falling back to OBF name")
+                try:
+                    InstallIconPackBottomSheet = jclass(OBF_InstallIconPackBottomSheet_EXTERAGRAM)
+                except Exception as e:
+                    log(f"core.install_icon_pack: InstallIconPackBottomSheet fallback load failed: {e}")
+
+            # R8 removed INSTANCE field but methods are instance methods on the singleton.
+            # Get the singleton via static field that holds self-reference (Kotlin object companion pattern).
+            IconPackStorageInst = None
+            try:
+                cls_obj = IconPackStorageCls.getClass()
+                for f in cls_obj.getDeclaredFields():
+                    f.setAccessible(True)
+                    val = f.get(None)
+                    if val is not None and val.getClass().getName() == OBF_IconPackStorage_EXTERAGRAM:
+                        IconPackStorageInst = val
+                        log(f"core.install_icon_pack: IconPackStorage instance via field '{f.getName()}'")
+                        break
+                if IconPackStorageInst is None:
+                    # fallback: use the jclass wrapper itself as receiver
+                    IconPackStorageInst = IconPackStorageCls
+                    log(f"core.install_icon_pack: IconPackStorage instance fallback to jclass")
+            except Exception as e:
+                log(f"core.install_icon_pack: IconPackStorage instance error: {e}")
+                IconPackStorageInst = IconPackStorageCls
+
+            # find installPack (q) by name — used later in open_sheet
+            installPackMethod = None
+            RunBlocking = None
+            EmptyCoroutineContext = None
+            Function2 = None
+            try:
+                for m in IconPackStorageCls.getClass().getDeclaredMethods():
+                    pts = [p.getName() for p in m.getParameterTypes()]
+                    if pts == ["java.io.File", "kotlin.coroutines.Continuation"] and m.getName() == "q":
+                        m.setAccessible(True)
+                        installPackMethod = m
+                        break
+            except Exception as e:
+                log(f"core.install_icon_pack: installPack method resolve error: {e}")
+
+            try:
+                RunBlocking = jclass("kotlinx.coroutines.BuildersKt")
+                EmptyCoroutineContext = jclass("kotlin.coroutines.EmptyCoroutineContext")
+                Function2 = jclass("kotlin.jvm.functions.Function2")
+            except Exception as e:
+                log(f"core.install_icon_pack: coroutine classes load error: {e}")
+
+            # IconManager is lazy-loaded and obfuscated — skip for now, setActiveCustomPack is non-critical
+            IconManager = None
+            IconManagerSetActivePack = None
+
+            def getKotlinInstance(cls, label):
+                try:
+                    cls_obj = cls.getClass()
+                    for f in cls_obj.getDeclaredFields():
+                        f.setAccessible(True)
+                        val = f.get(None)
+                        if val is not None and val.getClass().getName() == cls_obj.getName():
+                            log(f"core.install_icon_pack: {label} instance via field '{f.getName()}'")
+                            return val
+                    return None
+                except Exception as e:
+                    log(f"core.install_icon_pack: {label} instance failed: {e}")
+                    return None
+
+            # parse zip on Python side to avoid Chaquopy converting IconPack->bool via suspend reflection
+            import zipfile
+            import json as _json
+            parsed_pack = None
+            try:
+                with zipfile.ZipFile(tmp_path, "r") as zf:
+                    if "metadata.json" not in zf.namelist():
+                        log(f"core.install_icon_pack: metadata.json not found in zip")
+                    else:
+                        meta = _json.loads(zf.read("metadata.json").decode("utf-8"))
+                        pack_id_meta = meta.get("packId") or meta.get("id") or ""
+                        pack_name = meta.get("packName") or meta.get("name") or ""
+                        pack_author = meta.get("author", "Unknown")
+                        pack_version = meta.get("version", "1.0")
+                        icons_json = meta.get("icons") or {}
+                        import tempfile
+                        extract_dir = tempfile.mkdtemp(prefix="iconpack_preview_")
+                        zf.extractall(extract_dir)
+                        FileCls2 = jclass("java.io.File")
+                        loc_file = FileCls2(extract_dir)
+                        HashMapCls = jclass("java.util.HashMap")
+                        icons_map = HashMapCls()
+                        for k, v in icons_json.items():
+                            icons_map.put(k, v)
+                        # find IconPack class via DexFile — R8 may have renamed it
+                        cl = IconPackStorageCls.getClass().getClassLoader()
+                        IconPackCls = None
+                        if _cached_icon_pack_cls_name:
+                            try:
+                                IconPackCls = cl.loadClass(_cached_icon_pack_cls_name)
+                                log(f"core.install_icon_pack: IconPack class loaded from cache: {_cached_icon_pack_cls_name}")
+                            except Exception as e:
+                                log(f"core.install_icon_pack: IconPack cache load failed: {e}")
+                                IconPackCls = None
+                        if IconPackCls is None:
+                            try:
+                                DexFileCls2 = jclass("dalvik.system.DexFile")
+                                appInfo2 = jclass("android.app.ActivityThread").currentApplication().getApplicationInfo()
+                                dex2 = DexFileCls2(appInfo2.sourceDir)
+                                entries2 = dex2.entries()
+                                while entries2.hasMoreElements():
+                                    cname2 = str(entries2.nextElement())
+                                    try:
+                                        c2 = cl.loadClass(cname2)
+                                        ctors2 = c2.getDeclaredConstructors()
+                                        for ctor2 in ctors2:
+                                            p2 = [p.getName() for p in ctor2.getParameterTypes()]
+                                            if p2[:4] == ["java.lang.String"] * 4 and "java.io.File" in p2 and "java.util.Map" in p2:
+                                                IconPackCls = c2
+                                                log(f"core.install_icon_pack: IconPack class found: {cname2}")
+                                                break
+                                    except Exception:
+                                        pass
+                                    if IconPackCls is not None:
+                                        break
+                                dex2.close()
+                            except Exception as dex_e:
+                                log(f"core.install_icon_pack: IconPack DexFile scan error: {dex_e}")
+
+                        if IconPackCls is not None:
+                            _save_classes_to_cache(
+                                _install_delegate_name or "",
+                                _sheet_class_name or "",
+                                IconPackCls.getName()
+                            )
+
+                        if IconPackCls is None:
+                            log(f"core.install_icon_pack: IconPack class not found")
+                        else:
+                            ctors = IconPackCls.getDeclaredConstructors()
+                            log(f"core.install_icon_pack: IconPack ctors: {[(c.getName(), [p.getName() for p in c.getParameterTypes()]) for c in ctors]}")
+                            for ctor in ctors:
+                                ptypes = [p.getName() for p in ctor.getParameterTypes()]
+                                if any("DefaultConstructorMarker" in p for p in ptypes):
+                                    continue
+                                if ptypes[:4] != ["java.lang.String"] * 4:
+                                    continue
+                                ctor.setAccessible(True)
+                                try:
+                                    n = len(ptypes)
+                                    if n == 7:
+                                        parsed_pack = ctor.newInstance(pack_id_meta, pack_name, pack_author, pack_version, icons_map, None, loc_file)
+                                    elif n == 6:
+                                        parsed_pack = ctor.newInstance(pack_id_meta, pack_name, pack_author, pack_version, icons_map, loc_file)
+                                    elif n == 5:
+                                        parsed_pack = ctor.newInstance(pack_id_meta, pack_name, pack_author, pack_version, icons_map)
+                                    else:
+                                        continue
+                                    log(f"core.install_icon_pack: IconPack created ctor({n} args): id={pack_id_meta} name={pack_name}")
+                                    break
+                                except Exception as ce:
+                                    log(f"core.install_icon_pack: ctor({n} args) failed: {ce}")
+                if parsed_pack is None:
+                    log(f"core.install_icon_pack: IconPack construction failed for '{pack_id}'")
+            except Exception as e:
+                log(f"core.install_icon_pack: zip parse error: {e}")
+
+
 
             _dismiss_dialog(dlg)
 
@@ -509,30 +767,45 @@ def install_icon_pack(icon_info: dict):
                     if not frag:
                         return
 
-                    class _Delegate(dynamic_proxy(InstallIconPackBottomSheet.InstallDelegate)):
+                    if InstallIconPackBottomSheet is None or InstallDelegate is None:
+                        log(f"core.install_icon_pack: InstallIconPackBottomSheet or InstallDelegate not loaded")
+                        return
+
+                    class _Delegate(dynamic_proxy(InstallDelegate)):
                         def __init__(self):
                             super().__init__()
-                        def onInstall(self, enableAfterInstall, isUpdate):
+                        def a(self, enableAfterInstall, isUpdate):
                             def do_install():
                                 try:
-                                    install_done = threading.Event()
-                                    install_result = [None]
+                                    if installPackMethod is None:
+                                            log(f"core.install_icon_pack: installPack method not found")
+                                            return
 
-                                    class _InstCont(dynamic_proxy(Continuation)):
-                                        def getContext(self):
-                                            return EmptyCoroutineContext.INSTANCE
-                                        def resumeWith(self, res):
-                                            install_result[0] = res
-                                            install_done.set()
+                                    class _InstallBlock(dynamic_proxy(Function2)):
+                                        def invoke(self, scope, cont):
+                                            return installPackMethod.invoke(IconPackStorageInst, tmp_file_obj, cont)
 
-                                    IconPackStorage.INSTANCE.installPack(tmp_file_obj, _InstCont())
-                                    install_done.wait(timeout=60)
+                                    try:
+                                        install_result = RunBlocking.runBlocking(EmptyCoroutineContext.INSTANCE, _InstallBlock())
+                                        log(f"core.install_icon_pack: installPack result={install_result}")
+                                    except Exception as e:
+                                        log(f"core.install_icon_pack: installPack runBlocking error: {e}")
+                                        install_result = None
 
-                                    result = bool(install_result[0]) if install_result[0] is not None else False
+                                    result = install_result is not None and bool(install_result)
 
                                     if result:
-                                        if enableAfterInstall:
-                                            run_on_ui_thread(lambda: IconManager.INSTANCE.setActiveCustomPack(pack_id))
+                                        if enableAfterInstall and IconManager is not None and IconManagerSetActivePack is not None:
+                                            try:
+                                                im_inst = getKotlinInstance(IconManager, "IconManager")
+                                                if im_inst is None:
+                                                    im_inst = IconManager
+                                                IconManagerSetActivePack.setAccessible(True)
+                                                run_on_ui_thread(lambda: IconManagerSetActivePack.invoke(im_inst, pack_id))
+                                            except Exception as e:
+                                                log(f"core.install_icon_pack: setActiveCustomPack error: {e}")
+                                        elif enableAfterInstall:
+                                            log(f"core.install_icon_pack: IconManager not found, skipping setActiveCustomPack")
                                         run_on_ui_thread(lambda: BulletinHelper.show_success(_s("core_iconpack_installed", name=name)))
                                     else:
                                         run_on_ui_thread(lambda: BulletinHelper.show_error(_s("core_installation_failed")))
@@ -546,7 +819,33 @@ def install_icon_pack(icon_info: dict):
                                         pass
                             threading.Thread(target=do_install, daemon=True).start()
 
-                    sheet = InstallIconPackBottomSheet(frag.getContext(), pp, _Delegate())
+                    # Chaquopy can't call obfuscated constructors with args directly — use reflection
+                    delegate_inst = _Delegate()
+                    ctx = frag.getContext()
+                    sheet = None
+                    try:
+                        realSheetCls = InstallIconPackBottomSheet.getClass() if InstallIconPackBottomSheet is not None else None
+                        if realSheetCls is None:
+                            log(f"core.install_icon_pack: realSheetCls is None, cannot create sheet")
+                        else:
+                            for ctor in realSheetCls.getDeclaredConstructors():
+                                ptypes = [p.getName() for p in ctor.getParameterTypes()]
+                                if (len(ptypes) == 3
+                                        and "Context" in ptypes[0]
+                                        and _install_delegate_name
+                                        and ptypes[2] == _install_delegate_name):
+                                    ctor.setAccessible(True)
+                                    sheet = ctor.newInstance(ctx, pp, delegate_inst)
+                                    log(f"core.install_icon_pack: sheet created via ctor {ptypes}")
+                                    break
+                            if sheet is None:
+                                all_ctors = [(c.getName(), [p.getName() for p in c.getParameterTypes()]) for c in realSheetCls.getDeclaredConstructors()]
+                                log(f"core.install_icon_pack: sheet ctor not found, ctors={all_ctors}")
+                    except Exception as se:
+                        log(f"core.install_icon_pack: sheet ctor error: {se}")
+                    if sheet is None:
+                        BulletinHelper.show_error(_s("core_install_sheet_failed", error="sheet ctor failed"))
+                        return
                     frag.showDialog(sheet)
                 except Exception as ex:
                     log(f"core.install_icon_pack: open_sheet error: {ex}")
