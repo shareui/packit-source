@@ -465,36 +465,192 @@ def install_icon_pack(icon_info: dict):
                         downloaded += len(chunk)
                         _set_progress(dlg, min(99, int(downloaded * 100 / total)))
 
-            # parse pack on background thread — parsePackFromZip is a suspend function
-            # must be called with a valid Continuation, not None
-            # use kotlinx runBlocking which provides a proper coroutine context
-            from hook_utils import find_class
             from java import jclass
 
-            IconPackStorage = jclass(OBF_IconPackStorage_EXTERAGRAM)
-            IconManager = find_class("com.exteragram.messenger.icons.IconManager")
-            InstallIconPackBottomSheet = find_class(OBF_InstallIconPackBottomSheet_EXTERAGRAM)
-            File = find_class("java.io.File")
-            tmp_file_obj = File(tmp_path)
+            IconPackStorageCls = jclass(OBF_IconPackStorage_EXTERAGRAM)
+            FileCls = jclass("java.io.File")
+            tmp_file_obj = FileCls(tmp_path)
 
-            result_holder = [None]
-            done_event = threading.Event()
+            try:
+                InstallIconPackBottomSheet = jclass(OBF_InstallIconPackBottomSheet_EXTERAGRAM)
+            except Exception as e:
+                log(f"core.install_icon_pack: InstallIconPackBottomSheet load failed: {e}")
+                InstallIconPackBottomSheet = None
 
-            Continuation = find_class("kotlin.coroutines.Continuation")
-            EmptyCoroutineContext = find_class("kotlin.coroutines.EmptyCoroutineContext")
+            # find InstallDelegate inner interface via getDeclaredClasses
+            InstallDelegate = None
+            try:
+                for cls in InstallIconPackBottomSheet.getClass().getDeclaredClasses():
+                    if cls.isInterface():
+                        methods = cls.getDeclaredMethods()
+                        if len(methods) == 1:
+                            pts = [p.getName() for p in methods[0].getParameterTypes()]
+                            if pts == ["boolean", "boolean"]:
+                                InstallDelegate = cls
+                                log(f"core.install_icon_pack: InstallDelegate found: {cls.getName()}")
+                                break
+            except Exception as e:
+                log(f"core.install_icon_pack: InstallDelegate scan error: {e}")
 
-            class _ParseCont(dynamic_proxy(Continuation)):
+            # R8 removed INSTANCE field but methods are instance methods on the singleton.
+            # Get the singleton via static field that holds self-reference (Kotlin object companion pattern).
+            IconPackStorageInst = None
+            try:
+                cls_obj = IconPackStorageCls.getClass()
+                for f in cls_obj.getDeclaredFields():
+                    f.setAccessible(True)
+                    val = f.get(None)
+                    if val is not None and val.getClass().getName() == OBF_IconPackStorage_EXTERAGRAM:
+                        IconPackStorageInst = val
+                        log(f"core.install_icon_pack: IconPackStorage instance via field '{f.getName()}'")
+                        break
+                if IconPackStorageInst is None:
+                    # fallback: use the jclass wrapper itself as receiver
+                    IconPackStorageInst = IconPackStorageCls
+                    log(f"core.install_icon_pack: IconPackStorage instance fallback to jclass")
+            except Exception as e:
+                log(f"core.install_icon_pack: IconPackStorage instance error: {e}")
+                IconPackStorageInst = IconPackStorageCls
+
+            # find parsePackFromZip (k) and installPack (q) by name
+            parsePackFromZipMethod = None
+            installPackMethod = None
+            try:
+                for m in IconPackStorageCls.getClass().getDeclaredMethods():
+                    pts = [p.getName() for p in m.getParameterTypes()]
+                    if pts == ["java.io.File", "kotlin.coroutines.Continuation"]:
+                        m.setAccessible(True)
+                        if m.getName() == "k":
+                            parsePackFromZipMethod = m
+                        elif m.getName() == "q":
+                            installPackMethod = m
+            except Exception as e:
+                log(f"core.install_icon_pack: method resolve error: {e}")
+
+            log(f"core.install_icon_pack: inst={IconPackStorageInst} parse={parsePackFromZipMethod} install={installPackMethod}")
+
+            # IconManager is lazy-loaded and obfuscated — skip for now, setActiveCustomPack is non-critical
+            IconManager = None
+            IconManagerSetActivePack = None
+
+            def getKotlinInstance(cls, label):
+                try:
+                    cls_obj = cls.getClass()
+                    for f in cls_obj.getDeclaredFields():
+                        f.setAccessible(True)
+                        val = f.get(None)
+                        if val is not None and val.getClass().getName() == cls_obj.getName():
+                            log(f"core.install_icon_pack: {label} instance via field '{f.getName()}'")
+                            return val
+                    return None
+                except Exception as e:
+                    log(f"core.install_icon_pack: {label} instance failed: {e}")
+                    return None
+
+            if parsePackFromZipMethod is None:
+                log(f"core.install_icon_pack: parsePackFromZip method not found")
+                _dismiss_dialog(dlg)
+                run_on_ui_thread(lambda: BulletinHelper.show_error(_s("core_iconpack_read_failed")))
+                return
+
+            # use runBlocking to drive the suspend function — safe since we're on a background thread
+            log(f"core.install_icon_pack: loading RunBlocking/EmptyCoroutineContext")
+            try:
+                RunBlocking = jclass("kotlinx.coroutines.BuildersKt")
+                log(f"core.install_icon_pack: RunBlocking methods: {[m.getName() + str([p.getName() for p in m.getParameterTypes()]) for m in RunBlocking.getClass().getDeclaredMethods() if m.getName() == 'runBlocking']}")
+            except Exception as e:
+                log(f"core.install_icon_pack: RunBlocking load error: {e}")
+                RunBlocking = None
+
+            try:
+                EmptyCoroutineContext = jclass("kotlin.coroutines.EmptyCoroutineContext")
+                # EmptyCoroutineContext is a Kotlin object — get INSTANCE via field scan
+                emptyCtxInst = None
+                for f in EmptyCoroutineContext.getClass().getDeclaredFields():
+                    f.setAccessible(True)
+                    val = f.get(None)
+                    if val is not None:
+                        emptyCtxInst = val
+                        log(f"core.install_icon_pack: EmptyCoroutineContext instance via field '{f.getName()}'")
+                        break
+                if emptyCtxInst is None:
+                    emptyCtxInst = EmptyCoroutineContext
+                    log(f"core.install_icon_pack: EmptyCoroutineContext fallback to jclass")
+            except Exception as e:
+                log(f"core.install_icon_pack: EmptyCoroutineContext load error: {e}")
+                emptyCtxInst = None
+
+            Function2 = jclass("kotlin.jvm.functions.Function2")
+
+            parsed_pack_holder = [None]
+            parse_error_holder = [None]
+
+            class _ParseBlock(dynamic_proxy(Function2)):
+                def invoke(self, scope, cont):
+                    log(f"core.install_icon_pack: _ParseBlock.invoke called, cont={cont}")
+                    try:
+                        result = parsePackFromZipMethod.invoke(IconPackStorageInst, tmp_file_obj, cont)
+                        log(f"core.install_icon_pack: parsePackFromZip raw result={result}")
+                        # COROUTINE_SUSPENDED means result comes via cont.resumeWith — captured below
+                        if str(result) != "COROUTINE_SUSPENDED":
+                            parsed_pack_holder[0] = result
+                        return result
+                    except Exception as e:
+                        log(f"core.install_icon_pack: parsePackFromZip invoke error: {e}")
+                        parse_error_holder[0] = e
+                        return None
+
+            parse_done = threading.Event()
+
+            # patch cont to capture result when coroutine resumes
+            orig_cont_holder = [None]
+
+            class _CaptureCont(dynamic_proxy(jclass("kotlin.coroutines.Continuation"))):
                 def getContext(self):
-                    return EmptyCoroutineContext.INSTANCE
+                    return orig_cont_holder[0].getContext() if orig_cont_holder[0] else emptyCtxInst
                 def resumeWith(self, result):
-                    # kotlin inline Result<T> at JVM level passes value directly on success
-                    result_holder[0] = result
-                    done_event.set()
+                    log(f"core.install_icon_pack: _CaptureCont.resumeWith result={result} type={type(result)}")
+                    # result is a boxed kotlin.Result — unbox via Result.getOrNull()
+                    try:
+                        ResultClass = jclass("kotlin.Result")
+                        getOrNull = ResultClass.getClass().getDeclaredMethod("getOrNull", jclass("java.lang.Object"))
+                        getOrNull.setAccessible(True)
+                        unpacked = getOrNull.invoke(None, result)
+                        log(f"core.install_icon_pack: unboxed result={unpacked}")
+                        parsed_pack_holder[0] = unpacked
+                    except Exception as e:
+                        log(f"core.install_icon_pack: Result unbox error: {e}, using raw")
+                        parsed_pack_holder[0] = result
+                    parse_done.set()
+                    if orig_cont_holder[0]:
+                        orig_cont_holder[0].resumeWith(result)
 
-            IconPackStorage.INSTANCE.parsePackFromZip(tmp_file_obj, _ParseCont())
-            done_event.wait(timeout=30)
+            class _ParseBlockWrapped(dynamic_proxy(Function2)):
+                def invoke(self, scope, cont):
+                    orig_cont_holder[0] = cont
+                    log(f"core.install_icon_pack: _ParseBlockWrapped.invoke called")
+                    try:
+                        result = parsePackFromZipMethod.invoke(IconPackStorageInst, tmp_file_obj, _CaptureCont())
+                        log(f"core.install_icon_pack: parsePackFromZip raw result={result}")
+                        if str(result) != "COROUTINE_SUSPENDED":
+                            parsed_pack_holder[0] = result
+                            parse_done.set()
+                        return result
+                    except Exception as e:
+                        log(f"core.install_icon_pack: parsePackFromZip invoke error: {e}")
+                        parse_error_holder[0] = e
+                        parse_done.set()
+                        return None
 
-            parsed_pack = result_holder[0]
+            log(f"core.install_icon_pack: calling runBlocking, emptyCtxInst={emptyCtxInst}")
+            try:
+                RunBlocking.runBlocking(emptyCtxInst, _ParseBlockWrapped())
+                parse_done.wait(timeout=30)
+                parsed_pack = parsed_pack_holder[0]
+                log(f"core.install_icon_pack: parsePackFromZip final result={parsed_pack}")
+            except Exception as e:
+                log(f"core.install_icon_pack: parsePackFromZip runBlocking error: {e}")
+                parsed_pack = None
 
             _dismiss_dialog(dlg)
 
@@ -509,30 +665,45 @@ def install_icon_pack(icon_info: dict):
                     if not frag:
                         return
 
-                    class _Delegate(dynamic_proxy(InstallIconPackBottomSheet.InstallDelegate)):
+                    if InstallIconPackBottomSheet is None or InstallDelegate is None:
+                        log(f"core.install_icon_pack: InstallIconPackBottomSheet or InstallDelegate not loaded")
+                        return
+
+                    class _Delegate(dynamic_proxy(InstallDelegate)):
                         def __init__(self):
                             super().__init__()
                         def onInstall(self, enableAfterInstall, isUpdate):
                             def do_install():
                                 try:
-                                    install_done = threading.Event()
-                                    install_result = [None]
+                                    if installPackMethod is None:
+                                            log(f"core.install_icon_pack: installPack method not found")
+                                            return
 
-                                    class _InstCont(dynamic_proxy(Continuation)):
-                                        def getContext(self):
-                                            return EmptyCoroutineContext.INSTANCE
-                                        def resumeWith(self, res):
-                                            install_result[0] = res
-                                            install_done.set()
+                                    class _InstallBlock(dynamic_proxy(Function2)):
+                                        def invoke(self, scope, cont):
+                                            return installPackMethod.invoke(IconPackStorageInst, tmp_file_obj, cont)
 
-                                    IconPackStorage.INSTANCE.installPack(tmp_file_obj, _InstCont())
-                                    install_done.wait(timeout=60)
+                                    try:
+                                        install_result = RunBlocking.runBlocking(EmptyCoroutineContext.INSTANCE, _InstallBlock())
+                                        log(f"core.install_icon_pack: installPack result={install_result}")
+                                    except Exception as e:
+                                        log(f"core.install_icon_pack: installPack runBlocking error: {e}")
+                                        install_result = None
 
-                                    result = bool(install_result[0]) if install_result[0] is not None else False
+                                    result = install_result is not None and bool(install_result)
 
                                     if result:
-                                        if enableAfterInstall:
-                                            run_on_ui_thread(lambda: IconManager.INSTANCE.setActiveCustomPack(pack_id))
+                                        if enableAfterInstall and IconManager is not None and IconManagerSetActivePack is not None:
+                                            try:
+                                                im_inst = getKotlinInstance(IconManager, "IconManager")
+                                                if im_inst is None:
+                                                    im_inst = IconManager
+                                                IconManagerSetActivePack.setAccessible(True)
+                                                run_on_ui_thread(lambda: IconManagerSetActivePack.invoke(im_inst, pack_id))
+                                            except Exception as e:
+                                                log(f"core.install_icon_pack: setActiveCustomPack error: {e}")
+                                        elif enableAfterInstall:
+                                            log(f"core.install_icon_pack: IconManager not found, skipping setActiveCustomPack")
                                         run_on_ui_thread(lambda: BulletinHelper.show_success(_s("core_iconpack_installed", name=name)))
                                     else:
                                         run_on_ui_thread(lambda: BulletinHelper.show_error(_s("core_installation_failed")))
