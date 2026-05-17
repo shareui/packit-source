@@ -1,1 +1,6 @@
-The source code of this library will never be open source. / Исходный код этой библиотеки никогда не будет опубликован в открытом доступе.
+The source code of this library will never be open source.
+If for any reason you need the source code for this library, please contact @shareui.
+
+Исходный код этой библиотеки никогда не будет опубликован в открытом доступе.
+Если по какой-либо причине вам необходим исходный код этой библиотеки, пожалуйста, свяжитесь с @shareui.
+
