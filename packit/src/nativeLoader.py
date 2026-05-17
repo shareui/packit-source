@@ -311,6 +311,29 @@ def loadPackitDb() -> "ctypes.CDLL | None":
         return None
 
 
+def loadPackitKey() -> "ctypes.CDLL | None":
+    try:
+        lib = ctypes.CDLL(_soPath("libpackitkey"))
+        cp   = ctypes.c_char_p
+        u8p  = ctypes.POINTER(ctypes.c_uint8)
+        u32p = ctypes.POINTER(ctypes.c_uint32)
+        ci   = ctypes.c_int
+        u32  = ctypes.c_uint32
+        lib.packitkey_store.restype = ci
+        lib.packitkey_store.argtypes = [cp, cp, cp, u8p, u32]
+        lib.packitkey_load.restype = ci
+        lib.packitkey_load.argtypes = [cp, cp, cp, u8p, u32p]
+        lib.packitkey_delete.restype = ci
+        lib.packitkey_delete.argtypes = [cp, cp, cp]
+        lib.packitkey_exists.restype = ci
+        lib.packitkey_exists.argtypes = [cp, cp, cp]
+        return lib
+    except Exception as e:
+        log(f"nativeLoader: libpackitkey load error: {e}")
+        showNativeErrorSheet("libpackitkey.so", str(e))
+        return None
+
+
 def loadExport() -> "ctypes.CDLL | None":
     try:
         lib = ctypes.CDLL(_soPath("libexport"))

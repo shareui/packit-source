@@ -1874,6 +1874,14 @@ class OtherSettings:
             log(f"OtherSettings: _open_misc_page error: {e}")
             return []
 
+    def _open_apikeys_page(self):
+        try:
+            from .SubSettings.apikeys import build_apikeys_page
+            return build_apikeys_page()
+        except Exception as e:
+            log(f"OtherSettings: _open_apikeys_page error: {e}")
+            return []
+
     def _open_updplugins_page(self):
         try:
             from .SubSettings.updplugins import build_updplugins_page
@@ -1939,6 +1947,12 @@ class OtherSettings:
                 subtext=strings.updplugins_nav_desc,
                 icon="msg_download",
                 create_sub_fragment=self._open_updplugins_page
+            ),
+            Text(
+                text=strings.api_keys_nav,
+                subtext=strings.api_keys_nav_desc,
+                icon="msg_secret",
+                create_sub_fragment=self._open_apikeys_page
             ),
             Text(
                 text=strings.misc_nav,

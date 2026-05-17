@@ -46,3 +46,6 @@ def getIconPackTmpPath(packId: str) -> str:
 
 def getClassesCachePath() -> str:
     return _filesDir() + "/packit/.cache/classes/icons.json"
+
+def getKeysDir() -> str:
+    return _filesDir() + "/packit/.secret/keys"
