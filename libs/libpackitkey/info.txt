@@ -1,0 +1,1 @@
+The source code of this library will never be open source. / Исходный код этой библиотеки никогда не будет опубликован в открытом доступе.
