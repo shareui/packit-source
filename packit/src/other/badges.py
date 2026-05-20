@@ -113,6 +113,14 @@ class BadgeManager:
 
     def setup_hooks(self):
         try:
+            try:
+                from elyx import settings as _s
+                if not _s.get("packit_verification", True):
+                    log("[Packit Badges] disabled via settings")
+                    return
+            except Exception:
+                pass
+
             lang = _get_lang()
             prefs = _load_from_prefs(self.context)
             if prefs:

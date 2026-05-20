@@ -65,6 +65,13 @@ class _UpdateProfileDataHook(MethodHook):
 
     def after_hooked_method(self, param):
         try:
+            try:
+                from elyx import settings as _s
+                if not _s.get("packit_verification", True):
+                    return
+            except Exception:
+                pass
+
             if not _init_classes():
                 return
 

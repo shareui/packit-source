@@ -6,6 +6,14 @@ def build_misc_page(other_settings):
     return [
         Header(text=strings.misc_header),
         Switch(
+            key="packit_verification",
+            text=strings.packit_verification,
+            subtext=strings.packit_verification_desc,
+            default=True,
+            icon="msg_premium_badge",
+            link_alias="packit_verification"
+        ),
+        Switch(
             key="show_startup_status",
             text=strings.show_startup_status,
             subtext=strings.show_startup_status_desc,

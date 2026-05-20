@@ -166,6 +166,9 @@ def _build_plugins_file_content(plugins: list) -> str:
 class _GeminiQuotaError(Exception):
     pass
 
+class _GeminiGeoError(Exception):
+    pass
+
 
 def _call_gemini(apiKey: str, model: str, pluginsCatalog: str, userQuery: str) -> "list | None":
     # uploads plugins catalog as inline text/plain file, asks gemini to rank matching plugins
@@ -202,7 +205,6 @@ def _call_gemini(apiKey: str, model: str, pluginsCatalog: str, userQuery: str) -
         ],
         "generationConfig": {
             "temperature": 0.1,
-            "maxOutputTokens": 256,
             "responseMimeType": "application/json",
         },
     }
@@ -214,17 +216,32 @@ def _call_gemini(apiKey: str, model: str, pluginsCatalog: str, userQuery: str) -
     if resp.status_code == 429:
         log(f"AISearchSheet: gemini quota exceeded (429)")
         raise _GeminiQuotaError()
+    if resp.status_code in (400, 403):
+        log(f"AISearchSheet: gemini HTTP {resp.status_code}: {resp.text[:200]}")
+        raise _GeminiGeoError()
     if resp.status_code != 200:
         log(f"AISearchSheet: gemini HTTP {resp.status_code}: {resp.text[:200]}")
         raise Exception(f"gemini HTTP {resp.status_code}")
 
+    body = resp.text
+    log(f"AISearchSheet: gemini response status={resp.status_code} body_len={len(body)} body_preview='{body[:200]}'")
     data = resp.json()
-    text = data["candidates"][0]["content"]["parts"][0]["text"]
+    log(f"AISearchSheet: gemini data keys={list(data.keys())}")
+    candidate = data["candidates"][0]
+    finish = candidate.get("finishReason", "UNKNOWN")
+    log(f"AISearchSheet: gemini finishReason={finish}")
+    content = candidate.get("content", {})
+    parts = content.get("parts")
+    if not parts:
+        log(f"AISearchSheet: unexpected gemini response shape: 'parts', data={data}")
+        raise Exception(f"gemini returned no parts (finishReason={finish})")
+    text = parts[0]["text"]
     text = text.strip()
     # strip possible json fences
     if text.startswith("```"):
         text = text.split("\n", 1)[-1]
         text = text.rsplit("```", 1)[0].strip()
+    log(f"AISearchSheet: gemini text to parse='{text}'")
     parsed = json.loads(text)
     if not isinstance(parsed, list):
         return None
@@ -659,12 +676,17 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
 
             apiKey = _load_gemini_key()
             if not apiKey:
+                sheet.dismiss()
                 try:
-                    from ui.bulletin import BulletinHelper
+                    from org.telegram.ui.Components import BulletinFactory
                     frag = get_last_fragment()
-                    BulletinHelper.show_error(str(strings["ai_search_no_key"]), frag)
-                except Exception:
-                    pass
+                    container = frag.getParentActivity().getWindow().getDecorView()
+                    rp = frag.getResourceProvider()
+                    BulletinFactory.of(container, rp).createErrorBulletin(
+                        str(strings.get("ai_search_no_key", "Add the API key in the settings"))
+                    ).show()
+                except Exception as be:
+                    log(f"AISearchSheet: no key bulletin error: {be}")
                 return
 
             plugins = getattr(getattr(install_ui, '_active_delegate', None), 'plugins', None) or []
@@ -696,6 +718,8 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
                         log(f"AISearchSheet: cache hit for query '{query}', {len(cached)} results")
                         names = cached
                     else:
+                        catalog_lines = len(catalog.splitlines())
+                        log(f"AISearchSheet: calling gemini model={model} query='{query}' catalog_lines={catalog_lines}")
                         results = _call_gemini(apiKey, model, catalog, query)
                         if results is None:
                             raise Exception("null result from gemini")
@@ -730,6 +754,21 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
                         except Exception as be:
                             log(f"AISearchSheet: quota bulletin error: {be}")
                     run_on_ui_thread(_on_quota)
+                except _GeminiGeoError:
+                    def _on_geo():
+                        _searching[0] = False
+                        sheet.dismiss()
+                        try:
+                            from org.telegram.ui.Components import BulletinFactory
+                            frag = get_last_fragment()
+                            container = frag.getParentActivity().getWindow().getDecorView()
+                            rp = frag.getResourceProvider()
+                            BulletinFactory.of(container, rp).createErrorBulletin(
+                                str(strings.get("ai_search_geo_error", "Turn on VPN and try again"))
+                            ).show()
+                        except Exception as be:
+                            log(f"AISearchSheet: geo bulletin error: {be}")
+                    run_on_ui_thread(_on_geo)
                 except Exception as e:
                     log(f"AISearchSheet: search task error: {e}")
                     def _on_error():

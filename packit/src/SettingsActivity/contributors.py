@@ -477,6 +477,88 @@ class ContributorsSettings:
             ),
 
             Divider(),
+        ]
+
+        def support_via_send_pixwet(view):
+            try:
+                BulletinHelper.show_success(strings.donate_easter_egg)
+            except Exception:
+                pass
+            run_on_ui_thread(
+                lambda: self._open_url("https://t.me/send?start=IVwvWMdWfPCE"),
+                1000
+            )
+
+        def support_via_ton_pixwet(view):
+            tonAddress = "UQBZCTLurgR5KiyvV5o8AchUQSsz-5o_mvehtuf08c8DuDMI"
+            try:
+                if AndroidUtilities.addToClipboard(tonAddress):
+                    BulletinHelper.show_success(strings.copied_to_clipboard)
+                else:
+                    BulletinHelper.show_error(strings.failed_to_copy)
+            except Exception:
+                BulletinHelper.show_error(strings.failed_to_copy)
+
+        avatar_pixwet = self._make_avatar_item(
+            "https://avatars.githubusercontent.com/u/102206474?v=4",
+            title_text=str(strings.mentor),
+            subtitle_text="@pixwet",
+            username_url="https://t.me/pixwet"
+        )
+        if avatar_pixwet is not None:
+            items.append(avatar_pixwet)
+        else:
+            items.append(Header(text=strings.mentor))
+
+        item = self._make_link_item("msg_link", str(strings.github), "github.com/pixwet", lambda v: self._open_url("https://github.com/pixwet"))
+        if item is not None:
+            items.append(item)
+
+        divider = self._make_small_divider()
+        if divider is not None:
+            items.append(divider)
+
+        item = self._make_link_item("msg_message", str(strings.direct_message), "t.me/pixwet", lambda v: self._open_url("https://t.me/pixwet"))
+        if item is not None:
+            items.append(item)
+
+        divider = self._make_small_divider()
+        if divider is not None:
+            items.append(divider)
+
+        item = self._make_link_item("msg_channel", str(strings.plugins_channel), "t.me/CactusPlugins", lambda v: self._open_url("https://t.me/CactusPlugins"))
+        if item is not None:
+            items.append(item)
+
+        divider = self._make_small_divider()
+        if divider is not None:
+            items.append(divider)
+
+        item = self._make_link_item("msg_channel", str(strings.personal_channel), "t.me/exteraFeatures", lambda v: self._open_url("https://t.me/exteraFeatures"))
+        if item is not None:
+            items.append(item)
+
+        divider = self._make_small_divider()
+        if divider is not None:
+            items.append(divider)
+
+        items += [
+            Text(
+                text=strings.support_via_send,
+                icon="filled_paid_suggest_24",
+                accent=True,
+                link_alias="support_send_pw",
+                on_click=support_via_send_pixwet
+            ),
+            Text(
+                text=strings.support_via_ton,
+                icon="menu_my_ton",
+                accent=True,
+                link_alias="support_ton_pw",
+                on_click=support_via_ton_pixwet
+            ),
+
+            Divider(),
 
             Divider(text=strings.special_thanks)
         ]

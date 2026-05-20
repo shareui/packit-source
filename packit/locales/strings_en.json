@@ -49,6 +49,7 @@
   "personal_channel": "Personal Channel",
   "plugins_channel": "Channel for plugins",
   "lead_developer_vestr": "Lead Developer",
+  "mentor": "Mentor",
   "special_thanks": "Special thanks to: @homewatcha, @justkoder, @AgasAis, @kaltsitu, @INFVRNXL_MUSIC, @red1k",
   "for_users": "For Users",
   "faq": "Frequently Asked Questions",
@@ -879,7 +880,7 @@
   "gemini_model_selector": "Gemini model",
   "gemini_model_selector_desc": "Model used for AI search",
   "ai_search_loading": "Searching...",
-  "ai_search_no_key": "Gemini API key is not configured. Go to API Keys settings.",
+  "ai_search_no_key": "Add the API key in the settings",
   "ai_search_error": "Search error. Check the logs.",
   "ai_search_results_title": "AI results",
   "file_system_settings_nav_desc": "File display settings",
@@ -1044,8 +1045,11 @@
   "ai_search_title": "AI Search",
   "ai_search_empty_hint": "Pay attention to me!!",
   "ai_search_quota": "Gemini API quota exceeded. Try again later.",
+  "ai_search_geo_error": "Turn on VPN and try again",
   "reset_gemini_cache": "Reset results cache",
   "reset_gemini_cache_desc": "Resets saved results",
   "gemini_cache_result": "Cache the result",
-  "gemini_cache_result_desc": "Saves tokens for identical requests"
+  "gemini_cache_result_desc": "Saves tokens for identical requests",
+  "packit_verification": "PackIt verification",
+  "packit_verification_desc": "Displays people related to PackIt. Disable it if there is a lag when opening a verified profile."
 }
