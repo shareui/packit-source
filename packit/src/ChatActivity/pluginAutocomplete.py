@@ -470,6 +470,7 @@ def _packit_show_plugins_popup(self, plugins):
                             if plugin_id and repo_id:
                                 def ui_actions():
                                     try:
+                                        plugin._packit_pending_clear_reply = False
                                         plugin._packit_send_plugin_info(plugin_data)
                                         bot_container.dismiss()
                                         ev = enter_view
@@ -486,6 +487,18 @@ def _packit_show_plugins_popup(self, plugins):
                                             new_text = "" if clear_field else cmd + " "
                                             msg_field.setText(new_text)
                                             msg_field.setSelection(msg_field.getText().length())
+                                        if getattr(plugin, "_packit_pending_clear_reply", False):
+                                            plugin._packit_pending_clear_reply = False
+                                            frag_ref = get_last_fragment()
+                                            def do_clear_reply():
+                                                try:
+                                                    if frag_ref and hasattr(frag_ref, "showFieldPanel"):
+                                                        frag_ref.showFieldPanel(False, None, None, None, None, True, 0, None, True, 0, True)
+                                                    else:
+                                                        log("Packit: clear_reply - fragment or showFieldPanel not found")
+                                                except Exception as e:
+                                                    log(f"Packit: clear reply error: {e}")
+                                            run_on_ui_thread(do_clear_reply, 100)
                                     except Exception as e:
                                         log(f"Packit click action error: {e}")
 
@@ -633,6 +646,19 @@ def _packit_send_plugin_info(self, plugin_data):
                         topic_msg_obj.isTopicMainMessage = True
         except Exception as e:
             log(f"Packit: topic resolve error: {e}")
+
+        # get reply-to message if user is replying to something
+        reply_msg_obj = None
+        try:
+            enter_view = self.packit_current_enter_view_ref() if self.packit_current_enter_view_ref else None
+            if not enter_view:
+                enter_view = get_private_field(frag, "chatActivityEnterView")
+            if enter_view:
+                candidate = get_private_field(enter_view, "replyingMessageObject")
+                if candidate is not None and not getattr(candidate, "isTopicMainMessage", False):
+                    reply_msg_obj = candidate
+        except Exception as e:
+            log(f"Packit: reply resolve error: {e}")
 
         plugin_id = plugin_data.get("id", "unknown")
         repo_id = plugin_data.get("repo_id", "unknown")
@@ -789,10 +815,14 @@ def _packit_send_plugin_info(self, plugin_data):
                 "entities": entities,
                 "searchLinks": False
             }
-            if topic_msg_obj is not None:
+            if reply_msg_obj is not None:
+                message_data["replyToMsg"] = reply_msg_obj
+            elif topic_msg_obj is not None:
                 message_data["replyToMsg"] = topic_msg_obj
                 message_data["replyToTopMsg"] = topic_msg_obj
             send_message(message_data)
+            if reply_msg_obj is not None:
+                self._packit_pending_clear_reply = True
         except Exception:
             try:
                 from org.telegram.messenger import SendMessagesHelper as SMH
@@ -800,7 +830,9 @@ def _packit_send_plugin_info(self, plugin_data):
                 params = SMH.SendMessageParams.of(message_text, chat_id)
                 params.entities = entities
                 params.searchLinks = False
-                if topic_msg_obj is not None:
+                if reply_msg_obj is not None:
+                    params.replyToMsg = reply_msg_obj
+                elif topic_msg_obj is not None:
                     params.replyToMsg = topic_msg_obj
                     params.replyToTopMsg = topic_msg_obj
                 smh.sendMessage(params)
@@ -820,6 +852,7 @@ def setup_packit_autocomplete(plugin):
         plugin.packit_current_plugins = {}
         plugin._packit_search_token = None
         plugin._packit_output_type = None
+        plugin._packit_pending_clear_reply = False
         
         plugin._packit_hook_enter_view_constructor()
         log("Packit autocomplete setup complete")

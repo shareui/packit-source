@@ -34,6 +34,13 @@ class _UpdateTitleIconsHook(MethodHook):
 
     def after_hooked_method(self, param):
         try:
+            try:
+                from elyx import settings as _s
+                if not _s.get("packit_verification", True):
+                    return
+            except Exception:
+                pass
+
             activity = param.thisObject
             dialog_id = get_private_field(activity, "dialog_id")
             if dialog_id is None:
