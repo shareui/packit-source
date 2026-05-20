@@ -17,7 +17,7 @@ except Exception as e:
     from ..utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 from ..utils.localConfig import LocalConfig
 
-BETA = True
+BETA = False
 _COUNTDOWN_SEC = 5
 
 

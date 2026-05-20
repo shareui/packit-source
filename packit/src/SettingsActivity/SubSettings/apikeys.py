@@ -1,5 +1,5 @@
-from ui.settings import Header, Text, Divider
-from elyx import strings
+from ui.settings import Header, Text, Divider, Selector, Switch
+from elyx import strings, settings
 from android_utils import log
 from client_utils import get_last_fragment
 
@@ -135,6 +135,57 @@ def _delete_gemini_key():
         log(f"apikeys: _delete_gemini_key error: {e}")
 
 
+def _has_gemini_cache() -> bool:
+    try:
+        import json, os
+        from ...utils.paths import getGeminiCachePath
+        path = getGeminiCachePath()
+        if not os.path.exists(path):
+            return False
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return isinstance(data, dict) and len(data) > 0
+    except Exception:
+        return False
+
+
+def _on_reset_gemini_cache(view):
+    try:
+        from ui.alert import AlertDialogBuilder
+        from ui.bulletin import BulletinHelper
+        frag = get_last_fragment()
+        act = frag.getParentActivity() if frag else None
+        if not act:
+            return
+
+        def _on_confirm(b, w):
+            b.dismiss()
+            try:
+                import os
+                from ...utils.paths import getGeminiCachePath
+                path = getGeminiCachePath()
+                if os.path.exists(path):
+                    os.remove(path)
+                log("apikeys: gemini cache cleared")
+            except Exception as e:
+                log(f"apikeys: _on_reset_gemini_cache delete error: {e}")
+            try:
+                from com.exteragram.messenger.plugins import PluginsController
+                PluginsController.getInstance().loadPluginSettings("shareui_packit")
+            except Exception as e:
+                log(f"apikeys: settings reload failed: {e}")
+            BulletinHelper.show_success(str(strings.api_key_reset_success), get_last_fragment())
+
+        builder = AlertDialogBuilder(act)
+        builder.set_title(str(strings.reset_gemini_cache))
+        builder.set_message(str(strings.reset_gemini_api_key_confirm))
+        builder.set_positive_button(str(strings.reset_button), _on_confirm)
+        builder.set_negative_button(str(strings.cancel_button), lambda b, w: b.dismiss())
+        builder.show()
+    except Exception as e:
+        log(f"apikeys: _on_reset_gemini_cache error: {e}")
+
+
 def _on_reset_gemini_key(view):
     try:
         from ui.alert import AlertDialogBuilder
@@ -240,10 +291,32 @@ def build_apikeys_page():
             subtext=gemini_subtext,
             icon=gemini_icon,
             on_click=_on_add_gemini_key,
+            link_alias="gemini_api_key",
         ),
     ]
 
     if keyIsSet:
+        items.append(Selector(
+            key="gemini_model",
+            text=strings.gemini_model_selector,
+            default=0,
+            items=["2.5 Flash", "2.5 Flash Lite", "2.5 Pro"],
+            icon="msg_list",
+        ))
+        items.append(Switch(
+            key="gemini_cache_enabled",
+            text=strings.gemini_cache_result,
+            subtext=strings.gemini_cache_result_desc,
+            icon="menu_clear_cache_remix",
+            default=True,
+        ))
+        if _has_gemini_cache():
+            items.append(Text(
+                text=strings.reset_gemini_cache,
+                subtext=strings.reset_gemini_cache_desc,
+                icon="msg_reset",
+                on_click=_on_reset_gemini_cache,
+            ))
         items.append(Text(
             text=strings.reset_gemini_api_key,
             subtext=strings.reset_gemini_api_key_desc,

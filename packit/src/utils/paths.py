@@ -49,3 +49,6 @@ def getClassesCachePath() -> str:
 
 def getKeysDir() -> str:
     return _filesDir() + "/packit/.secret/keys"
+
+def getGeminiCachePath() -> str:
+    return _filesDir() + "/packit/.cache/api/gemini.json"
