@@ -94,6 +94,7 @@ except Exception as e:
 
 from .RepoBottomSheet import show_repo_sheet
 from .SortBottomSheet import show_sort_menu
+from .AISearchSheet import show_ai_search_sheet
 from .filterDrawer import show_tag_drawer
 from .service import SearchEngine as search_mod
 from .service import filterEngine as tag_mod
@@ -724,6 +725,8 @@ class InstallUI:
             self.selected_saved = {"saved", "unsaved"}
             self._active_drawer = None
             self.batch_size = 10
+            self._ai_result_active = False
+            self._ai_result_plugins = []
             self.loading_container = None
             self.loading_video = None
             self._bottom_spinner = None
@@ -966,7 +969,7 @@ class InstallUI:
                             self.clear_btn.setVisibility(View.GONE)
                     try:
                         from elyx import settings as _s
-                        if _s.get("live_search", False):
+                        if _s.get("live_search", True) and not getattr(self.outer, "_ai_result_active", False):
                             self._show_live_spinner()
                             self._schedule_live_search(text)
                     except Exception:
@@ -1007,6 +1010,8 @@ class InstallUI:
                 except Exception:
                     pass
                 try:
+                    self._ai_result_active = False
+                    self._ai_result_plugins = []
                     self.search.setText("")
                     self.last_search_query = ""
                     self.build_list("")
@@ -1056,7 +1061,7 @@ class InstallUI:
             self.install_ui._apply_press_scale(search_btn)
             try:
                 from elyx import settings as _s
-                if _s.get("live_search", False):
+                if _s.get("live_search", True):
                     search_btn.setVisibility(View.GONE)
             except Exception:
                 pass
@@ -1071,83 +1076,87 @@ class InstallUI:
             header_row_lp.topMargin = AndroidUtilities.dp(2)
             header_row_lp.bottomMargin = AndroidUtilities.dp(6)
             main_layout.addView(header_row, header_row_lp)
-            repo_btn = LinearLayout(act)
-            repo_btn.setOrientation(LinearLayout.HORIZONTAL)
-            repo_btn.setGravity(Gravity.CENTER_VERTICAL)
-            repo_btn.setClickable(True)
-            repo_btn.setFocusable(True)
+            ai_pill = LinearLayout(act)
+            ai_pill.setOrientation(LinearLayout.HORIZONTAL)
+            ai_pill.setGravity(Gravity.CENTER_VERTICAL)
+            ai_pill.setClickable(True)
+            ai_pill.setFocusable(True)
             try:
-                repo_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                ai_pill.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
                     AndroidUtilities.dp(16), self.card_bg_color, self.card_pressed_color
                 ))
             except Exception:
                 pass
-            repo_btn.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(8), AndroidUtilities.dp(12), AndroidUtilities.dp(8))
-            
-            repo_icon = ImageView(act)
-            icon_id = self.install_ui._resolve_icon("msg_media")
-            repo_icon.setImageResource(icon_id)
-            try:
-                repo_icon.setColorFilter(self.text_color)
-            except Exception:
-                pass
-            repo_btn.addView(repo_icon, LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20)))
-            
-            repo_count_container = FrameLayout(act)
-            repo_count_text = TextView(act)
-            repo_count = _count_active_repos(self.install_ui.plugin.repoManager)
-            repo_count_text.setText(str(repo_count))
-            repo_count_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
-            repo_count_text.setTypeface(AndroidUtilities.bold())
-            repo_count_text.setGravity(Gravity.CENTER)
-            try:
-                repo_count_text.setTextColor(self.text_color)
-            except Exception:
-                pass
+            ai_pill.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(8), AndroidUtilities.dp(12), AndroidUtilities.dp(8))
 
-            badge_bg = GradientDrawable()
-            badge_bg.setShape(GradientDrawable.OVAL)
-            badge_bg.setColor(0x00000000)
+            ai_pill_icon = ImageView(act)
+            ai_pill_icon_id = self.install_ui._resolve_icon("msg_search")
+            ai_pill_icon.setImageResource(ai_pill_icon_id)
             try:
-                badge_bg.setStroke(AndroidUtilities.dp(1.5), self.text_color)
+                ai_pill_icon.setColorFilter(self.text_color)
             except Exception:
-                badge_bg.setStroke(AndroidUtilities.dp(1.5), 0xFFFFFFFF)
-            repo_count_text.setBackground(badge_bg)
-            
-            badge_size = AndroidUtilities.dp(18) if repo_count < 10 else AndroidUtilities.dp(20)
-            repo_count_text.setLayoutParams(FrameLayout.LayoutParams(badge_size, badge_size))
-            repo_count_container.addView(repo_count_text, FrameLayout.LayoutParams(badge_size, badge_size, Gravity.CENTER))
-            
-            repo_count_container_lp = LinearLayout.LayoutParams(-2, -2)
-            repo_count_container_lp.leftMargin = AndroidUtilities.dp(6)
-            repo_count_container_lp.gravity = Gravity.CENTER_VERTICAL
-            repo_btn.addView(repo_count_container, repo_count_container_lp)
-            
-            def show_repo_menu_handler():
+                pass
+            ai_pill_icon_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
+            ai_pill_icon_lp.rightMargin = AndroidUtilities.dp(6)
+            ai_pill.addView(ai_pill_icon, ai_pill_icon_lp)
+
+            ai_pill_label = TextView(act)
+            ai_pill_label.setText("AI")
+            ai_pill_label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            ai_pill_label.setTypeface(AndroidUtilities.bold())
+            try:
+                ai_pill_label.setTextColor(self.text_color)
+            except Exception:
+                pass
+            ai_pill.addView(ai_pill_label, LinearLayout.LayoutParams(-2, -2))
+
+            ai_pill_lp = FrameLayout.LayoutParams(-2, -2, Gravity.LEFT | Gravity.CENTER_VERTICAL)
+            header_row.addView(ai_pill, ai_pill_lp)
+
+            def on_ai_pill_click(v):
                 try:
-                    imm = act.getSystemService("input_method")
-                    imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
-                except Exception:
-                    pass
-                fragment = get_last_fragment()
-                if fragment:
-                    fragment.finishFragment()
-                repos = []
-                try:
-                    for r in (self.install_ui.plugin.repoManager.getRepositories() or []):
-                        if not r or not r.get("enabled"):
-                            continue
-                        name = str(r.get("name") or "").strip()
-                        url = str(r.get("url") or "").strip()
-                        if name and url:
-                            repos.append(r)
-                except Exception:
-                    pass
-                show_repo_sheet(self.install_ui, repos, on_select=self._handle_repo_select)
-            repo_btn.setOnClickListener(OnClickListener(lambda v: show_repo_menu_handler()))
-            self.install_ui._apply_press_scale(repo_btn)
-            repo_btn_lp = FrameLayout.LayoutParams(-2, -2, Gravity.LEFT | Gravity.CENTER_VERTICAL)
-            header_row.addView(repo_btn, repo_btn_lp)
+                    def _on_ai_results(names, query):
+                        # set search field text and filter list by AI-returned plugin names
+                        try:
+                            ai_marker = "%ai response%"
+                            # filter visible plugins to only those returned by AI, preserving order
+                            name_set = set(n.lower() for n in names)
+                            ordered = []
+                            for name in names:
+                                for p in self.plugins:
+                                    pname = str(p.get("name") or p.get("id") or "").strip()
+                                    if pname.lower() == name.lower():
+                                        ordered.append(p)
+                                        break
+                            # fallback: include any plugin whose name is in name_set but not yet matched
+                            matched_names = set(str(p.get("name") or p.get("id") or "").strip().lower() for p in ordered)
+                            for p in self.plugins:
+                                pname = str(p.get("name") or p.get("id") or "").strip().lower()
+                                if pname in name_set and pname not in matched_names:
+                                    ordered.append(p)
+                                    matched_names.add(pname)
+                            self._ai_result_plugins = ordered
+                            # set flag before setText so watcher skips live search
+                            self._ai_result_active = True
+                            self.last_search_query = ai_marker
+                            self.search.setText(ai_marker)
+                            self.filtered_plugins = ordered
+                            self.visible_plugins = []
+                            self.lazy_load_queue = deque()
+                            self.results_container.removeAllViews()
+                            if hasattr(self, "subtitle"):
+                                total = len(self.plugins)
+                                self.subtitle.setText(f"{len(ordered)}/{_build_plugin_count_label(total)}")
+                            self._load_initial_batch()
+                        except Exception as e:
+                            log(f"fragment: on_ai_results error: {e}")
+
+                    show_ai_search_sheet(self.install_ui, act, on_ai_results=_on_ai_results)
+                except Exception as e:
+                    log(f"fragment: ai search sheet error: {e}")
+
+            ai_pill.setOnClickListener(OnClickListener(on_ai_pill_click))
+            self.install_ui._apply_press_scale(ai_pill)
 
             subtitle = TextView(act)
             subtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
@@ -1610,8 +1619,8 @@ class InstallUI:
             self._s_show_size = settings.get("show_plugin_size", False)
             self._s_show_min_ver = settings.get("show_plugin_min_version", False)
             self._s_show_deps = settings.get("show_plugin_deps_count", False)
-            self._s_show_view_button = settings.get("show_view_button", True)
-            self._s_show_details_button = settings.get("show_details_button", True)
+            self._s_show_view_button = settings.get("show_view_button", False)
+            self._s_show_details_button = settings.get("show_details_button", False)
             self._s_chip_ver_size = float(settings.get("chip_ver_size", 11))
             self._s_chip_deps_size = float(settings.get("chip_deps_size", 11))
             self._s_chip_size_size = float(settings.get("chip_size_size", 11))

@@ -1031,5 +1031,21 @@
   "build_not_correct_both_short": "Эта сборка предназначена для другого клиента и версии. Многие функции могут не работать.",
   "build_not_correct_label_build": "Цель сборки",
   "build_not_correct_label_yours": "Ваш клиент",
-  "build_not_correct_list_of_versions": "Список версий"
+  "build_not_correct_list_of_versions": "Список версий",
+  "gemini_model_selector": "Модель Gemini",
+  "gemini_model_selector_desc": "Модель, используемая для AI-поиска",
+  "ai_search_loading": "Поиск...",
+  "ai_search_no_key": "API-ключ Gemini не настроен. Перейдите в настройки API-ключей.",
+  "ai_search_error": "Ошибка поиска. Проверьте логи.",
+  "ai_search_results_title": "Результаты AI",
+  "ai_search_input_hint": "Опишите плагин, и AI его найдёт...",
+  "ai_search_button": "Найти",
+  "ai_key_not_configured": "Ключ: не задан",
+  "ai_search_title": "AI-поиск",
+  "ai_search_empty_hint": "Обрати на меня внимание!!",
+  "ai_search_quota": "Квота Gemini API исчерпана. Попробуйте позже.",
+  "reset_gemini_cache": "Сбросить кэш результатов",
+  "reset_gemini_cache_desc": "Удаляет сохранённые результаты",
+  "gemini_cache_result": "Кэшировать результат",
+  "gemini_cache_result_desc": "Сохраняет токены для одинаковых запросов"
 }
