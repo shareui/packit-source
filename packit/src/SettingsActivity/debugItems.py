@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from android_utils import log
 from client_utils import get_last_fragment
 from java import dynamic_proxy
@@ -291,9 +294,16 @@ def show_debug_menu():
             from ..ui.pluginsUpdates.startupSheet import check_and_show_startup_updates
             check_and_show_startup_updates()
 
+        def _update_repos_cache():
+            from ..RepositoryManager import RepositoryManager
+            RepositoryManager().updateAllCaches(
+                on_complete=lambda: _show_bulletin("Repos cache updated")
+            )
+
         ITEMS = [
             ("Native error", _test_native_error),
             ("Startup updates sheet", _trigger_startup_sheet),
+            ("Update repos cache", _update_repos_cache),
             ("Migrate current account to new", _migrate_achievements),
             ("Inspect class", _inspect_class),
             ("Inspect methods", _inspect_methods),

@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from base_plugin import MethodHook
 from hook_utils import find_class
 from android_utils import log, OnClickListener

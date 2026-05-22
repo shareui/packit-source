@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import traceback
 from android_utils import log
 from android.view import Gravity, View, MotionEvent

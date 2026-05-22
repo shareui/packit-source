@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from typing import Any
 from base_plugin import BasePlugin, HookResult, HookStrategy
 try:
@@ -47,14 +50,6 @@ _launch_start = time.time()
 
 CHECK_PATHS = False
 RENAME_PACKITCACHE = False
-
-# test 
-# test 
-# test 
-# test 
-# test 
-# test 
-# test 
 
 def _migrate_packitcache():
     import os

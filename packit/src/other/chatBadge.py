@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from android_utils import log
 from hook_utils import find_class, get_private_field
 from android.text import SpannableStringBuilder

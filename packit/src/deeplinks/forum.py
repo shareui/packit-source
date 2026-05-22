@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from client_utils import get_last_fragment
 from android.net import Uri
 try:
@@ -17,4 +20,3 @@ def handle(url):
                 Browser.openUrl(act, uri, True, True, True, None, None, False, False, False)
         except Exception:
             pass
-

@@ -1051,5 +1051,15 @@
   "gemini_cache_result": "Cache the result",
   "gemini_cache_result_desc": "Saves tokens for identical requests",
   "packit_verification": "PackIt verification",
-  "packit_verification_desc": "Displays people related to PackIt. Disable it if there is a lag when opening a verified profile."
+  "packit_verification_desc": "Displays people related to PackIt. Disable it if there is a lag when opening a verified profile.",
+  "suggest_repo_not_found": "Repository not found",
+  "suggest_missing_fields": "Missing required fields",
+  "suggest_title": "Suggest",
+  "suggest_upload_label": "Click to add a file",
+  "suggest_upload_sub": "Attach a plugin file",
+  "suggest_back_button": "Back",
+  "suggest_submit_title": "Submit Plugin for Review",
+  "suggest_no_rules": "This repository has no rules",
+  "suggest_file_selected": "File selected",
+  "suggest_add_another_file": "Add another file"
 }

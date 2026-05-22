@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 def _parse_version(v_str):
     try:
         return tuple(int(x) for x in str(v_str).strip().split("."))

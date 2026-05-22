@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from android_utils import log, run_on_ui_thread
 from base_plugin import MethodHook
 from hook_utils import find_class

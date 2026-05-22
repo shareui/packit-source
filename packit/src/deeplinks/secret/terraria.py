@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import os
 from android_utils import log
 from android.media import MediaPlayer, AudioManager

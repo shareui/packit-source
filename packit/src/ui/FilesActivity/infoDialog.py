@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import ctypes
 from android_utils import log, run_on_ui_thread, OnClickListener
 

@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from ui.settings import Header, Text, Divider, Custom
 from ui.bulletin import BulletinHelper
 from android.net import Uri
