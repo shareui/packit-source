@@ -13,9 +13,7 @@ except Exception as e:
 
 
 def handle(url):
-    log(f"deeplinks.terraria: handle called, url={url!r}")
     if url != "tg://packit?terraria":
-        log(f"deeplinks.terraria: url mismatch, skipping")
         return
     try:
         _playMaxVolume()

@@ -54,6 +54,8 @@ class PackItDeeplinkHook(MethodHook):
 
             url = str(data)
             if url.startswith("tg://packit"):
+                _params = url.split("?", 1)[1] if "?" in url else ""
+                log(f'[PackIt] link "{url}" is triggered, parameters: {_params}')
                 self.pending_intent = intent
                 self.pending_param = param
                 param.setResult(None)

@@ -394,11 +394,14 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
             if expected_hash:
                 try:
                     import shutil
+                    if os.path.exists(cache_path):
+                        os.remove(cache_path)
                     shutil.copy2(temp_path, cache_path)
                     os.chmod(cache_path, 0o644)
                     log(f"core: cached '{plugin_id}' to {cache_path}")
                 except Exception as e:
-                    log(f"core: failed to cache '{plugin_id}': {e}")
+                    # cache is best-effort; permission errors on some devices are expected
+                    log(f"core: skipping cache for '{plugin_id}': {e}")
 
             _dismiss_dialog(dlg)
 

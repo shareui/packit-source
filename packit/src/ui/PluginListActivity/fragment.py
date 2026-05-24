@@ -565,11 +565,11 @@ class InstallUI:
                         if isinstance(plugins, dict):
                             for pluginId, info in plugins.items():
                                 if isinstance(info, dict):
-                                    all_plugins.append({"id": pluginId, "repo_name": repo.get("name", "Unknown"), **info})
+                                    all_plugins.append({"id": pluginId, "repo_name": repo.get("name", "Unknown"), "_repo_id": repo_id, **info})
                         elif isinstance(plugins, list):
                             for item in plugins:
                                 if isinstance(item, dict) and item.get("id"):
-                                    all_plugins.append({"id": item.get("id"), "repo_name": repo.get("name", "Unknown"), **item})
+                                    all_plugins.append({"id": item.get("id"), "repo_name": repo.get("name", "Unknown"), "_repo_id": repo_id, **item})
                     except Exception as e:
                         pass
 
@@ -2153,7 +2153,7 @@ class InstallUI:
                     def onIconClick(v, plugin=p):
                         try:
                             from ..PluginActivity.fragment import show_plugin_profile
-                            show_plugin_profile(plugin, self.install_ui, self.plugins, repo_id=self.repo_id)
+                            show_plugin_profile(plugin, self.install_ui, self.plugins, repo_id=self.repo_id or str(plugin.get("_repo_id") or ""))
                         except Exception as e:
                             pass
 
@@ -2497,7 +2497,7 @@ class InstallUI:
 
                 try:
                     from ..PluginActivity.fragment import show_plugin_profile
-                    show_plugin_profile(plugin, self.install_ui, self.plugins, repo_id=self.repo_id)
+                    show_plugin_profile(plugin, self.install_ui, self.plugins, repo_id=self.repo_id or str(plugin.get("_repo_id") or ""))
                 except Exception as e:
                     pass
 
@@ -2505,7 +2505,7 @@ class InstallUI:
                 if not self._s_show_view_button:
                     try:
                         from ..PluginActivity.fragment import show_plugin_profile
-                        show_plugin_profile(plugin, self.install_ui, self.plugins, repo_id=self.repo_id)
+                        show_plugin_profile(plugin, self.install_ui, self.plugins, repo_id=self.repo_id or str(plugin.get("_repo_id") or ""))
                     except Exception as e:
                         pass
 
