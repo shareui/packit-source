@@ -422,6 +422,34 @@ def _hook_activity_result(plugin, act, request_codes, result_callback):
         return None
 
 
+def _hook_is_internal_uri(plugin, allowed_paths: set):
+    from base_plugin import MethodHook
+    from hook_utils import find_class
+    try:
+        cls = find_class("org.telegram.messenger.AndroidUtilities")
+
+        class _InternalUriHook(MethodHook):
+            def after_hooked_method(self, param):
+                try:
+                    # overload (Uri) has 1 arg; overload (int) also has 1 arg — check type
+                    arg = param.args[0]
+                    if arg is None or not hasattr(arg, "getPath"):
+                        return
+                    path = str(arg.getPath())
+                    if path in allowed_paths:
+                        log(f"suggest: isInternalUri override -> False for {path}")
+                        param.setResult(False)
+                except Exception as e:
+                    log(f"suggest: _InternalUriHook error: {e}")
+
+        hooks = plugin.hook_all_methods(cls, "isInternalUri", _InternalUriHook())
+        log(f"suggest: hooked isInternalUri ({len(hooks)} overload(s))")
+        return hooks
+    except Exception as e:
+        log(f"suggest: _hook_is_internal_uri error: {e}")
+        return None
+
+
 def _launch_file_picker(act, request_code):
     try:
         from android.content import Intent
@@ -676,6 +704,9 @@ def _make_social_input_row(act, hint_text, on_delete):
 
     return row, et
 
+
+import json as _json
+import os as _os
 
 import re as _re
 
@@ -1319,6 +1350,106 @@ def _register_keyboard_back(act, et):
         log(f"suggest: _register_keyboard_back setup error: {e}")
 
 
+def _get_draft_path(rm_rid: str) -> str:
+    import os
+    from org.telegram.messenger import ApplicationLoader
+    files_dir = ApplicationLoader.applicationContext.getFilesDir().getAbsolutePath()
+    draft_dir = os.path.join(files_dir, "packit", ".cache", "suggest_drafts")
+    os.makedirs(draft_dir, exist_ok=True)
+    safe = rm_rid.replace("/", "_").replace("\\", "_") if rm_rid else "default"
+    return os.path.join(draft_dir, f"{safe}.json")
+
+
+def _get_draft_files_dir(rm_rid: str) -> str:
+    import os
+    from org.telegram.messenger import ApplicationLoader
+    files_dir = ApplicationLoader.applicationContext.getFilesDir().getAbsolutePath()
+    safe = rm_rid.replace("/", "_").replace("\\", "_") if rm_rid else "default"
+    d = os.path.join(files_dir, "packit", ".cache", "suggest_drafts", "files", safe)
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
+def _clear_draft_files(rm_rid: str):
+    import os, shutil
+    try:
+        d = _get_draft_files_dir(rm_rid)
+        shutil.rmtree(d, ignore_errors=True)
+    except Exception as e:
+        log(f"suggest: _clear_draft_files error: {e}")
+
+
+def _save_draft(rm_rid: str, data: dict):
+    try:
+        path = _get_draft_path(rm_rid)
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(_json.dumps(data, ensure_ascii=False))
+    except Exception as e:
+        log(f"suggest: _save_draft error: {e}")
+
+
+def _load_draft(rm_rid: str) -> dict:
+    try:
+        path = _get_draft_path(rm_rid)
+        with open(path, "r", encoding="utf-8") as f:
+            return _json.loads(f.read())
+    except Exception as e:
+        log(f"suggest: _load_draft error: {e}")
+    return {}
+
+
+def _clear_draft(rm_rid: str):
+    try:
+        path = _get_draft_path(rm_rid)
+        if _os.path.isfile(path):
+            _os.unlink(path)
+    except Exception as e:
+        log(f"suggest: _clear_draft error: {e}")
+    _clear_draft_files(rm_rid)
+
+
+def _has_draft(rm_rid: str) -> bool:
+    try:
+        path = _get_draft_path(rm_rid)
+        result = _os.path.isfile(path)
+        log(f"suggest: _has_draft rm_rid={rm_rid!r} path={path} exists={result}")
+        return result
+    except Exception as e:
+        log(f"suggest: _has_draft error: {e}")
+        return False
+
+
+def _copy_uri_to_draft_file(uri, act, rm_rid: str, slot: str, display_name: str = "") -> str:
+    # copies uri into suggest_drafts/files/{rm_rid}/{slot}/{original_name}, returns path or ""
+    import os
+    try:
+        dest_dir = os.path.join(_get_draft_files_dir(rm_rid), slot)
+        # clear previous file for this slot
+        if os.path.isdir(dest_dir):
+            import shutil
+            shutil.rmtree(dest_dir, ignore_errors=True)
+        os.makedirs(dest_dir, exist_ok=True)
+        file_name = display_name if display_name else f"{slot}.tmp"
+        dest = os.path.join(dest_dir, file_name)
+        cr = act.getContentResolver()
+        stream = cr.openInputStream(uri)
+        if stream is None:
+            return ""
+        buf = bytearray(8192)
+        with open(dest, "wb") as out:
+            while True:
+                n = stream.read(buf)
+                if n < 0:
+                    break
+                out.write(bytes(buf[:n]))
+        stream.close()
+        log(f"suggest: draft file saved slot={slot} name={file_name} -> {dest}")
+        return dest
+    except Exception as e:
+        log(f"suggest: _copy_uri_to_draft_file error: {e}")
+        return ""
+
+
 class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
 
     def __init__(self, repo_data: dict, plugin):
@@ -1359,6 +1490,11 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         self._changelog_card_ref = [None]
         self._pending_versions = [None]
         self._note_edit_ref = [None]
+        self._rm_rid = None
+        self._pending_draft = None
+        self._draft_main_path = None
+        self._draft_extra_paths = []
+        self._submitted = False
 
     def onFragmentCreate(self, *_):
         try:
@@ -1366,6 +1502,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             repometa = self._repo_data.get("repometa") if isinstance(self._repo_data, dict) else None
             if isinstance(repometa, dict):
                 rm_rid = repometa.get("rm_rid")
+            self._rm_rid = rm_rid or "default"
             if rm_rid:
                 import json, os
                 from ...utils.paths import getRepoCachePath
@@ -1389,6 +1526,11 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             log(f"suggest: onFragmentCreate load error: {e}")
 
     def onFragmentDestroy(self, *_):
+        # save form state so it can be restored on next open
+        if self._submitted:
+            log("suggest: onFragmentDestroy skipping draft save (already submitted)")
+        else:
+            self._save_current_draft()
         try:
             if self._picker_hook_ref is not None and self._plugin is not None:
                 try:
@@ -1514,8 +1656,31 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             self._selected_name = name
             self._selected_size = size
             _try_parse_plugin_meta(uri, act, self._suggest_config, on_description=_on_description, on_update_found=_on_update_found)
+
+            # save main file to draft dir in background
+            self_ref_file = self
+            import threading
+            def _save_main_file():
+                path = _copy_uri_to_draft_file(uri, act, self_ref_file._rm_rid, "main", name or "")
+                if path:
+                    self_ref_file._draft_main_path = path
+                    self_ref_file._save_current_draft()
+            threading.Thread(target=_save_main_file, daemon=True).start()
         else:
             self._extra_uris.append((uri, name, size))
+
+            # save extra file to draft dir in background
+            self_ref_extra = self
+            extra_idx = len(self._extra_uris) - 1
+            import threading
+            def _save_extra_file(idx=extra_idx):
+                path = _copy_uri_to_draft_file(uri, act, self_ref_extra._rm_rid, f"extra_{idx}", name or "")
+                if path:
+                    while len(self_ref_extra._draft_extra_paths) <= idx:
+                        self_ref_extra._draft_extra_paths.append(None)
+                    self_ref_extra._draft_extra_paths[idx] = path
+                    self_ref_extra._save_current_draft()
+            threading.Thread(target=_save_extra_file, daemon=True).start()
 
         def _update_ui():
             try:
@@ -2241,6 +2406,11 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 if child is not None:
                     _animate_reveal(child, delay_ms=delay)
                     delay += 120
+
+            # restore draft fields now that all inputs are created
+            if self._pending_draft:
+                self._apply_draft(self._pending_draft, act)
+                self._pending_draft = None
         except Exception as e:
             log(f"suggest: _show_fields_section error: {e}")
 
@@ -2702,6 +2872,185 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         except Exception as e:
             log(f"suggest: _attach_keyboard_scroll error: {e}")
 
+    def _collect_draft(self) -> dict:
+        draft = {}
+        try:
+            et = self._desc_edit_ref[0]
+            if et is not None:
+                draft["description"] = str(et.getText())
+        except Exception:
+            pass
+        try:
+            note_et = self._note_edit_ref[0]
+            if note_et is not None:
+                draft["note"] = str(note_et.getText())
+        except Exception:
+            pass
+        try:
+            socials = []
+            for _, et in self._social_inputs:
+                val = str(et.getText()).strip()
+                if val:
+                    socials.append(val)
+            if socials:
+                draft["socials"] = socials
+        except Exception:
+            pass
+        try:
+            url_et = self._changelog_edit_ref[0]
+            if url_et is not None:
+                val = str(url_et.getText()).strip()
+                if val:
+                    draft["changelog_url"] = val
+        except Exception:
+            pass
+        try:
+            toggle = self._forked_switch_ref[0]
+            if toggle is not None:
+                draft["forked_enabled"] = bool(toggle.getTag())
+            plugin = self._forked_selected_plugin[0]
+            if isinstance(plugin, dict):
+                draft["forked_plugin"] = plugin
+        except Exception:
+            pass
+        # file info
+        if self._selected_name:
+            draft["file_name"] = self._selected_name
+        if self._selected_size is not None:
+            draft["file_size"] = self._selected_size
+        if self._draft_main_path and _os.path.isfile(self._draft_main_path):
+            draft["draft_main_path"] = self._draft_main_path
+        if self._draft_extra_paths:
+            valid = []
+            for i, (_, ename, esize) in enumerate(self._extra_uris):
+                p = self._draft_extra_paths[i] if i < len(self._draft_extra_paths) else None
+                if p and _os.path.isfile(p):
+                    valid.append({"path": p, "name": ename or "", "size": esize})
+            if valid:
+                draft["draft_extra_files"] = valid
+        return draft
+
+    def _apply_draft(self, draft: dict, act):
+        # restore saved files
+        try:
+            main_path = draft.get("draft_main_path", "")
+            file_name = draft.get("file_name", "")
+            file_size = draft.get("file_size")
+            if main_path and _os.path.isfile(main_path):
+                self._draft_main_path = main_path
+                self._selected_name = file_name
+                self._selected_size = file_size
+                # show file card
+                container = self._selected_card_container_ref[0]
+                upload_card = self._upload_card_ref[0]
+                if container is not None and upload_card is not None:
+                    selected = _make_selected_file_card(act, file_name, file_size)
+                    container.removeAllViews()
+                    container.addView(selected, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0))
+                    container.setVisibility(View.VISIBLE)
+                    upload_card.setVisibility(View.GONE)
+        except Exception as e:
+            log(f"suggest: _apply_draft files error: {e}")
+        try:
+            for ef in draft.get("draft_extra_files", []):
+                p = ef.get("path", "")
+                ename = ef.get("name", "")
+                esize = ef.get("size")
+                if p and _os.path.isfile(p):
+                    self._extra_uris.append((None, ename, esize))
+                    self._draft_extra_paths.append(p)
+                    container = self._selected_card_container_ref[0]
+                    if container is not None:
+                        selected = _make_selected_file_card(act, ename, esize)
+                        lp = LayoutHelper.createLinear(-1, -2, 0, 4, 0, 0)
+                        container.addView(selected, lp)
+        except Exception as e:
+            log(f"suggest: _apply_draft extra files error: {e}")
+        # restore text fields
+        try:
+            desc = draft.get("description", "")
+            if desc:
+                et = self._desc_edit_ref[0]
+                if et is not None:
+                    _fill_description(et, desc)
+        except Exception as e:
+            log(f"suggest: _apply_draft desc error: {e}")
+        try:
+            note = draft.get("note", "")
+            if note:
+                note_et = self._note_edit_ref[0]
+                if note_et is not None:
+                    note_et.setText(note)
+        except Exception as e:
+            log(f"suggest: _apply_draft note error: {e}")
+        try:
+            socials = draft.get("socials", [])
+            container = self._social_links_container_ref[0]
+            if socials and container is not None:
+                for link in socials:
+                    row_ref = [None]
+
+                    def _on_delete(v2, rr=row_ref):
+                        try:
+                            row, et2 = rr[0]
+                            container.removeView(row)
+                            self._social_inputs = [x for x in self._social_inputs if x[0] is not row]
+                        except Exception as e2:
+                            log(f"suggest: draft social delete error: {e2}")
+
+                    row, et_s = _make_social_input_row(act, str(strings.suggest_social_placeholder), _on_delete)
+                    row_ref[0] = (row, et_s)
+                    et_s.setText(link)
+                    self._social_inputs.append((row, et_s))
+                    lp = LinearLayout.LayoutParams(-1, -2)
+                    lp.topMargin = AndroidUtilities.dp(8)
+                    container.addView(row, lp)
+        except Exception as e:
+            log(f"suggest: _apply_draft socials error: {e}")
+        try:
+            changelog_url = draft.get("changelog_url", "")
+            if changelog_url:
+                url_et = self._changelog_edit_ref[0]
+                if url_et is not None:
+                    url_et.setText(changelog_url)
+        except Exception as e:
+            log(f"suggest: _apply_draft changelog error: {e}")
+        try:
+            forked_enabled = draft.get("forked_enabled", False)
+            forked_plugin = draft.get("forked_plugin")
+            toggle = self._forked_switch_ref[0]
+            if forked_enabled and toggle is not None:
+                toggle.setTag(True)
+                _update_md3_chip(toggle, True)
+                sc = self._forked_search_container_ref[0]
+                if sc is not None:
+                    sc.setVisibility(View.VISIBLE)
+            if forked_plugin and isinstance(forked_plugin, dict):
+                self._forked_selected_plugin[0] = forked_plugin
+                self._show_forked_selected_card(act, forked_plugin)
+        except Exception as e:
+            log(f"suggest: _apply_draft forked error: {e}")
+
+    def _save_current_draft(self):
+        try:
+            draft = self._collect_draft()
+            # only persist if there is actual user content to restore
+            has_content = (
+                draft.get("file_name") or
+                draft.get("description") or
+                draft.get("note") or
+                draft.get("socials") or
+                draft.get("changelog_url") or
+                draft.get("forked_plugin")
+            )
+            if has_content:
+                _save_draft(self._rm_rid, draft)
+                log(f"suggest: draft saved for {self._rm_rid}")
+            else:
+                log(f"suggest: nothing to save, skipping draft")
+        except Exception as e:
+            log(f"suggest: _save_current_draft error: {e}")
+
     def _do_submit(self):
         from android_utils import run_on_ui_thread
         from client_utils import send_request, RequestCallback, get_messages_controller, run_on_queue, PLUGINS_QUEUE, send_document
@@ -2716,7 +3065,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             BulletinHelper.show_error(str(strings.suggest_no_config))
             return
 
-        if self._selected_uri is None:
+        if self._selected_uri is None and not (self._draft_main_path and _os.path.isfile(self._draft_main_path)):
             log("suggest._do_submit: no file selected")
             return
 
@@ -2816,29 +3165,106 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         def _task():
             import os
             try:
-                # copy all URIs to temp files preserving original extensions
                 main_name = self_ref._selected_name or ""
-                log(f"suggest._task: copying main file name={main_name!r} uri={self_ref._selected_uri}")
-                main_path = _copy_uri_to_temp(self_ref._selected_uri, act, main_name)
+
+                # use already-saved draft file if present, otherwise copy from uri
+                if self_ref._draft_main_path and os.path.isfile(self_ref._draft_main_path):
+                    log(f"suggest._task: using draft main file path={self_ref._draft_main_path}")
+                    main_path = self_ref._draft_main_path
+                else:
+                    log(f"suggest._task: copying main file name={main_name!r} uri={self_ref._selected_uri}")
+                    main_path = _copy_uri_to_temp(self_ref._selected_uri, act, main_name)
                 if not main_path:
-                    raise Exception("failed to copy main file to temp")
+                    raise Exception("failed to get main file path")
                 log(f"suggest._task: main_path={main_path}")
 
                 extra_paths = []
-                for uri, name, size in self_ref._extra_uris:
-                    log(f"suggest._task: copying extra name={name!r}")
-                    p = _copy_uri_to_temp(uri, act, name or "")
-                    if p:
-                        extra_paths.append(p)
-                        log(f"suggest._task: extra_path={p}")
+                for i, (uri, name, size) in enumerate(self_ref._extra_uris):
+                    draft_p = self_ref._draft_extra_paths[i] if i < len(self_ref._draft_extra_paths) else None
+                    if draft_p and os.path.isfile(draft_p):
+                        log(f"suggest._task: using draft extra file [{i}] path={draft_p}")
+                        extra_paths.append(draft_p)
+                    elif uri is not None:
+                        log(f"suggest._task: copying extra name={name!r}")
+                        p = _copy_uri_to_temp(uri, act, name or "")
+                        if p:
+                            extra_paths.append(p)
+                            log(f"suggest._task: extra_path={p}")
+
+                # collect paths that live in filesDir (blocked by isInternalUri)
+                files_dir_marker = "/files/"
+                hook_paths = set()
+                if files_dir_marker in main_path:
+                    hook_paths.add(main_path)
+                for p in extra_paths:
+                    if files_dir_marker in p:
+                        hook_paths.add(p)
+
+                # hook isInternalUri to allow our draft paths through
+                uri_hook = None
+                if hook_paths and self_ref._plugin is not None:
+                    log(f"suggest._task: hooking isInternalUri for {len(hook_paths)} path(s)")
+                    uri_hook = _hook_is_internal_uri(self_ref._plugin, hook_paths)
+
+                # copy draft files to cache dir so upload thread can read them
+                import shutil, tempfile
+                from file_utils import get_cache_dir
+
+                def _stage_for_upload(src: str, display_name: str) -> str:
+                    suffix = ""
+                    dot = display_name.rfind(".")
+                    if dot >= 0:
+                        suffix = display_name[dot:]
+                    tmp = tempfile.NamedTemporaryFile(
+                        delete=False, suffix=suffix,
+                        dir=get_cache_dir()
+                    )
+                    tmp.close()
+                    shutil.copy2(src, tmp.name)
+                    log(f"suggest._task: staged {src} -> {tmp.name}")
+                    return tmp.name
+
+                staged_main = None
+                staged_extras = []
+
+                if files_dir_marker in main_path:
+                    staged_main = _stage_for_upload(main_path, main_name)
+                staged_extras = []
+                for i, p in enumerate(extra_paths):
+                    if files_dir_marker in p:
+                        name_s = (self_ref._extra_uris[i][1] or "") if i < len(self_ref._extra_uris) else ""
+                        staged_extras.append(_stage_for_upload(p, name_s))
+                    else:
+                        staged_extras.append(None)
+
+                send_main_path = staged_main if staged_main else main_path
+                send_extra_paths = [
+                    staged_extras[i] if staged_extras[i] else extra_paths[i]
+                    for i in range(len(extra_paths))
+                ]
 
                 def _cleanup():
-                    for p in [main_path] + extra_paths:
+                    if uri_hook is not None:
+                        try:
+                            for h in uri_hook:
+                                self_ref._plugin.unhook_method(h)
+                            log("suggest: unhooked isInternalUri")
+                        except Exception as e:
+                            log(f"suggest: unhook isInternalUri error: {e}")
+                    # delete staged copies and non-draft temp files
+                    for p in ([staged_main] if staged_main else []) + [s for s in staged_extras if s]:
                         try:
                             os.unlink(p)
-                            log(f"suggest: cleaned up {p}")
+                            log(f"suggest: cleaned up staged {p}")
                         except Exception as ex:
-                            log(f"suggest: cleanup error {p}: {ex}")
+                            log(f"suggest: cleanup staged error {p}: {ex}")
+                    for p in [main_path] + extra_paths:
+                        if files_dir_marker not in p:
+                            try:
+                                os.unlink(p)
+                                log(f"suggest: cleaned up temp {p}")
+                            except Exception as ex:
+                                log(f"suggest: cleanup error {p}: {ex}")
 
                 # resolve username to get access_hash, then send
                 def _on_resolved(response, error):
@@ -2861,30 +3287,36 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         # build extra captions before leaving queue thread
                         import json as _json2
                         extra_captions = []
-                        for i, p in enumerate(extra_paths):
+                        for i, p in enumerate(send_extra_paths):
                             name_str = (self_ref._extra_uris[i][1] or "") if i < len(self_ref._extra_uris) else ""
                             extra_captions.append(_json2.dumps({"additional": [name_str, i + 1]}, ensure_ascii=False))
-
-                        # delay cleanup to give MessagesController time to open the files
-                        def _deferred_cleanup():
-                            import time
-                            time.sleep(5)
-                            _cleanup()
-
-                        import threading
-                        threading.Thread(target=_deferred_cleanup, daemon=True).start()
 
                         # send_document calls SendMessagesHelper which requires main thread
                         def _send_on_main():
                             try:
-                                log(f"suggest: sending main document path={main_path}")
-                                send_document(peer_id, main_path, caption=caption)
-                                for i, p in enumerate(extra_paths):
-                                    log(f"suggest: sending extra document path={p}")
+                                log(f"suggest: sending main document path={send_main_path}")
+                                send_document(peer_id, send_main_path, caption=caption)
+                                log(f"suggest: main document sent ok")
+                                for i, p in enumerate(send_extra_paths):
+                                    log(f"suggest: sending extra document [{i}] path={p}")
                                     send_document(peer_id, p, caption=extra_captions[i])
+                                    log(f"suggest: extra document [{i}] sent ok")
                                 log("suggest: all documents enqueued, showing success")
+                                self_ref._submitted = True
+                                _clear_draft(self_ref._rm_rid)
+                                log(f"suggest: draft cleared for {self_ref._rm_rid}")
                                 BulletinHelper.show_success(str(strings.suggest_sent))
                                 self_ref._finish_fragment()
+
+                                # cleanup temp files 30s after successful submit
+                                def _deferred_cleanup():
+                                    import time
+                                    time.sleep(30)
+                                    _cleanup()
+                                    log("suggest: deferred cleanup done")
+
+                                import threading
+                                threading.Thread(target=_deferred_cleanup, daemon=True).start()
                             except Exception as e:
                                 log(f"suggest: send_on_main error: {e}")
                                 BulletinHelper.show_error(str(strings.suggest_send_error))
@@ -3222,6 +3654,12 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
             self._attach_keyboard_scroll(act, root)
             self.content_view = root
+
+            # if restoring a draft, show fields immediately (no file picked yet)
+            if self._pending_draft:
+                self._show_fields_section(act)
+                self._show_submit_btn(act)
+
             return root
         except Exception as e:
             log(f"suggest: beforeCreateView build error: {e}")
@@ -3233,7 +3671,52 @@ def show_suggest_fragment(repo_data: dict, plugin=None):
         fragment = get_last_fragment()
         if not fragment:
             return
+
+        rm_rid = "default"
+        try:
+            repometa = repo_data.get("repometa") if isinstance(repo_data, dict) else None
+            if isinstance(repometa, dict):
+                rm_rid = repometa.get("rm_rid") or "default"
+        except Exception:
+            pass
+
+        if _has_draft(rm_rid):
+            act = fragment.getParentActivity()
+            if act:
+                from ui.alert import AlertDialogBuilder
+
+                def _open_with_draft():
+                    draft = _load_draft(rm_rid)
+                    _do_open_suggest(repo_data, plugin, rm_rid, draft)
+
+                def _open_fresh():
+                    _clear_draft(rm_rid)
+                    _do_open_suggest(repo_data, plugin, rm_rid, None)
+
+                builder = AlertDialogBuilder(act)
+                builder.set_title(str(strings.suggest_save_title))
+                builder.set_message(str(strings.suggest_save_message))
+                builder.set_positive_button(str(strings.suggest_save_restore), lambda b, w: (_open_with_draft(), b.dismiss()))
+                builder.set_negative_button(str(strings.suggest_save_reset), lambda b, w: (_open_fresh(), b.dismiss()))
+                builder.make_button_red(AlertDialogBuilder.BUTTON_NEGATIVE)
+                builder.show()
+                return
+
+        _do_open_suggest(repo_data, plugin, rm_rid, None)
+    except Exception as e:
+        log(f"suggest: show_suggest_fragment error: {e}")
+
+
+def _do_open_suggest(repo_data: dict, plugin, rm_rid: str, draft):
+    try:
+        fragment = get_last_fragment()
+        if not fragment:
+            return
         delegate = SuggestFragment(repo_data, plugin)
+        delegate._rm_rid = rm_rid
+        if draft:
+            delegate._pending_description[0] = draft.get("description") or None
+            delegate._pending_draft = draft
         new_fragment = UniversalFragment(delegate)
         fragment.presentFragment(new_fragment)
         try:
@@ -3262,4 +3745,4 @@ def show_suggest_fragment(repo_data: dict, plugin=None):
         except Exception as e:
             log(f"suggest: actionBar setup error: {e}")
     except Exception as e:
-        log(f"suggest: show_suggest_fragment error: {e}")
+        log(f"suggest: _do_open_suggest error: {e}")

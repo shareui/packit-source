@@ -1081,5 +1081,9 @@
   "suggest_forked_not_found": "Plugin not found",
   "suggest_changelog_label": "Changelog",
   "suggest_changelog_hint": "https://...",
-  "suggest_note_hint": "If you wish, you can enter a note for the administrator..."
+  "suggest_note_hint": "If you wish, you can enter a note for the administrator...",
+  "suggest_save_title": "Save",
+  "suggest_save_message": "You have saved your previous input.",
+  "suggest_save_reset": "Reset",
+  "suggest_save_restore": "Restore"
 }
