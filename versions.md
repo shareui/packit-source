@@ -6,11 +6,11 @@ This file contains all versions of PackIt.
 
 Each version may have up to three build variants:
 
-**Universal** — built against a client that contains obfuscated classes for all supported forks. Works for both exteraGram and AyuGram.
+**Universal**: built against a client that contains obfuscated classes for all supported forks. Works for both exteraGram and AyuGram.
 
-**exteraGram** — built against a client that only contains obfuscated classes for exteraGram. Used when AyuGram classes are absent or outdated.
+**exteraGram**: built against a client that only contains obfuscated classes for exteraGram. Used when AyuGram classes are absent or outdated.
 
-**AyuGram** — built against a client that only contains obfuscated classes for AyuGram. Used when exteraGram classes are absent or outdated.
+**AyuGram**: built against a client that only contains obfuscated classes for AyuGram. Used when exteraGram classes are absent or outdated.
 
 ## Version notation
 
@@ -28,14 +28,15 @@ Installing a build across different versions is also possible, but may produce i
 
 ## Stable builds
 
-Universal
+### Universal
 • None
 
-exteraGram
+### exteraGram
 • PackIt 0.0.0 (builder: @shareui)
 [PB] 12.6.4-2
+^^^ PLACEHOLDER
 
-AyuGram
+### AyuGram
 • None
 
 ## Unstable builds
