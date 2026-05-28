@@ -38,7 +38,7 @@ def _resolve_icon(name):
 
 
 def _apply_ripple(view, corner_dp=12, bounded=True):
-    # MD3 ripple feedback
+    # FIXME
     try:
         from android.graphics.drawable import RippleDrawable, ColorDrawable
         from android.content.res import ColorStateList
