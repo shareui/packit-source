@@ -38,10 +38,10 @@ All versions are listed in [versions.md](https://github.com/shareui/packit-sourc
 
 ## Community
 
-Main channel: [@packitX](https://t.me/packitX)
-RU channel: [@packitapp](https://t.me/packitapp)
-EN channel: [@packitappen](https://t.me/packitappen)
-Forum: [@packitGround](https://t.me/packitGround)
+Main channel: [@packitX](https://t.me/packitX)  
+RU channel: [@packitapp](https://t.me/packitapp)  
+EN channel: [@packitappen](https://t.me/packitappen)  
+Forum: [@packitGround](https://t.me/packitGround)  
 
 ## Team
 
