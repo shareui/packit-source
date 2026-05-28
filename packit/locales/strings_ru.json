@@ -298,7 +298,7 @@
   "deeplinks_update_all_desc": "Обновить кэш всех репозиториев",
   "deeplinks_update_repository_desc": "Обновить кэш конкретного репозитория",
   "deeplinks_settings_desc": "Открыть страницу настроек PackIt",
-  "deeplinks_forum_desc": "Открыть Telegram-канал PackItGround",
+  "deeplinks_forum_desc": "Открыть Telegram-группу PackItGround",
   "deeplinks_possible_problems_desc": "Открыть тему с известными проблемами на форуме",
   "deeplinks_restart_desc": "Принудительно перезапустить приложение",
   "deeplinks_check_desc": "Показать уведомление о том, что PackIt работает",

@@ -298,7 +298,7 @@
   "deeplinks_update_all_desc": "Update cache of all repositories",
   "deeplinks_update_repository_desc": "Update cache of a specific repository",
   "deeplinks_settings_desc": "Open PackIt settings page",
-  "deeplinks_forum_desc": "Open PackItGround Telegram channel",
+  "deeplinks_forum_desc": "Open PackItGround Telegram group",
   "deeplinks_possible_problems_desc": "Open known issues topic in forum",
   "deeplinks_restart_desc": "Force restart the application",
   "deeplinks_check_desc": "Show notification that PackIt is working",
