@@ -677,18 +677,76 @@ def _make_social_input_row(act, hint_text, on_delete):
     return row, et
 
 
+import re as _re
+
+_META_DUNDER_RE = _re.compile(
+    r"^__(\w+)__\s*=\s*(.+?)(?=\n__\w+__\s*=|\Z)",
+    _re.MULTILINE | _re.DOTALL,
+)
+_META_PLAIN_RE = _re.compile(
+    r"^(\w+)\s*=\s*(.+?)(?=\n\w+\s*=|\Z)",
+    _re.MULTILINE | _re.DOTALL,
+)
+_META_WANTED = {"id", "version", "name", "author", "description"}
+
+
+def _meta_unescape(s: str) -> str:
+    return s.replace("\\n", "\n").replace("\\t", "\t").replace("\\\\", "\\")
+
+
+def _meta_parse_value(raw: str):
+    # returns parsed string value or None if unparseable
+    if not raw:
+        return None
+    if _re.match(r'^f["\']', raw):
+        return None
+    for q in ('"""', "'''"):
+        if raw.startswith(q):
+            end = raw.find(q, len(q))
+            inner = raw[len(q):end] if end != -1 else raw[len(q):]
+            return _meta_unescape(inner)
+    for q in ('"', "'"):
+        if raw.startswith(q):
+            result = []
+            i = 1
+            while i < len(raw):
+                ch = raw[i]
+                if ch == "\\" and i + 1 < len(raw):
+                    nxt = raw[i + 1]
+                    result.append({"n": "\n", "t": "\t", "r": "\r", "\\": "\\"}.get(nxt, nxt))
+                    i += 2
+                elif ch == q:
+                    break
+                else:
+                    result.append(ch)
+                    i += 1
+            return "".join(result)
+    return None
+
+
 def _parse_plugin_meta(path: str) -> dict:
     # reads __id__, __version__ etc from .plugin or .py file
-    import re
     meta = {}
     try:
         with open(path, "r", encoding="utf-8", errors="replace") as f:
             content = f.read()
-        for key in ("__id__", "__version__", "__name__", "__author__", "__description__"):
-            pattern = "^" + key + r"\s*=\s*[\x22\x27]([^\x22\x27]+)[\x22\x27]"
-            m = re.search(pattern, content, re.MULTILINE)
-            if m:
-                meta[key.strip("_")] = m.group(1)
+        for m in _META_DUNDER_RE.finditer(content):
+            key = m.group(1)
+            if key not in _META_WANTED or key in meta:
+                continue
+            val = _meta_parse_value(m.group(2).strip())
+            if val is not None:
+                meta[key] = val
+        for m in _META_PLAIN_RE.finditer(content):
+            key = m.group(1)
+            if key not in _META_WANTED or key in meta:
+                continue
+            raw = m.group(2).strip()
+            if not raw or raw[0] not in ('"', "'"):
+                continue
+            val = _meta_parse_value(raw)
+            if val is not None:
+                meta[key] = val
     except Exception as e:
         log(f"suggest: _parse_plugin_meta error: {e}")
     return meta
@@ -729,21 +787,94 @@ def _copy_uri_to_temp(uri, act, display_name: str = "") -> str:
         return ""
 
 
+def _parse_eaf_description(eaf_path: str) -> str:
+    # reads description from .eaf archive via refmap.yml or refmap.json -> metainfo field
+    import zipfile, os, json as _json
+    try:
+        with zipfile.ZipFile(eaf_path, "r") as zf:
+            names = zf.namelist()
+
+            # find refmap: prefer .yml, fallback to .json
+            refmap_data = None
+            refmap_fmt = None
+            for candidate, fmt in (("refmap.yml", "yaml"), ("refmap.yaml", "yaml"), ("refmap.json", "json")):
+                if candidate in names:
+                    raw = zf.read(candidate).decode("utf-8", errors="replace")
+                    if fmt == "yaml":
+                        # minimal yaml key: value parser, no external deps
+                        refmap_data = {}
+                        for line in raw.splitlines():
+                            line = line.strip()
+                            if not line or line.startswith("#"):
+                                continue
+                            if ":" in line:
+                                k, _, v = line.partition(":")
+                                refmap_data[k.strip()] = v.strip().strip('"').strip("'")
+                    else:
+                        refmap_data = _json.loads(raw)
+                    refmap_fmt = fmt
+                    break
+
+            if not refmap_data:
+                log("suggest: _parse_eaf_description: no refmap found in archive")
+                return ""
+
+            metainfo_path = refmap_data.get("metainfo", "")
+            if not metainfo_path:
+                log("suggest: _parse_eaf_description: metainfo key missing in refmap")
+                return ""
+
+            if metainfo_path not in names:
+                log(f"suggest: _parse_eaf_description: metainfo file not found: {metainfo_path}")
+                return ""
+
+            meta_raw = zf.read(metainfo_path).decode("utf-8", errors="replace")
+            meta_ext = metainfo_path.rsplit(".", 1)[-1].lower()
+
+            if meta_ext == "json":
+                meta = _json.loads(meta_raw)
+                return str(meta.get("description", ""))
+
+            # yaml metainfo: parse description field
+            for line in meta_raw.splitlines():
+                line = line.strip()
+                if line.startswith("description"):
+                    _, _, v = line.partition(":")
+                    v = v.strip().strip('"').strip("'")
+                    # handle yaml template strings like "{plugin_description} ..."
+                    if v.startswith("{"):
+                        end = v.find("}")
+                        if end != -1:
+                            v = v[end + 1:].strip()
+                    return v
+    except Exception as e:
+        log(f"suggest: _parse_eaf_description error: {e}")
+    return ""
+
+
 def _try_parse_plugin_meta(uri, act, suggest_config, on_description=None, on_update_found=None):
     import threading
     def _worker():
         try:
             name = _get_display_name(uri, act)
             ext = (name or "").rsplit(".", 1)[-1].lower()
-            if ext not in ("plugin", "py"):
+            if ext not in ("eaf", "plugin", "py"):
                 return
 
-            tmp_path = _copy_uri_to_temp(uri, act)
+            tmp_path = _copy_uri_to_temp(uri, act, name or "")
             if not tmp_path:
                 return
 
             import os
             try:
+                if ext == "eaf":
+                    description = _parse_eaf_description(tmp_path)
+                    if description and on_description is not None:
+                        try:
+                            on_description(description)
+                        except Exception as e:
+                            log(f"suggest: on_description callback error: {e}")
+                    return
                 meta = _parse_plugin_meta(tmp_path)
             finally:
                 try:
@@ -1227,6 +1358,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         self._changelog_edit_ref = [None]
         self._changelog_card_ref = [None]
         self._pending_versions = [None]
+        self._note_edit_ref = [None]
 
     def onFragmentCreate(self, *_):
         try:
@@ -1296,6 +1428,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         self._changelog_edit_ref[0] = None
         self._changelog_card_ref[0] = None
         self._pending_versions[0] = None
+        self._note_edit_ref[0] = None
 
     def getTitle(self):
         return strings.suggest_title
@@ -1339,16 +1472,16 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         is_extra = request_code == _PICK_EXTRA_REQUEST_CODE
 
         if not is_extra:
-            # first file must be a .plugin
+            # first file must be a .eaf or .plugin
             ext = (name or "").rsplit(".", 1)[-1].lower()
-            if ext != "plugin":
-                log(f"suggest: first file ignored, expected .plugin got .{ext}")
+            if ext not in ("eaf", "plugin"):
+                log(f"suggest: first file ignored, expected .eaf/.plugin got .{ext}")
                 def _show_ext_error():
                     try:
                         from org.telegram.ui.Components import BulletinFactory
                         decor = act.getWindow().getDecorView()
                         BulletinFactory.of(decor, None).createErrorBulletin(
-                            "The first file should be .plugin/.eaf"
+                            "The first file should be .eaf/.plugin"
                         ).show()
                     except Exception as e:
                         log(f"suggest: error bulletin error: {e}")
@@ -1750,6 +1883,77 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 section.addView(desc_card, lp_desc)
             except Exception as e:
                 log(f"suggest: desc_card error: {e}")
+
+            # note card
+            try:
+                note_card = LinearLayout(act)
+                note_card.setOrientation(LinearLayout.VERTICAL)
+                note_card.setPadding(dp(16), dp(12), dp(16), dp(12))
+                note_bg = _make_section_card(act)
+                if note_bg:
+                    note_card.setBackground(note_bg)
+
+                note_label_row = LinearLayout(act)
+                note_label_row.setOrientation(LinearLayout.HORIZONTAL)
+                note_label_row.setGravity(Gravity.CENTER_VERTICAL)
+                note_label_row.setPadding(0, 0, 0, dp(8))
+
+                note_icon = ImageView(act)
+                note_icon_id = _resolve_icon("msg_info")
+                if note_icon_id:
+                    note_icon.setImageResource(note_icon_id)
+                    note_icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_addButton))
+                note_icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+                note_label_row.addView(note_icon, LayoutHelper.createLinear(20, 20, Gravity.CENTER_VERTICAL, 0, 0, 8, 0))
+
+                note_label_tv = TextView(act)
+                note_label_tv.setText("Note")
+                note_label_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+                note_label_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+                note_label_tv.setTypeface(note_label_tv.getTypeface(), 1)
+                note_label_row.addView(note_label_tv, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL))
+
+                note_card.addView(note_label_row, LayoutHelper.createLinear(-1, -2))
+
+                from android.widget import EditText as AEditText
+                note_et = AEditText(act)
+                note_et.setHint(str(strings.suggest_note_hint))
+                note_et.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+                note_et.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+                note_et.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+                note_et.setBackground(None)
+                note_et.setGravity(Gravity.TOP | Gravity.START)
+                try:
+                    from android.text import InputType
+                    note_et.setInputType(
+                        InputType.TYPE_CLASS_TEXT |
+                        InputType.TYPE_TEXT_FLAG_MULTI_LINE |
+                        InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+                    )
+                    note_et.setMinLines(2)
+                    note_et.setMaxLines(5)
+                except Exception:
+                    pass
+
+                self._note_edit_ref[0] = note_et
+                _register_keyboard_back(act, note_et)
+
+                note_et_bg = _make_outlined_et_bg()
+                if note_et_bg:
+                    from android.widget import FrameLayout as FL
+                    note_et_wrap = FL(act)
+                    note_et_wrap.setBackground(note_et_bg)
+                    note_et_wrap.setPadding(dp(12), dp(8), dp(12), dp(8))
+                    note_et_wrap.addView(note_et, FL.LayoutParams(-1, -2))
+                    note_card.addView(note_et_wrap, LayoutHelper.createLinear(-1, -2))
+                else:
+                    note_card.addView(note_et, LayoutHelper.createLinear(-1, -2))
+
+                lp_note = LinearLayout.LayoutParams(-1, -2)
+                lp_note.topMargin = dp(12)
+                section.addView(note_card, lp_note)
+            except Exception as e:
+                log(f"suggest: note_card error: {e}")
 
             # socials card
             if max_socials > 0:
@@ -2572,7 +2776,36 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         except Exception as e:
             log(f"suggest._do_submit: forked read error: {e}")
 
-        caption = f"Description:\n{desc}\n\nSocials:\n{socials_block}\n\nChangelog:\n{changelog}\n\nForked:\n{forked_link}"
+        note = ""
+        try:
+            note_et = self._note_edit_ref[0]
+            if note_et is not None:
+                note = str(note_et.getText()).strip()
+        except Exception as e:
+            log(f"suggest._do_submit: note read error: {e}")
+
+        use_json = False
+        try:
+            raw_json = config.get("json", 0)
+            use_json = bool(int(raw_json)) if raw_json not in (True, False) else bool(raw_json)
+        except (TypeError, ValueError):
+            use_json = bool(config.get("json", False))
+
+        if use_json:
+            import json as _json
+            payload = {
+                "description": desc,
+                "socials": socials,
+                "changelog": changelog,
+                "forked": forked_link,
+            }
+            if note:
+                payload["note"] = note
+            caption = _json.dumps(payload, ensure_ascii=False)
+        else:
+            caption = f"Description:\n{desc}\n\nSocials:\n{socials_block}\n\nChangelog:\n{changelog}\n\nForked:\n{forked_link}"
+            if note:
+                caption += f"\n\nNote:\n{note}"
         log(f"suggest._do_submit: caption={caption!r}")
 
         # show loading state on button
@@ -2625,12 +2858,12 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         get_messages_controller().putUsers(response.users, False)
                         log(f"suggest: resolved acc_user={acc_user} peer_id={peer_id}")
 
-                        # send files; cleanup is deferred so MessagesController can open the files
-                        log(f"suggest: sending main document path={main_path}")
-                        send_document(peer_id, main_path, caption=caption)
+                        # build extra captions before leaving queue thread
+                        import json as _json2
+                        extra_captions = []
                         for i, p in enumerate(extra_paths):
-                            log(f"suggest: sending extra document path={p}")
-                            send_document(peer_id, p, caption=f"Additional file {i + 1}")
+                            name_str = (self_ref._extra_uris[i][1] or "") if i < len(self_ref._extra_uris) else ""
+                            extra_captions.append(_json2.dumps({"additional": [name_str, i + 1]}, ensure_ascii=False))
 
                         # delay cleanup to give MessagesController time to open the files
                         def _deferred_cleanup():
@@ -2641,11 +2874,23 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         import threading
                         threading.Thread(target=_deferred_cleanup, daemon=True).start()
 
-                        log("suggest: all documents enqueued, showing success")
-                        run_on_ui_thread(lambda: (
-                            BulletinHelper.show_success(str(strings.suggest_sent)),
-                            self_ref._finish_fragment()
-                        ))
+                        # send_document calls SendMessagesHelper which requires main thread
+                        def _send_on_main():
+                            try:
+                                log(f"suggest: sending main document path={main_path}")
+                                send_document(peer_id, main_path, caption=caption)
+                                for i, p in enumerate(extra_paths):
+                                    log(f"suggest: sending extra document path={p}")
+                                    send_document(peer_id, p, caption=extra_captions[i])
+                                log("suggest: all documents enqueued, showing success")
+                                BulletinHelper.show_success(str(strings.suggest_sent))
+                                self_ref._finish_fragment()
+                            except Exception as e:
+                                log(f"suggest: send_on_main error: {e}")
+                                BulletinHelper.show_error(str(strings.suggest_send_error))
+                                self_ref._restore_submit_btn()
+
+                        run_on_ui_thread(_send_on_main)
                     except Exception as e:
                         log(f"suggest: send error: {e}")
                         _cleanup()

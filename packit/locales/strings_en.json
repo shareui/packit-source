@@ -1080,5 +1080,6 @@
   "suggest_forked_name_hint": "Enter the plugin name...",
   "suggest_forked_not_found": "Plugin not found",
   "suggest_changelog_label": "Changelog",
-  "suggest_changelog_hint": "https://..."
+  "suggest_changelog_hint": "https://...",
+  "suggest_note_hint": "If you wish, you can enter a note for the administrator..."
 }
