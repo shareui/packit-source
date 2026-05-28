@@ -21,14 +21,14 @@ Official plugins catalog: [shareui/packit](https://github.com/shareui/packit)
 
 ## Requirements
 
-| | |
-|---|---|
-| Client version | 12.6.4 or higher |
-| RAM | 6 GB or more |
-| Elyx SDK | 0.9.2 or higher |
-| exteraGram SDK | 1.4.3.2 or higher |
-| OS | Android 13+ |
-| Arch | arm64-v8a |
+<table>
+<tr><td>Client version</td><td>12.6.4 or higher</td></tr>
+<tr><td>RAM</td><td>6 GB or more</td></tr>
+<tr><td>Elyx SDK</td><td>0.9.2 or higher</td></tr>
+<tr><td>exteraGram SDK</td><td>1.4.3.2 or higher</td></tr>
+<tr><td>OS</td><td>Android 13+</td></tr>
+<tr><td>Arch</td><td>arm64-v8a</td></tr>
+</table>
 
 ## Building
 
@@ -45,7 +45,7 @@ Forum: [@packitGround](https://t.me/packitGround)
 
 ## Team
 
-| Role | |
+| Role | User |
 |---|---|
 | Founder | [@shareui](https://t.me/shareui) |
 | Developer | [@mr_Vestr](https://t.me/mr_Vestr) |
