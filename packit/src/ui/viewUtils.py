@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from android.widget import TextView
 from android.util import TypedValue
 from android_utils import log

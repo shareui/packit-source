@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from ui.settings import Header, Text, Divider, Selector, Switch
 from elyx import strings, settings
 from android_utils import log

@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import os
 from android.view import View, Gravity, MotionEvent
 from android.widget import LinearLayout, TextView, FrameLayout, HorizontalScrollView, ImageView, ScrollView

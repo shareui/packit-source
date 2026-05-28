@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from android_utils import log, run_on_ui_thread
 from android.view import Gravity
 from android.widget import LinearLayout, ImageView, TextView

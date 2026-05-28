@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import os
 from android_utils import log
 from android.media import MediaPlayer, AudioManager
@@ -10,9 +13,7 @@ except Exception as e:
 
 
 def handle(url):
-    log(f"deeplinks.terraria: handle called, url={url!r}")
     if url != "tg://packit?terraria":
-        log(f"deeplinks.terraria: url mismatch, skipping")
         return
     try:
         _playMaxVolume()

@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import math
 from android_utils import log, run_on_ui_thread, OnClickListener
 from base_plugin import MethodHook

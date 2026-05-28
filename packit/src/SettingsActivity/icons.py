@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from ui.settings import Header, Text, Divider
 from ui.bulletin import BulletinHelper
 try:

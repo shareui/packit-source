@@ -1,3 +1,8 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+DEBUG_LOGS = False
+
 from base_plugin import MethodHook
 from hook_utils import find_class
 from android_utils import log, OnClickListener
@@ -7,16 +12,19 @@ try:
     from org.telegram.messenger import AndroidUtilities, R as R_tg
     from org.telegram.messenger.browser import Browser
 except Exception as e:
-    log(f"linksBottomSheet: import error: {e}")
+    if DEBUG_LOGS:
+        log(f"linksBottomSheet: import error: {e}")
     Browser = None
 try:
     from org.telegram.ui.ActionBar import Theme
 except Exception as e:
-    log(f"linksBottomSheet: import Theme error: {e}")
+    if DEBUG_LOGS:
+        log(f"linksBottomSheet: import Theme error: {e}")
 try:
     from org.telegram.ui.Components import LayoutHelper
 except Exception as e:
-    log(f"linksBottomSheet: import LayoutHelper error: {e}")
+    if DEBUG_LOGS:
+        log(f"linksBottomSheet: import LayoutHelper error: {e}")
 
 # default: LEFT|TOP corner, buttons stack downward
 _GRAVITY_DEFAULT = 51  # LEFT|TOP
@@ -56,7 +64,8 @@ def _resolveGravity(value) -> int:
         part = part.strip().upper()
         g = _GRAVITY_MAP.get(part)
         if g is None:
-            log(f"linksBottomSheet: unknown gravity token '{part}', ignoring")
+            if DEBUG_LOGS:
+                log(f"linksBottomSheet: unknown gravity token '{part}', ignoring")
             continue
         combined |= g
     return combined if combined else _GRAVITY_DEFAULT
@@ -93,7 +102,8 @@ def _parseLinks(filePath: str) -> list:
                 })
         return result
     except Exception as e:
-        log(f"linksBottomSheet: _parseLinks parse error: {e}")
+        if DEBUG_LOGS:
+            log(f"linksBottomSheet: _parseLinks parse error: {e}")
         return []
 
 
@@ -109,7 +119,8 @@ def _openUrl(act, url: str):
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             ApplicationLoader.applicationContext.startActivity(intent)
     except Exception as e:
-        log(f"linksBottomSheet: _openUrl error: {e}")
+        if DEBUG_LOGS:
+            log(f"linksBottomSheet: _openUrl error: {e}")
 
 
 _pending: dict = {}
@@ -123,9 +134,11 @@ class ConstructorHook(MethodHook):
             filePath = str(install_params.filePath)
             sheet = param.thisObject
             _pending[sheet.hashCode()] = (filePath, sheet)
-            log(f"linksBottomSheet: stored filePath={filePath}")
+            if DEBUG_LOGS:
+                log(f"linksBottomSheet: stored filePath={filePath}")
         except Exception as e:
-            log(f"linksBottomSheet: ConstructorHook error: {e}")
+            if DEBUG_LOGS:
+                log(f"linksBottomSheet: ConstructorHook error: {e}")
 
 
 def _getFilePathFromSheet(sheet) -> str:
@@ -147,7 +160,8 @@ def _getFilePathFromSheet(sheet) -> str:
                         return s
             cls = cls.getSuperclass()
     except Exception as e:
-        log(f"linksBottomSheet: _getFilePathFromSheet error: {e}")
+        if DEBUG_LOGS:
+            log(f"linksBottomSheet: _getFilePathFromSheet error: {e}")
     return ""
 
 
@@ -168,7 +182,8 @@ class SetCustomViewHook(MethodHook):
 
             frame = view.getChildAt(0)
             if not frame:
-                log("linksBottomSheet: frame not found")
+                if DEBUG_LOGS:
+                    log("linksBottomSheet: frame not found")
                 return
 
             stored = _pending.pop(sheet.hashCode(), ("", None))
@@ -176,7 +191,8 @@ class SetCustomViewHook(MethodHook):
             if not filePath:
                 filePath = _getFilePathFromSheet(sheet)
                 _sheet = sheet
-                log(f"linksBottomSheet: fallback filePath={filePath}")
+                if DEBUG_LOGS:
+                    log(f"linksBottomSheet: fallback filePath={filePath}")
             if not filePath:
                 return
 
@@ -250,10 +266,12 @@ class SetCustomViewHook(MethodHook):
 
                 lp = LayoutHelper.createFrame(40, 40.0, gravity, leftMargin, y, rightMargin, 0.0)
                 frame.addView(btn, lp)
-                log(f"linksBottomSheet: added button icon={iconName} gravity={gravity} x={x} y={y}")
+                if DEBUG_LOGS:
+                    log(f"linksBottomSheet: added button icon={iconName} gravity={gravity} x={x} y={y}")
 
         except Exception as e:
-            log(f"linksBottomSheet: SetCustomViewHook error: {e}")
+            if DEBUG_LOGS:
+                log(f"linksBottomSheet: SetCustomViewHook error: {e}")
 
 
 def setup_links_buttons_hook(plugin):
@@ -263,7 +281,8 @@ def setup_links_buttons_hook(plugin):
             "com.exteragram.messenger.plugins.ui.components.InstallPluginBottomSheet"
         )
         if not InstallSheet:
-            log("linksBottomSheet: InstallPluginBottomSheet not found")
+            if DEBUG_LOGS:
+                log("linksBottomSheet: InstallPluginBottomSheet not found")
             return None
 
         BaseFragment = find_class("org.telegram.ui.ActionBar.BaseFragment")
@@ -287,8 +306,10 @@ def setup_links_buttons_hook(plugin):
             method.setAccessible(True)
             hooks.append(plugin.hook_method(method, SetCustomViewHook()))
 
-        log(f"linksBottomSheet: setup done, hooks={len(hooks)}")
+        if DEBUG_LOGS:
+            log(f"linksBottomSheet: setup done, hooks={len(hooks)}")
         return hooks
     except Exception as e:
-        log(f"linksBottomSheet: setup error: {e}")
+        if DEBUG_LOGS:
+            log(f"linksBottomSheet: setup error: {e}")
         return None

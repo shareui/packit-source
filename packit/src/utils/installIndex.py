@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import json
 import os
 import re
@@ -155,10 +158,19 @@ def commit_pending():
 
     version = _strip_version(plugin_info.get("version") or "")
     state = str(plugin_info.get("state") or "")
-    candidate_path = getPluginsDir() + f"/{plugin_id}.py"
+    plugins_dir = getPluginsDir()
+    candidate_path = ""
+    file_type = "plugin"
+    for ext in (".plugin", ".py"):
+        p = plugins_dir + f"/{plugin_id}{ext}"
+        if os.path.exists(p):
+            candidate_path = p
+            file_type = ext.lstrip(".")
+            break
+    if not candidate_path:
+        candidate_path = plugins_dir + f"/{plugin_id}.py"
     file_exists = os.path.exists(candidate_path)
     local_path = candidate_path if file_exists else "Unknown"
-    file_type = "plugin"
 
     log(f"installIndex: commit_pending '{plugin_id}' v={version} state={state} path_exists={file_exists} path='{candidate_path}'")
 
@@ -265,25 +277,30 @@ def commit_elyx_pending(plugin_info: dict, rm_rid: str, original_path: str = "")
 
     # check file is present (either we copied it or elyxcore placed it)
     if not os.path.exists(archive_path):
-        log(f"installIndex.elyx: archive not found at '{archive_path}', skipping index write")
-        return
+        log(f"installIndex.elyx: archive not found at '{archive_path}', using original_path for index")
+        # still write index so the install is tracked; use original_path if available
+        local_path = original_path if original_path and os.path.exists(original_path) else "Unknown"
+    else:
+        local_path = archive_path
 
-    local_path = archive_path
-
-    # hash the saved original archive
+    # hash the saved archive (or original_path if archive copy failed)
     hash_val = ""
     bithash_val = ""
-    try:
-        from .hashUtil import _hashFileSha256, _hashFileBithash, _getBitHashLib
-        hash_val = _hashFileSha256(archive_path)
-        if _getBitHashLib() is not None:
-            bithash_val = _hashFileBithash(archive_path)
-        log(f"installIndex.elyx: hashed '{plugin_id}' sha256='{hash_val[:16]}...' bithash='{bithash_val[:16] if bithash_val else ''}'")
-    except Exception as e:
-        log(f"installIndex.elyx: failed to hash archive for '{plugin_id}': {e}")
+    hash_source = local_path if local_path and local_path != "Unknown" else ""
+    if hash_source:
+        try:
+            from .hashUtil import _hashFileSha256, _hashFileBithash, _getBitHashLib
+            hash_val = _hashFileSha256(hash_source)
+            if _getBitHashLib() is not None:
+                bithash_val = _hashFileBithash(hash_source)
+            log(f"installIndex.elyx: hashed '{plugin_id}' sha256='{hash_val[:16]}...' bithash='{bithash_val[:16] if bithash_val else ''}'")
+        except Exception as e:
+            log(f"installIndex.elyx: failed to hash archive for '{plugin_id}': {e}")
+            hash_val = str(plugin_info.get("hash") or "")
+            bithash_val = str(plugin_info.get("bithash") or "")
+    else:
         hash_val = str(plugin_info.get("hash") or "")
         bithash_val = str(plugin_info.get("bithash") or "")
-
     record = {
         "id": plugin_id,
         "version": version,

@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import ctypes
 import os
 
@@ -159,4 +162,3 @@ def tokenizeKotlin(text: str):
     if lib is None:
         return None
     return tokenize(text, lib.packlight_kotlin)
-

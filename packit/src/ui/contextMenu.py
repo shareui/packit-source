@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 try:
     from org.telegram.ui.Components import ItemOptions
 except Exception as e:

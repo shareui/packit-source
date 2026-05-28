@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from base_plugin import MethodHook
 from hook_utils import find_class
 from android_utils import log, run_on_ui_thread
@@ -26,6 +29,7 @@ from . import plugin
 from .secret import premium
 from .secret import terraria
 from .secret import aytist
+from . import suggestion
 
 
 class PackItDeeplinkHook(MethodHook):
@@ -50,6 +54,8 @@ class PackItDeeplinkHook(MethodHook):
 
             url = str(data)
             if url.startswith("tg://packit"):
+                _params = url.split("?", 1)[1] if "?" in url else ""
+                log(f'[PackIt] link "{url}" is triggered, parameters: {_params}')
                 self.pending_intent = intent
                 self.pending_param = param
                 param.setResult(None)
@@ -76,6 +82,7 @@ class PackItDeeplinkHook(MethodHook):
             premium.handle(url)
             terraria.handle(url)
             aytist.handle(url)
+            suggestion.handle(url, self.plugin)
         except Exception as e:
             log(f"[PackIt] Error showing notification: {e}")
             try:

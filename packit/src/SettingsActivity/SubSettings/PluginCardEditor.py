@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 import ctypes
 from android.view import View, Gravity
 from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView, SeekBar

@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from android.widget import LinearLayout, TextView, FrameLayout
 from android.util import TypedValue
 from android.graphics.drawable import GradientDrawable

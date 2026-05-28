@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from ui.settings import Header, Switch, Divider, Text, Input, Custom
 from ui.alert import AlertDialogBuilder
 from client_utils import get_last_fragment

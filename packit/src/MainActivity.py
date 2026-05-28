@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from ui.settings import Header, Text, Divider
 try:
     from elyx import strings, metainfo
@@ -418,6 +421,3 @@ class SettingsBuilder:
         except Exception as e:
             log(f"MainActivity: _create_footer_view error: {e}")
             return None
-
-
-
