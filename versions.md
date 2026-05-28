@@ -39,7 +39,7 @@ Installing a build across different versions is also possible, but may produce i
 
 | PackIt | Client | Type | Builder |
 |---|---|---|---|
-| 0.0.0 | 12.6.4 | PB | @shareui |
+| 0.0.0 | 12.6.4 | PB | shareui |
 
 **AyuGram**
 
