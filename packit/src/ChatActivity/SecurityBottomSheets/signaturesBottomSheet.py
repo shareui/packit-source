@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 DEBUG_LOGS = False
+TEST_UI = False
+TEST_WARNING = False
 
 from base_plugin import MethodHook
 from hook_utils import find_class
@@ -40,9 +42,14 @@ _LEVEL_STYLE = {
 }
 _LEVEL_ORDER = ["Critical", "High", "Medium", "Low"]
 
+_PACKITKEY_SIGS = frozenset([
+    "libpackitkey", "loadPackitKey(", "packitkey_store(",
+    "packitkey_load(", "packitkey_delete(", "packitkey_exists(",
+    "packit/.secret/keys", "native/packitkey",
+])
+
 
 def _extractPluginId(filePath: str, source: str) -> str:
-    # try from filename first: .temp_{id}.plugin
     import re as _re
     try:
         m = _re.search(r"\.temp_(.+?)\.plugin$", filePath)
@@ -50,7 +57,6 @@ def _extractPluginId(filePath: str, source: str) -> str:
             return m.group(1)
     except Exception:
         pass
-    # fallback: parse __id__ from source
     try:
         m = _re.search(r'^__id__\s*=\s*[\'"]([^\'"]+)[\'"]', source, _re.MULTILINE)
         if m:
@@ -69,7 +75,6 @@ def _fetchSignatures():
 def _scanPlugin(source: str, signatures: list) -> dict:
     results: dict = {}
 
-    # strip comment lines so commented-out patterns don't trigger
     clean_lines = []
     for line in source.splitlines():
         stripped = line.lstrip()
@@ -118,6 +123,20 @@ def _scanPlugin(source: str, signatures: list) -> dict:
         if pattern not in results[level]:
             results[level].append(pattern)
 
+    return results
+
+
+def _buildTestResults(signatures: list) -> dict:
+    # test mode: treat all config signatures as detected
+    results: dict = {}
+    for sig in signatures:
+        pattern = sig[0]
+        level = sig[1]
+        label = " + ".join(pattern) if isinstance(pattern, list) else pattern
+        if level not in results:
+            results[level] = []
+        if label not in results[level]:
+            results[level].append(label)
     return results
 
 
@@ -205,6 +224,14 @@ def _appendCleanState(act, root):
     ))
 
 
+def _formatPattern(p: str) -> str:
+    if p.endswith("("):
+        return p + ")"
+    if p.endswith("["):
+        return p + "]"
+    return p
+
+
 def _appendLevelBlock(act, root, level: str, patterns: list):
     from android.widget import LinearLayout, TextView
     from android.view import Gravity
@@ -268,7 +295,7 @@ def _appendLevelBlock(act, root, level: str, patterns: list):
     # pattern rows
     subtextColor = _resolveColor("key_windowBackgroundWhiteGrayText", 0xFF9E9E9E)
     for i, p in enumerate(patterns):
-        display = f"[{p}]"
+        display = _formatPattern(p)
         row = TextView(act)
         row.setText(f"• {display}")
         row.setTextSize(12)
@@ -313,6 +340,64 @@ def _applyPressScale(view):
     except Exception as e:
         if DEBUG_LOGS:
             log(f"securityUi: _applyPressScale error: {e}")
+
+
+def _hasPackitkeySignature(results: dict) -> bool:
+    if TEST_WARNING:
+        return True
+    for patterns in results.values():
+        for p in patterns:
+            if p in _PACKITKEY_SIGS:
+                return True
+    return False
+
+
+def _buildPackitkeyWarning(act) -> object:
+    from android.widget import LinearLayout, TextView
+    from android.graphics import Typeface
+    from android.graphics.drawable import GradientDrawable
+
+    dp = AndroidUtilities.dp
+    warningColor = _resolveColor("key_text_RedBold", 0xFFE53935)
+
+    container = LinearLayout(act)
+    container.setOrientation(LinearLayout.VERTICAL)
+    container.setPadding(dp(12), dp(12), dp(12), dp(12))
+
+    try:
+        r = (warningColor >> 16) & 0xFF
+        g = (warningColor >> 8) & 0xFF
+        b = warningColor & 0xFF
+        gd = GradientDrawable()
+        gd.setCornerRadius(dp(12))
+        gd.setColor((0x18 << 24) | (r << 16) | (g << 8) | b)
+        container.setBackground(gd)
+    except Exception as e:
+        if DEBUG_LOGS:
+            log(f"securityUi: packitkey warning bg error: {e}")
+
+    title = TextView(act)
+    title.setText(strings["sec_packitkey_warning_title"])
+    title.setTextSize(13)
+    title.setTypeface(Typeface.DEFAULT_BOLD)
+    title.setTextColor(warningColor)
+    lp_title = LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT,
+        LinearLayout.LayoutParams.WRAP_CONTENT
+    )
+    lp_title.bottomMargin = dp(6)
+    container.addView(title, lp_title)
+
+    text = TextView(act)
+    text.setText(strings["sec_packitkey_warning_text"])
+    text.setTextSize(12)
+    text.setTextColor(_resolveColor("key_windowBackgroundWhiteGrayText", 0xFF9E9E9E))
+    container.addView(text, LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT,
+        LinearLayout.LayoutParams.WRAP_CONTENT
+    ))
+
+    return container
 
 
 def _buildLearnMoreBtn(act, onPress) -> object:
@@ -463,6 +548,15 @@ def _showResults(results: dict, act):
             LinearLayout.LayoutParams.WRAP_CONTENT
         ))
 
+        if _hasPackitkeySignature(results):
+            warningView = _buildPackitkeyWarning(act)
+            lp_warn = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            lp_warn.bottomMargin = AndroidUtilities.dp(10)
+            wrapper.addView(warningView, lp_warn)
+
         try:
             from ...utils.localConfig import LocalConfig
             showLearnMore = not LocalConfig.get("signatures", False)
@@ -524,12 +618,12 @@ def _onPolicyClick(act, filePath: str):
             if DEBUG_LOGS:
                 log(f"securityUi: plugin_id={plugin_id!r}")
 
-            if plugin_id == "shareui_packit":
+            if not TEST_UI and plugin_id == "shareui_packit":
                 run_on_ui_thread(lambda: (dlg.dismiss(), _showResults({}, act)))
                 return
 
             signatures = _fetchSignatures()
-            results = _scanPlugin(source, signatures)
+            results = _buildTestResults(signatures) if TEST_UI else _scanPlugin(source, signatures)
             run_on_ui_thread(lambda: (dlg.dismiss(), _showResults(results, act)))
         except Exception as e:
             if DEBUG_LOGS:
