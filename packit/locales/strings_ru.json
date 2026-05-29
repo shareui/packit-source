@@ -1085,5 +1085,11 @@
   "suggest_save_title": "Сохранение",
   "suggest_save_message": "У вас есть сохранённый черновик.",
   "suggest_save_reset": "Сбросить",
-  "suggest_save_restore": "Восстановить"
+  "suggest_save_restore": "Восстановить",
+  "deeplinks_suggest_plugin": "Предложить плагин на проверку",
+  "deeplinks_suggest_plugin_desc": "Открыть форму отправки плагина для конкретного репозитория",
+  "sticker_radius": "Радиус стикера (dp)",
+  "sec_packitkey_warning_title": "⚠ ВНИМАНИЕ",
+  "sec_packitkey_warning_text": "Этот плагин, вероятно, пытается получить ваш API-ключ, хранящийся в PackIt. Установка настоятельно не рекомендуется.",
+  "contributor_translator": "Переводчик"
 }
