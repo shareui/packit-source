@@ -154,6 +154,7 @@
   "support_via_send": "Падтрымаць праз @send",
   "support_via_ton": "Падтрымаць праз TON",
   "support_send_message": "<З",
+  "support_with_github_sponsors": "Падтрымаць праз Github Sponsors",
   "copied_to_clipboard": "Скапіявана ў буфер",
   "donate_easter_egg": "Пачакай, хтосьці даў падпісак?",
   "additional_actions": "Дадаткова",
@@ -1091,5 +1092,6 @@
   "sticker_radius": "Радыус стыкера (dp)",
   "sec_packitkey_warning_title": "⚠ УВАГА",
   "sec_packitkey_warning_text": "Гэты плагін, верагодна, спрабуе атрымаць твой API-ключ, захаваны ў PackIt. Усталяванне настойліва не рэкамендуецца.",
-  "contributor_translator": "Перакладчык"
+  "contributor_translator": "Перакладчык",
+  "developer": "Распрацоўшчык"
 }

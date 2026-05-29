@@ -84,7 +84,6 @@ import android_utils as _au
 
 def _make_avatar_view(context, image_url, title_text, subtitle_text, username_url=None):
     try:
-
         dp = AndroidUtilities.dp
 
         container = FrameLayout(context)
@@ -163,7 +162,6 @@ def _make_avatar_view(context, image_url, title_text, subtitle_text, username_ur
         return None
 
 def _make_link_row(context, icon_name, label_text, link_text, on_click):
-    # row: icon | label (fill) | accent link text
     try:
         from org.telegram.messenger import R as R_tg
         from androidx.core.content import ContextCompat
@@ -219,7 +217,6 @@ def _make_link_row(context, icon_name, label_text, link_text, on_click):
         _au.log(f"contributors._make_link_row error: {e}")
         return None
 
-
 def _open_username_url(url):
     try:
         if url.startswith("https://t.me/"):
@@ -241,6 +238,84 @@ def _open_username_url(url):
         except Exception:
             pass
 
+class contributor_card:
+    def __init__(self, settings, avatar_url, title_text, subtitle_text, username_url=None):
+        self.settings = settings
+        self.avatar_url = avatar_url
+        self.title_text = title_text
+        self.subtitle_text = subtitle_text
+        self.username_url = username_url
+        self.items = []
+    
+    def add_link(self, icon_name, label_text, link_text, url=None, on_click=None):
+        if on_click is None and url is not None:
+            on_click = lambda v, u=url: self.settings._open_url(u)
+        self.items.append({"type": "link", "icon": icon_name, "label": label_text, "text": link_text, "on_click": on_click})
+        return self
+        
+    def add_donation(self, text, icon, link_alias, url=None, address=None, on_click=None):
+        if on_click is None:
+            if url:
+                def make_send_callback(u):
+                    def callback(view):
+                        try:
+                            BulletinHelper.show_success(strings.donate_easter_egg)
+                        except Exception:
+                            pass
+                        run_on_ui_thread(lambda: self.settings._open_url(u), 1000)
+                    return callback
+                on_click = make_send_callback(url)
+            elif address:
+                def make_ton_callback(addr):
+                    def callback(view):
+                        try:
+                            if AndroidUtilities.addToClipboard(addr):
+                                BulletinHelper.show_success(strings.copied_to_clipboard)
+                            else:
+                                BulletinHelper.show_error(strings.failed_to_copy)
+                        except Exception:
+                            BulletinHelper.show_error(strings.failed_to_copy)
+                    return callback
+                on_click = make_ton_callback(address)
+        
+        self.items.append({"type": "donation", "text": text, "icon": icon, "alias": link_alias, "on_click": on_click})
+        return self
+
+    def build(self):
+        built_items = []
+        avatar = self.settings._make_avatar_item(
+            self.avatar_url,
+            title_text=self.title_text,
+            subtitle_text=self.subtitle_text,
+            username_url=self.username_url
+        )
+        if avatar is not None:
+            built_items.append(avatar)
+        else:
+            built_items.append(Header(text=self.title_text))
+
+        first_link = True
+        for item in self.items:
+            if item["type"] == "link":
+                if not first_link:
+                    divider = self.settings._make_small_divider()
+                    if divider is not None:
+                        built_items.append(divider)
+                first_link = False
+                link_item = self.settings._make_link_item(item["icon"], item["label"], item["text"], item["on_click"])
+                if link_item is not None:
+                    built_items.append(link_item)
+            elif item["type"] == "donation":
+                built_items.append(Text(
+                    text=item["text"],
+                    icon=item["icon"],
+                    accent=True,
+                    link_alias=item["alias"],
+                    on_click=item["on_click"]
+                ))
+                
+        built_items.append(Divider())
+        return built_items
 
 class ContributorsSettings:
     def __init__(self):
@@ -363,247 +438,65 @@ class ContributorsSettings:
             return None
 
     def build(self):
-        def support_via_send(view):
-            try:
-                BulletinHelper.show_success(strings.donate_easter_egg)
-            except Exception:
-                pass
-
-            run_on_ui_thread(
-                lambda: self._open_url("https://t.me/send?start=IV7kTHbP2iXp"),
-                1000
-            )
-
-        def support_via_ton(view):
-            tonAddress = "UQADRm0R1HNgMYuTfbHB3kdENuWt_Et5dFlEtrILK3LQ-KKL"
-            try:
-                if AndroidUtilities.addToClipboard(tonAddress):
-                    BulletinHelper.show_success(strings.copied_to_clipboard)
-                else:
-                    BulletinHelper.show_error(strings.failed_to_copy)
-            except Exception:
-                BulletinHelper.show_error(strings.failed_to_copy)
-
         items = []
 
-        avatar_shareui = self._make_avatar_item(
-            "https://avatars.githubusercontent.com/u/244288900?s=400&u=e0771909fd592fb2263932a6922dc4e7e5de5a81&v=4",
+        items.extend(contributor_card(self, 
+            avatar_url="https://avatars.githubusercontent.com/u/244288900?s=400&u=e0771909fd592fb2263932a6922dc4e7e5de5a81&v=4",
             title_text=str(strings.founder_shareui),
             subtitle_text="@shareui",
             username_url="https://t.me/shareui"
-        )
-        if avatar_shareui is not None:
-            items.append(avatar_shareui)
-        else:
-            items.append(Header(text=strings.founder_shareui))
+        ).add_link("msg_link", str(strings.github), "github.com/shareui", "https://github.com/shareui"
+        ).add_link("msg_message", str(strings.direct_message), "t.me/shareui", "https://t.me/shareui"
+        ).add_link("msg_channel", str(strings.plugins_channel), "t.me/doctashare", "https://t.me/doctashare"
+        ).add_donation(strings.support_via_send, "filled_paid_suggest_24", "support_send_s", url="https://t.me/send?start=IV7kTHbP2iXp"
+        ).add_donation(strings.support_via_ton, "menu_my_ton", "support_ton_s", address="UQADRm0R1HNgMYuTfbHB3kdENuWt_Et5dFlEtrILK3LQ-KKL"
+        ).build())
 
-        item = self._make_link_item("msg_link", str(strings.github), "github.com/shareui", lambda v: self._open_url("https://github.com/shareui"))
-        if item is not None:
-            items.append(item)
-
-        divider = self._make_small_divider()
-        if divider is not None:
-            items.append(divider)
-
-        item = self._make_link_item("msg_message", str(strings.direct_message), "t.me/shareui", lambda v: self._open_url("https://t.me/shareui"))
-        if item is not None:
-            items.append(item)
-
-        divider = self._make_small_divider()
-        if divider is not None:
-            items.append(divider)
-
-        item = self._make_link_item("msg_channel", str(strings.plugins_channel), "t.me/doctashare", lambda v: self._open_url("https://t.me/doctashare"))
-        if item is not None:
-            items.append(item)
-
-        divider = self._make_small_divider()
-        if divider is not None:
-            items.append(divider)
-
-        items += [
-            Text(
-                text=strings.support_via_send,
-                icon="filled_paid_suggest_24",
-                accent=True,
-                link_alias="support_send_s",
-                on_click=support_via_send
-            ),
-            Text(
-                text=strings.support_via_ton,
-                icon="menu_my_ton",
-                accent=True,
-                link_alias="support_ton_s",
-                on_click=support_via_ton
-            ),
-        ]
-
-        items.append(Divider())
-
-        avatar_vestr = self._make_avatar_item(
-            "https://avatars.githubusercontent.com/u/184731661?v=4",
+        items.extend(contributor_card(self,
+            avatar_url="https://avatars.githubusercontent.com/u/184731661?v=4",
             title_text=str(strings.lead_developer_vestr),
             subtitle_text="@mr_Vestr",
             username_url="https://t.me/mr_Vestr"
-        )
-        if avatar_vestr is not None:
-            items.append(avatar_vestr)
-        else:
-            items.append(Header(text=strings.lead_developer_vestr))
+        ).add_link("msg_link", str(strings.github), "github.com/mr-vestr", "https://github.com/mr-vestr"
+        ).add_link("msg_message", str(strings.direct_message), "t.me/mr_Vestr", on_click=lambda v: self._open_vestr_direct_message()
+        ).add_link("msg_channel", str(strings.plugins_channel), "t.me/I_am_Vestr", "https://t.me/I_am_Vestr"
+        ).add_donation(strings.support_with_stars, "menu_feature_reactions", "support_stars_v", on_click=lambda v: self._open_gift_sheet_vestr()
+        ).build())
 
-        item = self._make_link_item("msg_link", str(strings.github), "github.com/mr-vestr", lambda v: self._open_url("https://github.com/mr-vestr"))
-        if item is not None:
-            items.append(item)
+        items.extend(contributor_card(self,
+            avatar_url="https://avatars.githubusercontent.com/u/103638465?v=4",
+            title_text=strings["developer"],
+            subtitle_text="@homewatcha",
+            username_url="https://t.me/homewatcha"
+        ).add_link("msg_link", str(strings.github), "github.com/homewatcha", "https://github.com/homewatcha"
+        ).add_link("msg_message", str(strings.direct_message), "t.me/homewatcha", "https://t.me/homewatcha"
+        ).add_link("msg_channel", str(strings.personal_channel), "t.me/watchashitposts", "https://t.me/watchashitposts"
+        ).build())
 
-        divider = self._make_small_divider()
-        if divider is not None:
-            items.append(divider)
+        items.extend(contributor_card(self,
+            avatar_url="https://avatars.githubusercontent.com/u/10162262?v=4",
+            title_text=strings["developer"],
+            subtitle_text="@AGeekApple",
+            username_url="https://t.me/AGeekApple"
+        ).add_link("msg_message", str(strings.direct_message), "t.me/AGeekApple", "https://t.me/AGeekApple"
+        ).add_link("msg_channel", str(strings.personal_channel), "t.me/ApplePlugins", "https://t.me/ApplePlugins"
+        ).add_link("msg_channel", str(strings.plugins_channel), "t.me/TheDotted", "https://t.me/TheDotted"
+        ).add_donation(strings.support_with_github_sponsors, "msg_link", "support_gh_s", url="https://github.com/sponsors/ageekapple"
+        ).add_donation(strings.support_via_send, "filled_paid_suggest_24", "support_send_s", url="https://t.me/send?start=IVvAJkUxMF6Up"
+        ).build())
 
-        item = self._make_link_item("msg_message", str(strings.direct_message), "t.me/mr_Vestr", lambda v: self._open_vestr_direct_message())
-        if item is not None:
-            items.append(item)
-
-        divider = self._make_small_divider()
-        if divider is not None:
-            items.append(divider)
-
-        item = self._make_link_item("msg_channel", str(strings.plugins_channel), "t.me/I_am_Vestr", lambda v: self._open_url("https://t.me/I_am_Vestr"))
-        if item is not None:
-            items.append(item)
-            
-        divider = self._make_small_divider()
-        if divider is not None:
-            items.append(divider)
-
-        items += [
-            Text(
-                text=strings.support_with_stars,
-                icon="menu_feature_reactions",
-                accent=True,
-                link_alias="support_stars_v",
-                on_click=lambda v: self._open_gift_sheet_vestr()
-            ),
-
-            Divider(),
-        ]
-
-        def support_via_send_pixwet(view):
-            try:
-                BulletinHelper.show_success(strings.donate_easter_egg)
-            except Exception:
-                pass
-            run_on_ui_thread(
-                lambda: self._open_url("https://t.me/send?start=IVwvWMdWfPCE"),
-                1000
-            )
-
-        def support_via_ton_pixwet(view):
-            tonAddress = "UQBZCTLurgR5KiyvV5o8AchUQSsz-5o_mvehtuf08c8DuDMI"
-            try:
-                if AndroidUtilities.addToClipboard(tonAddress):
-                    BulletinHelper.show_success(strings.copied_to_clipboard)
-                else:
-                    BulletinHelper.show_error(strings.failed_to_copy)
-            except Exception:
-                BulletinHelper.show_error(strings.failed_to_copy)
-
-        avatar_pixwet = self._make_avatar_item(
-            "https://avatars.githubusercontent.com/u/102206474?v=4",
+        items.extend(contributor_card(self,
+            avatar_url="https://avatars.githubusercontent.com/u/102206474?v=4",
             title_text=str(strings.mentor),
             subtitle_text="@pixwet",
             username_url="https://t.me/pixwet"
-        )
-        if avatar_pixwet is not None:
-            items.append(avatar_pixwet)
-        else:
-            items.append(Header(text=strings.mentor))
+        ).add_link("msg_link", str(strings.github), "github.com/pixwet", "https://github.com/pixwet"
+        ).add_link("msg_message", str(strings.direct_message), "t.me/pixwet", "https://t.me/pixwet"
+        ).add_link("msg_channel", str(strings.plugins_channel), "t.me/CactusPlugins", "https://t.me/CactusPlugins"
+        ).add_link("msg_channel", str(strings.personal_channel), "t.me/exteraFeatures", "https://t.me/exteraFeatures"
+        ).add_donation(strings.support_via_send, "filled_paid_suggest_24", "support_send_pw", url="https://t.me/send?start=IVwvWMdWfPCE"
+        ).add_donation(strings.support_via_ton, "menu_my_ton", "support_ton_pw", address="UQBZCTLurgR5KiyvV5o8AchUQSsz-5o_mvehtuf08c8DuDMI"
+        ).build())
 
-        item = self._make_link_item("msg_link", str(strings.github), "github.com/pixwet", lambda v: self._open_url("https://github.com/pixwet"))
-        if item is not None:
-            items.append(item)
-
-        divider = self._make_small_divider()
-        if divider is not None:
-            items.append(divider)
-
-        item = self._make_link_item("msg_message", str(strings.direct_message), "t.me/pixwet", lambda v: self._open_url("https://t.me/pixwet"))
-        if item is not None:
-            items.append(item)
-
-        divider = self._make_small_divider()
-        if divider is not None:
-            items.append(divider)
-
-        item = self._make_link_item("msg_channel", str(strings.plugins_channel), "t.me/CactusPlugins", lambda v: self._open_url("https://t.me/CactusPlugins"))
-        if item is not None:
-            items.append(item)
-
-        divider = self._make_small_divider()
-        if divider is not None:
-            items.append(divider)
-
-        item = self._make_link_item("msg_channel", str(strings.personal_channel), "t.me/exteraFeatures", lambda v: self._open_url("https://t.me/exteraFeatures"))
-        if item is not None:
-            items.append(item)
-
-        divider = self._make_small_divider()
-        if divider is not None:
-            items.append(divider)
-
-        items += [
-            Text(
-                text=strings.support_via_send,
-                icon="filled_paid_suggest_24",
-                accent=True,
-                link_alias="support_send_pw",
-                on_click=support_via_send_pixwet
-            ),
-            Text(
-                text=strings.support_via_ton,
-                icon="menu_my_ton",
-                accent=True,
-                link_alias="support_ton_pw",
-                on_click=support_via_ton_pixwet
-            ),
-
-            Divider(),
-        ]
-
-        avatar_watcha = self._make_avatar_item(
-            "https://avatars.githubusercontent.com/u/103638465?v=4",
-            title_text=strings["contributor_translator"],
-            subtitle_text="@homewatcha",
-            username_url="https://t.me/homewatcha"
-        )
-        if avatar_watcha is not None:
-            items.append(avatar_watcha)
-        else:
-            items.append(Header(text="watcha"))
-
-        item = self._make_link_item("msg_link", str(strings.github), "github.com/homewatcha", lambda v: self._open_url("https://github.com/homewatcha"))
-        if item is not None:
-            items.append(item)
-
-        divider = self._make_small_divider()
-        if divider is not None:
-            items.append(divider)
-
-        item = self._make_link_item("msg_message", str(strings.direct_message), "t.me/homewatcha", lambda v: self._open_url("https://t.me/homewatcha"))
-        if item is not None:
-            items.append(item)
-
-        divider = self._make_small_divider()
-        if divider is not None:
-            items.append(divider)
-
-        item = self._make_link_item("msg_channel", str(strings.personal_channel), "t.me/watchashitposts", lambda v: self._open_url("https://t.me/watchashitposts"))
-        if item is not None:
-            items.append(item)
-
-        items += [
-            Divider(),
-
-            Divider(text=strings.special_thanks)
-        ]
-
+        items.append(Divider(text=strings.special_thanks))
         return items
