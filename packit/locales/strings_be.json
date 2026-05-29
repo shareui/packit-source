@@ -1085,5 +1085,11 @@
   "suggest_save_title": "Захаваць",
   "suggest_save_message": "Ты захаваў сваё папярэдняе ўвядзенне.",
   "suggest_save_reset": "Скінуць",
-  "suggest_save_restore": "Аднавіць"
+  "suggest_save_restore": "Аднавіць",
+  "deeplinks_suggest_plugin": "Адправіць плагін на разгляд",
+  "deeplinks_suggest_plugin_desc": "Адкрыць форму адпраўкі плагіна для канкрэтнага рэпазіторыя",
+  "sticker_radius": "Радыус стыкера (dp)",
+  "sec_packitkey_warning_title": "⚠ УВАГА",
+  "sec_packitkey_warning_text": "Гэты плагін, верагодна, спрабуе атрымаць твой API-ключ, захаваны ў PackIt. Усталяванне настойліва не рэкамендуецца.",
+  "contributor_translator": "Перакладчык"
 }
