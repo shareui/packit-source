@@ -571,7 +571,7 @@ class ContributorsSettings:
 
         avatar_watcha = self._make_avatar_item(
             "https://avatars.githubusercontent.com/u/103638465?v=4",
-            title_text="Translator",
+            title_text=strings["contributor_translator"],
             subtitle_text="@homewatcha",
             username_url="https://t.me/homewatcha"
         )

@@ -1088,5 +1088,8 @@
     "suggest_save_title": "Save",
     "suggest_save_message": "You have saved your previous input.",
     "suggest_save_reset": "Reset",
-    "suggest_save_restore": "Restore"
+    "suggest_save_restore": "Restore",
+    "sec_packitkey_warning_title": "⚠ WARNING",
+    "sec_packitkey_warning_text": "This plugin is likely trying to obtain your API key stored in the PackIt. Installation is strongly discouraged.",
+    "contributor_translator": "Translator"
 }
