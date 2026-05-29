@@ -179,6 +179,16 @@ def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button,
                     log(f"core: elyx index commit error: {e}")
             _fire_install_listeners(plugin_id)
 
+            try:
+                restart = plugin_info.get("restart")
+                log(f"core: check restart={restart}")
+                if restart in ("required", "optional"):
+                    log("core: calling show_restart_dialog")
+                    from .ui.restartDialog import show_restart_dialog
+                    show_restart_dialog(restart, fragment)
+            except Exception as e:
+                log(f"core: restart dialog error: {e}")
+
         try:
             NotificationCenterDelegate = find_class(
                 "org.telegram.messenger.NotificationCenter$NotificationCenterDelegate"

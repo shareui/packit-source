@@ -154,6 +154,7 @@
     "support_via_send": "Support via @send",
     "support_via_ton": "Support via TON",
     "support_send_message": "<З",
+    "support_with_github_sponsors": "Support with Github Sponsors",
     "copied_to_clipboard": "Copied to clipboard",
     "donate_easter_egg": "Wait, did someone give some subs?",
     "additional_actions": "Additional",
@@ -1091,5 +1092,6 @@
     "suggest_save_restore": "Restore",
     "sec_packitkey_warning_title": "⚠ WARNING",
     "sec_packitkey_warning_text": "This plugin is likely trying to obtain your API key stored in the PackIt. Installation is strongly discouraged.",
-    "contributor_translator": "Translator"
+    "contributor_translator": "Translator",
+    "developer": "Developer"
 }
