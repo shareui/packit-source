@@ -199,6 +199,8 @@ def _make_link_row(context, icon_name, label_text, link_text, on_click):
         label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
         label.setText(label_text)
         label.setSingleLine(True)
+        label.setHorizontalFadingEdgeEnabled(True)
+        label.setFadingEdgeLength(AndroidUtilities.dp(24))
         row.addView(label, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
 
         link = TextView(context)
