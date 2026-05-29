@@ -118,18 +118,18 @@ def _is_elyx_plugin(plugin_info: dict) -> bool:
             return True
     return False
 
-def install_plugin(plugin_info: dict, icon_view=None, button=None, original_icon_id=None, loading_view=None, on_finish=None, install_ui=None, all_plugins: list = None, rm_rid: str = ""):
+def install_plugin(plugin_info: dict, icon_view=None, button=None, original_icon_id=None, loading_view=None, on_finish=None, install_ui=None, all_plugins: list = None, rm_rid: str = "", succ_download=None):
     deps = plugin_info.get("deps") or []
     if deps:
         from .ui.PluginListActivity.depsSheet import show_deps_sheet
         def on_confirmed():
-            _do_install(plugin_info, icon_view, button, original_icon_id, loading_view, on_finish, install_ui, rm_rid=rm_rid)
+            _do_install(plugin_info, icon_view, button, original_icon_id, loading_view, on_finish, install_ui, rm_rid=rm_rid, succ_download=succ_download)
         show_deps_sheet(install_ui, plugin_info, on_confirmed, all_plugins=all_plugins, on_cancel=on_finish)
         return
-    _do_install(plugin_info, icon_view, button, original_icon_id, loading_view, on_finish, install_ui, rm_rid=rm_rid)
+    _do_install(plugin_info, icon_view, button, original_icon_id, loading_view, on_finish, install_ui, rm_rid=rm_rid, succ_download=succ_download)
 
 
-def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button, icon_view, original_icon_id, on_finish, rm_rid=""):
+def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button, icon_view, original_icon_id, on_finish, rm_rid="", write_index=True):
     try:
         if loading_view and button and icon_view:
             def _restore_icon():
@@ -171,7 +171,7 @@ def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button,
                     on_finish(True)
             except Exception:
                 pass
-            if _is_elyx_plugin(plugin_info) and rm_rid:
+            if write_index and _is_elyx_plugin(plugin_info) and rm_rid:
                 try:
                     from .utils.installIndex import commit_elyx_pending
                     commit_elyx_pending(plugin_info, rm_rid, original_path=temp_path)
@@ -206,8 +206,9 @@ def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button,
             install_params = InstallPluginBottomSheet.PluginInstallParams(temp_path, False)
             ElyxEngine.instance.showInstallDialog(fragment, install_params)
         else:
-            from .utils.installIndex import set_pending
-            set_pending(plugin_info, rm_rid)
+            if write_index:
+                from .utils.installIndex import set_pending
+                set_pending(plugin_info, rm_rid)
             PluginsController.getInstance().showInstallDialog(fragment, temp_path, True)
 
     except Exception as e:
@@ -239,7 +240,7 @@ def _sha256_file(path: str) -> str:
     return hashFile(path)
 
 
-def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id=None, loading_view=None, on_finish=None, install_ui=None, rm_rid: str = ""):
+def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id=None, loading_view=None, on_finish=None, install_ui=None, rm_rid: str = "", succ_download=None):
     plugin_id = plugin_info.get("id")
     url = plugin_info.get("link") or plugin_info.get("raw")
 
@@ -323,6 +324,9 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
                         os.chmod(temp_path, 0o644)
                         _set_progress(dlg, 100)
                         _dismiss_dialog(dlg)
+                        log(f"core: succ_download (cache) for '{plugin_id}'")
+                        if succ_download:
+                            run_on_ui_thread(succ_download)
                         run_on_ui_thread(lambda: _open_install_dialog(
                             temp_path, plugin_info, fragment,
                             loading_view, button, icon_view, original_icon_id, on_finish, rm_rid
@@ -404,6 +408,10 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
                     log(f"core: skipping cache for '{plugin_id}': {e}")
 
             _dismiss_dialog(dlg)
+
+            log(f"core: succ_download (network) for '{plugin_id}'")
+            if succ_download:
+                run_on_ui_thread(succ_download)
 
             run_on_ui_thread(lambda: _open_install_dialog(
                 temp_path, plugin_info, fragment,

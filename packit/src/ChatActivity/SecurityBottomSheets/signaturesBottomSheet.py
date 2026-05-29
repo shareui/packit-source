@@ -41,6 +41,25 @@ _LEVEL_STYLE = {
 _LEVEL_ORDER = ["Critical", "High", "Medium", "Low"]
 
 
+def _extractPluginId(filePath: str, source: str) -> str:
+    # try from filename first: .temp_{id}.plugin
+    import re as _re
+    try:
+        m = _re.search(r"\.temp_(.+?)\.plugin$", filePath)
+        if m:
+            return m.group(1)
+    except Exception:
+        pass
+    # fallback: parse __id__ from source
+    try:
+        m = _re.search(r'^__id__\s*=\s*[\'"]([^\'"]+)[\'"]', source, _re.MULTILINE)
+        if m:
+            return m.group(1)
+    except Exception:
+        pass
+    return ""
+
+
 def _fetchSignatures():
     import urllib.request, json
     with urllib.request.urlopen(urllib.request.Request(SIGNATURES_URL, headers={"User-Agent": "PackIt/1.0 (Android; github.com/shareui/packit)"}), timeout=10) as r:
@@ -49,18 +68,44 @@ def _fetchSignatures():
 
 def _scanPlugin(source: str, signatures: list) -> dict:
     results: dict = {}
-    lines = source.splitlines()
+
+    # strip comment lines so commented-out patterns don't trigger
+    clean_lines = []
+    for line in source.splitlines():
+        stripped = line.lstrip()
+        if not stripped.startswith("#"):
+            clean_lines.append(line)
+    clean_source = "\n".join(clean_lines)
 
     for sig in signatures:
         pattern = sig[0]
         level = sig[1]
-        whitelist = sig[2]["whitelist"] if len(sig) > 2 and "whitelist" in sig[2] else []
+        whitelist = sig[2]["whitelist"] if len(sig) > 2 and isinstance(sig[2], dict) and "whitelist" in sig[2] else []
 
-        if pattern not in source:
+        # split detection: sig[0] is a list of parts, all must be present
+        if isinstance(pattern, list):
+            parts = pattern
+            if not all(p in clean_source for p in parts):
+                continue
+            label = " + ".join(parts)
+            if whitelist:
+                # flag if any line contains all parts simultaneously
+                flagged_lines = [l for l in clean_lines if all(p in l for p in parts)]
+                if not flagged_lines:
+                    continue
+                if all(any(wl in line for wl in whitelist) for line in flagged_lines):
+                    continue
+            if level not in results:
+                results[level] = []
+            if label not in results[level]:
+                results[level].append(label)
+            continue
+
+        if pattern not in clean_source:
             continue
 
         if whitelist:
-            matching_lines = [l for l in lines if pattern in l]
+            matching_lines = [l for l in clean_lines if pattern in l]
             whitelisted = all(
                 any(wl in line for wl in whitelist)
                 for line in matching_lines
@@ -223,7 +268,7 @@ def _appendLevelBlock(act, root, level: str, patterns: list):
     # pattern rows
     subtextColor = _resolveColor("key_windowBackgroundWhiteGrayText", 0xFF9E9E9E)
     for i, p in enumerate(patterns):
-        display = (p + ")") if p.endswith("(") else p
+        display = f"[{p}]"
         row = TextView(act)
         row.setText(f"• {display}")
         row.setTextSize(12)
@@ -449,7 +494,7 @@ def _showResults(results: dict, act):
         # fallback
         from ui.alert import AlertDialogBuilder
         msg = strings["sec_no_signatures"] if not results else "\n\n".join(
-            f"{lvl}: {', '.join((p+')' if p.endswith('(') else p) for p in results[lvl])}"
+            f"{lvl}: {', '.join(f'[{p}]' for p in results[lvl])}"
             for lvl in _LEVEL_ORDER if lvl in results
         )
         builder = AlertDialogBuilder(act)
@@ -472,9 +517,18 @@ def _onPolicyClick(act, filePath: str):
 
     def _work():
         try:
-            signatures = _fetchSignatures()
             with open(filePath, "r", encoding="utf-8", errors="replace") as f:
                 source = f.read()
+
+            plugin_id = _extractPluginId(filePath, source)
+            if DEBUG_LOGS:
+                log(f"securityUi: plugin_id={plugin_id!r}")
+
+            if plugin_id == "shareui_packit":
+                run_on_ui_thread(lambda: (dlg.dismiss(), _showResults({}, act)))
+                return
+
+            signatures = _fetchSignatures()
             results = _scanPlugin(source, signatures)
             run_on_ui_thread(lambda: (dlg.dismiss(), _showResults(results, act)))
         except Exception as e:
