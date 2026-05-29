@@ -408,7 +408,10 @@ def show_clear_ignore_list_dialog(act, on_close=None):
 
         # cancel button
         cancel_btn = _make_btn(act, str(strings["clear_ignore_list_cancel"]), accent=False)
-        cancel_btn.setOnClickListener(OnClickListener(lambda v: _dismiss()))
+        def _on_cancel_click(v):
+            AndroidUtilities.hideKeyboard(edit_text)
+            _dismiss()
+        cancel_btn.setOnClickListener(OnClickListener(_on_cancel_click))
         card.addView(cancel_btn, LayoutHelper.createLinear(-1, -2))
 
         overlay.setAlpha(0.0)

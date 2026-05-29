@@ -58,10 +58,10 @@ DEEPLINKS_DATA = {
     },
     "dl_specific_repo": {
         "title": strings.deeplinks_specific_repository,
-        "link": "tg://packit?install&repo=<rm_id>",
+        "link": "tg://packit?install&repo=<rm_rid>",
         "description": strings.deeplinks_specific_repository_desc,
         "params": [
-            {"name": "rm_id", "required": True, "desc": strings.param_rm_id_desc}
+            {"name": "rm_rid", "required": True, "desc": strings.param_rm_id_desc}
         ]
     },
     "dl_plugin_profile": {
@@ -75,20 +75,28 @@ DEEPLINKS_DATA = {
     },
     "dl_specific_plugin": {
         "title": strings.deeplinks_install_plugin,
-        "link": "tg://packit?install&repo=<rm_id>&plugin=<plugin_id>",
+        "link": "tg://packit?install&repo=<rm_rid>&plugin=<plugin_id>",
         "description": strings.deeplinks_install_plugin_desc,
         "params": [
-            {"name": "rm_id", "required": True, "desc": strings.param_rm_id_desc},
+            {"name": "rm_rid", "required": True, "desc": strings.param_rm_id_desc},
             {"name": "plugin_id", "required": True, "desc": strings.param_plugin_id_desc},
             {"name": "version", "required": False, "desc": strings.param_version_desc}
         ]
     },
+    "dl_suggest_plugin": {
+        "title": strings.deeplinks_suggest_plugin,
+        "link": "tg://packit?suggestion=<rm_rid>",
+        "description": strings.deeplinks_suggest_plugin_desc,
+        "params": [
+            {"name": "rm_rid", "required": True, "desc": strings.param_rm_id_desc}
+        ]
+    },
     "dl_specific_icon_pack": {
         "title": strings.deeplinks_install_icon_pack,
-        "link": "tg://packit?install&repo=<rm_id>&icon=<icon_id>",
+        "link": "tg://packit?install&repo=<rm_rid>&icon=<icon_id>",
         "description": strings.deeplinks_install_icon_pack_desc,
         "params": [
-            {"name": "rm_id", "required": True, "desc": strings.param_rm_id_desc},
+            {"name": "rm_rid", "required": True, "desc": strings.param_rm_id_desc},
             {"name": "icon_id", "required": True, "desc": strings.param_icon_id_desc}
         ]
     },
@@ -100,10 +108,10 @@ DEEPLINKS_DATA = {
     },
     "dl_update_repo": {
         "title": strings.deeplinks_check_updates_repo,
-        "link": "tg://packit?update&repo=<rm_id>",
+        "link": "tg://packit?update&repo=<rm_rid>",
         "description": strings.deeplinks_update_repository_desc,
         "params": [
-            {"name": "rm_id", "required": True, "desc": strings.param_rm_id_desc}
+            {"name": "rm_rid", "required": True, "desc": strings.param_rm_id_desc}
         ]
     },
     "dl_settings": {
@@ -138,10 +146,10 @@ DEEPLINKS_DATA = {
     },
     "dl_install_plugin": {
         "title": strings.deeplinks_install_plugin,
-        "link": "tg://packit?install&repo=<rm_id>&plugin=<plugin_id>",
+        "link": "tg://packit?install&repo=<rm_rid>&plugin=<plugin_id>",
         "description": strings.deeplinks_install_plugin_desc,
         "params": [
-            {"name": "rm_id", "required": True, "desc": strings.param_rm_id_desc},
+            {"name": "rm_rid", "required": True, "desc": strings.param_rm_id_desc},
             {"name": "plugin_id", "required": True, "desc": strings.param_plugin_id_desc},
             {"name": "version", "required": False, "desc": strings.param_version_desc}
         ]
@@ -154,10 +162,10 @@ DEEPLINKS_DATA = {
     },
     "dl_check_updates_repo": {
         "title": strings.deeplinks_check_updates_repo,
-        "link": "tg://packit?update&repo=<rm_id>",
+        "link": "tg://packit?update&repo=<rm_rid>",
         "description": strings.deeplinks_check_updates_repo_desc,
         "params": [
-            {"name": "rm_id", "required": True, "desc": strings.param_rm_id_desc}
+            {"name": "rm_rid", "required": True, "desc": strings.param_rm_id_desc}
         ]
     },
     "dl_possible_problems": {
@@ -349,7 +357,7 @@ def show_deeplink_sheet(link_alias):
                 root.addView(params_title, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8))
 
                 param_icons = {
-                    "rm_id": "msg_folders",
+                    "rm_rid": "msg_folders",
                     "plugin_id": "msg_saved",
                     "name": "msg_edit",
                     "link": "msg_link",
