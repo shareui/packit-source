@@ -832,24 +832,10 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                         log(f"pluginProfile: _set_loading error: {e}")
 
                 def _do_install(_p, _install_ui, _all, _btn, _label, _btn_text_color, _act,
-                               on_finish_override=None):
+                               on_finish_override=None, succ_download=None):
                     from ...core import install_plugin
                     if not on_finish_override:
                         _set_loading(_btn, _label, _btn_text_color, _act, True)
-
-                    # check if cached so we can delay the spinner removal
-                    cached = False
-                    try:
-                        import os as _os
-                        from ...core import _get_plugin_cache_path, _sha256_file
-                        _url = _p.get("link") or _p.get("raw") or ""
-                        _fname = _url.split("/")[-1] or f"{_p.get('id')}.plugin"
-                        _cp = _get_plugin_cache_path(None, _fname)
-                        _eh = _p.get("hash") or ""
-                        if _eh and _os.path.exists(_cp):
-                            cached = _eh == _sha256_file(_cp)
-                    except Exception:
-                        pass
 
                     def _finish(ok):
                         if ok:
@@ -862,17 +848,18 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                                 pass
                         if on_finish_override:
                             run_on_ui_thread(lambda: on_finish_override(ok))
-                        else:
-                            delay = 1.0 if cached else 0.0
-                            if delay:
-                                import threading as _t
-                                _t.Timer(delay, lambda: run_on_ui_thread(
-                                    lambda: _set_loading(_btn, _label, _btn_text_color, _act, False)
-                                )).start()
-                            else:
-                                run_on_ui_thread(lambda: _set_loading(_btn, _label, _btn_text_color, _act, False))
 
-                    install_plugin(_p, on_finish=_finish, install_ui=_install_ui, all_plugins=_all, rm_rid=self.repo_id)
+                    def _on_downloaded():
+                        if succ_download:
+                            succ_download()
+                        elif not on_finish_override:
+                            import threading as _t
+                            log(f"pluginProfile: succ_download received, stopping spinner in 1s")
+                            _t.Timer(1.0, lambda: run_on_ui_thread(
+                                lambda: _set_loading(_btn, _label, _btn_text_color, _act, False)
+                            )).start()
+
+                    install_plugin(_p, on_finish=_finish, install_ui=_install_ui, all_plugins=_all, rm_rid=self.repo_id, succ_download=_on_downloaded)
 
                 _unavail_hint_ref = [None]
 
@@ -1024,22 +1011,10 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
 
             # rebind _do_install so its internal loader uses fab dimensions
             def _do_install(_p, _install_ui, _all, _btn, _label, _btn_text_color, _act,
-                            on_finish_override=None):
+                            on_finish_override=None, succ_download=None):
                 from ...core import install_plugin
                 if not on_finish_override:
                     _set_loading_fab(_btn, _label, _btn_text_color, _act, True)
-                cached = False
-                try:
-                    import os as _os
-                    from ...core import _get_plugin_cache_path, _sha256_file
-                    _url = _p.get("link") or _p.get("raw") or ""
-                    _fname = _url.split("/")[-1] or f"{_p.get('id')}.plugin"
-                    _cp = _get_plugin_cache_path(None, _fname)
-                    _eh = _p.get("hash") or ""
-                    if _eh and _os.path.exists(_cp):
-                        cached = _eh == _sha256_file(_cp)
-                except Exception:
-                    pass
 
                 def _finish(ok):
                     if ok:
@@ -1052,17 +1027,18 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                             pass
                     if on_finish_override:
                         run_on_ui_thread(lambda: on_finish_override(ok))
-                    else:
-                        delay = 1.0 if cached else 0.0
-                        if delay:
-                            import threading as _t
-                            _t.Timer(delay, lambda: run_on_ui_thread(
-                                lambda: _set_loading_fab(_btn, _label, _btn_text_color, _act, False)
-                            )).start()
-                        else:
-                            run_on_ui_thread(lambda: _set_loading_fab(_btn, _label, _btn_text_color, _act, False))
 
-                install_plugin(_p, on_finish=_finish, install_ui=_install_ui, all_plugins=_all, rm_rid=self.repo_id)
+                def _on_downloaded():
+                    if succ_download:
+                        succ_download()
+                    elif not on_finish_override:
+                        import threading as _t
+                        log(f"pluginProfile: succ_download (fab) received, stopping spinner in 1s")
+                        _t.Timer(1.0, lambda: run_on_ui_thread(
+                            lambda: _set_loading_fab(_btn, _label, _btn_text_color, _act, False)
+                        )).start()
+
+                install_plugin(_p, on_finish=_finish, install_ui=_install_ui, all_plugins=_all, rm_rid=self.repo_id, succ_download=_on_downloaded)
 
         # save circle button (msg_saved icon, yellow when active)
         _save_size = AndroidUtilities.dp(44)

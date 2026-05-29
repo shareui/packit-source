@@ -804,9 +804,33 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
             def _after_install(ok):
                 _dismiss()
 
+            def _on_downloaded():
+                from android_utils import log as _log
+                _log("versionPicker: succ_download received, restoring button in 1s")
+                import threading as _t
+                def _restore():
+                    try:
+                        # lock height so card doesn't jump during child swap
+                        lp = _dl_btn.getLayoutParams()
+                        lp.height = _dl_btn.getMeasuredHeight()
+                        _dl_btn.setLayoutParams(lp)
+                        _dl_btn.setEnabled(True)
+                        _dl_btn.removeAllViews()
+                        _dl_btn.addView(dl_icon, dl_icon_lp)
+                        _dl_btn.addView(dl_tv)
+                        # restore wrap_content after layout settles
+                        def _unwrap():
+                            lp2 = _dl_btn.getLayoutParams()
+                            lp2.height = -2
+                            _dl_btn.setLayoutParams(lp2)
+                        _dl_btn.post(_unwrap)
+                    except Exception as e:
+                        _log(f"versionPicker: restore button error: {e}")
+                _t.Timer(1.0, lambda: run_on_ui_thread(_restore)).start()
+
             install_started[0] = True
             do_install(versioned, install_ui, all_plugins, btn, label, btn_text_color, act,
-                       on_finish_override=_after_install)
+                       on_finish_override=_after_install, succ_download=_on_downloaded)
 
         dl_btn.setOnClickListener(OnClickListener(_on_download))
         card.addView(dl_btn, dl_margin_lp)

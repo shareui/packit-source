@@ -41,6 +41,9 @@ class DeeplinksSettings:
     def _show_specific_icon_pack(self, view):
         show_deeplink_sheet("dl_specific_icon_pack")
 
+    def _show_suggest_plugin(self, view):
+        show_deeplink_sheet("dl_suggest_plugin")
+
     def _show_update_all(self, view):
         show_deeplink_sheet("dl_update_all")
 
@@ -113,6 +116,12 @@ class DeeplinksSettings:
                 icon="msg_sticker",
                 on_click=self._show_specific_icon_pack,
                 link_alias="dl_specific_icon_pack"
+            ),
+            Text(
+                text=strings.deeplinks_suggest_plugin,
+                icon="msg_shareout",
+                on_click=self._show_suggest_plugin,
+                link_alias="dl_suggest_plugin"
             ),
 
             Divider(),

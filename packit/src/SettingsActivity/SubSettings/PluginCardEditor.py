@@ -1202,7 +1202,7 @@ class PluginCardEditorPage:
             self._header(ctx, strings.card_section_icon)
             self._check(ctx, _KEY_SHOW_ICON, strings.card_show_icon)
             self._slider(ctx, strings.card_icon_size, _KEY_ICON_SIZE, 40, 100, 67)
-            self._slider(ctx, "Sticker Radius", _KEY_STICKER_RADIUS, 0, 50, 18)
+            self._slider(ctx, strings.sticker_radius, _KEY_STICKER_RADIUS, 0, 50, 18)
             self._check(ctx, "show_default_sticker", strings.show_default_sticker)
 
         elif key == 'name':

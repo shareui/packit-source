@@ -2,3 +2,4 @@ builds/
 **/build/
 **/cache/
 .elyx/cache/
+utilities/
