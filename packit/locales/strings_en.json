@@ -1093,5 +1093,9 @@
     "sec_packitkey_warning_title": "⚠ WARNING",
     "sec_packitkey_warning_text": "This plugin is likely trying to obtain your API key stored in the PackIt. Installation is strongly discouraged.",
     "contributor_translator": "Translator",
-    "developer": "Developer"
+    "developer": "Developer",
+    "install_restart_required_title": "Restart required",
+    "install_restart_optional_title": "Restart recommended",
+    "install_restart_required_message": "This plugin requires a client restart to work correctly.",
+    "install_restart_optional_message": "This plugin works best after a client restart. You can do it now or skip for later."
 }
