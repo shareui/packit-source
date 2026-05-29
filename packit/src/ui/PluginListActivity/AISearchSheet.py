@@ -323,10 +323,11 @@ def _icon_btn(act, install_ui, icon_name: str, size_dp: int = 20, btn_size_dp: i
         icon.setColorFilter(Theme.getColor(Theme.key_dialogTextBlack))
     except Exception as e:
         log(f"AISearchSheet: _icon_btn colorFilter failed: {e}")
-    icon.setScaleType(ImageView.ScaleType.CENTER)
-    btn.addView(icon, FrameLayout.LayoutParams(
-        AndroidUtilities.dp(size_dp), AndroidUtilities.dp(size_dp), Gravity.CENTER
-    ))
+    # CENTER_INSIDE: scales down oversized icon-pack drawables so they never clip
+    icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+    padding = AndroidUtilities.dp(8)
+    icon.setPadding(padding, padding, padding, padding)
+    btn.addView(icon, FrameLayout.LayoutParams(-1, -1, Gravity.CENTER))
     btn_lp = FrameLayout.LayoutParams(AndroidUtilities.dp(btn_size_dp), AndroidUtilities.dp(btn_size_dp))
     return btn, btn_lp
 
