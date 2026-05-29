@@ -251,7 +251,7 @@ class PackItPlugin(BasePlugin):
                         try:
                             import os as _os
                             from .utils.media import playSound
-                            _snd = _os.path.join(_os.path.dirname(__file__), "../res/sounds/available-updates.mp3")
+                            _snd = _os.path.join(_os.path.dirname(__file__), "../res/sounds/available-updates.opus")
                             playSound(_snd, "sfx_available_updates")
                         except Exception as _e:
                             log(f"PackIt: update bulletin sound error: {_e}")

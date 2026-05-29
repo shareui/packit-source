@@ -842,7 +842,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                             try:
                                 import os as _os
                                 from ...utils.media import playSound
-                                _snd = _os.path.join(_os.path.dirname(__file__), "../../../res/sounds/install.mp3")
+                                _snd = _os.path.join(_os.path.dirname(__file__), "../../../res/sounds/install.opus")
                                 playSound(_snd, "sfx_install")
                             except Exception:
                                 pass
@@ -1021,7 +1021,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                         try:
                             import os as _os
                             from ...utils.media import playSound
-                            _snd = _os.path.join(_os.path.dirname(__file__), "../../../res/sounds/install.mp3")
+                            _snd = _os.path.join(_os.path.dirname(__file__), "../../../res/sounds/install.opus")
                             playSound(_snd, "sfx_install")
                         except Exception:
                             pass

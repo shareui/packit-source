@@ -31,7 +31,7 @@ def _playMaxVolume():
     audioManager = ctx.getSystemService("audio")
     maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
 
-    soundPath = os.path.join(os.path.dirname(__file__), "../../../res/sounds/terraria.mp3")
+    soundPath = os.path.join(os.path.dirname(__file__), "../../../res/sounds/terraria.opus")
 
     player = MediaPlayer()
     try:

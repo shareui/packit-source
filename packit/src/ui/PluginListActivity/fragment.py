@@ -1005,7 +1005,7 @@ class InstallUI:
             clear_btn_icon.setScaleType(ImageView.ScaleType.CENTER)
             clear_btn.addView(clear_btn_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
             
-            clearSoundPath = os.path.join(os.path.dirname(__file__), "../../../res/sounds/clear-search.mp3")
+            clearSoundPath = os.path.join(os.path.dirname(__file__), "../../../res/sounds/clear-search.opus")
 
             def on_clear_click():
                 try:
@@ -1051,7 +1051,7 @@ class InstallUI:
                 pass
             search_btn_icon.setScaleType(ImageView.ScaleType.CENTER)
             search_btn.addView(search_btn_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
-            searchBtnSoundPath = os.path.join(os.path.dirname(__file__), "../../../res/sounds/search-btn.mp3")
+            searchBtnSoundPath = os.path.join(os.path.dirname(__file__), "../../../res/sounds/search-btn.opus")
 
             def onSearchBtnClick(v):
                 try:
@@ -2615,7 +2615,7 @@ class InstallUI:
 
             act_for_share = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
 
-            copyLinkSoundPath = os.path.join(os.path.dirname(__file__), "../../../res/sounds/copy-link.mp3")
+            copyLinkSoundPath = os.path.join(os.path.dirname(__file__), "../../../res/sounds/copy-link.opus")
 
             def show_plugin_actions_menu(anchor_view):
                 try:

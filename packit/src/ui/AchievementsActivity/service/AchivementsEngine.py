@@ -419,7 +419,7 @@ def _show_achievement_bulletin(achievement: dict, on_hide=None):
 def _play_achievement_sound():
     try:
         from ....utils.media import playSound
-        sound_path = os.path.join(os.path.dirname(__file__), "../../../../res/sounds/received-achievement.mp3")
+        sound_path = os.path.join(os.path.dirname(__file__), "../../../../res/sounds/received-achievement.opus")
         playSound(sound_path, "sfx_achievement", check_pending=False, default=True)
     except Exception as e:
         log(f"achievements._play_achievement_sound: error: {e}")
