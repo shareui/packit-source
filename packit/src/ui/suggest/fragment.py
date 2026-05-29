@@ -201,7 +201,7 @@ def _animate_card_transition(upload_card, selected_container):
         )
         from_h = upload_card.getMeasuredHeight()
 
-        # upload card: fade out — MD3 short duration
+        # upload card
         out_alpha = ObjectAnimator.ofFloat(upload_card, "alpha", 1.0, 0.0)
         out_alpha.setDuration(150)
         out_alpha.setInterpolator(AccelerateInterpolator())
@@ -431,7 +431,7 @@ def _hook_is_internal_uri(plugin, allowed_paths: set):
         class _InternalUriHook(MethodHook):
             def after_hooked_method(self, param):
                 try:
-                    # overload (Uri) has 1 arg; overload (int) also has 1 arg — check type
+                    # overload (Uri) has 1 arg; overload (int) also has 1 arg
                     arg = param.args[0]
                     if arg is None or not hasattr(arg, "getPath"):
                         return

@@ -130,6 +130,8 @@ def _make_avatar_view(context, image_url, title_text, subtitle_text, username_ur
         title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20)
         title.setText(title_text)
         title.setSingleLine(True)
+        title.setHorizontalFadingEdgeEnabled(True)
+        title.setFadingEdgeLength(AndroidUtilities.dp(24))
         text_container.addView(title, LayoutHelper.createLinear(-1, -2, 0, 0, 4, 0))
 
         if subtitle_text:
@@ -137,6 +139,9 @@ def _make_avatar_view(context, image_url, title_text, subtitle_text, username_ur
             subtitle.setTextColor(Theme.getColor(Theme.key_dialogTextBlue))
             subtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
             subtitle.setText(subtitle_text)
+            subtitle.setSingleLine(True)
+            subtitle.setHorizontalFadingEdgeEnabled(True)
+            subtitle.setFadingEdgeLength(AndroidUtilities.dp(24))
             
             if username_url:
                 try:
@@ -561,6 +566,41 @@ class ContributorsSettings:
                 on_click=support_via_ton_pixwet
             ),
 
+            Divider(),
+        ]
+
+        avatar_watcha = self._make_avatar_item(
+            "https://avatars.githubusercontent.com/u/103638465?v=4",
+            title_text=strings["contributor_translator"],
+            subtitle_text="@homewatcha",
+            username_url="https://t.me/homewatcha"
+        )
+        if avatar_watcha is not None:
+            items.append(avatar_watcha)
+        else:
+            items.append(Header(text="watcha"))
+
+        item = self._make_link_item("msg_link", str(strings.github), "github.com/homewatcha", lambda v: self._open_url("https://github.com/homewatcha"))
+        if item is not None:
+            items.append(item)
+
+        divider = self._make_small_divider()
+        if divider is not None:
+            items.append(divider)
+
+        item = self._make_link_item("msg_message", str(strings.direct_message), "t.me/homewatcha", lambda v: self._open_url("https://t.me/homewatcha"))
+        if item is not None:
+            items.append(item)
+
+        divider = self._make_small_divider()
+        if divider is not None:
+            items.append(divider)
+
+        item = self._make_link_item("msg_channel", str(strings.personal_channel), "t.me/watchashitposts", lambda v: self._open_url("https://t.me/watchashitposts"))
+        if item is not None:
+            items.append(item)
+
+        items += [
             Divider(),
 
             Divider(text=strings.special_thanks)

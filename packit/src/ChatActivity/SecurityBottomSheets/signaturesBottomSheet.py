@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 DEBUG_LOGS = False
+TEST_UI = False
+TEST_WARNING = False
 
 from base_plugin import MethodHook
 from hook_utils import find_class
@@ -40,6 +42,29 @@ _LEVEL_STYLE = {
 }
 _LEVEL_ORDER = ["Critical", "High", "Medium", "Low"]
 
+_PACKITKEY_SIGS = frozenset([
+    "libpackitkey", "loadPackitKey(", "packitkey_store(",
+    "packitkey_load(", "packitkey_delete(", "packitkey_exists(",
+    "packit/.secret/keys", "native/packitkey",
+])
+
+
+def _extractPluginId(filePath: str, source: str) -> str:
+    import re as _re
+    try:
+        m = _re.search(r"\.temp_(.+?)\.plugin$", filePath)
+        if m:
+            return m.group(1)
+    except Exception:
+        pass
+    try:
+        m = _re.search(r'^__id__\s*=\s*[\'"]([^\'"]+)[\'"]', source, _re.MULTILINE)
+        if m:
+            return m.group(1)
+    except Exception:
+        pass
+    return ""
+
 
 def _fetchSignatures():
     import urllib.request, json
@@ -49,18 +74,43 @@ def _fetchSignatures():
 
 def _scanPlugin(source: str, signatures: list) -> dict:
     results: dict = {}
-    lines = source.splitlines()
+
+    clean_lines = []
+    for line in source.splitlines():
+        stripped = line.lstrip()
+        if not stripped.startswith("#"):
+            clean_lines.append(line)
+    clean_source = "\n".join(clean_lines)
 
     for sig in signatures:
         pattern = sig[0]
         level = sig[1]
-        whitelist = sig[2]["whitelist"] if len(sig) > 2 and "whitelist" in sig[2] else []
+        whitelist = sig[2]["whitelist"] if len(sig) > 2 and isinstance(sig[2], dict) and "whitelist" in sig[2] else []
 
-        if pattern not in source:
+        # split detection: sig[0] is a list of parts, all must be present
+        if isinstance(pattern, list):
+            parts = pattern
+            if not all(p in clean_source for p in parts):
+                continue
+            label = " + ".join(parts)
+            if whitelist:
+                # flag if any line contains all parts simultaneously
+                flagged_lines = [l for l in clean_lines if all(p in l for p in parts)]
+                if not flagged_lines:
+                    continue
+                if all(any(wl in line for wl in whitelist) for line in flagged_lines):
+                    continue
+            if level not in results:
+                results[level] = []
+            if label not in results[level]:
+                results[level].append(label)
+            continue
+
+        if pattern not in clean_source:
             continue
 
         if whitelist:
-            matching_lines = [l for l in lines if pattern in l]
+            matching_lines = [l for l in clean_lines if pattern in l]
             whitelisted = all(
                 any(wl in line for wl in whitelist)
                 for line in matching_lines
@@ -73,6 +123,20 @@ def _scanPlugin(source: str, signatures: list) -> dict:
         if pattern not in results[level]:
             results[level].append(pattern)
 
+    return results
+
+
+def _buildTestResults(signatures: list) -> dict:
+    # test mode: treat all config signatures as detected
+    results: dict = {}
+    for sig in signatures:
+        pattern = sig[0]
+        level = sig[1]
+        label = " + ".join(pattern) if isinstance(pattern, list) else pattern
+        if level not in results:
+            results[level] = []
+        if label not in results[level]:
+            results[level].append(label)
     return results
 
 
@@ -160,6 +224,14 @@ def _appendCleanState(act, root):
     ))
 
 
+def _formatPattern(p: str) -> str:
+    if p.endswith("("):
+        return p + ")"
+    if p.endswith("["):
+        return p + "]"
+    return p
+
+
 def _appendLevelBlock(act, root, level: str, patterns: list):
     from android.widget import LinearLayout, TextView
     from android.view import Gravity
@@ -223,7 +295,7 @@ def _appendLevelBlock(act, root, level: str, patterns: list):
     # pattern rows
     subtextColor = _resolveColor("key_windowBackgroundWhiteGrayText", 0xFF9E9E9E)
     for i, p in enumerate(patterns):
-        display = (p + ")") if p.endswith("(") else p
+        display = _formatPattern(p)
         row = TextView(act)
         row.setText(f"• {display}")
         row.setTextSize(12)
@@ -268,6 +340,64 @@ def _applyPressScale(view):
     except Exception as e:
         if DEBUG_LOGS:
             log(f"securityUi: _applyPressScale error: {e}")
+
+
+def _hasPackitkeySignature(results: dict) -> bool:
+    if TEST_WARNING:
+        return True
+    for patterns in results.values():
+        for p in patterns:
+            if p in _PACKITKEY_SIGS:
+                return True
+    return False
+
+
+def _buildPackitkeyWarning(act) -> object:
+    from android.widget import LinearLayout, TextView
+    from android.graphics import Typeface
+    from android.graphics.drawable import GradientDrawable
+
+    dp = AndroidUtilities.dp
+    warningColor = _resolveColor("key_text_RedBold", 0xFFE53935)
+
+    container = LinearLayout(act)
+    container.setOrientation(LinearLayout.VERTICAL)
+    container.setPadding(dp(12), dp(12), dp(12), dp(12))
+
+    try:
+        r = (warningColor >> 16) & 0xFF
+        g = (warningColor >> 8) & 0xFF
+        b = warningColor & 0xFF
+        gd = GradientDrawable()
+        gd.setCornerRadius(dp(12))
+        gd.setColor((0x18 << 24) | (r << 16) | (g << 8) | b)
+        container.setBackground(gd)
+    except Exception as e:
+        if DEBUG_LOGS:
+            log(f"securityUi: packitkey warning bg error: {e}")
+
+    title = TextView(act)
+    title.setText(strings["sec_packitkey_warning_title"])
+    title.setTextSize(13)
+    title.setTypeface(Typeface.DEFAULT_BOLD)
+    title.setTextColor(warningColor)
+    lp_title = LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT,
+        LinearLayout.LayoutParams.WRAP_CONTENT
+    )
+    lp_title.bottomMargin = dp(6)
+    container.addView(title, lp_title)
+
+    text = TextView(act)
+    text.setText(strings["sec_packitkey_warning_text"])
+    text.setTextSize(12)
+    text.setTextColor(_resolveColor("key_windowBackgroundWhiteGrayText", 0xFF9E9E9E))
+    container.addView(text, LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT,
+        LinearLayout.LayoutParams.WRAP_CONTENT
+    ))
+
+    return container
 
 
 def _buildLearnMoreBtn(act, onPress) -> object:
@@ -418,6 +548,15 @@ def _showResults(results: dict, act):
             LinearLayout.LayoutParams.WRAP_CONTENT
         ))
 
+        if _hasPackitkeySignature(results):
+            warningView = _buildPackitkeyWarning(act)
+            lp_warn = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            lp_warn.bottomMargin = AndroidUtilities.dp(10)
+            wrapper.addView(warningView, lp_warn)
+
         try:
             from ...utils.localConfig import LocalConfig
             showLearnMore = not LocalConfig.get("signatures", False)
@@ -449,7 +588,7 @@ def _showResults(results: dict, act):
         # fallback
         from ui.alert import AlertDialogBuilder
         msg = strings["sec_no_signatures"] if not results else "\n\n".join(
-            f"{lvl}: {', '.join((p+')' if p.endswith('(') else p) for p in results[lvl])}"
+            f"{lvl}: {', '.join(f'[{p}]' for p in results[lvl])}"
             for lvl in _LEVEL_ORDER if lvl in results
         )
         builder = AlertDialogBuilder(act)
@@ -472,10 +611,19 @@ def _onPolicyClick(act, filePath: str):
 
     def _work():
         try:
-            signatures = _fetchSignatures()
             with open(filePath, "r", encoding="utf-8", errors="replace") as f:
                 source = f.read()
-            results = _scanPlugin(source, signatures)
+
+            plugin_id = _extractPluginId(filePath, source)
+            if DEBUG_LOGS:
+                log(f"securityUi: plugin_id={plugin_id!r}")
+
+            if not TEST_UI and plugin_id == "shareui_packit":
+                run_on_ui_thread(lambda: (dlg.dismiss(), _showResults({}, act)))
+                return
+
+            signatures = _fetchSignatures()
+            results = _buildTestResults(signatures) if TEST_UI else _scanPlugin(source, signatures)
             run_on_ui_thread(lambda: (dlg.dismiss(), _showResults(results, act)))
         except Exception as e:
             if DEBUG_LOGS:

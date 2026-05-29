@@ -50,7 +50,7 @@
   "plugins_channel": "Канал с плагинами",
   "lead_developer_vestr": "Ведущий разработчик",
   "mentor": "Наставник",
-  "special_thanks": "Особая благодарность: @homewatcha, @justkoder, @AgasAis, @kaltsitu, @INFVRNXL_MUSIC, @red1k",
+  "special_thanks": "Особая благодарность: @justkoder, @AgasAis, @kaltsitu, @INFVRNXL_MUSIC, @red1k",
   "for_users": "Для пользователей",
   "faq": "Часто задаваемые вопросы",
   "report_bug": "Сообщить об ошибке",
@@ -298,7 +298,7 @@
   "deeplinks_update_all_desc": "Обновить кэш всех репозиториев",
   "deeplinks_update_repository_desc": "Обновить кэш конкретного репозитория",
   "deeplinks_settings_desc": "Открыть страницу настроек PackIt",
-  "deeplinks_forum_desc": "Открыть Telegram-канал PackItGround",
+  "deeplinks_forum_desc": "Открыть Telegram-группу PackItGround",
   "deeplinks_possible_problems_desc": "Открыть тему с известными проблемами на форуме",
   "deeplinks_restart_desc": "Принудительно перезапустить приложение",
   "deeplinks_check_desc": "Показать уведомление о том, что PackIt работает",
@@ -1085,5 +1085,11 @@
   "suggest_save_title": "Сохранение",
   "suggest_save_message": "У вас есть сохранённый черновик.",
   "suggest_save_reset": "Сбросить",
-  "suggest_save_restore": "Восстановить"
+  "suggest_save_restore": "Восстановить",
+  "deeplinks_suggest_plugin": "Предложить плагин на проверку",
+  "deeplinks_suggest_plugin_desc": "Открыть форму отправки плагина для конкретного репозитория",
+  "sticker_radius": "Радиус стикера (dp)",
+  "sec_packitkey_warning_title": "⚠ ВНИМАНИЕ",
+  "sec_packitkey_warning_text": "Этот плагин, вероятно, пытается получить ваш API-ключ, хранящийся в PackIt. Установка настоятельно не рекомендуется.",
+  "contributor_translator": "Переводчик"
 }
