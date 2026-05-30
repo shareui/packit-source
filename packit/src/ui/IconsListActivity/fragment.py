@@ -327,6 +327,7 @@ class InstallIconsUI:
             except Exception as e:
                 BulletinHelper.show_error(str(strings["il_load_failed"]))
                 log(f"IconList._open_all_repos_icons: fatal error: {e}")
+                run_on_ui_thread(lambda: self._update_current_fragment_icons([]))
         run_on_queue(load_task)
 
     def _open_repo_icons(self, repo):
@@ -389,6 +390,7 @@ class InstallIconsUI:
             except Exception as e:
                 BulletinHelper.show_error(str(strings["il_download_error"]))
                 log(f"IconList._open_repo_icons: error for url='{repo_url}': {e}")
+                run_on_ui_thread(lambda: self._update_current_fragment_icons([]))
         run_on_queue(load_task)
 
     def _update_current_fragment_icons(self, icons):
@@ -484,9 +486,37 @@ class InstallIconsUI:
             self._live_search_spinner = None
 
         def onFragmentCreate(self, *_):
-            pass
+            try:
+                from ..NoInternetBanner import NoInternetBanner as _NIB
+                self._no_internet_banner = _NIB(None)
+
+                def _on_restore():
+                    try:
+                        log("IconList: network restored, reloading icons")
+                        if self.repo_id:
+                            repos = self.install_ui.repoManager.getRepositories() or []
+                            for r in repos:
+                                if r.get("id") == self.repo_id:
+                                    self.install_ui._open_repo_icons(r)
+                                    break
+                        else:
+                            self.install_ui._open_all_repos_icons()
+                    except Exception as e:
+                        log(f"IconList: _on_restore error: {e}")
+
+                self._no_internet_banner._on_network_restored_callback = _on_restore
+                self._no_internet_banner.register()
+            except Exception as e:
+                log(f"IconList: NoInternetBanner register error: {e}")
 
         def onFragmentDestroy(self, *_):
+            try:
+                banner = getattr(self, '_no_internet_banner', None)
+                if banner:
+                    banner.unregister()
+                    self._no_internet_banner = None
+            except Exception as e:
+                log(f"IconList: NoInternetBanner unregister error: {e}")
             try:
                 if hasattr(self, 'content_view') and self.content_view is not None:
                     parent = self.content_view.getParent()
@@ -601,7 +631,15 @@ class InstallIconsUI:
                             from org.telegram.ui.Components import CircularProgressDrawable
                             _size = 122
                             _color = Theme.getColor(Theme.key_featuredStickers_addButton)
-                            _d = CircularProgressDrawable(float(_size), float(AndroidUtilities.dp(8)), _color)
+                            try:
+                                _d = CircularProgressDrawable(float(_size), float(AndroidUtilities.dp(8)), _color)
+                            except Exception:
+                                _d = CircularProgressDrawable(_color)
+                                try:
+                                    _d.size = float(_size)
+                                    _d.thickness = float(AndroidUtilities.dp(8))
+                                except Exception:
+                                    pass
                             _d.setBounds(0, 0, _size, _size)
                             _spinner_iv = ImageView(act)
                             _spinner_iv.setImageDrawable(_d)
@@ -955,7 +993,15 @@ class InstallIconsUI:
                     from org.telegram.ui.Components import CircularProgressDrawable
                     _size = 122
                     _color = Theme.getColor(Theme.key_featuredStickers_addButton)
-                    _d = CircularProgressDrawable(float(_size), float(AndroidUtilities.dp(8)), _color)
+                    try:
+                        _d = CircularProgressDrawable(float(_size), float(AndroidUtilities.dp(8)), _color)
+                    except Exception:
+                        _d = CircularProgressDrawable(_color)
+                        try:
+                            _d.size = float(_size)
+                            _d.thickness = float(AndroidUtilities.dp(8))
+                        except Exception:
+                            pass
                     _d.setBounds(0, 0, _size, _size)
                     _spinner = ImageView(act)
                     _spinner.setImageDrawable(_d)
@@ -973,21 +1019,53 @@ class InstallIconsUI:
                 def finish_loading():
                     try:
                         log(f"IconList.finish_loading: called, icons count={len(self.icons) if self.icons else 0}")
+                        def _on_spinner_removed():
+                            try:
+                                content_wrapper.addView(self.results_container, FrameLayout.LayoutParams(-1, -2))
+                                if self.icons:
+                                    log(f"IconList.finish_loading: building list, icons={len(self.icons)}")
+                                    self.build_list_with_sort("alpha_az")
+                                else:
+                                    log("IconList.finish_loading: icons is empty, showing empty state")
+                                    self._show_empty_state()
+                                if hasattr(self, 'subtitle'):
+                                    self.subtitle.setText(strings["icons_count"].format(len(self.icons)))
+                                
+                                try:
+                                    banner = getattr(self, '_no_internet_banner', None)
+                                    if banner:
+                                        banner.on_config_loaded()
+                                except Exception as e:
+                                    log(f"IconList: NoInternetBanner on_config_loaded error: {e}")
+                            except Exception as e:
+                                log(f"IconList.finish_loading inner error: {e}")
+
                         if _loading_container_ref is not None:
                             try:
-                                self.content_view.removeView(_loading_container_ref)
-                                log("IconList.finish_loading: removed loading spinner")
+                                class _RemoveRunnable(dynamic_proxy(find_class("java.lang.Runnable"))):
+                                    def __init__(self, cv, lc):
+                                        super().__init__()
+                                        self.cv = cv
+                                        self.lc = lc
+                                    def run(self):
+                                        try:
+                                            self.cv.removeView(self.lc)
+                                        except Exception:
+                                            pass
+                                        _on_spinner_removed()
+                                        
+                                _loading_container_ref.animate().alpha(0.0).setDuration(250).withEndAction(
+                                    _RemoveRunnable(self.content_view, _loading_container_ref)
+                                ).start()
                             except Exception as e:
-                                log(f"IconList.finish_loading: removeView failed: {e}")
-                        content_wrapper.addView(self.results_container, FrameLayout.LayoutParams(-1, -2))
-                        if self.icons:
-                            log(f"IconList.finish_loading: building list, icons={len(self.icons)}")
-                            self.build_list_with_sort("alpha_az")
+                                log(f"IconList.finish_loading: animate failed: {e}")
+                                try:
+                                    self.content_view.removeView(_loading_container_ref)
+                                except Exception:
+                                    pass
+                                _on_spinner_removed()
                         else:
-                            log("IconList.finish_loading: icons is empty, showing empty state")
-                            self._show_empty_state()
-                        if hasattr(self, 'subtitle'):
-                            self.subtitle.setText(strings["icons_count"].format(len(self.icons)))
+                            _on_spinner_removed()
                     except Exception as e:
                         log(f"IconList.finish_loading: error: {e}")
 
@@ -1029,6 +1107,16 @@ class InstallIconsUI:
                 applyFontToTree(self.content_view)
             except Exception:
                 pass
+
+            try:
+                banner = getattr(self, '_no_internet_banner', None)
+                if banner:
+                    banner.content_view = self.content_view
+                    if not self.show_loading_initial:
+                        banner.on_config_loaded()
+            except Exception as e:
+                log(f"IconList: NoInternetBanner attach error: {e}")
+
             return self.content_view
 
         def getTitle(self):
@@ -1141,12 +1229,7 @@ class InstallIconsUI:
                     pass
                 empty_container.addView(ghost_icon, LayoutHelper.createLinear(AndroidUtilities.dp(64), AndroidUtilities.dp(64), 0, 0, 0, 16))
 
-                empty = TextView(act)
-                empty.setText(strings["no_plugins"])
-                empty.setGravity(Gravity.CENTER)
-                empty.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
-                empty.setTextColor(self.secondary_text_color)
-                empty_container.addView(empty, LayoutHelper.createLinear(-2, -2))
+
 
                 self.results_container.addView(empty_container, LayoutHelper.createLinear(-1, -2))
                 self.is_loading = False
