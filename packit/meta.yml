@@ -1,7 +1,7 @@
 name: PackIt
 description: "{plugin_description} [shareui/packit-source](https://github.com/shareui/packit-source)"
 id: shareui_packit
-version: "0.0.0-rc.467"
+version: "0.0.0-rc.473"
 author: "@packitX"
 app_version: ">=12.6.4"
 sdk_version: ">=1.4.3.2"
@@ -10,10 +10,10 @@ icon: plugin232/17
 
 # elyxbuilder info
 compiled: false
-buildNum: 419
+buildNum: 425
 buildDate: 2026-05-30
 pythonVer: 3.11
-sourceHash: 27bdbac1076f1442b9d35a8f52122b91a9fc1740a0e980216ff8fd96144c7bac # Sha256
+sourceHash: 58269ff1ad62bf2f6e7a9286789bff87042053f43332ee00c3c32555d9cb93b7 # Sha256
 elybVer: 0.4.0
 static_ver: "12.6.4"
 client: "com.exteragram.messenger"

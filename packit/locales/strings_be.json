@@ -183,6 +183,7 @@
   "sort_as_in_repo": "Як у рэпазіторыі",
   "search_hint": "Пошук плагінаў...",
   "no_plugins": "Няма плагінаў",
+  "no_icons": "Няма іконак",
   "total_plugins": "{0} рэпазіторыяў · {1} плагінаў",
   "total_plugins_unknown": "Загрузка...",
   "select_repository": "Выбраць рэпазіторый",
