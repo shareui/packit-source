@@ -26,6 +26,13 @@ class BtnCAB:
                 return
             
             chat_activity = frag
+            show_chat = settings.get("show_chat_menu", True)
+            ref_key = str(chat_activity)
+            if not hasattr(self, "_ensured_refs"):
+                self._ensured_refs = {}
+            if self._ensured_refs.get(ref_key) == show_chat:
+                return
+
             headerItem = self._get_private_field(chat_activity, "headerItem")
             if headerItem is None:
                 return
@@ -44,6 +51,7 @@ class BtnCAB:
             try:
                 if lazy_map is not None and lazy_map.get(self.packit_menu_id) is not None:
                     self._hook_chat_action_bar(chat_activity)
+                    self._ensured_refs[ref_key] = show_chat
                     return
                 if lazy_list is not None:
                     for i in range(lazy_list.size()):
@@ -52,6 +60,7 @@ class BtnCAB:
                             item_id = self._get_private_field(item, "id")
                             if item_id == self.packit_menu_id:
                                 self._hook_chat_action_bar(chat_activity)
+                                self._ensured_refs[ref_key] = show_chat
                                 return
                         except Exception:
                             continue
@@ -105,6 +114,7 @@ class BtnCAB:
                     except Exception:
                         pass
                 self._hook_chat_action_bar(chat_activity)
+                self._ensured_refs[ref_key] = show_chat
             except Exception:
                 pass
         except Exception:
@@ -222,6 +232,8 @@ class BtnCAB:
     
     def on_chat_switch(self, val):
         try:
+            if hasattr(self, "_ensured_refs"):
+                self._ensured_refs.clear()
             settings.set("show_chat_menu", bool(val))
             run_on_ui_thread(self._update_chat_menu)
         except Exception:

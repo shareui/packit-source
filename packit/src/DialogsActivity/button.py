@@ -46,19 +46,25 @@ class ChatButton(BtnCAB, BtnPluginsMenu, ChatDialogButton):
     
     def _get_private_field(self, obj, name):
         try:
-            cls = obj.getClass()
-        except Exception:
-            return None
-        while cls is not None:
-            try:
-                field = cls.getDeclaredField(name)
-                field.setAccessible(True)
+            if not hasattr(self, "_field_cache"):
+                self._field_cache = {}
+            clazz = obj.getClass()
+            cache_key = (clazz.getName(), name)
+            field = self._field_cache.get(cache_key)
+            if field is None:
+                curr = clazz
+                while curr is not None:
+                    try:
+                        field = curr.getDeclaredField(name)
+                        field.setAccessible(True)
+                        self._field_cache[cache_key] = field
+                        break
+                    except Exception:
+                        curr = curr.getSuperclass()
+            if field is not None:
                 return field.get(obj)
-            except Exception:
-                try:
-                    cls = cls.getSuperclass()
-                except Exception:
-                    break
+        except Exception:
+            pass
         return None
     
     def open_packit_settings(self):
