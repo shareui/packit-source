@@ -9,7 +9,9 @@ _META_PATH = os.path.join(os.path.dirname(__file__), "../../meta.yml")
 
 _CLIENT_NAMES = {
     "com.exteragram.messenger": "exteraGram",
+    "org.extera.gram": "exteraGram",
     "com.radolyn.ayugram": "AyuGram",
+    "com.ayugram.telegram": "AyuGram",
 }
 
 def _readMeta():
