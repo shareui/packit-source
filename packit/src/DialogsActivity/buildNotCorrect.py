@@ -36,26 +36,30 @@ def _saveDismissedHash(hashVal: str):
         log(f"buildNotCorrect: _saveDismissedHash error: {e}")
 
 
-def _makeBlockBg(radius: int, resource_provider=None) -> GradientDrawable:
+def _makeBlockBg(radius: int) -> GradientDrawable:
     gd = GradientDrawable()
     gd.setShape(GradientDrawable.RECTANGLE)
     gd.setCornerRadius(float(radius))
-    gd.setColor(Theme.getColor(Theme.key_dialogScrollGlow, resource_provider) | 0xFF000000)
+    try:
+        color = Theme.getColor(Theme.key_windowBackgroundGray)
+    except Exception:
+        color = 0xFFF0F0F0
+    gd.setColor(color)
     return gd
 
 
-def _makeMessageBlock(activity, message: str, resource_provider=None) -> LinearLayout:
+def _makeMessageBlock(activity, message: str) -> LinearLayout:
     dp = AndroidUtilities.dp
     block = LinearLayout(activity)
     block.setOrientation(LinearLayout.VERTICAL)
     block.setPadding(dp(14), dp(12), dp(14), dp(12))
-    block.setBackground(_makeBlockBg(dp(12), resource_provider))
+    block.setBackground(_makeBlockBg(dp(12)))
 
     tv = TextView(activity)
     tv.setText(message)
     tv.setTextSize(1, 14.0)
     tv.setGravity(Gravity.CENTER_HORIZONTAL)
-    tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText, resource_provider))
+    tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
     block.addView(tv, LinearLayout.LayoutParams(
         LinearLayout.LayoutParams.MATCH_PARENT,
         LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -63,11 +67,11 @@ def _makeMessageBlock(activity, message: str, resource_provider=None) -> LinearL
     return block
 
 
-def _makeInfoCard(activity, rows: list, resource_provider=None) -> LinearLayout:
+def _makeInfoCard(activity, rows: list) -> LinearLayout:
     dp = AndroidUtilities.dp
     card = LinearLayout(activity)
     card.setOrientation(LinearLayout.VERTICAL)
-    card.setBackground(_makeBlockBg(dp(12), resource_provider))
+    card.setBackground(_makeBlockBg(dp(12)))
 
     for i, (label, value) in enumerate(rows):
         row = LinearLayout(activity)
@@ -78,14 +82,14 @@ def _makeInfoCard(activity, rows: list, resource_provider=None) -> LinearLayout:
         label_tv = TextView(activity)
         label_tv.setText(label)
         label_tv.setTextSize(1, 13.0)
-        label_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText, resource_provider))
+        label_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
         row.addView(label_tv, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
 
         value_tv = TextView(activity)
         value_tv.setText(value)
         value_tv.setTextSize(1, 13.0)
         value_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
-        value_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, resource_provider))
+        value_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
         value_tv.setGravity(Gravity.END)
         row.addView(value_tv, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL | Gravity.END))
 
@@ -96,7 +100,7 @@ def _makeInfoCard(activity, rows: list, resource_provider=None) -> LinearLayout:
 
         if i < len(rows) - 1:
             divider = View(activity)
-            divider.setBackgroundColor(Theme.getColor(Theme.key_divider, resource_provider))
+            divider.setBackgroundColor(Theme.getColor(Theme.key_divider))
             divider_lp = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(1)
             )
@@ -142,7 +146,7 @@ def _buildSheet(title: str, message: str, rows: list, buildHash: str):
         title_lp.rightMargin = pad_h
         root.addView(title_tv, title_lp)
 
-        msg_block = _makeMessageBlock(activity, message, resource_provider)
+        msg_block = _makeMessageBlock(activity, message)
         msg_lp = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -152,7 +156,7 @@ def _buildSheet(title: str, message: str, rows: list, buildHash: str):
         msg_lp.rightMargin = pad_h
         root.addView(msg_block, msg_lp)
 
-        card = _makeInfoCard(activity, rows, resource_provider)
+        card = _makeInfoCard(activity, rows)
         card_lp = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -245,11 +249,13 @@ def _checkAndShow():
         currPkg = getCurrClientPkg()
         currVer = getClientVersion()
 
-        buildClient = getBuildClientName()
-        currClient = getCurrClientName()
-        pkgMismatch = False
-        if buildClient != "Universal" and buildClient != currClient:
-            pkgMismatch = True
+        pkgMismatch = buildPkg is not None and currPkg != buildPkg
+        if pkgMismatch:
+            extera_pkgs = {"org.extera.gram", "com.exteragram.messenger"}
+            ayugram_pkgs = {"com.ayugram.telegram", "com.radolyn.ayugram"}
+            if (buildPkg in extera_pkgs and currPkg in extera_pkgs) or (buildPkg in ayugram_pkgs and currPkg in ayugram_pkgs):
+                pkgMismatch = False
+
         verMismatch = buildVer is not None and currVer != buildVer
 
         if not pkgMismatch and not verMismatch:
@@ -259,18 +265,22 @@ def _checkAndShow():
         title = str(strings.build_not_correct_title)
         rows = []
 
+        buildName = getBuildClientName()
+        if buildName == "Unknown" and buildPkg == "org.extera.gram":
+            buildName = "exteraGram"
+
+        currName = getCurrClientName()
+        if currName == "Unknown" and currPkg == "org.extera.gram":
+            currName = "exteraGram"
+
         if pkgMismatch and verMismatch:
             message = str(strings.build_not_correct_both_short)
-            buildName = getBuildClientName()
-            currName = getCurrClientName()
             rows = [
                 (str(strings.build_not_correct_label_build), f"{buildName} {buildVer}"),
                 (str(strings.build_not_correct_label_yours), f"{currName} {currVer}"),
             ]
         elif pkgMismatch:
             message = str(strings.build_not_correct_client_short)
-            buildName = getBuildClientName()
-            currName = getCurrClientName()
             rows = [
                 (str(strings.build_not_correct_label_build), buildName),
                 (str(strings.build_not_correct_label_yours), currName),

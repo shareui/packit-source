@@ -16,9 +16,23 @@ _Integer = jclass("java.lang.Integer")
 _PACKIT_MENU_ID = 880035
 
 
+def _safe_find_class(class_name: str):
+    try:
+        from org.telegram.messenger import ApplicationLoader
+        context = ApplicationLoader.applicationContext
+        if context is not None:
+            loader = context.getClassLoader()
+            if loader is not None:
+                loader.loadClass(class_name)
+                return find_class(class_name)
+    except Exception:
+        pass
+    return None
+
+
 def _get_extera_config():
     try:
-        return find_class("com.exteragram.messenger.ExteraConfig")
+        return _safe_find_class("com.exteragram.messenger.ExteraConfig")
     except Exception:
         return None
 
@@ -208,7 +222,7 @@ class ChatDialogButton:
         # in drawer mode, addMainMenuConfiguredItem is never called for unknown ids.
         # hook DrawerMenuView.rebuildMenu (after) and inject our item manually.
         try:
-            DrawerMenuViewClass = find_class("com.exteragram.messenger.drawer.DrawerMenuView")
+            DrawerMenuViewClass = _safe_find_class("com.exteragram.messenger.drawer.DrawerMenuView")
             if DrawerMenuViewClass is None:
                 log("ChatDialogButton: DrawerMenuView not found")
                 return None
@@ -305,7 +319,7 @@ class ChatDialogButton:
 
     def _setup_sanitize_hook(self):
         try:
-            cfg_class = find_class("com.exteragram.messenger.ExteraConfig")
+            cfg_class = _safe_find_class("com.exteragram.messenger.ExteraConfig")
             if cfg_class is None:
                 return None
 
@@ -339,14 +353,14 @@ class ChatDialogButton:
         # hooks for AppNavigationPreferencesActivity so our item renders in the
         # "Main menu" settings screen (initItemDetails, createMenuItem, onClick)
         try:
-            activity_cls = find_class(
+            activity_cls = _safe_find_class(
                 "com.exteragram.messenger.preferences.appearance.AppNavigationPreferencesActivity"
             )
             if activity_cls is None:
                 log("ChatDialogButton: MainMenuPreferencesActivity not found")
                 return
 
-            item_info_cls = find_class(
+            item_info_cls = _safe_find_class(
                 "com.exteragram.messenger.preferences.appearance.AppNavigationPreferencesActivity$ItemInfo"
             )
             if item_info_cls is None:
@@ -424,7 +438,7 @@ class ChatDialogButton:
                 self.plugin.hook_method(create_method, CreateMenuItemHook())
 
             NotificationCenter = jclass("org.telegram.messenger.NotificationCenter")
-            base_activity_cls = find_class(
+            base_activity_cls = _safe_find_class(
                 "com.exteragram.messenger.preferences.BasePreferencesActivity"
             )
             list_view_field = None
