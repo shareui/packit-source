@@ -9,6 +9,8 @@ import weakref
 _right_icons = weakref.WeakValueDictionary()
 # separate dict for None values (weakref can't store None)
 _right_icons_none = weakref.WeakSet()
+_dialog_ids = weakref.WeakKeyDictionary()
+_containers = weakref.WeakKeyDictionary()
 
 
 class MethodHook:
@@ -45,7 +47,12 @@ class _UpdateTitleIconsHook(MethodHook):
                 pass
 
             activity = param.thisObject
-            dialog_id = get_private_field(activity, "dialog_id")
+            dialog_id = _dialog_ids.get(activity)
+            if dialog_id is None:
+                dialog_id = get_private_field(activity, "dialog_id")
+                if dialog_id is not None:
+                    _dialog_ids[activity] = dialog_id
+
             if dialog_id is None:
                 return
 
@@ -56,7 +63,12 @@ class _UpdateTitleIconsHook(MethodHook):
             if not entry:
                 return
 
-            container = get_private_field(activity, "avatarContainer")
+            container = _containers.get(activity)
+            if container is None:
+                container = get_private_field(activity, "avatarContainer")
+                if container is not None:
+                    _containers[activity] = container
+
             if not container:
                 return
 

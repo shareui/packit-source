@@ -6,6 +6,9 @@ from hook_utils import find_class, get_private_field
 from android.text import SpannableStringBuilder
 from android.text import Spanned
 from org.telegram.ui.Components import AnimatedEmojiSpan
+import weakref
+_dialog_ids = weakref.WeakKeyDictionary()
+_hints = weakref.WeakKeyDictionary()
 
 
 class MethodHook:
@@ -30,7 +33,12 @@ class _TopPanelHook(MethodHook):
                 pass
 
             activity = param.thisObject
-            dialog_id = get_private_field(activity, "dialog_id")
+            dialog_id = _dialog_ids.get(activity)
+            if dialog_id is None:
+                dialog_id = get_private_field(activity, "dialog_id")
+                if dialog_id is not None:
+                    _dialog_ids[activity] = dialog_id
+
             if dialog_id is None:
                 return
 
@@ -41,7 +49,12 @@ class _TopPanelHook(MethodHook):
             if not entry:
                 return
 
-            hint = get_private_field(activity, "emojiStatusSpamHint")
+            hint = _hints.get(activity)
+            if hint is None:
+                hint = get_private_field(activity, "emojiStatusSpamHint")
+                if hint is not None:
+                    _hints[activity] = hint
+
             if not hint:
                 return
 

@@ -40,7 +40,11 @@ def _makeBlockBg(radius: int) -> GradientDrawable:
     gd = GradientDrawable()
     gd.setShape(GradientDrawable.RECTANGLE)
     gd.setCornerRadius(float(radius))
-    gd.setColor(Theme.getColor(Theme.key_dialogScrollGlow) | 0xFF000000)
+    try:
+        color = Theme.getColor(Theme.key_windowBackgroundGray)
+    except Exception:
+        color = 0xFFF0F0F0
+    gd.setColor(color)
     return gd
 
 
@@ -96,8 +100,7 @@ def _makeInfoCard(activity, rows: list) -> LinearLayout:
 
         if i < len(rows) - 1:
             divider = View(activity)
-            # 0x20FFFFFF — white at ~12% opacity, visible on any dark background
-            divider.setBackgroundColor(0x20FFFFFF)
+            divider.setBackgroundColor(Theme.getColor(Theme.key_divider))
             divider_lp = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(1)
             )
@@ -247,6 +250,12 @@ def _checkAndShow():
         currVer = getClientVersion()
 
         pkgMismatch = buildPkg is not None and currPkg != buildPkg
+        if pkgMismatch:
+            extera_pkgs = {"org.extera.gram", "com.exteragram.messenger"}
+            ayugram_pkgs = {"com.ayugram.telegram", "com.radolyn.ayugram"}
+            if (buildPkg in extera_pkgs and currPkg in extera_pkgs) or (buildPkg in ayugram_pkgs and currPkg in ayugram_pkgs):
+                pkgMismatch = False
+
         verMismatch = buildVer is not None and currVer != buildVer
 
         if not pkgMismatch and not verMismatch:
@@ -256,18 +265,17 @@ def _checkAndShow():
         title = str(strings.build_not_correct_title)
         rows = []
 
+        buildName = getBuildClientName()
+        currName = getCurrClientName()
+
         if pkgMismatch and verMismatch:
             message = str(strings.build_not_correct_both_short)
-            buildName = getBuildClientName()
-            currName = getCurrClientName()
             rows = [
                 (str(strings.build_not_correct_label_build), f"{buildName} {buildVer}"),
                 (str(strings.build_not_correct_label_yours), f"{currName} {currVer}"),
             ]
         elif pkgMismatch:
             message = str(strings.build_not_correct_client_short)
-            buildName = getBuildClientName()
-            currName = getCurrClientName()
             rows = [
                 (str(strings.build_not_correct_label_build), buildName),
                 (str(strings.build_not_correct_label_yours), currName),
