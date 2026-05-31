@@ -266,12 +266,7 @@ def _checkAndShow():
         rows = []
 
         buildName = getBuildClientName()
-        if buildName == "Unknown" and buildPkg == "org.extera.gram":
-            buildName = "exteraGram"
-
         currName = getCurrClientName()
-        if currName == "Unknown" and currPkg == "org.extera.gram":
-            currName = "exteraGram"
 
         if pkgMismatch and verMismatch:
             message = str(strings.build_not_correct_both_short)
