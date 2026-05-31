@@ -36,26 +36,26 @@ def _saveDismissedHash(hashVal: str):
         log(f"buildNotCorrect: _saveDismissedHash error: {e}")
 
 
-def _makeBlockBg(radius: int) -> GradientDrawable:
+def _makeBlockBg(radius: int, resource_provider=None) -> GradientDrawable:
     gd = GradientDrawable()
     gd.setShape(GradientDrawable.RECTANGLE)
     gd.setCornerRadius(float(radius))
-    gd.setColor(Theme.getColor(Theme.key_dialogScrollGlow) | 0xFF000000)
+    gd.setColor(Theme.getColor(Theme.key_dialogScrollGlow, resource_provider) | 0xFF000000)
     return gd
 
 
-def _makeMessageBlock(activity, message: str) -> LinearLayout:
+def _makeMessageBlock(activity, message: str, resource_provider=None) -> LinearLayout:
     dp = AndroidUtilities.dp
     block = LinearLayout(activity)
     block.setOrientation(LinearLayout.VERTICAL)
     block.setPadding(dp(14), dp(12), dp(14), dp(12))
-    block.setBackground(_makeBlockBg(dp(12)))
+    block.setBackground(_makeBlockBg(dp(12), resource_provider))
 
     tv = TextView(activity)
     tv.setText(message)
     tv.setTextSize(1, 14.0)
     tv.setGravity(Gravity.CENTER_HORIZONTAL)
-    tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+    tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText, resource_provider))
     block.addView(tv, LinearLayout.LayoutParams(
         LinearLayout.LayoutParams.MATCH_PARENT,
         LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -63,11 +63,11 @@ def _makeMessageBlock(activity, message: str) -> LinearLayout:
     return block
 
 
-def _makeInfoCard(activity, rows: list) -> LinearLayout:
+def _makeInfoCard(activity, rows: list, resource_provider=None) -> LinearLayout:
     dp = AndroidUtilities.dp
     card = LinearLayout(activity)
     card.setOrientation(LinearLayout.VERTICAL)
-    card.setBackground(_makeBlockBg(dp(12)))
+    card.setBackground(_makeBlockBg(dp(12), resource_provider))
 
     for i, (label, value) in enumerate(rows):
         row = LinearLayout(activity)
@@ -78,14 +78,14 @@ def _makeInfoCard(activity, rows: list) -> LinearLayout:
         label_tv = TextView(activity)
         label_tv.setText(label)
         label_tv.setTextSize(1, 13.0)
-        label_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+        label_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText, resource_provider))
         row.addView(label_tv, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
 
         value_tv = TextView(activity)
         value_tv.setText(value)
         value_tv.setTextSize(1, 13.0)
         value_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
-        value_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+        value_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, resource_provider))
         value_tv.setGravity(Gravity.END)
         row.addView(value_tv, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL | Gravity.END))
 
@@ -96,8 +96,7 @@ def _makeInfoCard(activity, rows: list) -> LinearLayout:
 
         if i < len(rows) - 1:
             divider = View(activity)
-            # 0x20FFFFFF — white at ~12% opacity, visible on any dark background
-            divider.setBackgroundColor(0x20FFFFFF)
+            divider.setBackgroundColor(Theme.getColor(Theme.key_divider, resource_provider))
             divider_lp = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(1)
             )
@@ -143,7 +142,7 @@ def _buildSheet(title: str, message: str, rows: list, buildHash: str):
         title_lp.rightMargin = pad_h
         root.addView(title_tv, title_lp)
 
-        msg_block = _makeMessageBlock(activity, message)
+        msg_block = _makeMessageBlock(activity, message, resource_provider)
         msg_lp = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -153,7 +152,7 @@ def _buildSheet(title: str, message: str, rows: list, buildHash: str):
         msg_lp.rightMargin = pad_h
         root.addView(msg_block, msg_lp)
 
-        card = _makeInfoCard(activity, rows)
+        card = _makeInfoCard(activity, rows, resource_provider)
         card_lp = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -246,7 +245,11 @@ def _checkAndShow():
         currPkg = getCurrClientPkg()
         currVer = getClientVersion()
 
-        pkgMismatch = buildPkg is not None and currPkg != buildPkg
+        buildClient = getBuildClientName()
+        currClient = getCurrClientName()
+        pkgMismatch = False
+        if buildClient != "Universal" and buildClient != currClient:
+            pkgMismatch = True
         verMismatch = buildVer is not None and currVer != buildVer
 
         if not pkgMismatch and not verMismatch:
