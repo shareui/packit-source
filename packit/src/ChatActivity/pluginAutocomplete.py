@@ -568,14 +568,57 @@ def _packit_show_plugins_popup(self, plugins):
             log(f"Packit popup layout error: {e}")
         
         self.packit_custom_container = bot_container
+        self._packit_hook_container_dismiss(bot_container)
         bot_container.show()
     except Exception as e:
         log(f"Packit show plugins popup error: {e}")
 
 
+def _packit_hook_container_dismiss(self, bot_container):
+    # TG calls dismiss() unconditionally in afterTextChanged — block it while our search is active.
+    # hook is idempotent: skip if already hooked this container instance.
+    try:
+        container_id = id(bot_container)
+        if container_id in self._packit_hooked_containers:
+            return
+        self._packit_hooked_containers.add(container_id)
+
+        plugin_ref = weakref.ref(self)
+        # dismiss is declared in BotCommandsMenuContainer, not the anonymous subclass
+        dismiss_method = None
+        klass = bot_container.getClass()
+        while klass is not None:
+            try:
+                dismiss_method = klass.getDeclaredMethod("dismiss")
+                break
+            except Exception:
+                klass = klass.getSuperclass()
+        if dismiss_method is None:
+            log("Packit hook container dismiss error: dismiss method not found")
+            return
+        dismiss_method.setAccessible(True)
+
+        class DismissHook(MethodHook):
+            def before_hooked_method(self_hook, param):
+                plugin = plugin_ref()
+                if plugin is None:
+                    return
+                # allow dismiss when packit search is not active
+                if plugin._packit_search_token is None:
+                    return
+                # block TG dismiss — packit controls visibility
+                param.setResult(None)
+
+        self.hook_method(dismiss_method, DismissHook())
+    except Exception as e:
+        log(f"Packit hook container dismiss error: {e}")
+
+
 def _packit_hide_popup(self):
     try:
         if self.packit_custom_container:
+            # clear token first so the dismiss hook lets it through
+            self._packit_search_token = None
             self.packit_custom_container.dismiss()
     except Exception as e:
         log(f"Packit hide popup error: {e}")
@@ -816,7 +859,21 @@ def _packit_send_plugin_info(self, plugin_data):
                 "peer": chat_id,
                 "message": message_text,
                 "entities": entities,
-                "searchLinks": False
+                "searchLinks": False,
+                "params": {
+                    "packit_inline": "1",
+                    "packit_desc": description,
+                    "packit_name": name,
+                    "packit_version": version,
+                    "packit_author": author,
+                    "packit_plugin_id": plugin_id,
+                    "packit_repo_id": repo_id,
+                    "packit_output_type": output_type or "",
+                    "packit_show_version": "1" if show_version else "0",
+                    "packit_show_author": "1" if show_author else "0",
+                    "packit_show_description": "1" if show_description else "0",
+                    "packit_show_install": "1" if show_install else "0",
+                },
             }
             if reply_msg_obj is not None:
                 message_data["replyToMsg"] = reply_msg_obj
@@ -856,6 +913,7 @@ def setup_packit_autocomplete(plugin):
         plugin._packit_search_token = None
         plugin._packit_output_type = None
         plugin._packit_pending_clear_reply = False
+        plugin._packit_hooked_containers = set()
         
         plugin._packit_hook_enter_view_constructor()
         log("Packit autocomplete setup complete")

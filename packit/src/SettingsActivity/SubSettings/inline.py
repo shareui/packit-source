@@ -7,6 +7,14 @@ from elyx import strings
 
 def build_inline_page(other_settings, fmt_inline_str, reload_plugin_settings, open_url):
     items = [
+        Switch(
+            key="inline_search_enabled",
+            text=strings.inline_search_enabled,
+            subtext=strings.inline_search_enabled_desc,
+            default=True,
+            icon="msg_search",
+            link_alias="inline_search_enabled"
+        ),
         Header(text=strings.inline_search_header),
         Input(
             key="inline_search_command",

@@ -27,6 +27,7 @@ from .DialogsActivity.updatesWidget import setup_updates_widget
 from .ui.PluginListActivity.service.InstallDismissHook import setup_install_dismiss_hook
 from .ChatActivity.export.DecryptorBottomSheet import setup_packit_file_hook
 from .ChatActivity.afpFile import setup_afp_file_hook
+from .ChatActivity.inlineBtns import setup_inline_translate_button
 from .standaloneHooks.addPluginFab import setup_plugins_activity_fab
 from .standaloneHooks.addIconsFab import setup_icon_packs_activity_fab
 from .DialogsActivity.buildNotCorrect import setup_build_not_correct_check
@@ -41,6 +42,7 @@ from .ChatActivity.pluginAutocomplete import (
     _packit_show_matching_plugins,
     _packit_show_plugins_popup,
     _packit_hide_popup,
+    _packit_hook_container_dismiss,
     _packit_send_plugin_info
 )
 from android_utils import log
@@ -167,6 +169,7 @@ class PackItPlugin(BasePlugin):
         self.dialogs_menu_hook_ref = self.chatUI.setup_dialogs_menu_hook()
         self.everyone_hook_refs = _everyone.setup_hook(self)
         self.packit_hook_constructor_ref = setup_packit_autocomplete(self)
+        setup_inline_translate_button(self)
         self._init_official_repository()
         self._check_for_update()
         if settings.get("show_updates_on_startup", False):
@@ -382,4 +385,5 @@ PackItPlugin._packit_search_in_background = _packit_search_in_background
 PackItPlugin._packit_show_matching_plugins = _packit_show_matching_plugins
 PackItPlugin._packit_show_plugins_popup = _packit_show_plugins_popup
 PackItPlugin._packit_hide_popup = _packit_hide_popup
+PackItPlugin._packit_hook_container_dismiss = _packit_hook_container_dismiss
 PackItPlugin._packit_send_plugin_info = _packit_send_plugin_info

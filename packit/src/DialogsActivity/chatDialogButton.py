@@ -115,7 +115,7 @@ def _get_mode_label(mode):
 def _get_current_mode():
     try:
         from elyx import settings as _s
-        return _s.get("dialogs_menu_button", 1)
+        return _s.get("dialogs_menu_button", 0)
     except Exception:
         return 1
 
@@ -219,8 +219,6 @@ class ChatDialogButton:
             return None
 
     def _setup_drawer_hook(self):
-        # in drawer mode, addMainMenuConfiguredItem is never called for unknown ids.
-        # hook DrawerMenuView.rebuildMenu (after) and inject our item manually.
         try:
             DrawerMenuViewClass = _safe_find_class("com.exteragram.messenger.drawer.DrawerMenuView")
             if DrawerMenuViewClass is None:
@@ -241,81 +239,41 @@ class ChatDialogButton:
                 return None
 
             rebuild_method.setAccessible(True)
+            from base_plugin import MenuItemData, MenuItemType
             plugin = self.plugin
+            mode = _get_current_mode()
+            icon_name = ["msg_plugins", "msg_addbot", "input_smile"][mode] if 0 <= mode <= 2 else "msg_addbot"
+            label = _get_mode_label(mode)
 
-            class RebuildMenuHook(MethodHook):
-                def after_hooked_method(self_hook, param):
-                    try:
-                        if not _is_btn_enabled():
-                            return
-                        if not _is_drawer_mode():
-                            return
+            def on_drawer_click(context):
+                try:
+                    m = _get_current_mode()
+                    if m == 0:
+                        from com.exteragram.messenger.plugins import PluginsController
+                        from com.exteragram.messenger.plugins.ui import PluginSettingsActivity
+                        from client_utils import get_last_fragment
+                        frag = get_last_fragment()
+                        pluginObj = PluginsController.getInstance().plugins.get(plugin.id)
+                        if pluginObj and frag:
+                            frag.presentFragment(PluginSettingsActivity(pluginObj))
+                    elif m == 2:
+                        from ..ui.IconsListActivity.fragment import InstallIconsUI
+                        InstallIconsUI(plugin).open()
+                    else:
+                        from ..ui.PluginListActivity.fragment import InstallUI
+                        InstallUI(plugin).open()
+                except Exception as e:
+                    log(f"ChatDialogButton: drawer onClick error: {e}")
 
-                        drawer_view = param.thisObject
-                        account = int(param.args[0])
-
-                        DrawerMenuItemViewClass = find_class("com.exteragram.messenger.drawer.DrawerMenuItemView")
-                        if DrawerMenuItemViewClass is None:
-                            return
-
-                        ctx = drawer_view.getContext()
-                        mode = _get_current_mode()
-                        icon_id = _get_mode_icon_id(mode)
-                        label = _get_mode_label(mode)
-
-                        item_view = DrawerMenuItemViewClass(ctx)
-                        item_view.setMenuItem(_PACKIT_MENU_ID, account, icon_id, label)
-
-                        from android_utils import OnClickListener
-                        def on_click(v):
-                            try:
-                                # close drawer before opening packit ui
-                                try:
-                                    from client_utils import get_last_fragment
-                                    frag = get_last_fragment()
-                                    if frag is not None:
-                                        act = frag.getParentActivity()
-                                        dc = act.drawerLayoutContainer.getDrawerContainer()
-                                        if dc is not None and dc.isDrawerOpen():
-                                            dc.closeDrawer(True)
-                                except Exception as e:
-                                    log(f"ChatDialogButton: close drawer error: {e}")
-                                m = _get_current_mode()
-                                if m == 0:
-                                    from com.exteragram.messenger.plugins import PluginsController
-                                    from com.exteragram.messenger.plugins.ui import PluginSettingsActivity
-                                    from client_utils import get_last_fragment
-                                    frag = get_last_fragment()
-                                    pluginObj = PluginsController.getInstance().plugins.get(plugin.id)
-                                    if pluginObj and frag:
-                                        frag.presentFragment(PluginSettingsActivity(pluginObj))
-                                elif m == 2:
-                                    from ..ui.IconsListActivity.fragment import InstallIconsUI
-                                    InstallIconsUI(plugin).open()
-                                else:
-                                    from ..ui.PluginListActivity.fragment import InstallUI
-                                    InstallUI(plugin).open()
-                            except Exception as e:
-                                log(f"ChatDialogButton: drawer onClick error: {e}")
-
-                        item_view.setOnClickListener(OnClickListener(on_click))
-
-                        # get container (first child of DrawerMenuView which is a LinearLayout)
-                        try:
-                            container = drawer_view.getChildAt(0)
-                            if container is not None:
-                                container.addView(item_view)
-                        except Exception as e:
-                            log(f"ChatDialogButton: drawer addView error: {e}")
-                    except Exception as e:
-                        log(f"ChatDialogButton: RebuildMenuHook error: {e}")
-
-            hook_ref = self.plugin.hook_method(rebuild_method, RebuildMenuHook())
-            log("ChatDialogButton: drawer hook set up")
-            return hook_ref
+            self.plugin.add_menu_item(MenuItemData(
+                menu_type=MenuItemType.DRAWER_MENU,
+                text=label,
+                on_click=on_drawer_click,
+                icon=icon_name
+            ))
+            log("ChatDialogButton: drawer menu item added")
         except Exception as e:
             log(f"ChatDialogButton: _setup_drawer_hook error: {e}")
-            return None
 
     def _setup_sanitize_hook(self):
         try:

@@ -1094,5 +1094,13 @@
   "sec_packitkey_warning_title": "⚠ ВНИМАНИЕ",
   "sec_packitkey_warning_text": "Этот плагин, вероятно, пытается получить ваш API-ключ, хранящийся в PackIt. Установка настоятельно не рекомендуется.",
   "contributor_translator": "Переводчик",
-  "developer": "Разработчик"
+  "developer": "Разработчик",
+  "translate_pending_1": "Перевожу, секунду...",
+  "translate_pending_2": "Ищу подходящие слова...",
+  "translate_pending_3": "Хм, сейчас переведу...",
+  "translate_pending_4": "Сейчас будет перевод...",
+  "translate_pending_5": "Пинаю переводчика...",
+  "translate_pending_6": "Бужу переводчика...",
+  "translate_pending_7": "Пытаюсь понять, что тут вообще написано...",
+  "translate_pending_8": "Ломаю языковой барьер... :3"
 }
