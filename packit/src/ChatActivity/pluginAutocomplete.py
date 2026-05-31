@@ -860,7 +860,20 @@ def _packit_send_plugin_info(self, plugin_data):
                 "message": message_text,
                 "entities": entities,
                 "searchLinks": False,
-                "params": {"packit_inline": "1"}
+                "params": {
+                    "packit_inline": "1",
+                    "packit_desc": description,
+                    "packit_name": name,
+                    "packit_version": version,
+                    "packit_author": author,
+                    "packit_plugin_id": plugin_id,
+                    "packit_repo_id": repo_id,
+                    "packit_output_type": output_type or "",
+                    "packit_show_version": "1" if show_version else "0",
+                    "packit_show_author": "1" if show_author else "0",
+                    "packit_show_description": "1" if show_description else "0",
+                    "packit_show_install": "1" if show_install else "0",
+                },
             }
             if reply_msg_obj is not None:
                 message_data["replyToMsg"] = reply_msg_obj

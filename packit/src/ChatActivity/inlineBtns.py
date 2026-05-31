@@ -111,8 +111,57 @@ def _get_random_pending_text():
         return "Translating..."
 
 
+def _build_plugin_message_html(params, translated_desc: str) -> str:
+    # rebuilds the full plugin message as HTML using stored params and a translated description
+    # params may be a Java HashMap — always use single-arg .get()
+
+    def _p(key):
+        v = params.get(key)
+        return str(v) if v is not None else ""
+
+    name = _p("packit_name")
+    version = _p("packit_version")
+    author = _p("packit_author")
+    plugin_id = _p("packit_plugin_id")
+    repo_id = _p("packit_repo_id")
+    output_type = _p("packit_output_type") or None
+    show_version = _p("packit_show_version") != "0"
+    show_author = _p("packit_show_author") != "0"
+    show_description = _p("packit_show_description") != "0"
+    show_install = _p("packit_show_install") != "0"
+
+    plugin_link = f"tg://packit?plugin={plugin_id}&repo={repo_id}"
+    parts = []
+
+    if output_type == "release":
+        parts.append(f'<a href="{plugin_link}"><b>{name}</b></a> has been released!')
+    elif output_type == "update":
+        parts.append(f'<a href="{plugin_link}"><b>{name}</b></a><b> updated to </b>{version}')
+    else:
+        header = f'<a href="{plugin_link}"><b>{name}</b></a>'
+        if show_version and version:
+            header += f" (v{version})"
+        parts.append(header)
+
+    parts.append("\n")
+
+    if show_author and author:
+        parts.append(f"by {author}\n")
+
+    if show_description and translated_desc:
+        parts.append(f"<blockquote>{translated_desc}\n</blockquote>")
+
+    if show_install:
+        install_link = f"tg://packit?install&repo={repo_id}&plugin={plugin_id}"
+        if version:
+            install_link += f"&version={version}"
+        parts.append(f'<a href="{install_link}">Install</a> via <a href="https://t.me/packitX">PackIt</a>')
+
+    return "".join(parts)
+
+
 def _do_translate_inline(message_object):
-    # runs on background thread: replaces message with pending text, translates, restores
+    # runs on background thread: translates only the description, rebuilds message with formatting
     try:
         from client_utils import edit_message
         from ..ui.PluginListActivity.translation import _translate_text
@@ -123,12 +172,17 @@ def _do_translate_inline(message_object):
             log("inlineBtns: _do_translate_inline: messageOwner is None")
             return
 
-        original_text = owner.message or ""
-        if not original_text.strip():
-            log("inlineBtns: _do_translate_inline: original text is empty")
+        msg_params = owner.params
+        if msg_params is None:
+            log("inlineBtns: _do_translate_inline: no params on message")
             return
 
-        log(f"inlineBtns: translating message, len={len(original_text)}")
+        raw_desc = msg_params.get("packit_desc") or ""
+        if not raw_desc.strip():
+            log("inlineBtns: _do_translate_inline: description is empty, nothing to translate")
+            return
+
+        log(f"inlineBtns: translating description, len={len(raw_desc)}")
 
         pending_text = _get_random_pending_text()
 
@@ -143,13 +197,16 @@ def _do_translate_inline(message_object):
 
         target_lang = Locale.getDefault().getLanguage() or "en"
         log(f"inlineBtns: translating to lang={target_lang}")
-        translated = _translate_text(original_text, target_lang)
-        log(f"inlineBtns: translation done, len={len(translated)}")
+        translated_desc = _translate_text(raw_desc, target_lang)
+        log(f"inlineBtns: translation done, len={len(translated_desc)}")
+
+        rebuilt = _build_plugin_message_html(msg_params, translated_desc)
+        log(f"inlineBtns: rebuilt message html, len={len(rebuilt)}")
 
         def set_translated():
             try:
-                edit_message(message_object, text=translated)
-                log("inlineBtns: translated text set")
+                edit_message(message_object, text=rebuilt, parse_mode="HTML")
+                log("inlineBtns: translated message set")
             except Exception as e:
                 log(f"inlineBtns: set_translated error: {e}")
 
