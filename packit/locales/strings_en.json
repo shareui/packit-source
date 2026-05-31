@@ -183,6 +183,7 @@
     "sort_as_in_repo": "As in Repository",
     "search_hint": "Search plugins...",
     "no_plugins": "No plugins",
+    "no_icons": "No icons",
     "total_plugins": "{0} repositories · {1} plugins",
     "total_plugins_unknown": "Loading...",
     "select_repository": "Select a repository",

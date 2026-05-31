@@ -183,6 +183,7 @@
   "sort_as_in_repo": "Как в репозитории",
   "search_hint": "Поиск плагинов...",
   "no_plugins": "Нет плагинов",
+  "no_icons": "Нет иконок",
   "total_plugins": "{0} репозиториев · {1} плагинов",
   "total_plugins_unknown": "Загрузка...",
   "select_repository": "Выбор репозитория",

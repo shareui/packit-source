@@ -523,60 +523,93 @@ class InstallUI:
         except Exception as e:
             return None, None
 
+    def _reload_current_plugins(self, repo_id=None):
+        def load_task():
+            try:
+                if not repo_id:
+                    repos = self.repoManager.getRepositories()
+                    all_plugins = []
+                    for repo in repos:
+                        if not repo.get("enabled"): continue
+                        r_id = (repo.get("id") or "").strip()
+                        repo_url = (repo.get("url") or "").strip()
+                        if not repo_url: continue
+                        try:
+                            plugins_url = repo_url
+                            if r_id:
+                                try:
+                                    from org.telegram.messenger import ApplicationLoader
+                                except Exception as e:
+                                    pass
+                                import os
+                                from ...utils.paths import getRepoCachePath
+                                cache_path = getRepoCachePath(r_id)
+                                if os.path.exists(cache_path):
+                                    with open(cache_path, "r", encoding="utf-8") as f:
+                                        cached = json.load(f)
+                                    resolved = cached.get("repomap", {}).get("plugins") or repo_url
+                                    plugins_url = resolved
+
+                            response = requests.get(plugins_url, timeout=10)
+                            if response.status_code != 200: continue
+                            config = response.json()
+                            plugins = config.get("plugins", {})
+                            if isinstance(plugins, dict):
+                                for pluginId, info in plugins.items():
+                                    if isinstance(info, dict):
+                                        all_plugins.append({"id": pluginId, "repo_name": repo.get("name", "Unknown"), "_repo_id": r_id, **info})
+                            elif isinstance(plugins, list):
+                                for item in plugins:
+                                    if isinstance(item, dict) and item.get("id"):
+                                        all_plugins.append({"id": item.get("id"), "repo_name": repo.get("name", "Unknown"), "_repo_id": r_id, **item})
+                        except Exception as e:
+                            pass
+                    run_on_ui_thread(lambda: self._update_current_fragment_plugins(all_plugins))
+                else:
+                    repos = self.repoManager.getRepositories()
+                    repo = next((r for r in repos if r.get("id") == repo_id), None)
+                    if not repo: return
+                    repo_url = (repo.get("url") or "").strip()
+                    plugins_url = repo_url
+                    try:
+                        from org.telegram.messenger import ApplicationLoader
+                    except Exception as e:
+                        pass
+                    import os
+                    from ...utils.paths import getRepoCachePath
+                    cache_path = getRepoCachePath(repo_id)
+                    if os.path.exists(cache_path):
+                        with open(cache_path, "r", encoding="utf-8") as f:
+                            cached = json.load(f)
+                        resolved = cached.get("repomap", {}).get("plugins") or repo_url
+                        plugins_url = resolved
+
+                    r = requests.get(plugins_url, timeout=20)
+                    if r.status_code != 200:
+                        raise Exception(f"HTTP {r.status_code}")
+                    config = r.json()
+                    plugins_raw = config.get("plugins", [])
+                    plugins = []
+                    if isinstance(plugins_raw, dict):
+                        for pid, info in plugins_raw.items():
+                            if isinstance(info, dict):
+                                plugins.append({"id": pid, **info})
+                    elif isinstance(plugins_raw, list):
+                        for item in plugins_raw:
+                            if isinstance(item, dict) and item.get("id"):
+                                plugins.append(item)
+                    run_on_ui_thread(lambda: self._update_current_fragment_plugins(plugins))
+            except Exception as e:
+                BulletinHelper.show_error(str(strings["pl_load_failed"]))
+                run_on_ui_thread(lambda: self._update_current_fragment_plugins([]))
+        run_on_queue(load_task)
+
     def _open_all_repos_plugins(self):
         fragment = get_last_fragment()
         if not fragment:
             return
         self._show_plugins_universal(strings["all_repositories"], [])
-
-        def load_task():
-            try:
-                repos = self.repoManager.getRepositories()
-                all_plugins = []
-                for repo in repos:
-                    if not repo.get("enabled"):
-                        continue
-                    repo_id = (repo.get("id") or "").strip()
-                    repo_url = (repo.get("url") or "").strip()
-                    if not repo_url:
-                        continue
-                    try:
-                        plugins_url = repo_url
-                        if repo_id:
-                            try:
-                                from org.telegram.messenger import ApplicationLoader
-                            except Exception as e:
-                                import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
-                                from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
-                            import os
-                            from ...utils.paths import getRepoCachePath
-                            cache_path = getRepoCachePath(repo_id)
-                            if os.path.exists(cache_path):
-                                with open(cache_path, "r", encoding="utf-8") as f:
-                                    cached = json.load(f)
-                                resolved = cached.get("repomap", {}).get("plugins") or repo_url
-                                plugins_url = resolved
-
-                        response = requests.get(plugins_url, timeout=10)
-                        if response.status_code != 200:
-                            continue
-                        config = response.json()
-                        plugins = config.get("plugins", {})
-                        if isinstance(plugins, dict):
-                            for pluginId, info in plugins.items():
-                                if isinstance(info, dict):
-                                    all_plugins.append({"id": pluginId, "repo_name": repo.get("name", "Unknown"), "_repo_id": repo_id, **info})
-                        elif isinstance(plugins, list):
-                            for item in plugins:
-                                if isinstance(item, dict) and item.get("id"):
-                                    all_plugins.append({"id": item.get("id"), "repo_name": repo.get("name", "Unknown"), "_repo_id": repo_id, **item})
-                    except Exception as e:
-                        pass
-
-                run_on_ui_thread(lambda: self._update_current_fragment_plugins(all_plugins))
-            except Exception as e:
-                BulletinHelper.show_error(str(strings["pl_load_failed"]))
-        run_on_queue(load_task)
+        self._reload_current_plugins(None)
 
     def _update_plugins_in_fragment(self, plugins):
         try:
@@ -598,46 +631,7 @@ class InstallUI:
             return
         repo_id = (repo.get("id") or "").strip()
         self._show_plugins_universal(repo_name, [], repo_id=repo_id)
-
-        def load_task():
-            try:
-                # Try to resolve plugins URL from cached repomap
-                plugins_url = repo_url
-                repo_id = (repo.get("id") or "").strip()
-                if repo_id:
-                    try:
-                        from org.telegram.messenger import ApplicationLoader
-                    except Exception as e:
-                        import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
-                        from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
-                    import os
-                    from ...utils.paths import getRepoCachePath
-                    cache_path = getRepoCachePath(repo_id)
-                    if os.path.exists(cache_path):
-                        with open(cache_path, "r", encoding="utf-8") as f:
-                            cached = json.load(f)
-                        resolved = cached.get("repomap", {}).get("plugins") or repo_url
-                        plugins_url = resolved
-
-                r = requests.get(plugins_url, timeout=20)
-                if r.status_code != 200:
-                    raise Exception(f"HTTP {r.status_code}")
-                config = r.json()
-                plugins_raw = config.get("plugins", [])
-                plugins = []
-                if isinstance(plugins_raw, dict):
-                    for pid, info in plugins_raw.items():
-                        if isinstance(info, dict):
-                            plugins.append({"id": pid, **info})
-                elif isinstance(plugins_raw, list):
-                    for item in plugins_raw:
-                        if isinstance(item, dict) and item.get("id"):
-                            plugins.append(item)
-
-                run_on_ui_thread(lambda: self._update_current_fragment_plugins(plugins))
-            except Exception as e:
-                BulletinHelper.show_error(str(strings["pl_download_error"]))
-        run_on_queue(load_task)
+        self._reload_current_plugins(repo_id)
 
     def _update_current_fragment_plugins(self, plugins):
         try:
@@ -739,10 +733,41 @@ class InstallUI:
             log(f"InstallUI: PluginListFragment created id={id(self)} title='{title}' repo_id='{repo_id}' install_ui_id={id(install_ui)}")
 
         def onFragmentCreate(self, *_):
-            pass
+            try:
+                from ..NoInternetBanner import NoInternetBanner as _NIB
+                self._no_internet_banner = _NIB(None)
+
+                def _on_restore():
+                    plugin_count = len(self.plugins) if self.plugins else 0
+                    log(f"InstallUI: _on_restore called, plugins={plugin_count}, repo_id='{self.repo_id}'")
+                    try:
+                        lc = getattr(self, 'loading_container', None)
+                        rc = getattr(self, 'results_container', None)
+                        log(f"InstallUI: _on_restore loading_container={lc is not None}, results_container={rc is not None}")
+                        if lc and rc:
+                            lc.setVisibility(AView.VISIBLE)
+                            rc.setVisibility(AView.GONE)
+                            log("InstallUI: _on_restore visibility set — loading visible, results gone")
+                    except Exception as ex:
+                        log(f"InstallUI: _on_restore visibility error: {ex}")
+                    log("InstallUI: _on_restore triggering _reload_current_plugins")
+                    self.install_ui._reload_current_plugins(self.repo_id)
+
+                self._no_internet_banner._on_network_restored_callback = _on_restore
+                self._no_internet_banner.register()
+                log(f"InstallUI: NoInternetBanner registered for fragment id={id(self)}")
+            except Exception as e:
+                log(f"InstallUI: NoInternetBanner register error: {e}")
 
         def onFragmentDestroy(self, *_):
             log(f"InstallUI: PluginListFragment destroyed id={id(self)} title='{getattr(self, 'title', '?')}' repo_id='{getattr(self, 'repo_id', '?')}'")
+            try:
+                banner = getattr(self, '_no_internet_banner', None)
+                if banner:
+                    banner.unregister()
+                    self._no_internet_banner = None
+            except Exception as e:
+                log(f"InstallUI: NoInternetBanner unregister error: {e}")
             try:
                 if hasattr(self, 'content_view') and self.content_view is not None:
                     from ...ui.AchievementsActivity.service.AchivementsEngine import unregister_bulletin_container
@@ -1555,6 +1580,17 @@ class InstallUI:
                 applyFontToTree(self.content_view)
             except Exception:
                 pass
+
+            # Attach NoInternetBanner to content_view
+            try:
+                banner = getattr(self, '_no_internet_banner', None)
+                if banner:
+                    banner.content_view = self.content_view
+                    if not self.show_loading_initial:
+                        banner.on_config_loaded()
+            except Exception as e:
+                log(f"InstallUI: NoInternetBanner attach error: {e}")
+
             return self.content_view
 
         def getTitle(self):
@@ -1778,6 +1814,12 @@ class InstallUI:
 
         def _finish_loading_and_show_plugins(self, content_wrapper):
             try:
+                _banner = getattr(self, '_no_internet_banner', None)
+                if _banner:
+                    _banner.on_config_loaded()
+            except Exception as e:
+                log(f"InstallUI: NoInternetBanner on_config_loaded error: {e}")
+            try:
                 if hasattr(self, 'subtitle'):
                     self.subtitle.setText(_build_plugin_count_label(len(self.plugins)))
 
@@ -1880,6 +1922,45 @@ class InstallUI:
                 empty.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
                 empty.setTextColor(self.secondary_text_color)
                 empty_container.addView(empty, LayoutHelper.createLinear(-2, -2))
+                
+                try:
+                    from android.view import View
+                    retry = TextView(act)
+                    retry.setText(strings.get("retry", "Reload"))
+                    retry.setGravity(Gravity.CENTER)
+                    retry.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+                    retry.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
+                    retry.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(8), AndroidUtilities.dp(16), AndroidUtilities.dp(8))
+                    retry.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                        AndroidUtilities.dp(4), 0, Theme.getColor(Theme.key_listSelector)
+                    ))
+                    
+                    class RetryClickListener(dynamic_proxy(find_class("android.view.View$OnClickListener"))):
+                        def __init__(self, outer):
+                            super().__init__()
+                            self.outer = outer
+                        def onClick(self, v):
+                            log(f"InstallUI: retry button clicked, repo_id='{self.outer.repo_id}', plugins={len(self.outer.plugins) if self.outer.plugins else 0}")
+                            try:
+                                if hasattr(self.outer, 'loading_container') and self.outer.loading_container:
+                                    self.outer.loading_container.setVisibility(View.VISIBLE)
+                                    log("InstallUI: retry — loading_container made visible")
+                                    if hasattr(self.outer, 'results_container'):
+                                        self.outer.results_container.setVisibility(View.GONE)
+                                else:
+                                    log(f"InstallUI: retry — no loading_container (is None={self.outer.loading_container is None})")
+                            except Exception as ex:
+                                log(f"InstallUI: retry visibility error: {ex}")
+                            log("InstallUI: retry — calling _reload_current_plugins")
+                            self.outer.install_ui._reload_current_plugins(self.outer.repo_id)
+
+                    retry.setOnClickListener(RetryClickListener(self))
+                    
+                    lp_btn = LayoutHelper.createLinear(-2, -2, 0, 16, 0, 0)
+                    lp_btn.gravity = Gravity.CENTER_HORIZONTAL
+                    empty_container.addView(retry, lp_btn)
+                except Exception as e:
+                    pass
                 
                 self.results_container.addView(empty_container, LayoutHelper.createLinear(-1, -2))
                 self.is_loading = False
