@@ -480,6 +480,7 @@ class ContributorsSettings:
             title_text=strings["developer"],
             subtitle_text="@AGeekApple",
             username_url="https://t.me/AGeekApple"
+        ).add_link("msg_link", str(strings.github), "github.com/ageekapple", "https://github.com/ageekapple"
         ).add_link("msg_message", str(strings.direct_message), "t.me/AGeekApple", "https://t.me/AGeekApple"
         ).add_link("msg_channel", str(strings.personal_channel), "t.me/ApplePlugins", "https://t.me/ApplePlugins"
         ).add_link("msg_channel", str(strings.plugins_channel), "t.me/TheDotted", "https://t.me/TheDotted"
