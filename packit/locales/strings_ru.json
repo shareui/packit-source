@@ -1102,5 +1102,11 @@
   "translate_pending_5": "Пинаю переводчика...",
   "translate_pending_6": "Бужу переводчика...",
   "translate_pending_7": "Пытаюсь понять, что тут вообще написано...",
-  "translate_pending_8": "Ломаю языковой барьер... :3"
+  "translate_pending_8": "Ломаю языковой барьер... :3",
+  "inline_search_enabled": "Инлайн-поиск",
+  "inline_search_enabled_desc": "При отключении удаляет все связанные хуки.",
+  "install_restart_optional_title": "Рекомендуется перезапуск",
+  "install_restart_optional_message": "Этот плагин работает лучше после перезапуска клиента. Можете сделать это сейчас или пропустить.",
+  "install_restart_required_title": "Требуется перезапуск",
+  "install_restart_required_message": "Этот плагин требует перезапуска клиента для корректной работы."
 }
