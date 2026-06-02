@@ -1,0 +1,31 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+from android_utils import log
+
+class GlobalState:
+    _cache = {}
+
+    @classmethod
+    def get(cls, key: str, default=None):
+        if key not in cls._cache:
+            try:
+                from elyx import settings
+                cls._cache[key] = settings.get(key, default)
+            except Exception as e:
+                log(f"GlobalState.get error for {key}: {e}")
+                return default
+        return cls._cache[key]
+
+    @classmethod
+    def set(cls, key: str, value):
+        cls._cache[key] = value
+        try:
+            from elyx import settings
+            settings.set(key, value)
+        except Exception as e:
+            log(f"GlobalState.set error for {key}: {e}")
+
+    @classmethod
+    def clear(cls):
+        cls._cache.clear()

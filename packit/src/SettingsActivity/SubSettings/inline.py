@@ -3,6 +3,7 @@
 
 from ui.settings import Header, Switch, Divider, Input, Text
 from elyx import strings
+from ...ChatActivity import inlineState
 
 
 def build_inline_page(other_settings, fmt_inline_str, reload_plugin_settings, open_url):
@@ -14,7 +15,8 @@ def build_inline_page(other_settings, fmt_inline_str, reload_plugin_settings, op
             subtext=strings.inline_search_enabled_desc,
             default=True,
             icon="msg_search",
-            link_alias="inline_search_enabled"
+            link_alias="inline_search_enabled",
+            on_change=lambda v: inlineState.update_state(v)
         ),
         Input(
             key="inline_search_command",

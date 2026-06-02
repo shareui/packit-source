@@ -223,8 +223,8 @@ class _MeasureInlineButtonsHook(MethodHook):
 
     def after_hooked_method(self, param):
         try:
-            from elyx import settings
-            if not settings.get("inline_search_enabled", True):
+            from . import inlineState
+            if not inlineState.get_state():
                 return
             message_object = param.thisObject
             if not _is_packit_inline_message(message_object):
@@ -281,8 +281,8 @@ class _MeasureInlineButtonsHook(MethodHook):
 class _DidPressCustomBotButtonHook(MethodHook):
     def before_hooked_method(self, param):
         try:
-            from elyx import settings
-            if not settings.get("inline_search_enabled", True):
+            from . import inlineState
+            if not inlineState.get_state():
                 return
             log(f"inlineBtns: didPressCustomBotButton fired, args={len(param.args)}")
 
