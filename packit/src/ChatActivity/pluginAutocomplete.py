@@ -134,6 +134,9 @@ class _PackitAutocompleteHook(MethodHook):
 
     def after_hooked_method(self, param):
         try:
+            from elyx import settings
+            if not settings.get("inline_search_enabled", True):
+                return
             plugin = self.plugin
             if not plugin:
                 return
@@ -188,6 +191,12 @@ def _packit_attach_text_watcher(self, enter_view):
             def onTextChanged(self, s, start, before, count):
                 pass
             def afterTextChanged(self, editable):
+                try:
+                    from elyx import settings
+                    if not settings.get("inline_search_enabled", True):
+                        return
+                except Exception:
+                    pass
                 plugin = plugin_ref()
                 if not plugin:
                     return
@@ -600,6 +609,12 @@ def _packit_hook_container_dismiss(self, bot_container):
 
         class DismissHook(MethodHook):
             def before_hooked_method(self_hook, param):
+                try:
+                    from elyx import settings
+                    if not settings.get("inline_search_enabled", True):
+                        return
+                except Exception:
+                    pass
                 plugin = plugin_ref()
                 if plugin is None:
                     return

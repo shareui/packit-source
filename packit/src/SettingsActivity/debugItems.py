@@ -277,6 +277,41 @@ def _check_build_info():
         log(f"debugItems._check_build_info: {e}")
 
 
+def _migrate_installdate_to_b64():
+    try:
+        import os, json, base64
+        from ..utils.localConfig import _get_install_date_path
+        path = _get_install_date_path()
+        if not os.path.exists(path):
+            _show_bulletin("InstallDate not found")
+            return
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        
+        date_val = data.get("date", "")
+        if not date_val:
+            _show_bulletin("No date field")
+            return
+            
+        try:
+            decoded = base64.b64decode(date_val).decode("utf-8")
+            from datetime import date
+            date.fromisoformat(decoded)
+            _show_bulletin("Already migrated")
+            return
+        except Exception:
+            pass
+            
+        b64_date = base64.b64encode(date_val.encode("utf-8")).decode("utf-8")
+        data["date"] = b64_date
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f)
+        _show_bulletin("Migrated to b64")
+    except Exception as e:
+        log(f"debugItems._migrate_installdate_to_b64: {e}")
+        _show_bulletin(f"Error: {e}")
+
+
 def show_debug_menu():
     try:
         from org.telegram.ui.ActionBar import AlertDialog
@@ -308,6 +343,7 @@ def show_debug_menu():
             ("Inspect class", _inspect_class),
             ("Inspect methods", _inspect_methods),
             ("Check Build Info", _check_build_info),
+            ("migrate to 64", _migrate_installdate_to_b64),
         ]
 
         labels = jarray(JCharSequence)([item[0] for item in ITEMS])

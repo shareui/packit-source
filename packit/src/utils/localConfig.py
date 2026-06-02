@@ -45,8 +45,14 @@ def _ensure_install_date():
                 data = json.load(f)
             if "ts" not in data:
                 from datetime import datetime
+                import base64
                 try:
-                    data["ts"] = int(datetime.fromisoformat(data["date"]).timestamp())
+                    date_val = data["date"]
+                    try:
+                        date_val = base64.b64decode(date_val).decode("utf-8")
+                    except Exception:
+                        pass
+                    data["ts"] = int(datetime.fromisoformat(date_val).timestamp())
                 except Exception:
                     data["ts"] = int(time.time())
                 with open(path, "w", encoding="utf-8") as f:
@@ -58,8 +64,10 @@ def _ensure_install_date():
     try:
         os.makedirs(_get_configs_dir(), exist_ok=True)
         ts = int(time.time())
+        import base64
+        b64_date = base64.b64encode(date.today().isoformat().encode("utf-8")).decode("utf-8")
         with open(path, "w", encoding="utf-8") as f:
-            json.dump({"date": date.today().isoformat(), "ts": ts}, f)
+            json.dump({"date": b64_date, "ts": ts}, f)
         log(f"localConfig: install date recorded ts={ts}")
     except Exception as e:
         log(f"localConfig._ensure_install_date: error: {e}")
@@ -72,7 +80,12 @@ def days_since_install() -> int:
             return 0
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        install = date.fromisoformat(data["date"])
+        import base64
+        try:
+            date_str = base64.b64decode(data["date"]).decode("utf-8")
+        except Exception:
+            date_str = data["date"]
+        install = date.fromisoformat(date_str)
         return (date.today() - install).days
     except Exception as e:
         log(f"localConfig.days_since_install: error: {e}")
