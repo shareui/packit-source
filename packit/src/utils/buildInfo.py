@@ -35,7 +35,7 @@ def getBuildClientPkg():
     
 # return build static version
 def getBuildStaticVersion():
-    return _readMeta().get("static_ver")
+    return _readMeta().get("staticVer")
     
 # return current pkg
 def getCurrClientPkg():
