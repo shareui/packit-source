@@ -1,8 +1,16 @@
 zipFormat: eaf
 source: packit/src
-buildNameUncompiled: "{name}-{version}"
-buildNameCompiled: "{name}-{version}-3.11"
+buildNameUncompiled: '{name}-{version}'
+buildNameCompiled: '{name}-{version}-3.11'
 ignoreAll:
-  - packit/.elyxbuilder/cache/*
+- packit/.elyxbuilder/cache/*
 compilationIgnore:
-  - packit/src/main.py
+- packit/src/main.py
+obfuscationConfig:
+  stripDocstrings: true
+  removeLogs: false
+  renameLocals: true
+  encodeStrings: true
+  encodeNumbers: true
+  zlibCompression: false
+  saveMapping: true
