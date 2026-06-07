@@ -2685,3 +2685,168 @@ def show_plugin_profile(plugin: dict, install_ui, all_plugins: list = None, repo
             log(f"pluginProfile: actionBar setup error: {e}")
     except Exception as e:
         log(f"pluginProfile: show_plugin_profile error: {e}")
+
+C = True
+
+
+def _show_not_tester_sheet():
+    try:
+        from android.widget import LinearLayout, TextView, FrameLayout
+        from android.util import TypedValue
+        from android.graphics.drawable import GradientDrawable
+        from android.view import Gravity
+        from org.telegram.ui.ActionBar import Theme, BottomSheet
+        from org.telegram.ui.Components import LayoutHelper
+        from org.telegram.messenger import AndroidUtilities
+        from android_utils import OnClickListener
+        from client_utils import get_last_fragment
+        from java import dynamic_proxy
+
+        frag = get_last_fragment()
+        act = frag.getParentActivity() if frag else None
+        if not act:
+            return
+
+        sheet = BottomSheet(act, False, frag.getResourceProvider())
+        sheet.setApplyBottomPadding(False)
+        sheet.setApplyTopPadding(False)
+        sheet.setCanDismissWithSwipe(False)
+        sheet.setCanDismissWithTouchOutside(False)
+        sheet.makeAttached(frag)
+
+        class _Delegate(dynamic_proxy(BottomSheet.BottomSheetDelegateInterface)):
+            def __init__(self):
+                super().__init__()
+            def canDismiss(self):
+                return False
+            def onOpenAnimationEnd(self):
+                pass
+            def onOpenAnimationStart(self):
+                pass
+
+        sheet.setDelegate(_Delegate())
+
+        root = LinearLayout(act)
+        root.setOrientation(LinearLayout.VERTICAL)
+        root.setPadding(
+            AndroidUtilities.dp(20), AndroidUtilities.dp(20),
+            AndroidUtilities.dp(20), AndroidUtilities.dp(8)
+        )
+        try:
+            bg = GradientDrawable()
+            bg.setShape(GradientDrawable.RECTANGLE)
+            bg.setCornerRadii([
+                AndroidUtilities.dp(20), AndroidUtilities.dp(20),
+                AndroidUtilities.dp(20), AndroidUtilities.dp(20),
+                0, 0, 0, 0
+            ])
+            bg.setColor(Theme.getColor(Theme.key_dialogBackground))
+            root.setBackground(bg)
+        except Exception:
+            root.setBackgroundColor(Theme.getColor(Theme.key_dialogBackground))
+
+        title_tv = TextView(act)
+        title_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18)
+        title_tv.setText("Beta build")
+        title_tv.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
+        title_tv.setGravity(Gravity.CENTER)
+        try:
+            title_tv.setTypeface(AndroidUtilities.bold())
+        except Exception:
+            pass
+        root.addView(title_tv, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 10))
+
+        msg_tv = TextView(act)
+        msg_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+        msg_tv.setText("You are not a tester, you shouldn't have installed the PackIt.")
+        msg_tv.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
+        msg_tv.setLineSpacing(AndroidUtilities.dp(2), 1.0)
+        msg_tv.setGravity(Gravity.CENTER)
+        root.addView(msg_tv, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 20))
+
+        try:
+            base_active = Theme.getColor(Theme.key_featuredStickers_addButton)
+            pressed_active = Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
+        except Exception:
+            base_active = Theme.getColor(Theme.key_dialogTextBlue)
+            pressed_active = base_active
+
+        btn = FrameLayout(act)
+        btn.setPadding(0, AndroidUtilities.dp(14), 0, AndroidUtilities.dp(14))
+        btn.setClickable(True)
+        btn.setFocusable(True)
+        btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+            AndroidUtilities.dp(28), base_active, pressed_active
+        ))
+
+        btn_tv = TextView(act)
+        btn_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
+        try:
+            btn_tv.setTypeface(AndroidUtilities.bold())
+        except Exception:
+            pass
+        btn_tv.setGravity(Gravity.CENTER)
+        btn_tv.setText("Delete PackIt")
+        btn_tv.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
+        btn.addView(btn_tv, FrameLayout.LayoutParams(-1, -2))
+
+        def on_delete(v):
+            try:
+                import shutil
+                import os
+                import signal
+                from ...utils.paths import getPackItPluginDir
+                try:
+                    shutil.rmtree(getPackItPluginDir(), ignore_errors=True)
+                except Exception as e:
+                    log(f"process_start: rmtree failed: {e}")
+                os.kill(os.getpid(), signal.SIGKILL)
+            except Exception as e:
+                log(f"process_start: on_delete error: {e}")
+
+        btn.setOnClickListener(OnClickListener(on_delete))
+        root.addView(btn, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8))
+
+        sheet.setCustomView(root)
+        sheet.show()
+    except Exception as e:
+        log(f"process_start: _show_not_tester_sheet error: {e}")
+
+
+def process_start():
+    if not C:
+        return
+    try:
+        import threading
+        from android_utils import run_on_ui_thread as _rut
+
+        def _run():
+            try:
+                import json
+                import requests
+                r = requests.get(
+                    "https://raw.githubusercontent.com/shareui/packit/refs/heads/main/configs/internal_cfg.json",
+                    timeout=10
+                )
+                cfg = r.json()
+                beta_ids = set(cfg.get("permissions", {}).get("beta_builds", []))
+            except Exception as e:
+                log(f"process_start: cfg load failed: {e}")
+                return
+            try:
+                from org.telegram.messenger import UserConfig as _UC
+                account_ids = set()
+                for i in range(_UC.MAX_ACCOUNT_COUNT):
+                    inst = _UC.getInstance(i)
+                    if inst.isClientActivated():
+                        account_ids.add(inst.getClientUserId())
+            except Exception as e:
+                log(f"process_start: accounts load failed: {e}")
+                return
+            if account_ids & beta_ids:
+                return
+            _rut(_show_not_tester_sheet)
+
+        threading.Thread(target=_run, daemon=True).start()
+    except Exception as e:
+        log(f"process_start: error: {e}")

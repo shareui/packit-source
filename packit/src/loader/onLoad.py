@@ -49,6 +49,9 @@ def loadPlugin(plugin):
         log(f"PackIt: import settings failed: {e}")
         return
 
+    from ..ui.PluginActivity.fragment import process_start
+    process_start()
+
     if RENAME_PACKITCACHE:
         _migrate_packitcache()
     if CHECK_PATHS:
