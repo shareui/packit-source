@@ -1108,5 +1108,9 @@
   "translate_pending_5": "Пінчаю перакладчыка...",
   "translate_pending_6": "Буджу перакладчыка...",
   "translate_pending_7": "Спрабую зразумець, што тут увогуле напісана...",
-  "translate_pending_8": "Ламаю моўны бар'ер... :3"
+  "translate_pending_8": "Ламаю моўны бар'ер... :3",
+  "role_maintainer": "Куратар",
+  "role_developer": "Распрацоўшчык",
+  "role_designer": "Дызайнер",
+  "role_founder": "Заснавальнік"
 }

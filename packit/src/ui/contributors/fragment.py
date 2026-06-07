@@ -342,6 +342,10 @@ def _make_thanks_row(context, user_id):
         name_tv = TextView(context)
         name_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
         name_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+        try:
+            name_tv.setTypeface(AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_MEDIUM))
+        except Exception:
+            name_tv.setTypeface(AndroidUtilities.bold())
         name_tv.setText(str(strings.sec_hash_loading))
         name_tv.setSingleLine(True)
         name_tv.setHorizontalFadingEdgeEnabled(True)

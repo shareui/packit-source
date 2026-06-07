@@ -444,6 +444,10 @@
   "code": "Code",
   "download": "Download",
   "translate": "Translate",
+  "send_as_file": "Send as file",
+  "send_as_file_sending": "Sending file...",
+  "send_as_file_no_link": "Plugin has no download link",
+  "send_as_file_failed": "Failed to send file",
   "report": "Report",
   "no_description_to_translate": "No description to translate",
   "translation_failed": "Translation failed",
@@ -913,6 +917,8 @@
   "pp_last_updated": "Last updated",
   "pp_archived_text": "This plugin was archived by the owner on {date}. The plugin will no longer be updated.",
   "pp_archived_hint": "The plugin will no longer be updated. But it might still work.",
+  "pp_closed_source_text": "This plugin is closed source. You are solely responsible for its use.",
+  "pp_paid_text": "This plugin may have paid features.",
   "pp_not_ready": "It's not ready yet.",
   "pp_click_version_hint": "Click on any version",
   "filter_tags_title": "Tags",
@@ -1109,5 +1115,10 @@
   "translate_pending_6": "Waking up the translator...",
   "translate_pending_7": "Trying to figure out what's even written here...",
   "translate_pending_8": "Breaking the language barrier... :3",
-  "sponsors": "Sponsors"
+  "sponsors": "Sponsors",
+  "pp_team_title": "Contributors",
+  "role_maintainer": "Maintainer",
+  "role_developer": "Developer",
+  "role_designer": "Designer",
+  "role_founder": "Founder"
 }

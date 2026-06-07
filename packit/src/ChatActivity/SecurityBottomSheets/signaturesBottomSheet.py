@@ -72,11 +72,290 @@ def _fetchSignatures():
         return json.loads(r.read().decode())["signatures"]
 
 
-def _scanPlugin(source: str, signatures: list) -> dict:
-    results: dict = {}
+def _extractB64Candidates(source: str) -> list:
+    # finds all base64-like string literals (length >= 32, padded) in source
+    import re
+    candidates = []
+    for m in re.finditer(r'[\'"]([A-Za-z0-9+/]{32,}={0,2})[\'"]', source):
+        candidates.append(m.group(1))
+    return candidates
 
+
+def _tryDecodeB64(s: str) -> bytes | None:
+    import base64
+    try:
+        missing = len(s) % 4
+        if missing:
+            s += "=" * (4 - missing)
+        return base64.b64decode(s)
+    except Exception:
+        return None
+
+
+def _tryDecompressZlib(data: bytes) -> bytes | None:
+    import zlib
+    try:
+        return zlib.decompress(data)
+    except Exception:
+        pass
+    try:
+        return zlib.decompress(data, -15)
+    except Exception:
+        return None
+
+
+_CODE_KEYWORDS = ("import", "def ", "exec(", "eval(", "os.", "http", "socket", "open(", "subprocess")
+
+
+def _looksLikeCode(text: str) -> bool:
+    return any(kw in text for kw in _CODE_KEYWORDS)
+
+
+def _tryXorDecode(data: bytes) -> list:
+    # single-byte xor, keys 1-255
+    results = []
+    for key in range(1, 256):
+        decoded = bytes(b ^ key for b in data)
+        try:
+            text = decoded.decode("utf-8", errors="strict")
+            if _looksLikeCode(text):
+                results.append(text)
+        except Exception:
+            pass
+    return results
+
+
+def _tryXorMultibyteDecode(data: bytes) -> list:
+    # multi-byte xor keys: tries common key lengths 2-8
+    # scores each byte position independently to find best key without brute force
+    results = []
+    for keylen in range(2, 9):
+        # find best key by scoring each byte position independently
+        key = []
+        for pos in range(keylen):
+            chunk = data[pos::keylen]
+            best_key_byte = 0
+            best_score = -1
+            for k in range(256):
+                decoded_chunk = bytes(b ^ k for b in chunk)
+                try:
+                    text = decoded_chunk.decode("utf-8", errors="strict")
+                    # score: count printable ascii
+                    score = sum(1 for c in text if 32 <= ord(c) < 127)
+                    if score > best_score:
+                        best_score = score
+                        best_key_byte = k
+                except Exception:
+                    pass
+            key.append(best_key_byte)
+        # apply key
+        decoded = bytes(data[i] ^ key[i % keylen] for i in range(len(data)))
+        try:
+            text = decoded.decode("utf-8", errors="replace")
+            if _looksLikeCode(text):
+                results.append(text)
+        except Exception:
+            pass
+    return results
+
+
+def _tryRot13Caesar(source: str) -> list:
+    # rot13 and caesar shifts 1-25 on string literals
+    import re
+    results = []
+    seen = set()
+    for m in re.finditer(r'[\'"]([A-Za-z]{16,})[\'"]', source):
+        candidate = m.group(1)
+        if candidate in seen:
+            continue
+        seen.add(candidate)
+        for shift in range(1, 26):
+            decoded = []
+            for c in candidate:
+                if c.isupper():
+                    decoded.append(chr((ord(c) - ord('A') + shift) % 26 + ord('A')))
+                else:
+                    decoded.append(chr((ord(c) - ord('a') + shift) % 26 + ord('a')))
+            text = "".join(decoded)
+            if _looksLikeCode(text):
+                label = "rot13" if shift == 13 else f"caesar{shift}"
+                results.append((label, text))
+    return results
+
+
+def _tryCodecsZlib(source: str) -> list:
+    # detects codecs.encode/decode with zlib_codec without base64 wrapper
+    import re, zlib
+    results = []
+    # match bytes literals: b'\x78\x9c...' or b"..."
+    for m in re.finditer(r'\bb([\'"])((?:\\x[0-9a-fA-F]{2}|\\[0-7]{1,3}|[^\\\'"\\n])+)\1', source):
+        raw_str = m.group(2)
+        # decode escape sequences
+        try:
+            data = raw_str.encode("utf-8").decode("unicode_escape").encode("latin-1")
+        except Exception:
+            continue
+        decompressed = _tryDecompressZlib(data)
+        if decompressed is not None:
+            try:
+                text = decompressed.decode("utf-8", errors="replace")
+                if _looksLikeCode(text):
+                    results.append(text)
+            except Exception:
+                pass
+    # also match codecs pattern directly
+    for m in re.finditer(
+        r'codecs\.(?:encode|decode)\s*\([^,]+,\s*[\'"]zlib[_\-]codec[\'"]',
+        source
+    ):
+        results.append(source[max(0, m.start()-100):m.end()+100])
+    return results
+
+
+def _tryDecodeHexLiteral(source: str) -> list:
+    import re
+    decoded = []
+    for m in re.finditer(r'[\'"]([0-9a-fA-F]{32,})[\'"]', source):
+        hex_str = m.group(1)
+        if len(hex_str) % 2 != 0:
+            continue
+        try:
+            decoded.append(bytes.fromhex(hex_str).decode("utf-8", errors="replace"))
+        except Exception:
+            pass
+    return decoded
+
+
+def _tryResolveConcatenation(source: str) -> str:
+    # joins adjacent string literals split by + to reconstruct obfuscated tokens
+    import re
+    # collapse "ex" + "ec(" -> "exec("
+    result = source
+    changed = True
+    while changed:
+        new = re.sub(r'([\'"])([^\'"]*)\1\s*\+\s*([\'"])([^\'"]*)\3', lambda m: f'"{m.group(2)}{m.group(4)}"', result)
+        changed = new != result
+        result = new
+    return result
+
+
+def _tryDecodeUnicodeEscapes(source: str) -> str:
+    # decodes \uXXXX and \xXX escape sequences in string literals
+    import re
+    def replace_unicode(m):
+        try:
+            return m.group(0).encode("utf-8").decode("unicode_escape")
+        except Exception:
+            return m.group(0)
+    # \uXXXX sequences
+    result = re.sub(r'(\\u[0-9a-fA-F]{4})+', replace_unicode, source)
+    # \xXX sequences inside string literals
+    result = re.sub(r'(\\x[0-9a-fA-F]{2})+', replace_unicode, result)
+    return result
+
+
+def _tryResolveProxyCalls(source: str) -> str:
+    # detects variable aliases for dangerous builtins: f = exec; f(...)
+    # replaces known alias patterns so signatures can match
+    import re
+    result = source
+    # find assignments: varname = exec / eval / __import__ / compile
+    dangerous = ["exec", "eval", "__import__", "compile", "open", "getattr", "setattr"]
+    for func in dangerous:
+        for m in re.finditer(
+            rf'\b([A-Za-z_][A-Za-z0-9_]*)\s*=\s*{re.escape(func)}\b',
+            source
+        ):
+            alias = m.group(1)
+            # replace alias calls with original name
+            result = re.sub(rf'\b{re.escape(alias)}\s*\(', f'{func}(', result)
+    # also handle getattr(builtins, 'exec') patterns
+    result = re.sub(
+        r'getattr\s*\(\s*(?:builtins|__builtins__)\s*,\s*[\'"]([^\'"]+)[\'"]\s*\)',
+        lambda m: m.group(1),
+        result
+    )
+    return result
+
+
+def _unwrapObfuscatedLayers(source: str) -> list:
+    extra = []
+
+    # 1. unicode escapes and concatenation — preprocess into a normalized copy
+    normalized = _tryDecodeUnicodeEscapes(source)
+    normalized = _tryResolveConcatenation(normalized)
+    if normalized != source:
+        extra.append(("normalized", normalized))
+
+    # 2. proxy call resolution
+    proxy_resolved = _tryResolveProxyCalls(source)
+    if proxy_resolved != source:
+        extra.append(("proxy", proxy_resolved))
+
+    # 3. hex literals
+    for text in _tryDecodeHexLiteral(source):
+        extra.append(("hex", text))
+
+    # 4. rot13 / caesar on string literals
+    for label, text in _tryRot13Caesar(source):
+        extra.append((label, text))
+
+    # 5. codecs zlib without base64
+    for text in _tryCodecsZlib(source):
+        extra.append(("zlib_raw", text))
+
+    # 6. base64 candidates
+    for candidate in _extractB64Candidates(source):
+        raw = _tryDecodeB64(candidate)
+        if raw is None:
+            continue
+
+        # plain utf-8
+        try:
+            text = raw.decode("utf-8", errors="strict")
+            extra.append(("b64", text))
+        except Exception:
+            pass
+
+        # zlib after b64
+        decompressed = _tryDecompressZlib(raw)
+        if decompressed is not None:
+            try:
+                text = decompressed.decode("utf-8", errors="replace")
+                extra.append(("b64+zlib", text))
+            except Exception:
+                pass
+            # single-byte xor on decompressed
+            for text in _tryXorDecode(decompressed):
+                extra.append(("b64+zlib+xor", text))
+            # multi-byte xor on decompressed
+            for text in _tryXorMultibyteDecode(decompressed):
+                extra.append(("b64+zlib+mxor", text))
+
+        # single-byte xor on raw
+        for text in _tryXorDecode(raw):
+            extra.append(("b64+xor", text))
+
+        # multi-byte xor on raw
+        for text in _tryXorMultibyteDecode(raw):
+            extra.append(("b64+mxor", text))
+
+    # 7. exec/eval of encoded payload directly in source
+    import re
+    for m in re.finditer(
+        r'(?:exec|eval)\s*\(\s*(?:__import__\s*\([\'"](?:zlib|base64|codecs)[\'"\)]'
+        r'|zlib\.|base64\.|codecs\.)',
+        source
+    ):
+        extra.append(("exec_encoded_payload", source[max(0, m.start()-200):m.end()+200]))
+
+    return extra
+
+
+def _scanSource(src: str, signatures: list, results: dict, label_prefix: str = ""):
+    # scans a single source string for signatures, merges into results dict
     clean_lines = []
-    for line in source.splitlines():
+    for line in src.splitlines():
         stripped = line.lstrip()
         if not stripped.startswith("#"):
             clean_lines.append(line)
@@ -87,14 +366,13 @@ def _scanPlugin(source: str, signatures: list) -> dict:
         level = sig[1]
         whitelist = sig[2]["whitelist"] if len(sig) > 2 and isinstance(sig[2], dict) and "whitelist" in sig[2] else []
 
-        # split detection: sig[0] is a list of parts, all must be present
         if isinstance(pattern, list):
             parts = pattern
             if not all(p in clean_source for p in parts):
                 continue
-            label = " + ".join(parts)
+            base_label = " + ".join(parts)
+            label = f"{label_prefix}{base_label}" if label_prefix else base_label
             if whitelist:
-                # flag if any line contains all parts simultaneously
                 flagged_lines = [l for l in clean_lines if all(p in l for p in parts)]
                 if not flagged_lines:
                     continue
@@ -118,10 +396,26 @@ def _scanPlugin(source: str, signatures: list) -> dict:
             if whitelisted:
                 continue
 
+        label = f"{label_prefix}{pattern}" if label_prefix else pattern
         if level not in results:
             results[level] = []
-        if pattern not in results[level]:
-            results[level].append(pattern)
+        if label not in results[level]:
+            results[level].append(label)
+
+
+def _scanPlugin(source: str, signatures: list) -> dict:
+    results: dict = {}
+
+    # scan original source
+    _scanSource(source, signatures, results)
+
+    # scan obfuscated/encoded layers
+    try:
+        for method, decoded_text in _unwrapObfuscatedLayers(source):
+            _scanSource(decoded_text, signatures, results, label_prefix=f"[{method}] ")
+    except Exception as e:
+        if DEBUG_LOGS:
+            log(f"securityUi: obfuscation unwrap error: {e}")
 
     return results
 
