@@ -17,6 +17,7 @@ except Exception as e:
 
 # must not collide with ButtonCustom constants (1-8)
 _PACKIT_TRANSLATE_BTN_ID = 101
+_PACKIT_SEND_FILE_BTN_ID = 102
 
 _PENDING_KEYS = [
     "translate_pending_1",
@@ -101,6 +102,46 @@ def _get_translate_button_class():
     if _TranslateButtonClass is None:
         _TranslateButtonClass = _build_translate_button_class()
     return _TranslateButtonClass
+
+
+def _build_send_file_button_class():
+    ButtonBase = find_class("org.telegram.messenger.BotInlineKeyboard$ButtonCustom")
+    if ButtonBase is None:
+        log("inlineBtns: BotInlineKeyboard$ButtonCustom class not found for SendFileButton")
+        return None
+    try:
+        @java_subclass(ButtonBase)
+        class PackitSendFileButton(Base):
+            @joverride("getText")
+            def get_text(self):
+                try:
+                    return strings["send_as_file"]
+                except Exception:
+                    return "Send as file"
+
+            @joverride("getIconRes")
+            def get_icon_res(self):
+                return 0
+
+            @joverride("getIconEmoji")
+            def get_icon_emoji(self):
+                return 0
+
+        log("inlineBtns: PackitSendFileButton class built")
+        return PackitSendFileButton
+    except Exception as e:
+        log(f"inlineBtns: _build_send_file_button_class error: {e}")
+        return None
+
+
+_SendFileButtonClass = None
+
+
+def _get_send_file_button_class():
+    global _SendFileButtonClass
+    if _SendFileButtonClass is None:
+        _SendFileButtonClass = _build_send_file_button_class()
+    return _SendFileButtonClass
 
 
 def _get_random_pending_text():
@@ -216,6 +257,194 @@ def _do_translate_inline(message_object):
         log(f"inlineBtns: _do_translate_inline error: {e}")
 
 
+def _rebuild_keyboard_without_send_file(message_object):
+    # removes send file button from inlineKeyboardSource, keeps everything else
+    try:
+        BotInlineKeyboard = _get_bot_inline_keyboard_class()
+        if BotInlineKeyboard is None:
+            return
+        builder = BotInlineKeyboard.Builder()
+        existing = message_object.getInlineBotButtons()
+        if existing is not None:
+            from java import dynamic_proxy
+            SourceInterface = find_class("org.telegram.messenger.BotInlineKeyboard$Source")
+
+            class FilteredSource(dynamic_proxy(SourceInterface)):
+                def __init__(self, src):
+                    super().__init__()
+                    self._src = src
+                    self._rows = []
+                    for i in range(src.getRowsCount()):
+                        cols = src.getColumnsCount(i)
+                        row = [src.getButton(i, c) for c in range(cols)]
+                        # skip rows that contain only our send file button
+                        if len(row) == 1:
+                            try:
+                                if row[0].id == _PACKIT_SEND_FILE_BTN_ID:
+                                    continue
+                            except Exception:
+                                pass
+                        self._rows.append((i, row))
+
+                def getRowsCount(self):
+                    return len(self._rows)
+
+                def getColumnsCount(self, row_idx):
+                    return len(self._rows[row_idx][1])
+
+                def getButton(self, row_idx, col):
+                    return self._rows[row_idx][1][col]
+
+                def hasSeparator(self, row_idx):
+                    original_row_idx = self._rows[row_idx][0]
+                    return self._src.hasSeparator(original_row_idx)
+
+            builder.addKeyboardSource(FilteredSource(existing))
+
+        new_source = builder.build()
+        from hook_utils import set_private_field
+        set_private_field(message_object, "inlineKeyboardSource", new_source)
+        log("inlineBtns: send file button removed from keyboard")
+    except Exception as e:
+        log(f"inlineBtns: _rebuild_keyboard_without_send_file error: {e}")
+
+
+def _do_send_file_inline(message_object, plugin_ref):
+    # background thread: resolves plugin link, downloads, sends as document, removes button
+    try:
+        import os
+        import requests as _req
+        from android_utils import run_on_ui_thread as _run
+        from client_utils import send_document, get_last_fragment
+        from ui.alert import AlertDialogBuilder
+
+        owner = message_object.messageOwner
+        if owner is None:
+            log("inlineBtns: _do_send_file_inline: messageOwner is None")
+            return
+
+        msg_params = owner.params
+        if msg_params is None:
+            log("inlineBtns: _do_send_file_inline: no params on message")
+            return
+
+        plugin_id = str(msg_params.get("packit_plugin_id") or "")
+        repo_id = str(msg_params.get("packit_repo_id") or "")
+
+        if not plugin_id or not repo_id:
+            log("inlineBtns: _do_send_file_inline: missing plugin_id or repo_id")
+            _run(lambda: _show_send_file_error(strings["send_as_file_no_link"]))
+            return
+
+        log(f"inlineBtns: resolving plugin link for plugin_id={plugin_id} repo_id={repo_id}")
+
+        # resolve plugins url from repo cache
+        link = None
+        try:
+            from ..ui.pluginsUpdates.fragment import _get_repos, _get_repo_plugins_url, _fetch_repo_plugins
+            repos = _get_repos()
+            repo_url = None
+            for r in repos:
+                if r.get("id") == repo_id:
+                    repo_url = r.get("url", "")
+                    break
+            if repo_url:
+                plugins_url = _get_repo_plugins_url(None, repo_id, repo_url)
+                plugins_data = _fetch_repo_plugins(plugins_url)
+                plugin_info = plugins_data.get(plugin_id) or {}
+                link = plugin_info.get("link") or plugin_info.get("raw")
+        except Exception as e:
+            log(f"inlineBtns: _do_send_file_inline: repo resolve error: {e}")
+
+        if not link:
+            log("inlineBtns: _do_send_file_inline: no download link found")
+            _run(lambda: _show_send_file_error(strings["send_as_file_no_link"]))
+            return
+
+        log(f"inlineBtns: downloading plugin from {link}")
+
+        # show loading dialog
+        dlg_ref = [None]
+
+        def show_loading():
+            try:
+                fragment = get_last_fragment()
+                if not fragment:
+                    return
+                ctx = fragment.getContext()
+                builder = AlertDialogBuilder(ctx, AlertDialogBuilder.ALERT_TYPE_SPINNER)
+                builder.set_title(strings["send_as_file_sending"])
+                builder.set_cancelable(False)
+                dlg_ref[0] = builder.create()
+                dlg_ref[0].show()
+            except Exception as e:
+                log(f"inlineBtns: show_loading error: {e}")
+
+        def dismiss_loading():
+            try:
+                if dlg_ref[0]:
+                    dlg_ref[0].dismiss()
+            except Exception as e:
+                log(f"inlineBtns: dismiss_loading error: {e}")
+
+        _run(show_loading)
+
+        # download file
+        try:
+            from org.telegram.messenger import ApplicationLoader
+            cache_dir = ApplicationLoader.applicationContext.getCacheDir().getAbsolutePath()
+        except Exception:
+            cache_dir = "/data/data/com.exteragram.messenger/cache"
+
+        url_filename = link.rstrip("/").rsplit("/", 1)[-1].split("?", 1)[0]
+        _, url_ext = os.path.splitext(url_filename)
+        filename = f"{plugin_id}{url_ext}" if url_ext else f"{plugin_id}.plugin"
+        file_path = os.path.join(str(cache_dir), filename)
+
+        r = _req.get(link, timeout=30)
+        if r.status_code != 200:
+            _run(dismiss_loading)
+            _run(lambda: _show_send_file_error(strings["send_as_file_failed"]))
+            return
+
+        os.makedirs(str(cache_dir), exist_ok=True)
+        with open(file_path, "wb") as f:
+            f.write(r.content)
+        log(f"inlineBtns: downloaded {len(r.content)} bytes to {file_path}")
+
+        # send document to current dialog
+        try:
+            dialog_id = message_object.getDialogId()
+            send_document(dialog_id, file_path)
+            log(f"inlineBtns: sent document to dialog_id={dialog_id}")
+        except Exception as e:
+            log(f"inlineBtns: send_document error: {e}")
+            _run(dismiss_loading)
+            _run(lambda: _show_send_file_error(strings["send_as_file_failed"]))
+            return
+
+        _run(dismiss_loading)
+
+        # remove send file button from keyboard
+        _run(lambda: _rebuild_keyboard_without_send_file(message_object))
+
+    except Exception as e:
+        log(f"inlineBtns: _do_send_file_inline error: {e}")
+        try:
+            from android_utils import run_on_ui_thread as _run
+            _run(lambda: _show_send_file_error(strings["send_as_file_failed"]))
+        except Exception:
+            pass
+
+
+def _show_send_file_error(msg):
+    try:
+        from ui.bulletin import BulletinHelper
+        BulletinHelper.show_error(str(msg))
+    except Exception as e:
+        log(f"inlineBtns: _show_send_file_error: {e}")
+
+
 class _MeasureInlineButtonsHook(MethodHook):
     def __init__(self, plugin):
         MethodHook.__init__(self)
@@ -251,23 +480,49 @@ class _MeasureInlineButtonsHook(MethodHook):
                 jint(0),
             )
 
+            SendFileButton = _get_send_file_button_class()
+
             from java import dynamic_proxy
             SourceInterface = find_class("org.telegram.messenger.BotInlineKeyboard$Source")
 
-            class SingleRowSource(dynamic_proxy(SourceInterface)):
-                def getRowsCount(self):
-                    return 1
+            if SendFileButton is not None:
+                send_file_btn_instance = SendFileButton.new_java_instance(
+                    jint(_PACKIT_SEND_FILE_BTN_ID),
+                    jint(0),
+                    jint(0),
+                )
 
-                def getColumnsCount(self, row_idx):
-                    return 1
+                class TwoButtonRowSource(dynamic_proxy(SourceInterface)):
+                    def getRowsCount(self):
+                        return 1
 
-                def getButton(self, row_idx, col):
-                    return btn_instance
+                    def getColumnsCount(self, row_idx):
+                        return 2
 
-                def hasSeparator(self, row_idx):
-                    return False
+                    def getButton(self, row_idx, col):
+                        if col == 0:
+                            return btn_instance
+                        return send_file_btn_instance
 
-            builder.addKeyboardSource(SingleRowSource())
+                    def hasSeparator(self, row_idx):
+                        return False
+
+                builder.addKeyboardSource(TwoButtonRowSource())
+            else:
+                class SingleRowSource(dynamic_proxy(SourceInterface)):
+                    def getRowsCount(self):
+                        return 1
+
+                    def getColumnsCount(self, row_idx):
+                        return 1
+
+                    def getButton(self, row_idx, col):
+                        return btn_instance
+
+                    def hasSeparator(self, row_idx):
+                        return False
+
+                builder.addKeyboardSource(SingleRowSource())
 
             new_source = builder.build()
 
@@ -303,7 +558,7 @@ class _DidPressCustomBotButtonHook(MethodHook):
                 log(f"inlineBtns: cannot read button.id: {e}")
                 return
 
-            if btn_id != _PACKIT_TRANSLATE_BTN_ID:
+            if btn_id not in (_PACKIT_TRANSLATE_BTN_ID, _PACKIT_SEND_FILE_BTN_ID):
                 log(f"inlineBtns: not our button (id={btn_id}), skip")
                 return
 
@@ -326,12 +581,20 @@ class _DidPressCustomBotButtonHook(MethodHook):
                 log("inlineBtns: not a packit inline message")
                 return
 
-            log("inlineBtns: starting translate thread")
-            threading.Thread(
-                target=_do_translate_inline,
-                args=(message_object,),
-                daemon=True
-            ).start()
+            if btn_id == _PACKIT_TRANSLATE_BTN_ID:
+                log("inlineBtns: starting translate thread")
+                threading.Thread(
+                    target=_do_translate_inline,
+                    args=(message_object,),
+                    daemon=True
+                ).start()
+            else:
+                log("inlineBtns: starting send file thread")
+                threading.Thread(
+                    target=_do_send_file_inline,
+                    args=(message_object, None),
+                    daemon=True
+                ).start()
 
         except Exception as e:
             log(f"inlineBtns: _DidPressCustomBotButtonHook error: {e}")

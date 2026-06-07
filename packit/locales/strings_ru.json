@@ -1108,5 +1108,9 @@
   "install_restart_optional_title": "Рекомендуется перезапуск",
   "install_restart_optional_message": "Этот плагин работает лучше после перезапуска клиента. Можете сделать это сейчас или пропустить.",
   "install_restart_required_title": "Требуется перезапуск",
-  "install_restart_required_message": "Этот плагин требует перезапуска клиента для корректной работы."
+  "install_restart_required_message": "Этот плагин требует перезапуска клиента для корректной работы.",
+  "role_maintainer": "Куратор",
+  "role_developer": "Разработчик",
+  "role_designer": "Дизайнер",
+  "role_founder": "Основатель"
 }

@@ -259,6 +259,236 @@ def _make_card_bg(act, corner=14):
 
 
 
+def _pp_fetch_user(user_id, on_done):
+    # fetch user by id; calls on_done(user|None) on ui thread
+    def _do():
+        try:
+            from org.telegram.tgnet import TLRPC
+            from org.telegram.messenger import UserConfig, MessagesController
+            from client_utils import send_request
+            account = getattr(UserConfig, 'selectedAccount', 0)
+            mc = MessagesController.getInstance(account)
+            cached = mc.getUser(user_id)
+            if cached is not None and not getattr(cached, 'min', True):
+                run_on_ui_thread(lambda: on_done(cached))
+                return
+            req = TLRPC.TL_users_getUsers()
+            inp = TLRPC.TL_inputUser()
+            inp.user_id = user_id
+            inp.access_hash = 0
+            req.id.add(inp)
+            def _on_resp(resp, err):
+                if err or resp is None:
+                    run_on_ui_thread(lambda: on_done(None))
+                    return
+                user = None
+                try:
+                    objects = resp.objects
+                    if objects.size() > 0:
+                        user = objects.get(0)
+                        mc.putUser(user, False)
+                except Exception as _e:
+                    log(f"pluginProfile: _pp_fetch_user putUser error: {_e}")
+                run_on_ui_thread(lambda: on_done(user))
+            send_request(req, _on_resp)
+        except Exception as _e:
+            log(f"pluginProfile: _pp_fetch_user outer error: {_e}")
+            run_on_ui_thread(lambda: on_done(None))
+    from client_utils import run_on_queue
+    run_on_queue(_do)
+
+
+def _pp_get_username(user):
+    try:
+        usernames = getattr(user, 'usernames', None)
+        if usernames is not None:
+            size = usernames.size()
+            for i in range(size):
+                entry = usernames.get(i)
+                uname = getattr(entry, 'username', None)
+                if uname:
+                    return str(uname)
+    except Exception:
+        pass
+    try:
+        un = getattr(user, 'username', None)
+        if un:
+            return str(un)
+    except Exception:
+        pass
+    return None
+
+
+def _pp_open_profile(act, user_id, username):
+    try:
+        from android.net import Uri
+        from org.telegram.messenger.browser import Browser
+        frag = get_last_fragment()
+        if not frag:
+            return
+        if username:
+            uri = Uri.parse("https://t.me/" + username)
+            Browser.openUrl(act, uri, True, True, True, None, None, False, False, False)
+        else:
+            try:
+                from android.os import Bundle
+                ProfileActivity = find_class("org.telegram.ui.ProfileActivity")
+                args = Bundle()
+                args.putLong("user_id", int(user_id))
+                frag.presentFragment(ProfileActivity(args))
+            except Exception as _fe:
+                log(f"pluginProfile: _pp_open_profile fallback error: {_fe}")
+    except Exception as _e:
+        log(f"pluginProfile: _pp_open_profile error: {_e}")
+
+
+_ROLE_ORDER = {
+    "founder":    0,
+    "maintainer": 1,
+    "developer":  2,
+    "designer":   3,
+}
+
+_ROLE_COLOR_KEYS = {
+    "founder":    "key_color_lightblue",
+    "maintainer": "key_color_yellow",
+    "developer":  "key_color_blue",
+    "designer":   "key_color_green",
+}
+
+_ROLE_STRING_KEYS = {
+    "founder":    "role_founder",
+    "maintainer": "role_maintainer",
+    "developer":  "role_developer",
+    "designer":   "role_designer",
+}
+
+
+def _sort_team(team):
+    def _key(idx_entry):
+        idx, entry = idx_entry
+        role = str(entry[1]).strip().lower() if len(entry) > 1 else ""
+        return (_ROLE_ORDER.get(role, 3), idx)
+    return [e for _, e in sorted(enumerate(team), key=_key)]
+
+
+def _build_team_card(act, root, team):
+    # team: list of [user_id_str, role_str]
+    try:
+        dp = AndroidUtilities.dp
+
+        card = LinearLayout(act)
+        card.setOrientation(LinearLayout.VERTICAL)
+        bg = _make_card_bg(act, 18)
+        if bg:
+            card.setBackground(bg)
+        card.setPadding(dp(16), dp(14), dp(16), dp(14))
+
+        card.addView(
+            _make_section_header(act, str(strings["contributors"])),
+            LayoutHelper.createLinear(-2, -2, 0, 0, 0, 0, 10)
+        )
+
+        for entry in _sort_team(team):
+            try:
+                user_id = int(str(entry[0]))
+            except Exception:
+                continue
+
+            role_raw = str(entry[1]).strip() if len(entry) > 1 else ""
+            role_key = role_raw.lower()
+            role_color_key = _ROLE_COLOR_KEYS.get(role_key, "key_windowBackgroundWhiteGrayText")
+            role_str_key = _ROLE_STRING_KEYS.get(role_key)
+            role_label = str(strings[role_str_key]) if role_str_key else role_raw
+
+            row = LinearLayout(act)
+            row.setOrientation(LinearLayout.HORIZONTAL)
+            row.setGravity(Gravity.CENTER_VERTICAL)
+            row.setPadding(0, dp(8), 0, dp(8))
+            row.setMinimumHeight(dp(44))
+            row.setClickable(True)
+            row.setFocusable(True)
+            row.setVisibility(View.GONE)
+            try:
+                selector = Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 2)
+                row.setBackground(selector)
+            except Exception:
+                pass
+
+            img = None
+            try:
+                img = BackupImageView(act)
+                img.setRoundRadius(dp(50))
+                row.addView(img, LayoutHelper.createLinear(30, 30, Gravity.CENTER_VERTICAL, 0, 0, 12, 0))
+            except Exception:
+                img = None
+
+            name_tv = TextView(act)
+            name_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+            name_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            try:
+                name_tv.setTypeface(AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_MEDIUM))
+            except Exception:
+                name_tv.setTypeface(AndroidUtilities.bold())
+            name_tv.setSingleLine(True)
+            name_tv.setHorizontalFadingEdgeEnabled(True)
+            name_tv.setFadingEdgeLength(dp(24))
+            row.addView(name_tv, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+
+            if role_label:
+                role_chip = _make_chip(act, role_label, role_color_key)
+                role_chip_lp = LinearLayout.LayoutParams(-2, -2)
+                role_chip_lp.leftMargin = dp(8)
+                row.addView(role_chip, role_chip_lp)
+
+            card.addView(row, LinearLayout.LayoutParams(-1, -2))
+
+            _username_holder = [None]
+
+            def _make_on_user(r, ntv, im, uh):
+                def _on_user(user):
+                    try:
+                        if user is None:
+                            return
+                        username = _pp_get_username(user)
+                        name = ""
+                        try:
+                            fn = getattr(user, 'first_name', None)
+                            if fn:
+                                name = str(fn)
+                        except Exception:
+                            pass
+                        if not name and username:
+                            name = "@" + username
+                        if not name:
+                            return
+                        uh[0] = username
+                        ntv.setText(name)
+                        r.setVisibility(View.VISIBLE)
+                    except Exception as _e:
+                        log(f"pluginProfile: team _on_user error: {_e}")
+                    try:
+                        if im is not None and user is not None:
+                            from org.telegram.ui.Components import AvatarDrawable
+                            avatar_drawable = AvatarDrawable(user)
+                            im.setForUserOrChat(user, avatar_drawable)
+                    except Exception:
+                        pass
+                return _on_user
+
+            def _make_click(uid, uh):
+                def _on_click(v):
+                    _pp_open_profile(act, uid, uh[0])
+                return _on_click
+
+            row.setOnClickListener(OnClickListener(_make_click(user_id, _username_holder)))
+            _pp_fetch_user(user_id, _make_on_user(row, name_tv, img, _username_holder))
+
+        root.addView(card, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
+    except Exception as _e:
+        log(f"pluginProfile: _build_team_card error: {_e}")
+
+
 from .versionPicker import _show_version_picker
 
 
@@ -515,7 +745,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         root.setOrientation(LinearLayout.VERTICAL)
         root.setPadding(
             AndroidUtilities.dp(16), AndroidUtilities.dp(16),
-            AndroidUtilities.dp(16), AndroidUtilities.dp(88) + 24
+            AndroidUtilities.dp(16), AndroidUtilities.dp(16)
         )
         scroll.addView(root)
 
@@ -1337,6 +1567,106 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             archived_banner.setOnClickListener(OnClickListener(onArchivedClick))
 
             hero.addView(archived_banner, LayoutHelper.createLinear(-1, -2, 0, 12, 0, 0))
+
+        # closed_source banner
+        if p.get("closed_source") is True:
+            try:
+                cs_color = Theme.getColor(Theme.key_color_red)
+            except Exception:
+                cs_color = 0xFFE53935
+            cs_r = (cs_color >> 16) & 0xFF
+            cs_g = (cs_color >> 8) & 0xFF
+            cs_b = cs_color & 0xFF
+            cs_bg_color = ctypes.c_int32((0x22 << 24) | (cs_r << 16) | (cs_g << 8) | cs_b).value
+
+            cs_banner = LinearLayout(act)
+            cs_banner.setOrientation(LinearLayout.HORIZONTAL)
+            cs_banner.setGravity(Gravity.CENTER_VERTICAL)
+            cs_banner.setPadding(
+                AndroidUtilities.dp(12), AndroidUtilities.dp(10),
+                AndroidUtilities.dp(12), AndroidUtilities.dp(10)
+            )
+            try:
+                from android.graphics.drawable import GradientDrawable as _GDC
+                cs_bg = _GDC()
+                cs_bg.setShape(_GDC.RECTANGLE)
+                cs_bg.setCornerRadius(AndroidUtilities.dp(10))
+                cs_bg.setColor(cs_bg_color)
+                cs_banner.setBackground(cs_bg)
+            except Exception:
+                pass
+
+            cs_icon = ImageView(act)
+            cs_icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+            try:
+                cs_icon.setImageResource(_resolve_icon("msg_secret"))
+                cs_icon.setColorFilter(cs_color)
+            except Exception:
+                pass
+            cs_banner.addView(cs_icon, LayoutHelper.createLinear(20, 20, Gravity.CENTER_VERTICAL, 0, 0, 10, 0))
+
+            cs_tv = TextView(act)
+            cs_tv.setText(str(strings["pp_closed_source_text"]))
+            cs_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            cs_tv.setTextColor(cs_color)
+            try:
+                cs_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+            except Exception:
+                cs_tv.setTypeface(AndroidUtilities.bold())
+            cs_tv.setLineSpacing(AndroidUtilities.dp(2), 1.0)
+            cs_banner.addView(cs_tv, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+
+            hero.addView(cs_banner, LayoutHelper.createLinear(-1, -2, 0, 12, 0, 0))
+
+        # paid banner
+        if p.get("paid") is True:
+            try:
+                pd_color = Theme.getColor(Theme.key_color_green)
+            except Exception:
+                pd_color = 0xFF43A047
+            pd_r = (pd_color >> 16) & 0xFF
+            pd_g = (pd_color >> 8) & 0xFF
+            pd_b = pd_color & 0xFF
+            pd_bg_color = ctypes.c_int32((0x22 << 24) | (pd_r << 16) | (pd_g << 8) | pd_b).value
+
+            pd_banner = LinearLayout(act)
+            pd_banner.setOrientation(LinearLayout.HORIZONTAL)
+            pd_banner.setGravity(Gravity.CENTER_VERTICAL)
+            pd_banner.setPadding(
+                AndroidUtilities.dp(12), AndroidUtilities.dp(10),
+                AndroidUtilities.dp(12), AndroidUtilities.dp(10)
+            )
+            try:
+                from android.graphics.drawable import GradientDrawable as _GDP
+                pd_bg = _GDP()
+                pd_bg.setShape(_GDP.RECTANGLE)
+                pd_bg.setCornerRadius(AndroidUtilities.dp(10))
+                pd_bg.setColor(pd_bg_color)
+                pd_banner.setBackground(pd_bg)
+            except Exception:
+                pass
+
+            pd_icon = ImageView(act)
+            pd_icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+            try:
+                pd_icon.setImageResource(_resolve_icon("menu_feature_paid"))
+                pd_icon.setColorFilter(pd_color)
+            except Exception:
+                pass
+            pd_banner.addView(pd_icon, LayoutHelper.createLinear(20, 20, Gravity.CENTER_VERTICAL, 0, 0, 10, 0))
+
+            pd_tv = TextView(act)
+            pd_tv.setText(str(strings["pp_paid_text"]))
+            pd_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            pd_tv.setTextColor(pd_color)
+            try:
+                pd_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+            except Exception:
+                pd_tv.setTypeface(AndroidUtilities.bold())
+            pd_tv.setLineSpacing(AndroidUtilities.dp(2), 1.0)
+            pd_banner.addView(pd_tv, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+
+            hero.addView(pd_banner, LayoutHelper.createLinear(-1, -2, 0, 12, 0, 0))
 
         root.addView(hero, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
 
@@ -2239,6 +2569,11 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         translate_bar.addView(translate_bar_btn, LayoutHelper.createLinear(-1, -2))
         root.addView(translate_bar, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
 
+        # team card
+        team = p.get("team")
+        if isinstance(team, list) and team:
+            _build_team_card(act, desc_extra, team)
+
         # social links card
         social = p.get("social") or []
         if social:
@@ -2531,15 +2866,91 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             others_header_row.addView(others_chip, LinearLayout.LayoutParams(-2, -2))
             others_card.addView(others_header_row, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
 
+            # horizontal scroll with edge fades
+            scroll_frame = FrameLayout(act)
+
+            hsv = HorizontalScrollView(act)
+            hsv.setHorizontalScrollBarEnabled(False)
+            hsv.setOverScrollMode(HorizontalScrollView.OVER_SCROLL_NEVER)
+            hsv.setClipToPadding(False)
+            hsv.setPadding(0, 0, 0, 0)
+
+            items_row = LinearLayout(act)
+            items_row.setOrientation(LinearLayout.HORIZONTAL)
+            items_row.setGravity(Gravity.TOP)
+
+            item_w = AndroidUtilities.dp(72)
             for i, other in enumerate(others):
-                mini = self._make_mini_card(act, other, text_color, gray_color)
-                others_card.addView(mini, LayoutHelper.createLinear(-1, -2))
+                item = self._make_scroll_item(act, other, item_w, text_color)
+                item_lp = LinearLayout.LayoutParams(item_w, -2)
                 if i < len(others) - 1:
-                    dv = View(act)
-                    dv.setBackgroundColor(Theme.getColor(Theme.key_divider))
-                    dv_lp = LinearLayout.LayoutParams(-1, AndroidUtilities.dp(1))
-                    dv_lp.leftMargin = AndroidUtilities.dp(58)
-                    others_card.addView(dv, dv_lp)
+                    item_lp.rightMargin = AndroidUtilities.dp(8)
+                items_row.addView(item, item_lp)
+
+            hsv.addView(items_row, FrameLayout.LayoutParams(-2, -2))
+
+            # block swipe-back when user touches this scroll
+            try:
+                from android.view import MotionEvent as _ME
+
+                class _HsvTouch(dynamic_proxy(View.OnTouchListener)):
+                    def __init__(self):
+                        super().__init__()
+                        self._down_x = 0.0
+                        self._down_y = 0.0
+
+                    def onTouch(self, v, event):
+                        action = event.getAction()
+                        if action == _ME.ACTION_DOWN:
+                            self._down_x = event.getX()
+                            self._down_y = event.getY()
+                            # disallow immediately on touch down so swipe-back never starts
+                            v.getParent().requestDisallowInterceptTouchEvent(True)
+                        elif action == _ME.ACTION_MOVE:
+                            dx = abs(event.getX() - self._down_x)
+                            dy = abs(event.getY() - self._down_y)
+                            if dx > dy:
+                                v.getParent().requestDisallowInterceptTouchEvent(True)
+                        elif action in (_ME.ACTION_UP, _ME.ACTION_CANCEL):
+                            v.getParent().requestDisallowInterceptTouchEvent(False)
+                        return False
+
+                hsv.setOnTouchListener(_HsvTouch())
+            except Exception as _te:
+                log(f"pluginProfile: hsv touch listener error: {_te}")
+
+            scroll_frame.addView(hsv, FrameLayout.LayoutParams(-1, -2))
+
+            # left fade overlay
+            try:
+                from android.graphics import Color as _C
+                from android.graphics.drawable import GradientDrawable as _GD
+                bg_base = Theme.getColor(Theme.key_windowBackgroundWhite)
+                _r = (bg_base >> 16) & 0xFF
+                _g = (bg_base >> 8) & 0xFF
+                _b = bg_base & 0xFF
+                solid = ctypes.c_int32((0xDD << 24) | (_r << 16) | (_g << 8) | _b).value
+                transp = _C.argb(0, _r, _g, _b)
+
+                fade_l = _GD(_GD.Orientation.LEFT_RIGHT, [solid, transp])
+                left_overlay = View(act)
+                left_overlay.setBackground(fade_l)
+                left_overlay.setClickable(False)
+                lp_l = FrameLayout.LayoutParams(AndroidUtilities.dp(16), -1)
+                lp_l.gravity = Gravity.START | Gravity.FILL_VERTICAL
+                scroll_frame.addView(left_overlay, lp_l)
+
+                fade_r = _GD(_GD.Orientation.RIGHT_LEFT, [solid, transp])
+                right_overlay = View(act)
+                right_overlay.setBackground(fade_r)
+                right_overlay.setClickable(False)
+                lp_r = FrameLayout.LayoutParams(AndroidUtilities.dp(16), -1)
+                lp_r.gravity = Gravity.END | Gravity.FILL_VERTICAL
+                scroll_frame.addView(right_overlay, lp_r)
+            except Exception as _fe:
+                log(f"pluginProfile: others fade overlay error: {_fe}")
+
+            others_card.addView(scroll_frame, LayoutHelper.createLinear(-1, -2))
 
             desc_extra.addView(others_card, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
 
@@ -2573,6 +2984,82 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             except Exception:
                 return str(about[0])
         return str(plugin.get("description") or "")
+
+    def _make_scroll_item(self, act, plugin, item_w, text_color):
+        # vertical item: icon on top, name below (max 2 lines with fading edge)
+        col = LinearLayout(act)
+        col.setOrientation(LinearLayout.VERTICAL)
+        col.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL)
+        col.setClickable(True)
+        col.setFocusable(True)
+        try:
+            col.setBackground(Theme.createSelectorDrawable(
+                Theme.getColor(Theme.key_listSelector), 2
+            ))
+        except Exception:
+            pass
+        col.setPadding(
+            AndroidUtilities.dp(4), AndroidUtilities.dp(4),
+            AndroidUtilities.dp(4), AndroidUtilities.dp(8)
+        )
+
+        icon_str = plugin.get("icon")
+        size_dp = 54
+        show_icon = bool(icon_str and icon_str != "Unknown" and "/" in str(icon_str))
+
+        icon_container_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(size_dp), AndroidUtilities.dp(size_dp))
+        icon_container_lp.bottomMargin = AndroidUtilities.dp(6)
+
+        if show_icon:
+            iv = BackupImageView(act)
+            iv.setRoundRadius(AndroidUtilities.dp(12))
+            try:
+                iv.getImageReceiver().setCrossfadeWithOldImage(True)
+            except Exception:
+                pass
+            col.addView(iv, icon_container_lp)
+            if not _try_load_sticker(iv, icon_str, size_dp):
+                _schedule_sticker_retry(iv, icon_str, size_dp, self._alive)
+        else:
+            # same placeholder as ImportBottomSheet: circle with plugins_filled icon
+            try:
+                from android.widget import ImageView as _IV
+                from android.graphics import PorterDuffColorFilter as _PDCF, PorterDuff as _PD
+                stub = _IV(act)
+                stub.setScaleType(_IV.ScaleType.FIT_CENTER)
+                stub.setImageResource(_resolve_icon("plugins_filled"))
+                stub.setColorFilter(_PDCF(
+                    Theme.getColor(Theme.key_featuredStickers_buttonText),
+                    _PD.Mode.SRC_IN
+                ))
+                p = AndroidUtilities.dp(12)
+                stub.setPadding(p, p, p, p)
+                stub.setBackground(Theme.createCircleDrawable(
+                    AndroidUtilities.dp(size_dp),
+                    Theme.getColor(Theme.key_featuredStickers_addButton)
+                ))
+                col.addView(stub, icon_container_lp)
+            except Exception as _pe:
+                log(f"pluginProfile: scroll item placeholder error: {_pe}")
+
+        name_tv = TextView(act)
+        name_tv.setText(str(plugin.get("name") or plugin.get("id") or "?"))
+        name_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
+        name_tv.setTextColor(text_color)
+        name_tv.setGravity(Gravity.CENTER_HORIZONTAL)
+        name_tv.setMaxLines(2)
+        name_tv.setHorizontalFadingEdgeEnabled(True)
+        name_tv.setFadingEdgeLength(AndroidUtilities.dp(12))
+        try:
+            name_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+        except Exception:
+            name_tv.setTypeface(AndroidUtilities.bold())
+        col.addView(name_tv, LayoutHelper.createLinear(-1, -2))
+
+        def onItemClick(v, target=plugin):
+            show_plugin_profile(target, self.install_ui, self.all_plugins)
+        col.setOnClickListener(OnClickListener(onItemClick))
+        return col
 
     def _make_mini_card(self, act, plugin, text_color, gray_color):
         row = LinearLayout(act)

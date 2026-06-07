@@ -95,6 +95,28 @@ except Exception as e:
     import android_utils as _au; _au.log(f"import android.widget import FrameLayout, LinearLayout, TextView, ImageView failed: {e}")
     from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 
+class _TagsLayoutListener(dynamic_proxy(View.OnLayoutChangeListener)):
+    def __init__(self):
+        super().__init__()
+        self._done = False
+
+    def onLayoutChange(self, v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom):
+        if self._done:
+            return
+        row_width = v.getWidth()
+        if row_width <= 0:
+            return
+        self._done = True
+        found_hidden = False
+        for i in range(v.getChildCount()):
+            child = v.getChildAt(i)
+            if child is None:
+                continue
+            if found_hidden or child.getRight() > row_width:
+                child.setVisibility(View.GONE)
+                found_hidden = True
+        # do not call removeOnLayoutChangeListener — causes equals() crash on Chaquopy proxy
+
 from .RepoBottomSheet import show_repo_sheet
 from .SortBottomSheet import show_sort_menu
 from .AISearchSheet import show_ai_search_sheet
@@ -2415,28 +2437,6 @@ class InstallUI:
                     tags_row.addView(tag_tv, tag_lp)
 
                 # hide tags that don't fit in a single line — keep only the first visible one
-                _tags_row_ref = tags_row
-                class _TagsLayoutListener(dynamic_proxy(View.OnLayoutChangeListener)):
-                    def __init__(self):
-                        super().__init__()
-                        self._done = False
-                    def onLayoutChange(self, v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom):
-                        if self._done:
-                            return
-                        row_width = v.getWidth()
-                        if row_width <= 0:
-                            return
-                        self._done = True
-                        # hide any child whose right edge exceeds row width
-                        found_hidden = False
-                        for i in range(v.getChildCount()):
-                            child = v.getChildAt(i)
-                            if child is None:
-                                continue
-                            if found_hidden or child.getRight() > row_width:
-                                child.setVisibility(View.GONE)
-                                found_hidden = True
-                        v.removeOnLayoutChangeListener(self)
                 tags_row.addOnLayoutChangeListener(_TagsLayoutListener())
                 col.addView(tags_row, LayoutHelper.createLinear(-1, -2))
             
