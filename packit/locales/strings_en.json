@@ -50,7 +50,7 @@
   "plugins_channel": "Channel for plugins",
   "lead_developer_vestr": "Lead Developer",
   "mentor": "Mentor",
-  "special_thanks": "Special thanks to: @justkoder, @AgasAis, @kaltsitu, @INFVRNXL_MUSIC, @red1k",
+  "special_thanks": "Special thanks",
   "for_users": "For Users",
   "faq": "Frequently Asked Questions",
   "report_bug": "Report Bug",
@@ -1108,5 +1108,6 @@
   "translate_pending_5": "Kicking the translator...",
   "translate_pending_6": "Waking up the translator...",
   "translate_pending_7": "Trying to figure out what's even written here...",
-  "translate_pending_8": "Breaking the language barrier... :3"
+  "translate_pending_8": "Breaking the language barrier... :3",
+  "sponsors": "Sponsors"
 }
