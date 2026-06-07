@@ -55,3 +55,6 @@ def getKeysDir() -> str:
 
 def getGeminiCachePath() -> str:
     return _filesDir() + "/packit/.cache/api/gemini.json"
+
+def getPackItPluginDir() -> str:
+    return _filesDir() + "/plugins/ElyxPlugins/shareui_packit"

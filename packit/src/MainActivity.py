@@ -11,7 +11,7 @@ from .SettingsActivity.repos import RepositoriesSettings
 from .SettingsActivity.deeplinks import DeeplinksSettings
 from .SettingsActivity.settings import OtherSettings
 from .SettingsActivity.docs import DocumentationSettings
-from .SettingsActivity.contributors import ContributorsSettings
+from .ui.contributors.fragment import show_contributors_fragment
 from .SettingsActivity.profile import ProfileSettings
 from .SettingsActivity.utilities import UtilitiesSettings
 from ui.bulletin import BulletinHelper
@@ -74,7 +74,6 @@ class SettingsBuilder:
         self.deeplinksSettings = DeeplinksSettings()
         self.otherSettings = OtherSettings(plugin.chatUI, plugin)
         self.documentationSettings = DocumentationSettings()
-        self.contributorsSettings = ContributorsSettings()
         self.profileSettings = ProfileSettings()
         self.utilitiesSettings = UtilitiesSettings()
 
@@ -362,7 +361,7 @@ class SettingsBuilder:
             Text(
                 text=strings.contributors,
                 icon="msg_contacts",
-                create_sub_fragment=self.contributorsSettings.build
+                on_click=lambda v: show_contributors_fragment()
             ),
             
             Divider(),
