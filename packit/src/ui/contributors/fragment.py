@@ -692,8 +692,8 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     {"icon": "msg_channel", "label": str(strings.plugins_channel), "text": "t.me/TheDotted", "on_click": lambda v: self._open_url("https://t.me/TheDotted")},
                 ],
                 donations=[
-                    {"text": strings.support_with_github_sponsors, "icon": "msg_link", "on_click": lambda v: (_show_bulletin("info", strings.donate_easter_egg), run_on_ui_thread(lambda: self._open_url("https://github.com/sponsors/ageekapple"), 1000))},
                     {"text": strings.support_via_send, "icon": "filled_paid_suggest_24", "on_click": lambda v: (_show_bulletin("info", strings.donate_easter_egg), run_on_ui_thread(lambda: self._open_url("https://t.me/send?start=IVvAJkUxMF6Up"), 1000))},
+                    {"text": strings.support_with_github_sponsors, "icon": "msg_link", "on_click": lambda v: (_show_bulletin("info", strings.donate_easter_egg), run_on_ui_thread(lambda: self._open_url("https://github.com/sponsors/ageekapple"), 1000))},                    
                 ],
                 animate_idx=3,
             ),

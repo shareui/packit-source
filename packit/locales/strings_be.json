@@ -1112,5 +1112,13 @@
   "role_maintainer": "Куратар",
   "role_developer": "Распрацоўшчык",
   "role_designer": "Дызайнер",
-  "role_founder": "Заснавальнік"
+  "role_founder": "Заснавальнік",
+  "pp_closed_source_text": "Гэты плагін з закрытым зыходным кодам. Вы адзіны адказны за яго выкарыстанне.",
+  "pp_paid_text": "Гэты плагін можа мець платныя функцыі.",
+  "pp_team_title": "Удзельнікі",
+  "send_as_file": "Адправіць як файл",
+  "send_as_file_sending": "Адпраўка файла...",
+  "send_as_file_no_link": "У плагіна няма спасылкі для загрузкі",
+  "send_as_file_failed": "Не атрымалася адправіць файл",
+  "sponsors": "Спонсары"
 }
