@@ -958,5 +958,17 @@
     "title_key": "achiev_title_secret_aytist",
     "hint_key": "achiev_hint_secret_aytist",
     "category_key": "achiev_cat_unknown"
+  },
+  {
+    "id": "secret_connect_is_bullshit",
+    "category": "Unknown achievements",
+    "title": "Все мы ненавидим Connect",
+    "goal": 1,
+    "hint": "Рисуют людей и не знают анатомию, дебилыы..",
+    "icon": "msg_secret",
+    "playSound": true,
+    "title_key": "achiev_title_secret_connect_is_bullshit",
+    "hint_key": "achiev_hint_secret_connect_is_bullshit",
+    "category_key": "achiev_cat_unknown"
   }
 ]

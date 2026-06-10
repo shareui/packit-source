@@ -1120,5 +1120,7 @@
   "send_as_file_sending": "Отправка файла...",
   "send_as_file_no_link": "У плагина нет ссылки для скачивания",
   "send_as_file_failed": "Не удалось отправить файл",
-  "sponsors": "Спонсоры"
+  "sponsors": "Спонсоры",
+  "achiev_title_secret_connect_is_bullshit": "Все мы ненавидим Connect",
+  "achiev_hint_secret_connect_is_bullshit": "Рисуют богиню Уми Асанаги не зная анатомию человека... Гореть им в аду."
 }
