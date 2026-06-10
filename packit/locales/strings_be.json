@@ -1120,5 +1120,7 @@
   "send_as_file_sending": "Адпраўка файла...",
   "send_as_file_no_link": "У плагіна няма спасылкі для загрузкі",
   "send_as_file_failed": "Не атрымалася адправіць файл",
-  "sponsors": "Спонсары"
+  "sponsors": "Спонсары",
+  "achiev_title_secret_connect_is_bullshit": "Усе мы ненавідзім Connect",
+  "achiev_hint_secret_connect_is_bullshit": "Малююць багіню Умі Асанагі, не ведаючы анатомію чалавека... Гарэць ім у пекле."
 }

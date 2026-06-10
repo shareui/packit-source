@@ -6,6 +6,7 @@ from android_utils import log
 # triggers for secret achievements based on sent message text
 _TRIGGER_TALKING = "ты про себя?"
 _TRIGGER_UTILS = "кстати тебя врядли выложат в utilits. ты пофакту, повторил kpm. а как бы в utils правило второй вариант нельзя выкладыватьб"
+_TRIGGER_CONNECT = "коннект хуйня"
 
 
 def check_message(text: str):
@@ -18,5 +19,7 @@ def check_message(text: str):
             unlock_secret("talking_about_you")
         elif lower == _TRIGGER_UTILS:
             unlock_secret("utils_rule")
+        elif lower == _TRIGGER_CONNECT:
+            unlock_secret("connect_is_bullshit")
     except Exception as e:
         log(f"[text] check_message error: {e}")
