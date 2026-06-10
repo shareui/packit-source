@@ -1618,6 +1618,57 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
 
             hero.addView(cs_banner, LayoutHelper.createLinear(-1, -2, 0, 12, 0, 0))
 
+        # closed_source checked banner
+        if p.get("closed_source") == "checked" or p.get("closed_sorce") == "checked":
+            try:
+                cs_checked_color = Theme.getColor(Theme.key_color_orange)
+            except Exception:
+                cs_checked_color = 0xFFFFA500
+            
+            cs_checked_r = (cs_checked_color >> 16) & 0xFF
+            cs_checked_g = (cs_checked_color >> 8) & 0xFF
+            cs_checked_b = cs_checked_color & 0xFF
+            cs_checked_bg_color = ctypes.c_int32((0x22 << 24) | (cs_checked_r << 16) | (cs_checked_g << 8) | cs_checked_b).value
+
+            cs_checked_banner = LinearLayout(act)
+            cs_checked_banner.setOrientation(LinearLayout.HORIZONTAL)
+            cs_checked_banner.setGravity(Gravity.CENTER_VERTICAL)
+            cs_checked_banner.setPadding(
+                AndroidUtilities.dp(12), AndroidUtilities.dp(10),
+                AndroidUtilities.dp(12), AndroidUtilities.dp(10)
+            )
+            try:
+                from android.graphics.drawable import GradientDrawable as _GDC
+                cs_checked_bg = _GDC()
+                cs_checked_bg.setShape(_GDC.RECTANGLE)
+                cs_checked_bg.setCornerRadius(AndroidUtilities.dp(10))
+                cs_checked_bg.setColor(cs_checked_bg_color)
+                cs_checked_banner.setBackground(cs_checked_bg)
+            except Exception:
+                pass
+
+            cs_checked_icon = ImageView(act)
+            cs_checked_icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+            try:
+                cs_checked_icon.setImageResource(_resolve_icon("msg_info"))
+                cs_checked_icon.setColorFilter(cs_checked_color)
+            except Exception:
+                pass
+            cs_checked_banner.addView(cs_checked_icon, LayoutHelper.createLinear(20, 20, Gravity.CENTER_VERTICAL, 0, 0, 10, 0))
+
+            cs_checked_tv = TextView(act)
+            cs_checked_tv.setText("Closed source, but moderated, so you are safe.")
+            cs_checked_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            cs_checked_tv.setTextColor(cs_checked_color)
+            try:
+                cs_checked_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+            except Exception:
+                cs_checked_tv.setTypeface(AndroidUtilities.bold())
+            cs_checked_tv.setLineSpacing(AndroidUtilities.dp(2), 1.0)
+            cs_checked_banner.addView(cs_checked_tv, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+
+            hero.addView(cs_checked_banner, LayoutHelper.createLinear(-1, -2, 0, 12, 0, 0))
+
         # paid banner
         if p.get("paid") is True:
             try:
