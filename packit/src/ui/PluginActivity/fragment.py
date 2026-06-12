@@ -1657,7 +1657,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             cs_checked_banner.addView(cs_checked_icon, LayoutHelper.createLinear(20, 20, Gravity.CENTER_VERTICAL, 0, 0, 10, 0))
 
             cs_checked_tv = TextView(act)
-            cs_checked_tv.setText("Closed source, but moderated, so you are safe.")
+            cs_checked_tv.setText(str(strings.get("pp_closed_source_moderated", "Closed source, but moderated, so you are safe.")))
             cs_checked_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
             cs_checked_tv.setTextColor(cs_checked_color)
             try:
@@ -2695,6 +2695,247 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
 
             desc_extra.addView(social_card, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
 
+        # about the project card
+        about_card = LinearLayout(act)
+        about_card.setOrientation(LinearLayout.VERTICAL)
+        about_card.setPadding(
+            AndroidUtilities.dp(16), AndroidUtilities.dp(14),
+            AndroidUtilities.dp(16), AndroidUtilities.dp(14)
+        )
+        bg_about = _make_card_bg(act)
+        if bg_about:
+            about_card.setBackground(bg_about)
+
+        about_card.addView(
+            _make_section_header(act, str(strings.pp_section_about)),
+            LayoutHelper.createLinear(-2, -2, 0, 0, 0, 0, 10)
+        )
+
+        sources = p.get("sources") or {}
+
+        source_row = LinearLayout(act)
+        source_row.setOrientation(LinearLayout.HORIZONTAL)
+        source_row.setGravity(Gravity.CENTER_VERTICAL)
+        source_row.setPadding(0, AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8))
+        source_row.setClickable(True)
+        source_row.setFocusable(True)
+        source_row.setBackground(Theme.createSelectorDrawable(
+            Theme.getColor(Theme.key_listSelector), 2
+        ))
+
+        source_icon_iv = ImageView(act)
+        source_icon_iv.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+        try:
+            source_icon_iv.setImageResource(_resolve_icon("input_bot1"))
+            source_icon_iv.setColorFilter(gray_color)
+        except Exception:
+            pass
+        source_row.addView(source_icon_iv, LayoutHelper.createLinear(20, 20, Gravity.CENTER_VERTICAL, 0, 0, 12, 0))
+
+        source_label_tv = TextView(act)
+        source_label_tv.setText(str(strings.pp_source_code))
+        source_label_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+        source_label_tv.setTextColor(text_color)
+        source_row.addView(source_label_tv, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+
+        source_link = sources.get("source_links")
+        if source_link:
+            def _on_source_click(v, _url=source_link):
+                try:
+                    if Browser and Uri:
+                        Browser.openUrl(act, Uri.parse(_url), True, True, True, None, None, False, False, False)
+                except Exception as e:
+                    log(f"pluginProfile: source link error: {e}")
+            source_row.setOnClickListener(OnClickListener(_on_source_click))
+        else:
+            source_val_tv = TextView(act)
+            source_val_tv.setText(str(strings.pp_not_provided))
+            source_val_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            source_val_tv.setTextColor(gray_color)
+            source_row.addView(source_val_tv, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL))
+            source_row.setClickable(False)
+
+        about_card.addView(source_row, LayoutHelper.createLinear(-1, -2))
+
+        dv2 = View(act)
+        dv2.setBackgroundColor(Theme.getColor(Theme.key_divider))
+        dv2_lp = LinearLayout.LayoutParams(-1, AndroidUtilities.dp(1))
+        dv2_lp.leftMargin = AndroidUtilities.dp(32)
+        about_card.addView(dv2, dv2_lp)
+
+        license_row = LinearLayout(act)
+        license_row.setOrientation(LinearLayout.HORIZONTAL)
+        license_row.setGravity(Gravity.CENTER_VERTICAL)
+        license_row.setPadding(0, AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8))
+
+        license_icon_iv = ImageView(act)
+        license_icon_iv.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+        try:
+            license_icon_iv.setImageResource(_resolve_icon("msg_info"))
+            license_icon_iv.setColorFilter(gray_color)
+        except Exception:
+            pass
+        license_row.addView(license_icon_iv, LayoutHelper.createLinear(20, 20, Gravity.CENTER_VERTICAL, 0, 0, 12, 0))
+
+        license_val_tv = TextView(act)
+        license_val_tv.setText(str(sources.get("license") or strings.pp_no_license))
+        license_val_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+        license_val_tv.setTextColor(text_color)
+        license_row.addView(license_val_tv, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+
+        about_card.addView(license_row, LayoutHelper.createLinear(-1, -2))
+
+        report_link = sources.get("report_link")
+        if report_link:
+            dv3 = View(act)
+            dv3.setBackgroundColor(Theme.getColor(Theme.key_divider))
+            dv3_lp = LinearLayout.LayoutParams(-1, AndroidUtilities.dp(1))
+            dv3_lp.leftMargin = AndroidUtilities.dp(32)
+            about_card.addView(dv3, dv3_lp)
+
+            report_row = LinearLayout(act)
+            report_row.setOrientation(LinearLayout.HORIZONTAL)
+            report_row.setGravity(Gravity.CENTER_VERTICAL)
+            report_row.setPadding(0, AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8))
+            report_row.setClickable(True)
+            report_row.setFocusable(True)
+            report_row.setBackground(Theme.createSelectorDrawable(
+                Theme.getColor(Theme.key_listSelector), 2
+            ))
+
+            report_icon_iv = ImageView(act)
+            report_icon_iv.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+            try:
+                report_icon_iv.setImageResource(_resolve_icon("msg_report_other"))
+                report_icon_iv.setColorFilter(gray_color)
+            except Exception:
+                pass
+            report_row.addView(report_icon_iv, LayoutHelper.createLinear(20, 20, Gravity.CENTER_VERTICAL, 0, 0, 12, 0))
+
+            report_label_tv = TextView(act)
+            report_label_tv.setText(str(strings.report_bug))
+            report_label_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+            report_label_tv.setTextColor(text_color)
+            report_row.addView(report_label_tv, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+
+            def _on_report_click(v, _url=report_link):
+                try:
+                    if Browser and Uri:
+                        Browser.openUrl(act, Uri.parse(_url), True, True, True, None, None, False, False, False)
+                except Exception as e:
+                    log(f"pluginProfile: report link error: {e}")
+            report_row.setOnClickListener(OnClickListener(_on_report_click))
+
+            about_card.addView(report_row, LayoutHelper.createLinear(-1, -2))
+
+        langs = sources.get("langs") or []
+        if langs:
+            dv4 = View(act)
+            dv4.setBackgroundColor(Theme.getColor(Theme.key_divider))
+            dv4_lp = LinearLayout.LayoutParams(-1, AndroidUtilities.dp(1))
+            dv4_lp.leftMargin = AndroidUtilities.dp(32)
+            about_card.addView(dv4, dv4_lp)
+
+            langs_row = LinearLayout(act)
+            langs_row.setOrientation(LinearLayout.HORIZONTAL)
+            langs_row.setGravity(Gravity.CENTER_VERTICAL)
+            langs_row.setPadding(0, AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8))
+
+            langs_icon_iv = ImageView(act)
+            langs_icon_iv.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+            try:
+                langs_icon_iv.setImageResource(_resolve_icon("msg_sendfile"))
+                langs_icon_iv.setColorFilter(gray_color)
+            except Exception:
+                pass
+            langs_row.addView(langs_icon_iv, LayoutHelper.createLinear(20, 20, Gravity.CENTER_VERTICAL, 0, 0, 12, 0))
+
+            langs_label_tv = TextView(act)
+            langs_label_tv.setText(str(strings.pp_languages) + ":")
+            langs_label_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+            langs_label_tv.setTextColor(gray_color)
+            langs_row.addView(langs_label_tv, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL, 0, 0, 8, 0))
+
+            langs_chips_scroll = HorizontalScrollView(act)
+            langs_chips_scroll.setHorizontalScrollBarEnabled(False)
+            langs_chips_container = LinearLayout(act)
+            langs_chips_container.setOrientation(LinearLayout.HORIZONTAL)
+            langs_chips_scroll.addView(langs_chips_container, LayoutHelper.createScroll(-2, -2, Gravity.CENTER_VERTICAL))
+
+            def _get_lang_color(lang):
+                l = str(lang).lower()
+                if l in ["c", "objective-c"]: return "key_windowBackgroundWhiteGrayText"
+                if l in ["c++", "typescript", "lua"]: return "key_color_blue"
+                if l in ["c#", "php", "julia", "elixir"]: return "key_color_purple"
+                if l in ["java", "rust", "swift", "zig"]: return "key_color_orange"
+                if l in ["kotlin", "haskell"]: return "key_avatar_nameInMessageViolet"
+                if l in ["go", "dart", "crystal", "python"]: return "key_color_lightblue"
+                if l in ["ruby", "erlang"]: return "key_color_red"
+                if l in ["javascript", "nim"]: return "key_color_yellow"
+                return "key_windowBackgroundWhiteGrayText"
+
+            for lang in langs:
+                color_key = _get_lang_color(lang)
+                chip = _make_chip(act, str(lang), color_key)
+                chip_lp = LinearLayout.LayoutParams(-2, -2)
+                chip_lp.leftMargin = AndroidUtilities.dp(4)
+                langs_chips_container.addView(chip, chip_lp)
+
+            langs_row.addView(langs_chips_scroll, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+            about_card.addView(langs_row, LayoutHelper.createLinear(-1, -2))
+
+        clients = sources.get("clients") or []
+        if clients:
+            dv_clients = View(act)
+            dv_clients.setBackgroundColor(Theme.getColor(Theme.key_divider))
+            dv_clients_lp = LinearLayout.LayoutParams(-1, AndroidUtilities.dp(1))
+            dv_clients_lp.leftMargin = AndroidUtilities.dp(32)
+            about_card.addView(dv_clients, dv_clients_lp)
+
+            clients_row = LinearLayout(act)
+            clients_row.setOrientation(LinearLayout.HORIZONTAL)
+            clients_row.setGravity(Gravity.CENTER_VERTICAL)
+            clients_row.setPadding(0, AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8))
+
+            clients_icon_iv = ImageView(act)
+            clients_icon_iv.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+            try:
+                clients_icon_iv.setImageResource(_resolve_icon("msg_newphone"))
+                clients_icon_iv.setColorFilter(gray_color)
+            except Exception:
+                pass
+            clients_row.addView(clients_icon_iv, LayoutHelper.createLinear(20, 20, Gravity.CENTER_VERTICAL, 0, 0, 12, 0))
+
+            clients_label_tv = TextView(act)
+            clients_label_tv.setText(str(strings.pp_clients) + ":")
+            clients_label_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+            clients_label_tv.setTextColor(gray_color)
+            clients_row.addView(clients_label_tv, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL, 0, 0, 8, 0))
+
+            clients_chips_scroll = HorizontalScrollView(act)
+            clients_chips_scroll.setHorizontalScrollBarEnabled(False)
+            clients_chips_container = LinearLayout(act)
+            clients_chips_container.setOrientation(LinearLayout.HORIZONTAL)
+            clients_chips_scroll.addView(clients_chips_container, LayoutHelper.createScroll(-2, -2, Gravity.CENTER_VERTICAL))
+
+            def _get_client_color(client):
+                c = str(client).lower()
+                if c == "exteragram": return "key_color_red"
+                if c == "ayugram": return "key_color_purple"
+                return "key_windowBackgroundWhiteGrayText"
+
+            for client in clients:
+                color_key = _get_client_color(client)
+                chip = _make_chip(act, str(client), color_key)
+                chip_lp = LinearLayout.LayoutParams(-2, -2)
+                chip_lp.leftMargin = AndroidUtilities.dp(4)
+                clients_chips_container.addView(chip, chip_lp)
+
+            clients_row.addView(clients_chips_scroll, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+            about_card.addView(clients_row, LayoutHelper.createLinear(-1, -2))
+
+        desc_extra.addView(about_card, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
+
         # tags card
         tags = p.get("tags") or []
         if tags:
@@ -3285,7 +3526,7 @@ def _show_not_tester_sheet():
 
         title_tv = TextView(act)
         title_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18)
-        title_tv.setText("Beta build")
+        title_tv.setText(str(strings.get("beta_build_title", "Beta build")))
         title_tv.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
         title_tv.setGravity(Gravity.CENTER)
         try:
@@ -3296,7 +3537,7 @@ def _show_not_tester_sheet():
 
         msg_tv = TextView(act)
         msg_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
-        msg_tv.setText("You are not a tester, you shouldn't have installed the PackIt.")
+        msg_tv.setText(str(strings.get("beta_build_msg", "You are not a tester, you shouldn't have installed the PackIt.")))
         msg_tv.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
         msg_tv.setLineSpacing(AndroidUtilities.dp(2), 1.0)
         msg_tv.setGravity(Gravity.CENTER)
@@ -3324,7 +3565,7 @@ def _show_not_tester_sheet():
         except Exception:
             pass
         btn_tv.setGravity(Gravity.CENTER)
-        btn_tv.setText("Delete PackIt")
+        btn_tv.setText(str(strings.get("delete_packit", "Delete PackIt")))
         btn_tv.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
         btn.addView(btn_tv, FrameLayout.LayoutParams(-1, -2))
 

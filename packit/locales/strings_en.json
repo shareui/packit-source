@@ -1122,5 +1122,16 @@
   "role_designer": "Designer",
   "role_founder": "Founder",
   "achiev_title_secret_connect_is_bullshit": "We all hate Connect",
-  "achiev_hint_secret_connect_is_bullshit": "Drawing goddess Umi Asanagi without knowing human anatomy... May they burn in hell."
+  "achiev_hint_secret_connect_is_bullshit": "Drawing goddess Umi Asanagi without knowing human anatomy... May they burn in hell.",
+  "pp_section_about": "About the project",
+  "pp_source_code": "Source code",
+  "pp_not_provided": "Not provided",
+  "pp_license": "License",
+  "pp_no_license": "No License",
+  "pp_languages": "Languages",
+  "pp_clients": "Clients",
+  "pp_closed_source_moderated": "Closed source, but moderated, so you are safe.",
+  "beta_build_title": "Beta build",
+  "beta_build_msg": "You are not a tester, you shouldn't have installed the PackIt.",
+  "delete_packit": "Delete PackIt"
 }
