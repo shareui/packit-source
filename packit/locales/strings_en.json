@@ -1129,5 +1129,9 @@
   "pp_license": "License",
   "pp_no_license": "No License",
   "pp_languages": "Languages",
-  "pp_clients": "Clients"
+  "pp_clients": "Clients",
+  "pp_closed_source_moderated": "Closed source, but moderated, so you are safe.",
+  "beta_build_title": "Beta build",
+  "beta_build_msg": "You are not a tester, you shouldn't have installed the PackIt.",
+  "delete_packit": "Delete PackIt"
 }

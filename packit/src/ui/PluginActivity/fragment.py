@@ -1657,7 +1657,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             cs_checked_banner.addView(cs_checked_icon, LayoutHelper.createLinear(20, 20, Gravity.CENTER_VERTICAL, 0, 0, 10, 0))
 
             cs_checked_tv = TextView(act)
-            cs_checked_tv.setText("Closed source, but moderated, so you are safe.")
+            cs_checked_tv.setText(str(strings.get("pp_closed_source_moderated", "Closed source, but moderated, so you are safe.")))
             cs_checked_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
             cs_checked_tv.setTextColor(cs_checked_color)
             try:
@@ -3526,7 +3526,7 @@ def _show_not_tester_sheet():
 
         title_tv = TextView(act)
         title_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18)
-        title_tv.setText("Beta build")
+        title_tv.setText(str(strings.get("beta_build_title", "Beta build")))
         title_tv.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
         title_tv.setGravity(Gravity.CENTER)
         try:
@@ -3537,7 +3537,7 @@ def _show_not_tester_sheet():
 
         msg_tv = TextView(act)
         msg_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
-        msg_tv.setText("You are not a tester, you shouldn't have installed the PackIt.")
+        msg_tv.setText(str(strings.get("beta_build_msg", "You are not a tester, you shouldn't have installed the PackIt.")))
         msg_tv.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
         msg_tv.setLineSpacing(AndroidUtilities.dp(2), 1.0)
         msg_tv.setGravity(Gravity.CENTER)
@@ -3565,7 +3565,7 @@ def _show_not_tester_sheet():
         except Exception:
             pass
         btn_tv.setGravity(Gravity.CENTER)
-        btn_tv.setText("Delete PackIt")
+        btn_tv.setText(str(strings.get("delete_packit", "Delete PackIt")))
         btn_tv.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
         btn.addView(btn_tv, FrameLayout.LayoutParams(-1, -2))
 

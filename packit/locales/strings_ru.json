@@ -1122,5 +1122,16 @@
   "send_as_file_failed": "Не удалось отправить файл",
   "sponsors": "Спонсоры",
   "achiev_title_secret_connect_is_bullshit": "Все мы ненавидим Connect",
-  "achiev_hint_secret_connect_is_bullshit": "Рисуют богиню Уми Асанаги не зная анатомию человека... Гореть им в аду."
+  "achiev_hint_secret_connect_is_bullshit": "Рисуют богиню Уми Асанаги не зная анатомию человека... Гореть им в аду.",
+  "pp_closed_source_moderated": "Закрытый исходный код, но с модерацией, поэтому вы в безопасности.",
+  "beta_build_title": "Бета-сборка",
+  "beta_build_msg": "Вы не тестировщик, вам не следовало устанавливать PackIt.",
+  "delete_packit": "Удалить PackIt",
+  "pp_section_about": "О проекте",
+  "pp_source_code": "Исходный код",
+  "pp_not_provided": "Не указано",
+  "pp_license": "Лицензия",
+  "pp_no_license": "Нет лицензии",
+  "pp_languages": "Языки",
+  "pp_clients": "Клиенты"
 }
