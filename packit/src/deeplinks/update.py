@@ -1,9 +1,10 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment, run_on_queue
-from android_utils import log, run_on_ui_thread
+from android_utils import run_on_ui_thread
 try:
     from org.telegram.messenger import ApplicationLoader
 except Exception as e:
@@ -42,20 +43,20 @@ def _run_update(repoManager):
                 try:
                     r = requests.get(url, timeout=10)
                     if r.status_code != 200:
-                        log(f"update deeplink: HTTP {r.status_code} for {url}")
+                        logx(f"update deeplink: HTTP {r.status_code} for {url}", True)
                         continue
                     data = r.json()
                     repometa = data.get("repometa")
                     rmRid = repometa.get("rm_rid") if repometa else None
 
                     if not repometa or not rmRid:
-                        log(f"update deeplink: no repometa for '{url}', removing repo")
+                        logx(f"update deeplink: no repometa for '{url}', removing repo", True)
                         toRemove.append(i)
                         changed = True
                         continue
 
                     if rmRid in seenRids:
-                        log(f"update deeplink: duplicate rm_rid='{rmRid}', removing repo")
+                        logx(f"update deeplink: duplicate rm_rid='{rmRid}', removing repo", True)
                         toRemove.append(i)
                         changed = True
                         continue
@@ -64,14 +65,14 @@ def _run_update(repoManager):
                     if repo.get("id") != rmRid:
                         repos[i]["id"] = rmRid
                         changed = True
-                        log(f"update deeplink: set id='{rmRid}' for repo '{repo.get('name')}'")
+                        logx(f"update deeplink: set id='{rmRid}' for repo '{repo.get('name')}'", True)
 
                     cachePath = os.path.join(cacheDir, f"{rmRid}.json")
                     with open(cachePath, "w", encoding="utf-8") as f:
                         json.dump(data, f, indent=2, ensure_ascii=False)
-                    log(f"update deeplink: updated cache for '{rmRid}'")
+                    logx(f"update deeplink: updated cache for '{rmRid}'", True)
                 except Exception as e:
-                    log(f"update deeplink: error for {url}: {e}")
+                    logx(f"update deeplink: error for {url}: {e}", False)
 
             for i in sorted(toRemove, reverse=True):
                 repos.pop(i)
@@ -81,7 +82,7 @@ def _run_update(repoManager):
 
             run_on_ui_thread(lambda: BulletinHelper.show_success(strings.update_repos_success))
         except Exception as e:
-            log(f"update deeplink: task error: {e}")
+            logx(f"update deeplink: task error: {e}", False)
 
     run_on_queue(task)
 
@@ -106,7 +107,7 @@ def _run_update_single(repoManager, repoId: str):
             try:
                 r = requests.get(url, timeout=10)
                 if r.status_code != 200:
-                    log(f"update deeplink: HTTP {r.status_code} for {url}")
+                    logx(f"update deeplink: HTTP {r.status_code} for {url}", True)
                     run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings("dl_update_repo_http_error", code=r.status_code))))
                     return
                 data = r.json()
@@ -114,14 +115,14 @@ def _run_update_single(repoManager, repoId: str):
                 rmRid = repometa.get("rm_rid") if repometa else None
 
                 if not repometa or not rmRid:
-                    log(f"update deeplink: no repometa for '{url}'")
+                    logx(f"update deeplink: no repometa for '{url}'", True)
                     run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings["dl_update_repo_no_meta"])))
                     return
 
                 cachePath = os.path.join(cacheDir, f"{rmRid}.json")
                 with open(cachePath, "w", encoding="utf-8") as f:
                     json.dump(data, f, indent=2, ensure_ascii=False)
-                log(f"update deeplink: updated cache for '{rmRid}'")
+                logx(f"update deeplink: updated cache for '{rmRid}'", True)
 
                 idx = next((i for i, rp in enumerate(repos) if rp.get("id") == repoId), None)
                 if idx is not None and repos[idx].get("id") != rmRid:
@@ -130,10 +131,10 @@ def _run_update_single(repoManager, repoId: str):
 
                 run_on_ui_thread(lambda: BulletinHelper.show_success(strings.update_repos_success))
             except Exception as e:
-                log(f"update deeplink: error for {url}: {e}")
+                logx(f"update deeplink: error for {url}: {e}", False)
                 run_on_ui_thread(lambda: BulletinHelper.show_error(str(e)))
         except Exception as e:
-            log(f"update deeplink: single task error: {e}")
+            logx(f"update deeplink: single task error: {e}", False)
 
     run_on_queue(task)
 
@@ -151,4 +152,4 @@ def handle(url, repoManager):
         elif url == "tg://packit?update":
             _run_update(repoManager)
     except Exception as e:
-        log(f"update deeplink: handle error: {e}")
+        logx(f"update deeplink: handle error: {e}", False)

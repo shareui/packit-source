@@ -1,10 +1,11 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import ctypes
 import os
 
-from android_utils import log
+
 
 # token types
 _TK_KEYWORD   = 1
@@ -75,7 +76,7 @@ def _loadLib():
     _lib = loadPackLight()
     if _lib is not None:
         _setupArgtypes(_lib)
-        log("packlight: libpacklight.so loaded")
+        logx("packlight: libpacklight.so loaded", True)
     return _lib
 
 
@@ -96,7 +97,7 @@ def _resolveColors():
             _TK_DECORATOR: Theme.getColor(Theme.key_color_orange),
         }
     except Exception as e:
-        log(f"packlight: _resolveColors error: {e}")
+        logx(f"packlight: _resolveColors error: {e}", False)
         return {}
 
 
@@ -114,7 +115,7 @@ def _applySpans(spannable, tokBuf, ranges, cnt, colors, offset=0):
                 continue
             spannable.setSpan(ForegroundColorSpan(color), cs, ce, EXCL_EXCL)
     except Exception as e:
-        log(f"packlight: _applySpans error: {e}")
+        logx(f"packlight: _applySpans error: {e}", False)
 
 
 def tokenize(text: str, tokenizeFn):
@@ -132,7 +133,7 @@ def tokenize(text: str, tokenizeFn):
         lib.packlight_tokens_to_chars(encoded, srcLen, tokBuf, cnt, ranges, _MAX_TOKENS)
         return tokBuf, ranges, cnt
     except Exception as e:
-        log(f"packlight: tokenize error: {e}")
+        logx(f"packlight: tokenize error: {e}", False)
         return None
 
 

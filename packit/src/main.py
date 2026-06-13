@@ -3,6 +3,7 @@
 
 # all load logic(init, on_plugin_load) moved to the loader/ floder
 
+from packutil import logx
 from typing import Any
 from base_plugin import BasePlugin, HookResult, HookStrategy
 try:
@@ -24,7 +25,7 @@ from .ChatActivity.pluginAutocomplete import (
     _packit_hook_container_dismiss,
     _packit_send_plugin_info
 )
-from android_utils import log
+
 import time
 
 from .loader.initRuntime import startInit
@@ -51,21 +52,21 @@ class PackItPlugin(BasePlugin):
             import threading
             threading.Timer(1.5, lambda: run_on_ui_thread(lambda: BulletinHelper.show_info(text))).start()
         except Exception as e:
-            log(f"PackIt: _show_startup_bulletin error: {e}")
+            logx(f"PackIt: _show_startup_bulletin error: {e}", False)
 
     def _check_for_update(self):
         try:
             from .DialogsActivity.PackitUpdateSheet import check_and_show
             check_and_show()
         except Exception as e:
-            log(f"PackIt: update check error: {e}")
+            logx(f"PackIt: update check error: {e}", False)
 
     def _check_startup_updates(self):
         try:
             from .ui.pluginsUpdates.startupSheet import check_and_show_startup_updates
             check_and_show_startup_updates(plugin=self)
         except Exception as e:
-            log(f"PackIt: startup updates check error: {e}")
+            logx(f"PackIt: startup updates check error: {e}", False)
 
     def _check_update_notifications_bulletin(self):
         import threading
@@ -106,7 +107,7 @@ class PackItPlugin(BasePlugin):
                         try:
                             self._fn()
                         except Exception as _e:
-                            log(f"PackIt: update bulletin runnable error: {_e}")
+                            logx(f"PackIt: update bulletin runnable error: {_e}", True)
 
                 def show():
                     try:
@@ -119,7 +120,7 @@ class PackItPlugin(BasePlugin):
                             _snd = _os.path.join(_os.path.dirname(__file__), "../res/sounds/available-updates.opus")
                             playSound(_snd, "sfx_available_updates")
                         except Exception as _e:
-                            log(f"PackIt: update bulletin sound error: {_e}")
+                            logx(f"PackIt: update bulletin sound error: {_e}", True)
                         if single_update is not None:
                             def _install():
                                 try:
@@ -130,13 +131,13 @@ class PackItPlugin(BasePlugin):
                                     repos = _get_repos()
                                     repo = next((r for r in repos if str(r.get("id") or "") == repo_id), None)
                                     if not repo:
-                                        log(f"PackIt: update bulletin install: repo '{repo_id}' not found")
+                                        logx(f"PackIt: update bulletin install: repo '{repo_id}' not found", True)
                                         return
                                     repo_url = str(repo.get("url") or "").strip()
                                     plugins_url = _get_repo_plugins_url(None, repo_id, repo_url)
                                     r = _req.get(plugins_url, timeout=20, headers={"User-Agent": "PackIt/1.0"})
                                     if r.status_code != 200:
-                                        log(f"PackIt: update bulletin install: HTTP {r.status_code}")
+                                        logx(f"PackIt: update bulletin install: HTTP {r.status_code}", True)
                                         return
                                     data = r.json()
                                     plugins_raw = data.get("plugins", {})
@@ -156,12 +157,12 @@ class PackItPlugin(BasePlugin):
                                                 plugin = p
                                                 break
                                     if not plugin:
-                                        log(f"PackIt: update bulletin install: plugin '{pid}' not found in repo")
+                                        logx(f"PackIt: update bulletin install: plugin '{pid}' not found in repo", True)
                                         return
                                     from .core import install_plugin
                                     run_on_ui_thread(lambda: install_plugin(plugin, all_plugins=all_plugins, rm_rid=repo_id))
                                 except Exception as _e:
-                                    log(f"PackIt: update bulletin install error: {_e}")
+                                    logx(f"PackIt: update bulletin install error: {_e}", True)
                             from client_utils import run_on_queue
                             _action = lambda: run_on_queue(_install)
                         else:
@@ -170,18 +171,18 @@ class PackItPlugin(BasePlugin):
                                     from .ui.pluginsUpdates.fragment import show_updates_fragment
                                     show_updates_fragment()
                                 except Exception as _e:
-                                    log(f"PackIt: update bulletin open error: {_e}")
+                                    logx(f"PackIt: update bulletin open error: {_e}", True)
                         factory = BulletinFactory.of(fragment)
                         bulletin = factory.createSimpleBulletin(
                             R_tg.raw.info, text, btn_text, _Runnable(_action)
                         )
                         bulletin.show(True)
                     except Exception as _e:
-                        log(f"PackIt: update bulletin show error: {_e}")
+                        logx(f"PackIt: update bulletin show error: {_e}", True)
 
                 run_on_ui_thread(show)
             except Exception as e:
-                log(f"PackIt: _check_update_notifications_bulletin error: {e}")
+                logx(f"PackIt: _check_update_notifications_bulletin error: {e}", False)
 
         threading.Thread(target=task, daemon=True).start()
 
@@ -234,7 +235,7 @@ class PackItPlugin(BasePlugin):
                 except Exception:
                     pass
         except Exception as e:
-            log(f"Error cleaning up badge manager: {e}")
+            logx(f"Error cleaning up badge manager: {e}", False)
 
     def create_settings(self):
         return self.settingsBuilder.buildMainSettings()

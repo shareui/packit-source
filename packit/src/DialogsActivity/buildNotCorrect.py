@@ -1,8 +1,9 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import threading
-from android_utils import log, run_on_ui_thread
+from android_utils import run_on_ui_thread
 from android.graphics.drawable import GradientDrawable
 from android.view import Gravity, View
 from android.widget import FrameLayout, LinearLayout, TextView
@@ -14,7 +15,7 @@ from org.telegram.ui.Stories.recorder import ButtonWithCounterView
 try:
     from elyx import strings
 except Exception as e:
-    log(f"buildNotCorrect: import strings failed: {e}")
+    logx(f"buildNotCorrect: import strings failed: {e}", False)
 
 _HASH_CONFIG_KEY = "build_not_correct_dismissed_hash"
 
@@ -24,7 +25,7 @@ def _getDismissedHash() -> str:
         from ..utils.localConfig import LocalConfig
         return LocalConfig.get(_HASH_CONFIG_KEY, "")
     except Exception as e:
-        log(f"buildNotCorrect: _getDismissedHash error: {e}")
+        logx(f"buildNotCorrect: _getDismissedHash error: {e}", False)
         return ""
 
 
@@ -33,7 +34,7 @@ def _saveDismissedHash(hashVal: str):
         from ..utils.localConfig import LocalConfig
         LocalConfig.set(_HASH_CONFIG_KEY, hashVal)
     except Exception as e:
-        log(f"buildNotCorrect: _saveDismissedHash error: {e}")
+        logx(f"buildNotCorrect: _saveDismissedHash error: {e}", False)
 
 
 def _makeBlockBg(radius: int) -> GradientDrawable:
@@ -115,11 +116,11 @@ def _buildSheet(title: str, message: str, rows: list, buildHash: str):
         from client_utils import get_last_fragment
         frag = get_last_fragment()
         if not frag:
-            log("buildNotCorrect: no fragment")
+            logx("buildNotCorrect: no fragment", True)
             return
         activity = frag.getParentActivity()
         if not activity:
-            log("buildNotCorrect: no activity")
+            logx("buildNotCorrect: no activity", True)
             return
         resource_provider = frag.getResourceProvider()
 
@@ -180,7 +181,7 @@ def _buildSheet(title: str, message: str, rows: list, buildHash: str):
                     from org.telegram.messenger.browser import Browser
                     Browser.openUrl(activity, Uri.parse("https://t.me/packitGround/8/11481"), True, True, True, None, None, False, False, False)
                 except Exception as _e:
-                    log(f"buildNotCorrect: openUrl error: {_e}")
+                    logx(f"buildNotCorrect: openUrl error: {_e}", True)
 
         versions_btn.setOnClickListener(_VersionsClick())
         versions_lp = LinearLayout.LayoutParams(
@@ -216,9 +217,9 @@ def _buildSheet(title: str, message: str, rows: list, buildHash: str):
 
         sheet.setCustomView(root)
         sheet.show()
-        log("buildNotCorrect: sheet shown")
+        logx("buildNotCorrect: sheet shown", True)
     except Exception as e:
-        log(f"buildNotCorrect: _buildSheet error: {e}")
+        logx(f"buildNotCorrect: _buildSheet error: {e}", False)
 
 
 def _checkAndShow():
@@ -236,14 +237,14 @@ def _checkAndShow():
 
         # no build info — skip
         if buildPkg is None and buildVer is None:
-            log("buildNotCorrect: no build info, skipping")
+            logx("buildNotCorrect: no build info, skipping", True)
             return
 
         buildHash = getBuildHash()
 
         # already dismissed for this exact build
         if buildHash and _getDismissedHash() == buildHash:
-            log("buildNotCorrect: hash matches dismissed, skipping")
+            logx("buildNotCorrect: hash matches dismissed, skipping", True)
             return
 
         currPkg = getCurrClientPkg()
@@ -259,7 +260,7 @@ def _checkAndShow():
         verMismatch = buildVer is not None and currVer != buildVer
 
         if not pkgMismatch and not verMismatch:
-            log("buildNotCorrect: build matches client, skipping")
+            logx("buildNotCorrect: build matches client, skipping", True)
             return
 
         title = str(strings.build_not_correct_title)
@@ -289,7 +290,7 @@ def _checkAndShow():
 
         run_on_ui_thread(lambda: _buildSheet(title, message, rows, buildHash or ""))
     except Exception as e:
-        log(f"buildNotCorrect: _checkAndShow error: {e}")
+        logx(f"buildNotCorrect: _checkAndShow error: {e}", False)
 
 
 def setup_build_not_correct_check():

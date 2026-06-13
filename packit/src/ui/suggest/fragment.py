@@ -1,11 +1,12 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 from android.view import Gravity, View
 from android.widget import FrameLayout, ImageView, LinearLayout, ScrollView, TextView
 from android.util import TypedValue
 from java import dynamic_proxy
-from android_utils import log, run_on_ui_thread, OnClickListener
+from android_utils import run_on_ui_thread, OnClickListener
 from client_utils import get_last_fragment
 from hook_utils import find_class
 from elyx import strings
@@ -13,19 +14,19 @@ from elyx import strings
 try:
     from org.telegram.ui.ActionBar import Theme
 except Exception as e:
-    log(f"suggest: import Theme failed: {e}")
+    logx(f"suggest: import Theme failed: {e}", False)
 try:
     from org.telegram.ui.Components import LayoutHelper
 except Exception as e:
-    log(f"suggest: import LayoutHelper failed: {e}")
+    logx(f"suggest: import LayoutHelper failed: {e}", False)
 try:
     from org.telegram.messenger import AndroidUtilities, R as R_tg
 except Exception as e:
-    log(f"suggest: import AndroidUtilities failed: {e}")
+    logx(f"suggest: import AndroidUtilities failed: {e}", False)
 try:
     from com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment
 except Exception as e:
-    log(f"suggest: import UniversalFragment failed: {e}")
+    logx(f"suggest: import UniversalFragment failed: {e}", False)
 
 
 def _resolve_icon(name):
@@ -33,7 +34,7 @@ def _resolve_icon(name):
         R = find_class("org.telegram.messenger.R")
         return getattr(R.drawable, name)
     except Exception as e:
-        log(f"suggest: _resolve_icon {name} failed: {e}")
+        logx(f"suggest: _resolve_icon {name} failed: {e}", False)
         return 0
 
 
@@ -61,7 +62,7 @@ def _apply_ripple(view, corner_dp=12, bounded=True):
         )
         view.setBackground(ripple)
     except Exception as e:
-        log(f"suggest: _apply_ripple error: {e}")
+        logx(f"suggest: _apply_ripple error: {e}", False)
 
 
 def _make_upload_card(act):
@@ -80,9 +81,9 @@ def _make_upload_card(act):
                 Theme.getColor(Theme.key_windowBackgroundWhiteGrayText) & 0x60FFFFFF | 0x30000000
             )
         except Exception as e:
-            log(f"suggest: card stroke error: {e}")
+            logx(f"suggest: card stroke error: {e}", False)
     except Exception as e:
-        log(f"suggest: card_bg error: {e}")
+        logx(f"suggest: card_bg error: {e}", False)
         card_bg = None
 
     card = FrameLayout(act)
@@ -142,7 +143,7 @@ def _make_selected_file_card(act, file_name, file_size_bytes=None):
         primary = Theme.getColor(Theme.key_featuredStickers_addButton)
         bg.setColor(primary & 0x1AFFFFFF | 0x12000000)
     except Exception as e:
-        log(f"suggest: selected card bg error: {e}")
+        logx(f"suggest: selected card bg error: {e}", False)
         bg = None
 
     row = LinearLayout(act)
@@ -170,7 +171,7 @@ def _make_selected_file_card(act, file_name, file_size_bytes=None):
         from android.text import TextUtils
         name_tv.setEllipsize(TextUtils.TruncateAt.MIDDLE)
     except Exception as e:
-        log(f"suggest: ellipsize error: {e}")
+        logx(f"suggest: ellipsize error: {e}", False)
     row.addView(name_tv, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
 
     if file_size_bytes is not None:
@@ -255,7 +256,7 @@ def _animate_card_transition(upload_card, selected_container):
         full.playTogether(*animators)
         full.start()
     except Exception as e:
-        log(f"suggest: _animate_card_transition error: {e}")
+        logx(f"suggest: _animate_card_transition error: {e}", False)
         try:
             upload_card.setVisibility(View.GONE)
         except Exception:
@@ -275,7 +276,7 @@ def _get_file_size(uri, ctx):
             finally:
                 cursor.close()
     except Exception as e:
-        log(f"suggest: _get_file_size error: {e}")
+        logx(f"suggest: _get_file_size error: {e}", False)
     return None
 
 
@@ -299,7 +300,7 @@ def _get_display_name(uri, ctx):
             finally:
                 cursor.close()
     except Exception as e:
-        log(f"suggest: _get_display_name error: {e}")
+        logx(f"suggest: _get_display_name error: {e}", False)
     return str(uri)
 
 
@@ -321,7 +322,7 @@ def _make_add_another_card(act, card_height_px):
         bg.setColor(_to_color(0x18000000 | (primary & 0x00FFFFFF)))
         bg.setStroke(dp(1), _to_color(0x60000000 | (primary & 0x00FFFFFF)))
     except Exception as e:
-        log(f"suggest: add_another bg error: {e}")
+        logx(f"suggest: add_another bg error: {e}", False)
         bg = None
 
     from android.widget import FrameLayout as FL
@@ -388,7 +389,7 @@ def _hook_activity_result(plugin, act, request_codes, result_callback):
                 break
 
         if not target_method:
-            log("suggest: onActivityResult method not found")
+            logx("suggest: onActivityResult method not found", True)
             return None
 
         target_method.setAccessible(True)
@@ -400,7 +401,7 @@ def _hook_activity_result(plugin, act, request_codes, result_callback):
                     res = int(param.args[1])
                     data = param.args[2]
                 except Exception as e:
-                    log(f"suggest: onActivityResult args error: {e}")
+                    logx(f"suggest: onActivityResult args error: {e}", False)
                     return
                 if (req & 0xFFFF) not in request_codes:
                     return
@@ -409,7 +410,7 @@ def _hook_activity_result(plugin, act, request_codes, result_callback):
                 try:
                     uri = data.getData()
                 except Exception as e:
-                    log(f"suggest: getData error: {e}")
+                    logx(f"suggest: getData error: {e}", False)
                     return
                 if uri is None:
                     return
@@ -418,7 +419,7 @@ def _hook_activity_result(plugin, act, request_codes, result_callback):
 
         return plugin.hook_method(target_method, _ActResHook())
     except Exception as e:
-        log(f"suggest: _hook_activity_result error: {e}")
+        logx(f"suggest: _hook_activity_result error: {e}", False)
         return None
 
 
@@ -437,16 +438,16 @@ def _hook_is_internal_uri(plugin, allowed_paths: set):
                         return
                     path = str(arg.getPath())
                     if path in allowed_paths:
-                        log(f"suggest: isInternalUri override -> False for {path}")
+                        logx(f"suggest: isInternalUri override -> False for {path}", True)
                         param.setResult(False)
                 except Exception as e:
-                    log(f"suggest: _InternalUriHook error: {e}")
+                    logx(f"suggest: _InternalUriHook error: {e}", False)
 
         hooks = plugin.hook_all_methods(cls, "isInternalUri", _InternalUriHook())
-        log(f"suggest: hooked isInternalUri ({len(hooks)} overload(s))")
+        logx(f"suggest: hooked isInternalUri ({len(hooks)} overload(s))", True)
         return hooks
     except Exception as e:
-        log(f"suggest: _hook_is_internal_uri error: {e}")
+        logx(f"suggest: _hook_is_internal_uri error: {e}", False)
         return None
 
 
@@ -464,7 +465,7 @@ def _launch_file_picker(act, request_code):
             act.startActivityForResult(intent, request_code)
             return
         except Exception as e:
-            log(f"suggest: ACTION_OPEN_DOCUMENT failed, fallback: {e}")
+            logx(f"suggest: ACTION_OPEN_DOCUMENT failed, fallback: {e}", False)
         intent = Intent(Intent.ACTION_GET_CONTENT)
         intent.addCategory(Intent.CATEGORY_OPENABLE)
         intent.setType("*/*")
@@ -474,7 +475,7 @@ def _launch_file_picker(act, request_code):
             pass
         act.startActivityForResult(intent, request_code)
     except Exception as e:
-        log(f"suggest: _launch_file_picker error: {e}")
+        logx(f"suggest: _launch_file_picker error: {e}", False)
 
 
 
@@ -488,7 +489,7 @@ def _shake_view(view):
         shaker.setInterpolator(CycleInterpolator(1.0))
         shaker.start()
     except Exception as e:
-        log(f"suggest: _shake_view error: {e}")
+        logx(f"suggest: _shake_view error: {e}", False)
 
 
 def _hide_keyboard(act):
@@ -499,7 +500,7 @@ def _hide_keyboard(act):
         token = focused.getWindowToken() if focused is not None else act.getWindow().getDecorView().getWindowToken()
         imm.hideSoftInputFromWindow(token, 0)
     except Exception as e:
-        log(f"suggest: _hide_keyboard error: {e}")
+        logx(f"suggest: _hide_keyboard error: {e}", False)
 
 
 def _animate_reveal(view, delay_ms=0):
@@ -521,7 +522,7 @@ def _animate_reveal(view, delay_ms=0):
             aset.setStartDelay(delay_ms)
         aset.start()
     except Exception as e:
-        log(f"suggest: _animate_reveal error: {e}")
+        logx(f"suggest: _animate_reveal error: {e}", False)
         try:
             view.setAlpha(1.0)
             view.setTranslationY(0.0)
@@ -530,6 +531,59 @@ def _animate_reveal(view, delay_ms=0):
 
 
 _chip_refs = {}
+# stores fixed label text for radio chips (text not replaced by Yes/No)
+_chip_fixed_text = {}
+
+
+def _make_md3_radio_chip(act, text: str):
+    # chip with fixed label, only color/icon change on toggle
+    chip = _make_md3_chip(act)
+    if chip is None:
+        return chip
+    refs = _chip_refs.get(id(chip))
+    if refs:
+        refs[1].setText(text)
+    _chip_fixed_text[id(chip)] = text
+    return chip
+
+
+def _update_md3_radio_chip(chip, checked: bool):
+    # same as _update_md3_chip but preserves fixed label text
+    try:
+        from android.graphics.drawable import GradientDrawable
+        dp = AndroidUtilities.dp
+        primary = Theme.getColor(Theme.key_featuredStickers_addButton)
+        on_surface = Theme.getColor(Theme.key_windowBackgroundWhiteBlackText)
+        surface = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+
+        bg = GradientDrawable()
+        bg.setShape(GradientDrawable.RECTANGLE)
+        bg.setCornerRadius(dp(100))
+
+        refs = _chip_refs.get(id(chip))
+        check_icon = refs[0] if refs else None
+        label = refs[1] if refs else None
+
+        if checked:
+            bg.setColor(_to_color(0x28000000 | (primary & 0x00FFFFFF)))
+            bg.setStroke(dp(1), _to_color(0x99000000 | (primary & 0x00FFFFFF)))
+            if check_icon:
+                check_icon.setColorFilter(primary)
+                check_icon.setVisibility(View.VISIBLE)
+            if label:
+                label.setTextColor(primary)
+        else:
+            bg.setColor(0x00000000)
+            bg.setStroke(dp(1), _to_color(0x40000000 | (surface & 0x00FFFFFF)))
+            if check_icon:
+                check_icon.setVisibility(View.GONE)
+            if label:
+                label.setTextColor(on_surface)
+
+        chip.setBackground(bg)
+        _apply_ripple(chip, corner_dp=100)
+    except Exception as e:
+        logx(f"suggest: _update_md3_radio_chip error: {e}", False)
 
 
 def _get_y(view):
@@ -577,7 +631,7 @@ def _make_md3_chip(act):
         _update_md3_chip(chip, False)
         return chip
     except Exception as e:
-        log(f"suggest: _make_md3_chip error: {e}")
+        logx(f"suggest: _make_md3_chip error: {e}", False)
         return None
 
 
@@ -627,7 +681,7 @@ def _update_md3_chip(chip, checked: bool):
         chip.setBackground(bg)
         _apply_ripple(chip, corner_dp=100)
     except Exception as e:
-        log(f"suggest: _update_md3_chip error: {e}")
+        logx(f"suggest: _update_md3_chip error: {e}", False)
 
 
 def _make_outlined_et_bg():
@@ -644,7 +698,7 @@ def _make_outlined_et_bg():
         )
         return bg
     except Exception as e:
-        log(f"suggest: _make_outlined_et_bg error: {e}")
+        logx(f"suggest: _make_outlined_et_bg error: {e}", False)
         return None
 
 
@@ -657,7 +711,7 @@ def _make_section_card(act, radius_dp=12):
         bg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite))
         return bg
     except Exception as e:
-        log(f"suggest: _make_section_card error: {e}")
+        logx(f"suggest: _make_section_card error: {e}", False)
         return None
 
 
@@ -779,7 +833,7 @@ def _parse_plugin_meta(path: str) -> dict:
             if val is not None:
                 meta[key] = val
     except Exception as e:
-        log(f"suggest: _parse_plugin_meta error: {e}")
+        logx(f"suggest: _parse_plugin_meta error: {e}", False)
     return meta
 
 
@@ -793,12 +847,12 @@ def _copy_uri_to_temp(uri, act, display_name: str = "") -> str:
             dot_idx = display_name.rfind(".")
             if dot_idx >= 0:
                 suffix = display_name[dot_idx:]
-        log(f"suggest: _copy_uri_to_temp suffix={suffix} name={display_name!r}")
+        logx(f"suggest: _copy_uri_to_temp suffix={suffix} name={display_name!r}", True)
 
         cr = act.getContentResolver()
         stream = cr.openInputStream(uri)
         if stream is None:
-            log("suggest: _copy_uri_to_temp openInputStream returned None")
+            logx("suggest: _copy_uri_to_temp openInputStream returned None", True)
             return ""
         tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
         buf = bytearray(8192)
@@ -811,10 +865,10 @@ def _copy_uri_to_temp(uri, act, display_name: str = "") -> str:
             total += n
         tmp.close()
         stream.close()
-        log(f"suggest: _copy_uri_to_temp wrote {total} bytes -> {tmp.name}")
+        logx(f"suggest: _copy_uri_to_temp wrote {total} bytes -> {tmp.name}", True)
         return tmp.name
     except Exception as e:
-        log(f"suggest: _copy_uri_to_temp error: {e}")
+        logx(f"suggest: _copy_uri_to_temp error: {e}", False)
         return ""
 
 
@@ -847,16 +901,16 @@ def _parse_eaf_description(eaf_path: str) -> str:
                     break
 
             if not refmap_data:
-                log("suggest: _parse_eaf_description: no refmap found in archive")
+                logx("suggest: _parse_eaf_description: no refmap found in archive", True)
                 return ""
 
             metainfo_path = refmap_data.get("metainfo", "")
             if not metainfo_path:
-                log("suggest: _parse_eaf_description: metainfo key missing in refmap")
+                logx("suggest: _parse_eaf_description: metainfo key missing in refmap", True)
                 return ""
 
             if metainfo_path not in names:
-                log(f"suggest: _parse_eaf_description: metainfo file not found: {metainfo_path}")
+                logx(f"suggest: _parse_eaf_description: metainfo file not found: {metainfo_path}", True)
                 return ""
 
             meta_raw = zf.read(metainfo_path).decode("utf-8", errors="replace")
@@ -879,7 +933,7 @@ def _parse_eaf_description(eaf_path: str) -> str:
                             v = v[end + 1:].strip()
                     return v
     except Exception as e:
-        log(f"suggest: _parse_eaf_description error: {e}")
+        logx(f"suggest: _parse_eaf_description error: {e}", False)
     return ""
 
 
@@ -904,7 +958,7 @@ def _try_parse_plugin_meta(uri, act, suggest_config, on_description=None, on_upd
                         try:
                             on_description(description)
                         except Exception as e:
-                            log(f"suggest: on_description callback error: {e}")
+                            logx(f"suggest: on_description callback error: {e}", False)
                     return
                 meta = _parse_plugin_meta(tmp_path)
             finally:
@@ -918,7 +972,7 @@ def _try_parse_plugin_meta(uri, act, suggest_config, on_description=None, on_upd
                 try:
                     on_description(description)
                 except Exception as e:
-                    log(f"suggest: on_description callback error: {e}")
+                    logx(f"suggest: on_description callback error: {e}", False)
 
             plugin_id = meta.get("id")
             if not plugin_id:
@@ -966,19 +1020,19 @@ def _try_parse_plugin_meta(uri, act, suggest_config, on_description=None, on_upd
                         if repo_plugin is not None:
                             repo_version = repo_plugin.get("version", "?")
                             meta_version = meta.get("version", "?")
-                            log(f"suggest: updated {repo_version} -> {meta_version}")
+                            logx(f"suggest: updated {repo_version} -> {meta_version}", True)
                             if on_update_found is not None:
                                 try:
                                     on_update_found(repo_version, meta_version)
                                 except Exception as e:
-                                    log(f"suggest: on_update_found callback error: {e}")
+                                    logx(f"suggest: on_update_found callback error: {e}", False)
                             return
                     except Exception:
                         continue
             except Exception as e:
-                log(f"suggest: meta repo lookup error: {e}")
+                logx(f"suggest: meta repo lookup error: {e}", False)
         except Exception as e:
-            log(f"suggest: _try_parse_plugin_meta worker error: {e}")
+            logx(f"suggest: _try_parse_plugin_meta worker error: {e}", False)
 
     threading.Thread(target=_worker, daemon=True).start()
 
@@ -988,7 +1042,7 @@ def _fill_description(et, text: str):
         et.setText(text)
         et.setSelection(len(text))
     except Exception as e:
-        log(f"suggest: _fill_description error: {e}")
+        logx(f"suggest: _fill_description error: {e}", False)
 
 
 def _load_forked_plugins(repo_data: dict) -> list:
@@ -1024,7 +1078,7 @@ def _load_forked_plugins(repo_data: dict) -> list:
                     plugins.append(item)
         return plugins
     except Exception as e:
-        log(f"suggest: _load_forked_plugins error: {e}")
+        logx(f"suggest: _load_forked_plugins error: {e}", False)
         return []
 
 
@@ -1061,7 +1115,7 @@ def _make_forked_not_found_popup(act):
         bg.setCornerRadius(dp(16))
         bg.setColor(Theme.getColor(Theme.key_dialogBackground))
     except Exception as e:
-        log(f"suggest: not_found popup bg error: {e}")
+        logx(f"suggest: not_found popup bg error: {e}", False)
         bg = None
 
     popup = LL(act)
@@ -1104,7 +1158,7 @@ def _make_forked_popup(act, plugins: list, on_select):
         bg.setColor(Theme.getColor(Theme.key_dialogBackground))
         bg.setElevation(float(dp(8))) if hasattr(bg, 'setElevation') else None
     except Exception as e:
-        log(f"suggest: popup bg error: {e}")
+        logx(f"suggest: popup bg error: {e}", False)
         bg = None
 
     popup = LL(act)
@@ -1188,7 +1242,7 @@ def _make_forked_popup(act, plugins: list, on_select):
                                 pass
                     threading.Thread(target=_retry, daemon=True).start()
             except Exception as e:
-                log(f"suggest: popup icon error: {e}")
+                logx(f"suggest: popup icon error: {e}", False)
                 _add_stub_icon(act, row, icon_size_dp, dp)
         else:
             _add_stub_icon(act, row, icon_size_dp, dp)
@@ -1285,7 +1339,7 @@ def _add_stub_icon(act, row, size_dp, dp):
         icon_lp.rightMargin = dp(10)
         row.addView(stub, icon_lp)
     except Exception as e:
-        log(f"suggest: _add_stub_icon error: {e}")
+        logx(f"suggest: _add_stub_icon error: {e}", False)
 
 
 def _register_back_cb(act, on_back):
@@ -1303,7 +1357,7 @@ def _register_back_cb(act, on_back):
         act.getOnBackPressedDispatcher().addCallback(act, cb.java)
         return cb
     except Exception as e:
-        log(f"suggest: _register_back_cb error: {e}")
+        logx(f"suggest: _register_back_cb error: {e}", False)
         return None
 
 
@@ -1312,7 +1366,7 @@ def _unregister_back_cb(cb):
         if cb is not None:
             cb.remove()
     except Exception as e:
-        log(f"suggest: _unregister_back_cb error: {e}")
+        logx(f"suggest: _unregister_back_cb error: {e}", False)
 
 
 def _register_keyboard_back(act, et):
@@ -1342,12 +1396,12 @@ def _register_keyboard_back(act, et):
                         et.clearFocus()
                     self2._was_open[0] = is_open
                 except Exception as e:
-                    log(f"suggest: keyboard watcher error: {e}")
+                    logx(f"suggest: keyboard watcher error: {e}", False)
 
         watcher = _KeyboardWatcher()
         root.getViewTreeObserver().addOnGlobalLayoutListener(watcher)
     except Exception as e:
-        log(f"suggest: _register_keyboard_back setup error: {e}")
+        logx(f"suggest: _register_keyboard_back setup error: {e}", False)
 
 
 def _get_draft_path(rm_rid: str) -> str:
@@ -1376,7 +1430,7 @@ def _clear_draft_files(rm_rid: str):
         d = _get_draft_files_dir(rm_rid)
         shutil.rmtree(d, ignore_errors=True)
     except Exception as e:
-        log(f"suggest: _clear_draft_files error: {e}")
+        logx(f"suggest: _clear_draft_files error: {e}", False)
 
 
 def _save_draft(rm_rid: str, data: dict):
@@ -1385,7 +1439,7 @@ def _save_draft(rm_rid: str, data: dict):
         with open(path, "w", encoding="utf-8") as f:
             f.write(_json.dumps(data, ensure_ascii=False))
     except Exception as e:
-        log(f"suggest: _save_draft error: {e}")
+        logx(f"suggest: _save_draft error: {e}", False)
 
 
 def _load_draft(rm_rid: str) -> dict:
@@ -1394,7 +1448,7 @@ def _load_draft(rm_rid: str) -> dict:
         with open(path, "r", encoding="utf-8") as f:
             return _json.loads(f.read())
     except Exception as e:
-        log(f"suggest: _load_draft error: {e}")
+        logx(f"suggest: _load_draft error: {e}", False)
     return {}
 
 
@@ -1404,7 +1458,7 @@ def _clear_draft(rm_rid: str):
         if _os.path.isfile(path):
             _os.unlink(path)
     except Exception as e:
-        log(f"suggest: _clear_draft error: {e}")
+        logx(f"suggest: _clear_draft error: {e}", False)
     _clear_draft_files(rm_rid)
 
 
@@ -1412,10 +1466,10 @@ def _has_draft(rm_rid: str) -> bool:
     try:
         path = _get_draft_path(rm_rid)
         result = _os.path.isfile(path)
-        log(f"suggest: _has_draft rm_rid={rm_rid!r} path={path} exists={result}")
+        logx(f"suggest: _has_draft rm_rid={rm_rid!r} path={path} exists={result}", True)
         return result
     except Exception as e:
-        log(f"suggest: _has_draft error: {e}")
+        logx(f"suggest: _has_draft error: {e}", False)
         return False
 
 
@@ -1443,10 +1497,10 @@ def _copy_uri_to_draft_file(uri, act, rm_rid: str, slot: str, display_name: str 
                     break
                 out.write(bytes(buf[:n]))
         stream.close()
-        log(f"suggest: draft file saved slot={slot} name={file_name} -> {dest}")
+        logx(f"suggest: draft file saved slot={slot} name={file_name} -> {dest}", True)
         return dest
     except Exception as e:
-        log(f"suggest: _copy_uri_to_draft_file error: {e}")
+        logx(f"suggest: _copy_uri_to_draft_file error: {e}", False)
         return ""
 
 
@@ -1495,6 +1549,13 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         self._draft_main_path = None
         self._draft_extra_paths = []
         self._submitted = False
+        self._source_code_toggle_ref = [None]
+        self._source_code_content_ref = [None]
+        self._source_code_moderation_chip_ref = [None]
+        self._source_code_everyone_chip_ref = [None]
+        self._source_code_link_et_ref = [None]
+        self._source_code_link_wrap_ref = [None]
+        self._paid_toggle_ref = [None]
 
     def onFragmentCreate(self, *_):
         try:
@@ -1513,22 +1574,22 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     sp = data.get("suggest_plugins")
                     if isinstance(sp, dict):
                         self._suggest_config = sp
-                        log(f"suggest: loaded suggest_plugins for {rm_rid}")
+                        logx(f"suggest: loaded suggest_plugins for {rm_rid}", True)
                     else:
-                        log(f"suggest: suggest_plugins missing in cache for {rm_rid}")
+                        logx(f"suggest: suggest_plugins missing in cache for {rm_rid}", True)
                 else:
-                    log(f"suggest: cache file not found for {rm_rid}")
+                    logx(f"suggest: cache file not found for {rm_rid}", True)
             else:
                 sp = self._repo_data.get("suggest_plugins") if isinstance(self._repo_data, dict) else None
                 if isinstance(sp, dict):
                     self._suggest_config = sp
         except Exception as e:
-            log(f"suggest: onFragmentCreate load error: {e}")
+            logx(f"suggest: onFragmentCreate load error: {e}", False)
 
     def onFragmentDestroy(self, *_):
         # save form state so it can be restored on next open
         if self._submitted:
-            log("suggest: onFragmentDestroy skipping draft save (already submitted)")
+            logx("suggest: onFragmentDestroy skipping draft save (already submitted)", True)
         else:
             self._save_current_draft()
         try:
@@ -1536,7 +1597,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 try:
                     self._plugin.unhook_method(self._picker_hook_ref)
                 except Exception as e:
-                    log(f"suggest: unhook error: {e}")
+                    logx(f"suggest: unhook error: {e}", False)
                 self._picker_hook_ref = None
         except Exception:
             pass
@@ -1547,7 +1608,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     parent.removeView(self.content_view)
                 self.content_view = None
         except Exception as e:
-            log(f"suggest: onFragmentDestroy removeView error: {e}")
+            logx(f"suggest: onFragmentDestroy removeView error: {e}", False)
         self._suggest_config = None
         self._extra_uris = []
         self._add_another_btn_ref[0] = None
@@ -1601,7 +1662,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     if fragment:
                         fragment.finishFragment()
             except Exception as e:
-                log(f"suggest: failed to finish fragment: {e}")
+                logx(f"suggest: failed to finish fragment: {e}", False)
 
     def _on_file_picked(self, uri, request_code):
         frag = get_last_fragment()
@@ -1617,7 +1678,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             # first file must be a .eaf or .plugin
             ext = (name or "").rsplit(".", 1)[-1].lower()
             if ext not in ("eaf", "plugin"):
-                log(f"suggest: first file ignored, expected .eaf/.plugin got .{ext}")
+                logx(f"suggest: first file ignored, expected .eaf/.plugin got .{ext}", True)
                 def _show_ext_error():
                     try:
                         from org.telegram.ui.Components import BulletinFactory
@@ -1626,7 +1687,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                             "The first file should be .eaf/.plugin"
                         ).show()
                     except Exception as e:
-                        log(f"suggest: error bulletin error: {e}")
+                        logx(f"suggest: error bulletin error: {e}", False)
                 run_on_ui_thread(_show_ext_error)
                 return
 
@@ -1703,7 +1764,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     try:
                         self._show_submit_btn(act)
                     except Exception as e:
-                        log(f"suggest: _show_submit_btn error: {e}")
+                        logx(f"suggest: _show_submit_btn error: {e}", False)
 
                     # delay so button appears after the transition animation (max ~380ms) finishes
                     self_ref2 = self
@@ -1807,7 +1868,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                                     self_ref._add_another_btn_ref[0] = None
                                     self_ref._refresh_add_another_btn(act, container)
                                 except Exception as e:
-                                    log(f"suggest: extra anim end error: {e}")
+                                    logx(f"suggest: extra anim end error: {e}", False)
                             def onAnimationStart(self2, a, *args): pass
                             def onAnimationCancel(self2, a, *args): pass
                             def onAnimationRepeat(self2, a, *args): pass
@@ -1816,14 +1877,14 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         aset.addListener(_ExtraAnimEnd())
                         aset.start()
                     except Exception as e:
-                        log(f"suggest: extra file anim error: {e}")
+                        logx(f"suggest: extra file anim error: {e}", False)
                         if btn is not None:
                             container.removeView(btn)
                             self._add_another_btn_ref[0] = None
                         self._refresh_add_another_btn(act, container)
                         self._refresh_add_another_btn(act, container)
             except Exception as e:
-                log(f"suggest: _update_ui error: {e}")
+                logx(f"suggest: _update_ui error: {e}", False)
 
         run_on_ui_thread(_update_ui)
 
@@ -1869,14 +1930,14 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             if rules_tv is not None:
                 loc = [0, 0]
                 rules_tv.getLocationOnScreen(loc)
-                log(f"suggest: rules_tv Y before btn add = {loc[1]}, alpha={rules_tv.getAlpha()}, transY={rules_tv.getTranslationY()}")
+                logx(f"suggest: rules_tv Y before btn add = {loc[1]}, alpha={rules_tv.getAlpha()}, transY={rules_tv.getTranslationY()}", True)
                 parent = rules_tv.getParent()
-                log(f"suggest: rules_tv parent = {parent}")
+                logx(f"suggest: rules_tv parent = {parent}", True)
                 container_loc = [0, 0]
                 container.getLocationOnScreen(container_loc)
-                log(f"suggest: container Y before btn add = {container_loc[1]}, childCount={container.getChildCount()}, height={container.getHeight()}")
+                logx(f"suggest: container Y before btn add = {container_loc[1]}, childCount={container.getChildCount()}, height={container.getHeight()}", True)
         except Exception as e:
-            log(f"suggest: rules_tv pre-log error: {e}")
+            logx(f"suggest: rules_tv pre-log error: {e}", False)
 
         btn.setAlpha(0.0)
         container.addView(btn, lp)
@@ -1887,10 +1948,10 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             if rules_tv is not None:
                 loc = [0, 0]
                 rules_tv.getLocationOnScreen(loc)
-                log(f"suggest: rules_tv Y after btn add = {loc[1]}, transY={rules_tv.getTranslationY()}")
-                log(f"suggest: container height after = {container.getHeight()}, childCount={container.getChildCount()}")
+                logx(f"suggest: rules_tv Y after btn add = {loc[1]}, transY={rules_tv.getTranslationY()}", True)
+                logx(f"suggest: container height after = {container.getHeight()}, childCount={container.getChildCount()}", True)
         except Exception as e:
-            log(f"suggest: rules_tv post-log error: {e}")
+            logx(f"suggest: rules_tv post-log error: {e}", False)
 
         try:
             from android.animation import AnimatorSet, ObjectAnimator, ValueAnimator, Animator
@@ -1927,7 +1988,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         p = btn.getLayoutParams()
                         p.height = -2
                         btn.setLayoutParams(p)
-                        log(f"suggest: btn height expand done, rules_tv Y now = {_get_y(rules_tv)}")
+                        logx(f"suggest: btn height expand done, rules_tv Y now = {_get_y(rules_tv)}", True)
                     except Exception:
                         pass
                 def onAnimationStart(self2, a, *args): pass
@@ -1949,7 +2010,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             aset.playTogether(expand, fade)
             aset.start()
         except Exception as e:
-            log(f"suggest: add_another_btn appear anim error: {e}")
+            logx(f"suggest: add_another_btn appear anim error: {e}", False)
             btn.setAlpha(1.0)
             lp.height = -2
             btn.setLayoutParams(lp)
@@ -2047,7 +2108,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 lp_desc = LinearLayout.LayoutParams(-1, -2)
                 section.addView(desc_card, lp_desc)
             except Exception as e:
-                log(f"suggest: desc_card error: {e}")
+                logx(f"suggest: desc_card error: {e}", False)
 
             # note card
             try:
@@ -2118,7 +2179,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 lp_note.topMargin = dp(12)
                 section.addView(note_card, lp_note)
             except Exception as e:
-                log(f"suggest: note_card error: {e}")
+                logx(f"suggest: note_card error: {e}", False)
 
             # socials card
             if max_socials > 0:
@@ -2212,7 +2273,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                                     self_ref3._social_inputs = [x for x in self_ref3._social_inputs if x[0] is not row]
                                     _hide_keyboard(act)
                                 except Exception as e2:
-                                    log(f"suggest: social delete error: {e2}")
+                                    logx(f"suggest: social delete error: {e2}", True)
 
                             row, et = _make_social_input_row(act, str(strings.suggest_social_placeholder), _on_delete)
                             row_ref[0] = (row, et)
@@ -2226,7 +2287,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                             _animate_reveal(row, delay_ms=0)
                             _hide_keyboard(act)
                         except Exception as e3:
-                            log(f"suggest: _on_add_social error: {e3}")
+                            logx(f"suggest: _on_add_social error: {e3}", True)
 
                     add_btn_row.setOnClickListener(OnClickListener(_on_add_social))
                     socials_card.addView(add_btn_row, LayoutHelper.createLinear(-1, -2))
@@ -2235,7 +2296,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     lp_soc.topMargin = dp(12)
                     section.addView(socials_card, lp_soc)
                 except Exception as e:
-                    log(f"suggest: socials_card error: {e}")
+                    logx(f"suggest: socials_card error: {e}", False)
 
             # forked card: toggle + plugin name input, shown after file selection
             allow_forks = False
@@ -2335,11 +2396,11 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                                 self2._timer[0] = timer
                                 timer.start()
                             except Exception as e:
-                                log(f"suggest: forked text watcher error: {e}")
+                                logx(f"suggest: forked text watcher error: {e}", False)
 
                     name_et.addTextChangedListener(_ForkedTextWatcher())
                 except Exception as e:
-                    log(f"suggest: forked text watcher setup error: {e}")
+                    logx(f"suggest: forked text watcher setup error: {e}", False)
 
                 lp_name = LinearLayout.LayoutParams(-1, -2)
                 lp_name.topMargin = dp(8)
@@ -2378,7 +2439,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                                 sc.animate().alpha(0.0).setDuration(150).start()
                                 sc.setVisibility(View.GONE)
                         except Exception as e:
-                            log(f"suggest: chip click error: {e}")
+                            logx(f"suggest: chip click error: {e}", False)
 
                     forked_toggle.setOnClickListener(OnClickListener(_on_chip_click))
 
@@ -2386,9 +2447,258 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 lp_forked.topMargin = dp(12)
                 section.addView(forked_card, lp_forked)
               except Exception as e:
-                log(f"suggest: forked card error: {e}")
+                logx(f"suggest: forked card error: {e}", False)
 
-            # find content LinearLayout to append section into
+            # source code card
+            allow_source = False
+            if isinstance(sp, dict):
+                raw_source = sp.get("settings", {}).get("allor_source", 0)
+                try:
+                    allow_source = bool(int(raw_source))
+                except (TypeError, ValueError):
+                    allow_source = bool(raw_source)
+
+            if allow_source:
+              try:
+                sc_card = LinearLayout(act)
+                sc_card.setOrientation(LinearLayout.VERTICAL)
+                sc_card.setPadding(dp(16), dp(12), dp(16), dp(12))
+                sc_bg = _make_section_card(act)
+                if sc_bg:
+                    sc_card.setBackground(sc_bg)
+
+                sc_toggle_row = LinearLayout(act)
+                sc_toggle_row.setOrientation(LinearLayout.HORIZONTAL)
+                sc_toggle_row.setGravity(Gravity.CENTER_VERTICAL)
+
+
+                sc_label_col = LinearLayout(act)
+                sc_label_col.setOrientation(LinearLayout.VERTICAL)
+
+                sc_label_tv = TextView(act)
+                sc_label_tv.setText(str(strings.suggest_source_code_label))
+                sc_label_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+                sc_label_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+                sc_label_tv.setTypeface(sc_label_tv.getTypeface(), 1)
+                sc_label_col.addView(sc_label_tv, LayoutHelper.createLinear(-2, -2))
+
+                sc_hint_tv = TextView(act)
+                sc_hint_tv.setText(str(strings.suggest_source_code_hint))
+                sc_hint_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
+                sc_hint_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+                sc_label_col.addView(sc_hint_tv, LayoutHelper.createLinear(-1, -2))
+
+                sc_toggle_row.addView(sc_label_col, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+
+                sc_toggle = _make_md3_chip(act)
+                self._source_code_toggle_ref[0] = sc_toggle
+                sc_toggle_row.addView(sc_toggle, LayoutHelper.createLinear(-2, 28, Gravity.CENTER_VERTICAL, 8, 0, 0, 0))
+
+                sc_card.addView(sc_toggle_row, LayoutHelper.createLinear(-1, -2))
+
+                # content shown when toggle is on
+                sc_content = LinearLayout(act)
+                sc_content.setOrientation(LinearLayout.VERTICAL)
+                sc_content.setVisibility(View.GONE)
+                self._source_code_content_ref[0] = sc_content
+
+                # two radio-style chips: For moderation / For everyone
+                chips_row = LinearLayout(act)
+                chips_row.setOrientation(LinearLayout.HORIZONTAL)
+                chips_row.setGravity(Gravity.CENTER_VERTICAL)
+                lp_chips = LinearLayout.LayoutParams(-1, -2)
+                lp_chips.topMargin = dp(10)
+
+                mod_chip = _make_md3_radio_chip(act, str(strings.suggest_source_for_moderation))
+                self._source_code_moderation_chip_ref[0] = mod_chip
+
+                everyone_chip = _make_md3_radio_chip(act, str(strings.suggest_source_for_everyone))
+                self._source_code_everyone_chip_ref[0] = everyone_chip
+
+                chips_row.addView(mod_chip, LayoutHelper.createLinear(-2, 28, Gravity.CENTER_VERTICAL, 0, 0, 8, 0))
+                chips_row.addView(everyone_chip, LayoutHelper.createLinear(-2, 28, Gravity.CENTER_VERTICAL))
+                sc_content.addView(chips_row, lp_chips)
+
+                # sub-label shown under "For moderation" chip
+                sc_mod_sub = TextView(act)
+                sc_mod_sub.setText(str(strings.suggest_source_for_moderation_sub))
+                sc_mod_sub.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
+                sc_mod_sub.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+                sc_mod_sub.setVisibility(View.GONE)
+                lp_mod_sub = LinearLayout.LayoutParams(-1, -2)
+                lp_mod_sub.topMargin = dp(6)
+                sc_content.addView(sc_mod_sub, lp_mod_sub)
+
+                # link input shown under "For everyone" chip
+                from android.widget import EditText as AEditText
+                sc_link_et = AEditText(act)
+                sc_link_et.setHint(str(strings.suggest_source_link_hint))
+                sc_link_et.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+                sc_link_et.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+                sc_link_et.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+                sc_link_et.setBackground(None)
+                sc_link_et.setSingleLine(True)
+                try:
+                    from android.text import InputType
+                    sc_link_et.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI)
+                except Exception:
+                    pass
+                self._source_code_link_et_ref[0] = sc_link_et
+                _register_keyboard_back(act, sc_link_et)
+
+                sc_link_et_bg = _make_outlined_et_bg()
+                from android.widget import FrameLayout as FL
+                sc_link_wrap = FL(act)
+                if sc_link_et_bg:
+                    sc_link_wrap.setBackground(sc_link_et_bg)
+                sc_link_wrap.setPadding(dp(12), dp(10), dp(12), dp(10))
+                sc_link_wrap.addView(sc_link_et, FL.LayoutParams(-1, -2))
+                sc_link_wrap.setVisibility(View.GONE)
+                self._source_code_link_wrap_ref[0] = sc_link_wrap
+                lp_link = LinearLayout.LayoutParams(-1, -2)
+                lp_link.topMargin = dp(8)
+                sc_content.addView(sc_link_wrap, lp_link)
+
+                sc_card.addView(sc_content, LayoutHelper.createLinear(-1, -2))
+
+                # wire chip radio logic
+                self_ref_sc = self
+
+                def _on_mod_chip_click(v):
+                    try:
+                        mc = self_ref_sc._source_code_moderation_chip_ref[0]
+                        ec = self_ref_sc._source_code_everyone_chip_ref[0]
+                        if mc is None or ec is None:
+                            return
+                        is_now = not bool(mc.getTag())
+                        _update_md3_radio_chip(mc, is_now)
+                        mc.setTag(is_now)
+                        if is_now:
+                            _update_md3_radio_chip(ec, False)
+                            ec.setTag(False)
+                        sub = self_ref_sc._source_code_content_ref[0].getChildAt(1)
+                        lw = self_ref_sc._source_code_link_wrap_ref[0]
+                        if sub is not None:
+                            sub.setVisibility(View.VISIBLE if is_now else View.GONE)
+                        if lw is not None:
+                            lw.setVisibility(View.GONE)
+                    except Exception as e:
+                        logx(f"suggest: sc mod chip error: {e}", False)
+
+                def _on_everyone_chip_click(v):
+                    try:
+                        mc = self_ref_sc._source_code_moderation_chip_ref[0]
+                        ec = self_ref_sc._source_code_everyone_chip_ref[0]
+                        if mc is None or ec is None:
+                            return
+                        is_now = not bool(ec.getTag())
+                        _update_md3_radio_chip(ec, is_now)
+                        ec.setTag(is_now)
+                        if is_now:
+                            _update_md3_radio_chip(mc, False)
+                            mc.setTag(False)
+                        sub = self_ref_sc._source_code_content_ref[0].getChildAt(1)
+                        lw = self_ref_sc._source_code_link_wrap_ref[0]
+                        if sub is not None:
+                            sub.setVisibility(View.GONE)
+                        if lw is not None:
+                            lw.setVisibility(View.VISIBLE if is_now else View.GONE)
+                    except Exception as e:
+                        logx(f"suggest: sc everyone chip error: {e}", False)
+
+                mod_chip.setOnClickListener(OnClickListener(_on_mod_chip_click))
+                everyone_chip.setOnClickListener(OnClickListener(_on_everyone_chip_click))
+
+                # wire main toggle
+                def _on_sc_toggle_click(v):
+                    try:
+                        t = self_ref_sc._source_code_toggle_ref[0]
+                        if t is None:
+                            return
+                        is_now = not bool(t.getTag())
+                        t.setTag(is_now)
+                        _update_md3_chip(t, is_now)
+                        cont = self_ref_sc._source_code_content_ref[0]
+                        if cont is None:
+                            return
+                        if is_now:
+                            cont.setVisibility(View.VISIBLE)
+                            cont.setAlpha(0.0)
+                            cont.animate().alpha(1.0).setDuration(200).start()
+                        else:
+                            cont.animate().alpha(0.0).setDuration(150).start()
+                            cont.setVisibility(View.GONE)
+                    except Exception as e:
+                        logx(f"suggest: sc toggle error: {e}", False)
+
+                sc_toggle.setOnClickListener(OnClickListener(_on_sc_toggle_click))
+
+                lp_sc = LinearLayout.LayoutParams(-1, -2)
+                lp_sc.topMargin = dp(12)
+                section.addView(sc_card, lp_sc)
+              except Exception as e:
+                logx(f"suggest: source_code card error: {e}", False)
+
+            # paid toggle card
+            allow_paid = False
+            if isinstance(sp, dict):
+                raw_paid = sp.get("settings", {}).get("allow_paid", 0)
+                try:
+                    allow_paid = bool(int(raw_paid))
+                except (TypeError, ValueError):
+                    allow_paid = bool(raw_paid)
+
+            if allow_paid:
+              try:
+                paid_card = LinearLayout(act)
+                paid_card.setOrientation(LinearLayout.HORIZONTAL)
+                paid_card.setGravity(Gravity.CENTER_VERTICAL)
+                paid_card.setPadding(dp(16), dp(12), dp(16), dp(12))
+                paid_bg = _make_section_card(act)
+                if paid_bg:
+                    paid_card.setBackground(paid_bg)
+
+                paid_icon = ImageView(act)
+                paid_icon_id = _resolve_icon("msg_premium_lock")
+                if not paid_icon_id:
+                    paid_icon_id = _resolve_icon("msg_gift_premium")
+                if paid_icon_id:
+                    paid_icon.setImageResource(paid_icon_id)
+                    paid_icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_addButton))
+                paid_icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+                paid_card.addView(paid_icon, LayoutHelper.createLinear(20, 20, Gravity.CENTER_VERTICAL, 0, 0, 8, 0))
+
+                paid_label = TextView(act)
+                paid_label.setText(str(strings.suggest_paid_label))
+                paid_label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+                paid_label.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+                paid_label.setTypeface(paid_label.getTypeface(), 1)
+                paid_card.addView(paid_label, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+
+                paid_toggle = _make_md3_chip(act)
+                self._paid_toggle_ref[0] = paid_toggle
+                paid_card.addView(paid_toggle, LayoutHelper.createLinear(-2, 28, Gravity.CENTER_VERTICAL))
+
+                self_ref_paid = self
+
+                def _on_paid_toggle_click(v):
+                    try:
+                        t = self_ref_paid._paid_toggle_ref[0]
+                        if t is None:
+                            return
+                        is_now = not bool(t.getTag())
+                        t.setTag(is_now)
+                        _update_md3_chip(t, is_now)
+                    except Exception as e:
+                        logx(f"suggest: paid toggle error: {e}", False)
+
+                paid_toggle.setOnClickListener(OnClickListener(_on_paid_toggle_click))
+
+                lp_paid = LinearLayout.LayoutParams(-1, -2)
+                lp_paid.topMargin = dp(12)
+                section.addView(paid_card, lp_paid)
+              except Exception as e:
+                logx(f"suggest: paid card error: {e}", False)
             try:
                 scroll = self.content_view.getChildAt(0)
                 content_ll = scroll.getChildAt(0)
@@ -2396,7 +2706,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 lp_section.topMargin = dp(16)
                 content_ll.addView(section, lp_section)
             except Exception as e:
-                log(f"suggest: section attach error: {e}")
+                logx(f"suggest: section attach error: {e}", False)
 
             self._fields_section_ref[0] = section
             # animate children one by one with staggered delay
@@ -2412,7 +2722,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 self._apply_draft(self._pending_draft, act)
                 self._pending_draft = None
         except Exception as e:
-            log(f"suggest: _show_fields_section error: {e}")
+            logx(f"suggest: _show_fields_section error: {e}", False)
 
     def _show_changelog_card(self, act, repo_ver: str, meta_ver: str):
         try:
@@ -2510,7 +2820,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             insert_idx = max(0, count - 1)
             fields.addView(card, insert_idx, lp)
         except Exception as e:
-            log(f"suggest: _show_changelog_card error: {e}")
+            logx(f"suggest: _show_changelog_card error: {e}", False)
 
     def _dismiss_forked_popup(self):
         popup = self._forked_popup_ref[0]
@@ -2526,7 +2836,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 except Exception:
                     pass
         except Exception as e:
-            log(f"suggest: _dismiss_forked_popup error: {e}")
+            logx(f"suggest: _dismiss_forked_popup error: {e}", False)
         self._forked_popup_ref[0] = None
         _unregister_back_cb(self._back_cb_ref[0])
         self._back_cb_ref[0] = None
@@ -2598,11 +2908,11 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 aset.playTogether(a_alpha, a_ty)
                 aset.start()
             except Exception as e:
-                log(f"suggest: forked popup anim error: {e}")
+                logx(f"suggest: forked popup anim error: {e}", False)
                 popup.setAlpha(1.0)
                 popup.setTranslationY(0.0)
         except Exception as e:
-            log(f"suggest: _update_forked_popup error: {e}")
+            logx(f"suggest: _update_forked_popup error: {e}", False)
 
     def _on_forked_plugin_selected(self, plugin: dict):
         self._dismiss_forked_popup()
@@ -2651,7 +2961,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 bg.setColor(primary & 0x15FFFFFF | 0x0D000000)
                 card.setBackground(bg)
             except Exception as e:
-                log(f"suggest: forked selected card bg error: {e}")
+                logx(f"suggest: forked selected card bg error: {e}", False)
 
             # icon
             icon_str = str(plugin.get("icon") or "")
@@ -2713,7 +3023,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                                     pass
                         threading.Thread(target=_retry, daemon=True).start()
                 except Exception as e:
-                    log(f"suggest: forked selected icon error: {e}")
+                    logx(f"suggest: forked selected icon error: {e}", False)
                     _add_stub_icon(act, card, icon_size_dp, dp)
             else:
                 _add_stub_icon(act, card, icon_size_dp, dp)
@@ -2796,7 +3106,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     if et2 is not None:
                         et2.requestFocus()
                 except Exception as e:
-                    log(f"suggest: forked reset error: {e}")
+                    logx(f"suggest: forked reset error: {e}", False)
 
             del_btn.setOnClickListener(OnClickListener(_on_reset))
             card.addView(del_btn, LayoutHelper.createLinear(32, 32, Gravity.CENTER_VERTICAL, 4, 0, 0, 0))
@@ -2809,7 +3119,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             card.setAlpha(0.0)
             card.animate().alpha(1.0).setDuration(180).start()
         except Exception as e:
-            log(f"suggest: _show_forked_selected_card error: {e}")
+            logx(f"suggest: _show_forked_selected_card error: {e}", False)
 
 
     def _attach_keyboard_scroll(self, act, root):
@@ -2866,11 +3176,11 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                             if last_offset[0] != 0:
                                 last_offset[0] = 0
                     except Exception as e:
-                        log(f"suggest: keyboard scroll error: {e}")
+                        logx(f"suggest: keyboard scroll error: {e}", False)
 
             root.getViewTreeObserver().addOnGlobalLayoutListener(_KeyboardScrollListener())
         except Exception as e:
-            log(f"suggest: _attach_keyboard_scroll error: {e}")
+            logx(f"suggest: _attach_keyboard_scroll error: {e}", False)
 
     def _collect_draft(self) -> dict:
         draft = {}
@@ -2913,6 +3223,31 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 draft["forked_plugin"] = plugin
         except Exception:
             pass
+        try:
+            sc_toggle = self._source_code_toggle_ref[0]
+            if sc_toggle is not None:
+                sc_enabled = bool(sc_toggle.getTag())
+                draft["source_code_enabled"] = sc_enabled
+                if sc_enabled:
+                    mod_chip = self._source_code_moderation_chip_ref[0]
+                    everyone_chip = self._source_code_everyone_chip_ref[0]
+                    if mod_chip is not None and bool(mod_chip.getTag()):
+                        draft["source_code_mode"] = "moderation"
+                    elif everyone_chip is not None and bool(everyone_chip.getTag()):
+                        draft["source_code_mode"] = "everyone"
+                    link_et = self._source_code_link_et_ref[0]
+                    if link_et is not None:
+                        val = str(link_et.getText()).strip()
+                        if val:
+                            draft["source_code_link"] = val
+        except Exception:
+            pass
+        try:
+            paid_toggle = self._paid_toggle_ref[0]
+            if paid_toggle is not None:
+                draft["paid"] = bool(paid_toggle.getTag())
+        except Exception:
+            pass
         # file info
         if self._selected_name:
             draft["file_name"] = self._selected_name
@@ -2950,7 +3285,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     container.setVisibility(View.VISIBLE)
                     upload_card.setVisibility(View.GONE)
         except Exception as e:
-            log(f"suggest: _apply_draft files error: {e}")
+            logx(f"suggest: _apply_draft files error: {e}", False)
         try:
             for ef in draft.get("draft_extra_files", []):
                 p = ef.get("path", "")
@@ -2965,7 +3300,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         lp = LayoutHelper.createLinear(-1, -2, 0, 4, 0, 0)
                         container.addView(selected, lp)
         except Exception as e:
-            log(f"suggest: _apply_draft extra files error: {e}")
+            logx(f"suggest: _apply_draft extra files error: {e}", False)
         # restore text fields
         try:
             desc = draft.get("description", "")
@@ -2974,7 +3309,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 if et is not None:
                     _fill_description(et, desc)
         except Exception as e:
-            log(f"suggest: _apply_draft desc error: {e}")
+            logx(f"suggest: _apply_draft desc error: {e}", False)
         try:
             note = draft.get("note", "")
             if note:
@@ -2982,7 +3317,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 if note_et is not None:
                     note_et.setText(note)
         except Exception as e:
-            log(f"suggest: _apply_draft note error: {e}")
+            logx(f"suggest: _apply_draft note error: {e}", False)
         try:
             socials = draft.get("socials", [])
             container = self._social_links_container_ref[0]
@@ -2996,7 +3331,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                             container.removeView(row)
                             self._social_inputs = [x for x in self._social_inputs if x[0] is not row]
                         except Exception as e2:
-                            log(f"suggest: draft social delete error: {e2}")
+                            logx(f"suggest: draft social delete error: {e2}", True)
 
                     row, et_s = _make_social_input_row(act, str(strings.suggest_social_placeholder), _on_delete)
                     row_ref[0] = (row, et_s)
@@ -3006,7 +3341,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     lp.topMargin = AndroidUtilities.dp(8)
                     container.addView(row, lp)
         except Exception as e:
-            log(f"suggest: _apply_draft socials error: {e}")
+            logx(f"suggest: _apply_draft socials error: {e}", False)
         try:
             changelog_url = draft.get("changelog_url", "")
             if changelog_url:
@@ -3014,7 +3349,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 if url_et is not None:
                     url_et.setText(changelog_url)
         except Exception as e:
-            log(f"suggest: _apply_draft changelog error: {e}")
+            logx(f"suggest: _apply_draft changelog error: {e}", False)
         try:
             forked_enabled = draft.get("forked_enabled", False)
             forked_plugin = draft.get("forked_plugin")
@@ -3029,7 +3364,47 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 self._forked_selected_plugin[0] = forked_plugin
                 self._show_forked_selected_card(act, forked_plugin)
         except Exception as e:
-            log(f"suggest: _apply_draft forked error: {e}")
+            logx(f"suggest: _apply_draft forked error: {e}", False)
+        try:
+            sc_enabled = draft.get("source_code_enabled", False)
+            sc_toggle = self._source_code_toggle_ref[0]
+            if sc_enabled and sc_toggle is not None:
+                sc_toggle.setTag(True)
+                _update_md3_chip(sc_toggle, True)
+                cont = self._source_code_content_ref[0]
+                if cont is not None:
+                    cont.setVisibility(View.VISIBLE)
+                mode = draft.get("source_code_mode", "")
+                mod_chip = self._source_code_moderation_chip_ref[0]
+                everyone_chip = self._source_code_everyone_chip_ref[0]
+                if mode == "moderation" and mod_chip is not None:
+                    mod_chip.setTag(True)
+                    _update_md3_radio_chip(mod_chip, True)
+                    if cont is not None:
+                        sub = cont.getChildAt(1)
+                        if sub is not None:
+                            sub.setVisibility(View.VISIBLE)
+                elif mode == "everyone" and everyone_chip is not None:
+                    everyone_chip.setTag(True)
+                    _update_md3_radio_chip(everyone_chip, True)
+                    lw = self._source_code_link_wrap_ref[0]
+                    if lw is not None:
+                        lw.setVisibility(View.VISIBLE)
+            link = draft.get("source_code_link", "")
+            if link:
+                link_et = self._source_code_link_et_ref[0]
+                if link_et is not None:
+                    link_et.setText(link)
+        except Exception as e:
+            logx(f"suggest: _apply_draft source_code error: {e}", False)
+        try:
+            paid = draft.get("paid", False)
+            paid_toggle = self._paid_toggle_ref[0]
+            if paid and paid_toggle is not None:
+                paid_toggle.setTag(True)
+                _update_md3_chip(paid_toggle, True)
+        except Exception as e:
+            logx(f"suggest: _apply_draft paid error: {e}", False)
 
     def _save_current_draft(self):
         try:
@@ -3041,15 +3416,17 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 draft.get("note") or
                 draft.get("socials") or
                 draft.get("changelog_url") or
-                draft.get("forked_plugin")
+                draft.get("forked_plugin") or
+                draft.get("source_code_enabled") or
+                draft.get("paid")
             )
             if has_content:
                 _save_draft(self._rm_rid, draft)
-                log(f"suggest: draft saved for {self._rm_rid}")
+                logx(f"suggest: draft saved for {self._rm_rid}", True)
             else:
-                log(f"suggest: nothing to save, skipping draft")
+                logx(f"suggest: nothing to save, skipping draft", True)
         except Exception as e:
-            log(f"suggest: _save_current_draft error: {e}")
+            logx(f"suggest: _save_current_draft error: {e}", False)
 
     def _do_submit(self):
         from android_utils import run_on_ui_thread
@@ -3060,19 +3437,19 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         sp = self._suggest_config
         config = sp.get("config", {}) if isinstance(sp, dict) else {}
         acc_user = str(config.get("acc_user") or "")
-        log(f"suggest._do_submit: acc_user={acc_user!r}")
+        logx(f"suggest._do_submit: acc_user={acc_user!r}", True)
         if not acc_user:
             BulletinHelper.show_error(str(strings.suggest_no_config))
             return
 
         if self._selected_uri is None and not (self._draft_main_path and _os.path.isfile(self._draft_main_path)):
-            log("suggest._do_submit: no file selected")
+            logx("suggest._do_submit: no file selected", True)
             return
 
         frag = get_last_fragment()
         act = frag.getParentActivity() if frag else None
         if not act:
-            log("suggest._do_submit: no activity")
+            logx("suggest._do_submit: no activity", True)
             return
 
         # collect caption fields
@@ -3082,7 +3459,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             if et is not None:
                 desc = str(et.getText()).strip()
         except Exception as e:
-            log(f"suggest._do_submit: desc read error: {e}")
+            logx(f"suggest._do_submit: desc read error: {e}", False)
         if not desc:
             desc = "Default"
 
@@ -3093,7 +3470,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 if val:
                     socials.append(val)
         except Exception as e:
-            log(f"suggest._do_submit: socials read error: {e}")
+            logx(f"suggest._do_submit: socials read error: {e}", False)
 
         socials_block = "\n".join(f"• {s}" for s in socials) if socials else "None"
 
@@ -3109,7 +3486,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 else:
                     changelog = "Not updated"
         except Exception as e:
-            log(f"suggest._do_submit: changelog read error: {e}")
+            logx(f"suggest._do_submit: changelog read error: {e}", False)
 
         forked_link = "None"
         try:
@@ -3123,7 +3500,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 if plugin_id and rm_rid:
                     forked_link = f"tg://packit?plugin={plugin_id}&repo={rm_rid}"
         except Exception as e:
-            log(f"suggest._do_submit: forked read error: {e}")
+            logx(f"suggest._do_submit: forked read error: {e}", False)
 
         note = ""
         try:
@@ -3131,7 +3508,30 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             if note_et is not None:
                 note = str(note_et.getText()).strip()
         except Exception as e:
-            log(f"suggest._do_submit: note read error: {e}")
+            logx(f"suggest._do_submit: note read error: {e}", False)
+
+        source_code = "None"
+        try:
+            sc_toggle = self._source_code_toggle_ref[0]
+            if sc_toggle is not None and bool(sc_toggle.getTag()):
+                mod_chip = self._source_code_moderation_chip_ref[0]
+                everyone_chip = self._source_code_everyone_chip_ref[0]
+                if mod_chip is not None and bool(mod_chip.getTag()):
+                    source_code = "moderation"
+                elif everyone_chip is not None and bool(everyone_chip.getTag()):
+                    link_et = self._source_code_link_et_ref[0]
+                    link_val = str(link_et.getText()).strip() if link_et is not None else ""
+                    source_code = link_val if link_val else "everyone"
+        except Exception as e:
+            logx(f"suggest._do_submit: source_code read error: {e}", False)
+
+        paid = False
+        try:
+            paid_toggle = self._paid_toggle_ref[0]
+            if paid_toggle is not None:
+                paid = bool(paid_toggle.getTag())
+        except Exception as e:
+            logx(f"suggest._do_submit: paid read error: {e}", False)
 
         use_json = False
         try:
@@ -3147,15 +3547,17 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 "socials": socials,
                 "changelog": changelog,
                 "forked": forked_link,
+                "source_code": source_code,
+                "paid": paid,
             }
             if note:
                 payload["note"] = note
             caption = _json.dumps(payload, ensure_ascii=False)
         else:
-            caption = f"Description:\n{desc}\n\nSocials:\n{socials_block}\n\nChangelog:\n{changelog}\n\nForked:\n{forked_link}"
+            caption = f"Description:\n{desc}\n\nSocials:\n{socials_block}\n\nChangelog:\n{changelog}\n\nForked:\n{forked_link}\n\nSource code:\n{source_code}\n\nPaid:\n{paid}"
             if note:
                 caption += f"\n\nNote:\n{note}"
-        log(f"suggest._do_submit: caption={caption!r}")
+        logx(f"suggest._do_submit: caption={caption!r}", True)
 
         # show loading state on button
         self._set_submit_loading(act)
@@ -3169,27 +3571,27 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
                 # use already-saved draft file if present, otherwise copy from uri
                 if self_ref._draft_main_path and os.path.isfile(self_ref._draft_main_path):
-                    log(f"suggest._task: using draft main file path={self_ref._draft_main_path}")
+                    logx(f"suggest._task: using draft main file path={self_ref._draft_main_path}", True)
                     main_path = self_ref._draft_main_path
                 else:
-                    log(f"suggest._task: copying main file name={main_name!r} uri={self_ref._selected_uri}")
+                    logx(f"suggest._task: copying main file name={main_name!r} uri={self_ref._selected_uri}", True)
                     main_path = _copy_uri_to_temp(self_ref._selected_uri, act, main_name)
                 if not main_path:
                     raise Exception("failed to get main file path")
-                log(f"suggest._task: main_path={main_path}")
+                logx(f"suggest._task: main_path={main_path}", True)
 
                 extra_paths = []
                 for i, (uri, name, size) in enumerate(self_ref._extra_uris):
                     draft_p = self_ref._draft_extra_paths[i] if i < len(self_ref._draft_extra_paths) else None
                     if draft_p and os.path.isfile(draft_p):
-                        log(f"suggest._task: using draft extra file [{i}] path={draft_p}")
+                        logx(f"suggest._task: using draft extra file [{i}] path={draft_p}", True)
                         extra_paths.append(draft_p)
                     elif uri is not None:
-                        log(f"suggest._task: copying extra name={name!r}")
+                        logx(f"suggest._task: copying extra name={name!r}", True)
                         p = _copy_uri_to_temp(uri, act, name or "")
                         if p:
                             extra_paths.append(p)
-                            log(f"suggest._task: extra_path={p}")
+                            logx(f"suggest._task: extra_path={p}", True)
 
                 # collect paths that live in filesDir (blocked by isInternalUri)
                 files_dir_marker = "/files/"
@@ -3203,7 +3605,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 # hook isInternalUri to allow our draft paths through
                 uri_hook = None
                 if hook_paths and self_ref._plugin is not None:
-                    log(f"suggest._task: hooking isInternalUri for {len(hook_paths)} path(s)")
+                    logx(f"suggest._task: hooking isInternalUri for {len(hook_paths)} path(s)", True)
                     uri_hook = _hook_is_internal_uri(self_ref._plugin, hook_paths)
 
                 # copy draft files to cache dir so upload thread can read them
@@ -3221,7 +3623,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     )
                     tmp.close()
                     shutil.copy2(src, tmp.name)
-                    log(f"suggest._task: staged {src} -> {tmp.name}")
+                    logx(f"suggest._task: staged {src} -> {tmp.name}", True)
                     return tmp.name
 
                 staged_main = None
@@ -3248,29 +3650,29 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         try:
                             for h in uri_hook:
                                 self_ref._plugin.unhook_method(h)
-                            log("suggest: unhooked isInternalUri")
+                            logx("suggest: unhooked isInternalUri", True)
                         except Exception as e:
-                            log(f"suggest: unhook isInternalUri error: {e}")
+                            logx(f"suggest: unhook isInternalUri error: {e}", False)
                     # delete staged copies and non-draft temp files
                     for p in ([staged_main] if staged_main else []) + [s for s in staged_extras if s]:
                         try:
                             os.unlink(p)
-                            log(f"suggest: cleaned up staged {p}")
+                            logx(f"suggest: cleaned up staged {p}", True)
                         except Exception as ex:
-                            log(f"suggest: cleanup staged error {p}: {ex}")
+                            logx(f"suggest: cleanup staged error {p}: {ex}", True)
                     for p in [main_path] + extra_paths:
                         if files_dir_marker not in p:
                             try:
                                 os.unlink(p)
-                                log(f"suggest: cleaned up temp {p}")
+                                logx(f"suggest: cleaned up temp {p}", True)
                             except Exception as ex:
-                                log(f"suggest: cleanup error {p}: {ex}")
+                                logx(f"suggest: cleanup error {p}: {ex}", True)
 
                 # resolve username to get access_hash, then send
                 def _on_resolved(response, error):
                     if error or not response or not response.users:
                         err_text = error.text if error else "no users"
-                        log(f"suggest: resolve error: {err_text}")
+                        logx(f"suggest: resolve error: {err_text}", True)
                         _cleanup()
                         run_on_ui_thread(lambda: (
                             BulletinHelper.show_error(str(strings.suggest_resolve_error)),
@@ -3282,7 +3684,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         user = response.users.get(0)
                         peer_id = int(user.id)
                         get_messages_controller().putUsers(response.users, False)
-                        log(f"suggest: resolved acc_user={acc_user} peer_id={peer_id}")
+                        logx(f"suggest: resolved acc_user={acc_user} peer_id={peer_id}", True)
 
                         # build extra captions before leaving queue thread
                         import json as _json2
@@ -3294,17 +3696,17 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         # send_document calls SendMessagesHelper which requires main thread
                         def _send_on_main():
                             try:
-                                log(f"suggest: sending main document path={send_main_path}")
+                                logx(f"suggest: sending main document path={send_main_path}", True)
                                 send_document(peer_id, send_main_path, caption=caption)
-                                log(f"suggest: main document sent ok")
+                                logx(f"suggest: main document sent ok", True)
                                 for i, p in enumerate(send_extra_paths):
-                                    log(f"suggest: sending extra document [{i}] path={p}")
+                                    logx(f"suggest: sending extra document [{i}] path={p}", True)
                                     send_document(peer_id, p, caption=extra_captions[i])
-                                    log(f"suggest: extra document [{i}] sent ok")
-                                log("suggest: all documents enqueued, showing success")
+                                    logx(f"suggest: extra document [{i}] sent ok", True)
+                                logx("suggest: all documents enqueued, showing success", True)
                                 self_ref._submitted = True
                                 _clear_draft(self_ref._rm_rid)
-                                log(f"suggest: draft cleared for {self_ref._rm_rid}")
+                                logx(f"suggest: draft cleared for {self_ref._rm_rid}", True)
                                 BulletinHelper.show_success(str(strings.suggest_sent))
                                 self_ref._finish_fragment()
 
@@ -3313,30 +3715,30 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                                     import time
                                     time.sleep(30)
                                     _cleanup()
-                                    log("suggest: deferred cleanup done")
+                                    logx("suggest: deferred cleanup done", True)
 
                                 import threading
                                 threading.Thread(target=_deferred_cleanup, daemon=True).start()
                             except Exception as e:
-                                log(f"suggest: send_on_main error: {e}")
+                                logx(f"suggest: send_on_main error: {e}", False)
                                 BulletinHelper.show_error(str(strings.suggest_send_error))
                                 self_ref._restore_submit_btn()
 
                         run_on_ui_thread(_send_on_main)
                     except Exception as e:
-                        log(f"suggest: send error: {e}")
+                        logx(f"suggest: send error: {e}", False)
                         _cleanup()
                         run_on_ui_thread(lambda: (
                             BulletinHelper.show_error(str(strings.suggest_send_error)),
                             self_ref._restore_submit_btn()
                         ))
 
-                log(f"suggest: resolving username={acc_user}")
+                logx(f"suggest: resolving username={acc_user}", True)
                 req = TLRPC.TL_contacts_resolveUsername()
                 req.username = acc_user
                 send_request(req, RequestCallback(_on_resolved))
             except Exception as e:
-                log(f"suggest._do_submit task error: {e}")
+                logx(f"suggest._do_submit task error: {e}", False)
                 run_on_ui_thread(lambda: (
                     BulletinHelper.show_error(str(strings.suggest_send_error)),
                     self_ref._restore_submit_btn()
@@ -3369,7 +3771,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             aset.playTogether(ty, alpha)
             aset.start()
         except Exception as e:
-            log(f"suggest: _show_submit_btn anim error: {e}")
+            logx(f"suggest: _show_submit_btn anim error: {e}", False)
             try:
                 wrapper.setVisibility(View.VISIBLE)
                 wrapper.setAlpha(1.0)
@@ -3400,7 +3802,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             spinner.setPadding(0, dp(14), 0, dp(14))
             btn.addView(spinner, FrameLayout.LayoutParams(-1, dp(20 + 28), Gravity.CENTER))
         except Exception as e:
-            log(f"suggest: _set_submit_loading error: {e}")
+            logx(f"suggest: _set_submit_loading error: {e}", False)
             try:
                 from android.widget import ProgressBar
                 btn = self._submit_btn_ref
@@ -3425,7 +3827,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             btn.setEnabled(True)
             btn.setClickable(True)
         except Exception as e:
-            log(f"suggest: _restore_submit_btn error: {e}")
+            logx(f"suggest: _restore_submit_btn error: {e}", False)
 
     def _finish_fragment(self):
         try:
@@ -3437,7 +3839,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 if f:
                     f.finishFragment()
         except Exception as e:
-            log(f"suggest: _finish_fragment error: {e}")
+            logx(f"suggest: _finish_fragment error: {e}", False)
 
     def beforeCreateView(self):
         if self.content_view is not None:
@@ -3446,7 +3848,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 if parent is not None:
                     parent.removeView(self.content_view)
             except Exception as e:
-                log(f"suggest: stale view cleanup error: {e}")
+                logx(f"suggest: stale view cleanup error: {e}", False)
             self.content_view = None
 
         frag = get_last_fragment()
@@ -3481,7 +3883,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 title_tv.setGravity(Gravity.START)
                 content.addView(title_tv, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 16))
             except Exception as e:
-                log(f"suggest: title_tv error: {e}")
+                logx(f"suggest: title_tv error: {e}", False)
 
             outer = LinearLayout(act)
             outer.setOrientation(LinearLayout.VERTICAL)
@@ -3579,7 +3981,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 self._rules_tv_ref[0] = rules_row
                 outer.addView(rules_row, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 0))
             except Exception as e:
-                log(f"suggest: rules_tv error: {e}")
+                logx(f"suggest: rules_tv error: {e}", False)
 
             content.addView(outer, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0))
 
@@ -3650,7 +4052,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 self._submit_btn_ref = submit_btn
                 self._submit_lbl_ref[0] = submit_lbl
             except Exception as e:
-                log(f"suggest: submit_btn error: {e}")
+                logx(f"suggest: submit_btn error: {e}", False)
 
             self._attach_keyboard_scroll(act, root)
             self.content_view = root
@@ -3662,7 +4064,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
             return root
         except Exception as e:
-            log(f"suggest: beforeCreateView build error: {e}")
+            logx(f"suggest: beforeCreateView build error: {e}", False)
             return None
 
 
@@ -3704,7 +4106,7 @@ def show_suggest_fragment(repo_data: dict, plugin=None):
 
         _do_open_suggest(repo_data, plugin, rm_rid, None)
     except Exception as e:
-        log(f"suggest: show_suggest_fragment error: {e}")
+        logx(f"suggest: show_suggest_fragment error: {e}", False)
 
 
 def _do_open_suggest(repo_data: dict, plugin, rm_rid: str, draft):
@@ -3740,9 +4142,9 @@ def _do_open_suggest(repo_data: dict, plugin, rm_rid: str, draft):
                         except Exception:
                             pass
                 except Exception as e:
-                    log(f"suggest: back button error: {e}")
+                    logx(f"suggest: back button error: {e}", False)
             delegate._fragment_ref[0] = new_fragment
         except Exception as e:
-            log(f"suggest: actionBar setup error: {e}")
+            logx(f"suggest: actionBar setup error: {e}", False)
     except Exception as e:
-        log(f"suggest: _do_open_suggest error: {e}")
+        logx(f"suggest: _do_open_suggest error: {e}", False)

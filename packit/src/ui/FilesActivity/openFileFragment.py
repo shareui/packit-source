@@ -1,6 +1,7 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import os
 from android.view import View, Gravity, MotionEvent
 from android.widget import LinearLayout, TextView, FrameLayout, HorizontalScrollView, ImageView, ScrollView
@@ -8,7 +9,7 @@ from android.util import TypedValue
 from android.text import TextUtils
 from android.graphics.drawable import GradientDrawable
 from java import dynamic_proxy
-from android_utils import log, OnClickListener
+from android_utils import OnClickListener
 from client_utils import get_last_fragment
 from hook_utils import find_class
 
@@ -42,7 +43,7 @@ def _is_binary(path):
             chunk = f.read(_BINARY_SAMPLE_SIZE)
         return b"\x00" in chunk
     except Exception as e:
-        log(f"openFileFragment: _is_binary error: {e}")
+        logx(f"openFileFragment: _is_binary error: {e}", False)
         return False
 
 
@@ -178,7 +179,7 @@ def _show_binary_sheet(activity):
             pass
         sheet.show()
     except Exception as e:
-        log(f"openFileFragment: _show_binary_sheet error: {e}")
+        logx(f"openFileFragment: _show_binary_sheet error: {e}", False)
 
 
 _FIRST_CHUNK_SIZE = 16 * 1024   # 16 KB — shown immediately
@@ -212,10 +213,10 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
         self._highlighted = None
 
     def onFragmentCreate(self, *_):
-        log(f"openFileFragment: onFragmentCreate path={self._path}")
+        logx(f"openFileFragment: onFragmentCreate path={self._path}", True)
 
     def onFragmentDestroy(self, *_):
-        log("openFileFragment: onFragmentDestroy")
+        logx("openFileFragment: onFragmentDestroy", True)
         self._load_cancelled = True
         self._highlight_cancelled = True
         try:
@@ -227,12 +228,12 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
                 self._content_tv = None
                 self._edit_tv = None
         except Exception as e:
-            log(f"openFileFragment: onFragmentDestroy error: {e}")
+            logx(f"openFileFragment: onFragmentDestroy error: {e}", False)
         try:
             if self._on_finish is not None:
                 self._on_finish()
         except Exception as e:
-            log(f"openFileFragment: onFragmentDestroy on_finish error: {e}")
+            logx(f"openFileFragment: onFragmentDestroy on_finish error: {e}", False)
 
     def getTitle(self):
         return self._filename
@@ -259,12 +260,12 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
                 if frag:
                     frag.finishFragment()
             except Exception as e:
-                log(f"openFileFragment: failed to finish fragment: {e}")
+                logx(f"openFileFragment: failed to finish fragment: {e}", False)
             return True
         return False
 
     def beforeCreateView(self):
-        log(f"openFileFragment: beforeCreateView path={self._path}")
+        logx(f"openFileFragment: beforeCreateView path={self._path}", True)
 
         frag = get_last_fragment()
         if not frag:
@@ -390,7 +391,7 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
             with open(self._path, "r", encoding="utf-8", errors="replace") as f:
                 while True:
                     if self._load_cancelled:
-                        log("openFileFragment: load cancelled")
+                        logx("openFileFragment: load cancelled", True)
                         return
 
                     size = _FIRST_CHUNK_SIZE if first else _CHUNK_SIZE
@@ -410,7 +411,7 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
             if not self._load_cancelled:
                 run_on_ui_thread(self._on_load_done)
         except Exception as e:
-            log(f"openFileFragment: _load_chunked error: {e}")
+            logx(f"openFileFragment: _load_chunked error: {e}", False)
             if not self._load_cancelled:
                 from android_utils import run_on_ui_thread
                 run_on_ui_thread(self._on_load_done)
@@ -423,13 +424,13 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
             self._text += chunk
             self._content_tv.append(chunk)
         except Exception as e:
-            log(f"openFileFragment: _append_chunk error: {e}")
+            logx(f"openFileFragment: _append_chunk error: {e}", False)
 
     def _on_load_done(self):
         # runs on UI thread
         self._loading = False
         self._original_text = self._text
-        log(f"openFileFragment: load done, total={len(self._text)} chars")
+        logx(f"openFileFragment: load done, total={len(self._text)} chars", True)
         self._startHighlight()
 
     def _startHighlight(self):
@@ -468,11 +469,11 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
             colors = _resolveColors()
             if not colors or self._highlight_cancelled:
                 return
-            log(f"openFileFragment: highlight done, tokens={cnt}, applying chunked")
+            logx(f"openFileFragment: highlight done, tokens={cnt}, applying chunked", True)
             from android_utils import run_on_ui_thread
             run_on_ui_thread(lambda: self._applyHighlightChunked(text, tokBuf, ranges, cnt, colors, 0))
         except Exception as e:
-            log(f"openFileFragment: _highlightBg error: {e}")
+            logx(f"openFileFragment: _highlightBg error: {e}", False)
             from android_utils import run_on_ui_thread
 
     # how many setSpan() calls per UI frame
@@ -504,22 +505,22 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
                 if not self._highlight_cancelled and self._content_tv is not None:
                     self._highlighted = self._spannable
                     self._content_tv.setText(self._spannable)
-                    log("openFileFragment: highlight applied")
+                    logx("openFileFragment: highlight applied", True)
                 self._spannable = None
                 tokBuf = None
                 ranges = None
         except Exception as e:
-            log(f"openFileFragment: _applyHighlightChunked error: {e}")
+            logx(f"openFileFragment: _applyHighlightChunked error: {e}", False)
             self._spannable = None
             tokBuf = None
             ranges = None
 
     def _toggle_edit(self):
         if self._loading:
-            log("openFileFragment: _toggle_edit blocked: still loading")
+            logx("openFileFragment: _toggle_edit blocked: still loading", True)
             return
         self._edit_mode = not self._edit_mode
-        log(f"openFileFragment: toggle edit mode={self._edit_mode}")
+        logx(f"openFileFragment: toggle edit mode={self._edit_mode}", True)
         try:
             t = self._theme
 
@@ -544,7 +545,7 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
                 self._content_tv.setText(self._highlighted if self._highlighted is not None else self._text)
                 self._content_tv.setVisibility(View.VISIBLE)
         except Exception as e:
-            log(f"openFileFragment: _toggle_edit error: {e}")
+            logx(f"openFileFragment: _toggle_edit error: {e}", False)
 
     def _ensure_edit_tv(self):
         if self._edit_tv is not None:
@@ -585,7 +586,7 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
             wrapper.addView(self._edit_tv, LayoutHelper.createLinear(-1, -2))
             self._v_scroll.addView(wrapper, LayoutHelper.createScroll(-1, -2, 0))
         except Exception as e:
-            log(f"openFileFragment: _ensure_edit_tv error: {e}")
+            logx(f"openFileFragment: _ensure_edit_tv error: {e}", False)
 
     def _do_save(self):
         if not self._edit_tv:
@@ -597,9 +598,9 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
             self._text = new_text
             self._highlighted = None
             self._startHighlight()
-            log(f"openFileFragment: saved {self._path}")
+            logx(f"openFileFragment: saved {self._path}", True)
         except Exception as e:
-            log(f"openFileFragment: _do_save error: {e}")
+            logx(f"openFileFragment: _do_save error: {e}", False)
 
     def _do_reset(self):
         if not self._edit_tv:
@@ -607,14 +608,14 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
         try:
             self._edit_tv.setText(self._original_text)
             self._edit_tv.setSelection(0)
-            log("openFileFragment: reset to original")
+            logx("openFileFragment: reset to original", True)
         except Exception as e:
-            log(f"openFileFragment: _do_reset error: {e}")
+            logx(f"openFileFragment: _do_reset error: {e}", False)
 
 
 def open_file(path: str, binary: bool = False, on_finish=None):
     # called on UI thread
-    log(f"openFileFragment: open_file path={path} binary={binary}")
+    logx(f"openFileFragment: open_file path={path} binary={binary}", True)
     try:
         if binary:
             frag = get_last_fragment()
@@ -626,7 +627,7 @@ def open_file(path: str, binary: bool = False, on_finish=None):
 
         frag = get_last_fragment()
         if not frag:
-            log("openFileFragment: open_file no fragment")
+            logx("openFileFragment: open_file no fragment", True)
             return
         delegate = OpenFileFragment(path, on_finish=on_finish)
         new_frag = UniversalFragment(delegate)
@@ -652,9 +653,9 @@ def open_file(path: str, binary: bool = False, on_finish=None):
                         except Exception:
                             pass
             except Exception as e:
-                log(f"openFileFragment: Failed to add back button: {e}")
+                logx(f"openFileFragment: Failed to add back button: {e}", False)
             delegate._frag_ref[0] = new_frag
         except Exception as e:
-            log(f"openFileFragment: open_file setup error: {e}")
+            logx(f"openFileFragment: open_file setup error: {e}", False)
     except Exception as e:
-        log(f"openFileFragment: open_file error: {e}")
+        logx(f"openFileFragment: open_file error: {e}", False)

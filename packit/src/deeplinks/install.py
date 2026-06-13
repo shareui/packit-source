@@ -1,9 +1,10 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment, run_on_queue
-from android_utils import log, run_on_ui_thread
+from android_utils import run_on_ui_thread
 from urllib.parse import urlparse, parse_qs
 from ..core import install_plugin, install_icon_pack
 from ..ui.PluginListActivity.fragment import InstallUI
@@ -104,7 +105,7 @@ def handle(url, repoManager):
 
         _handleInstallPlugin(repo, pluginId, versionId)
     except Exception as e:
-        log(f"deeplinks.install: error: {e}")
+        logx(f"deeplinks.install: error: {e}", False)
 
 
 def _handleOpenInstall(repoManager):
@@ -115,7 +116,7 @@ def _handleOpenInstall(repoManager):
         installUI = InstallUI(_FakePlugin(repoManager))
         installUI.open()
     except Exception as e:
-        log(f"deeplinks.install: open error: {e}")
+        logx(f"deeplinks.install: open error: {e}", False)
 
 
 def _is_version_ok(app_ver_expr: str) -> bool:
@@ -263,7 +264,7 @@ def _show_incompatible_sheet(requested_version: str, compatible_plugin: dict, al
         sheet.setCustomView(root)
         sheet.show()
     except Exception as e:
-        log(f"deeplinks.install: incompatible sheet error: {e}")
+        logx(f"deeplinks.install: incompatible sheet error: {e}", False)
 
 
 def _handleInstallPlugin(repo: dict, pluginId: str, versionId: str = ""):
@@ -346,7 +347,7 @@ def _handleInstallPlugin(repo: dict, pluginId: str, versionId: str = ""):
 
             run_on_ui_thread(lambda: install_plugin(plugin, all_plugins=all_plugins))
         except Exception as e:
-            log(f"deeplinks.install: fetch error: {e}")
+            logx(f"deeplinks.install: fetch error: {e}", False)
             run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings["dl_install_error"])))
 
     if versionId:
@@ -367,7 +368,7 @@ def _handleInstallPlugin(repo: dict, pluginId: str, versionId: str = ""):
                     str(strings["dl_install_version_loading"]).format(versionId)
                 ).show()
             except Exception as e:
-                log(f"deeplinks.install: loading bulletin error: {e}")
+                logx(f"deeplinks.install: loading bulletin error: {e}", False)
         run_on_ui_thread(_show_loading_bulletin)
 
     run_on_queue(task)
@@ -422,7 +423,7 @@ def _handleInstallIconPack(repo: dict, iconId: str):
 
             run_on_ui_thread(lambda: install_icon_pack(icon))
         except Exception as e:
-            log(f"deeplinks.install: icon fetch error: {e}")
+            logx(f"deeplinks.install: icon fetch error: {e}", False)
             run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings["dl_iconpack_load_error"])))
 
     run_on_queue(task)

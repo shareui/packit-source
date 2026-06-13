@@ -1,17 +1,18 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import os
 import json
 import threading
 import urllib.request
-from android_utils import log
+
 from hook_utils import find_class
 try:
     from org.telegram.messenger import ApplicationLoader
 except Exception as e:
     ApplicationLoader = None
-    log(f"[everyone] import ApplicationLoader failed: {e}")
+    logx(f"[everyone] import ApplicationLoader failed: {e}", False)
 
 _INTERNAL_CFG_URL = "https://raw.githubusercontent.com/shareui/packit/refs/heads/main/configs/internal_cfg.json"
 _CACHE_FILENAME = "everyone_ids.json"
@@ -43,7 +44,7 @@ def _load_from_cache() -> bool:
             _everyone_ids = set(ids)
         return True
     except Exception as e:
-        log(f"[everyone] cache load error: {e}")
+        logx(f"[everyone] cache load error: {e}", False)
         return False
 
 
@@ -66,7 +67,7 @@ def _fetch_and_save():
         with open(path, "w", encoding="utf-8") as f:
             json.dump({"everyone": ids}, f)
     except Exception as e:
-        log(f"[everyone] fetch error: {e}")
+        logx(f"[everyone] fetch error: {e}", False)
 
 
 def _is_allowed_sender(user_id: int) -> bool:
@@ -87,9 +88,9 @@ def _patch_message(msg):
             return
         msg.mentioned = True
         msg.media_unread = True
-        log(f"[everyone] mentioned patched from {sender_id}")
+        logx(f"[everyone] mentioned patched from {sender_id}", True)
     except Exception as e:
-        log(f"[everyone] patch error: {e}")
+        logx(f"[everyone] patch error: {e}", False)
 
 
 class PutMessagesHook:
@@ -101,7 +102,7 @@ class PutMessagesHook:
             for i in range(messages.size()):
                 _patch_message(messages.get(i))
         except Exception as e:
-            log(f"[everyone] hook error: {e}")
+            logx(f"[everyone] hook error: {e}", False)
 
 
 def setup_hook(plugin) -> list:
@@ -112,7 +113,7 @@ def setup_hook(plugin) -> list:
             return refs
         refs = plugin.hook_all_methods(MessagesStorage, "putMessages", PutMessagesHook())
     except Exception as e:
-        log(f"[everyone] setup_hook error: {e}")
+        logx(f"[everyone] setup_hook error: {e}", False)
     return refs
 
 

@@ -1,9 +1,10 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 from ui.settings import Header, Text, Divider, Selector, Switch
 from elyx import strings, settings
-from android_utils import log
+
 from client_utils import get_last_fragment
 
 
@@ -18,11 +19,11 @@ def _open_url(url: str):
                 act = get_last_fragment().getParentActivity()
                 Browser.openUrl(act, Uri.parse(url), True, True, True, None, None, False, False, False)
             except Exception as e:
-                log(f"apikeys: _open_url ui error: {e}")
+                logx(f"apikeys: _open_url ui error: {e}", False)
 
         run_on_ui_thread(_do)
     except Exception as e:
-        log(f"apikeys: _open_url error: {e}")
+        logx(f"apikeys: _open_url error: {e}", False)
 
 
 def _get_device_id() -> str:
@@ -32,7 +33,7 @@ def _get_device_id() -> str:
         ctx = ApplicationLoader.applicationContext
         return str(Settings.Secure.getString(ctx.getContentResolver(), Settings.Secure.ANDROID_ID)) or "default"
     except Exception as e:
-        log(f"apikeys: _get_device_id error: {e}")
+        logx(f"apikeys: _get_device_id error: {e}", False)
         return "default"
 
 
@@ -75,7 +76,7 @@ def _get_gemini_key_preview() -> "str | None":
             return key
         return key[:2] + ".." + key[-3:]
     except Exception as e:
-        log(f"apikeys: _get_gemini_key_preview error: {e}")
+        logx(f"apikeys: _get_gemini_key_preview error: {e}", False)
         return None
 
 
@@ -91,7 +92,7 @@ def _save_gemini_key(keyValue: str):
 
         lib = loadPackitKey()
         if not lib:
-            log("apikeys: libpackitkey not loaded")
+            logx("apikeys: libpackitkey not loaded", True)
             return
 
         deviceId = _get_device_id()
@@ -107,11 +108,11 @@ def _save_gemini_key(keyValue: str):
             ctypes.c_uint32(keyLen),
         )
         if result != 0:
-            log(f"apikeys: packitkey_store returned {result}")
+            logx(f"apikeys: packitkey_store returned {result}", True)
         else:
-            log("apikeys: gemini key saved")
+            logx("apikeys: gemini key saved", True)
     except Exception as e:
-        log(f"apikeys: _save_gemini_key error: {e}")
+        logx(f"apikeys: _save_gemini_key error: {e}", False)
 
 
 def _delete_gemini_key():
@@ -121,7 +122,7 @@ def _delete_gemini_key():
 
         lib = loadPackitKey()
         if not lib:
-            log("apikeys: libpackitkey not loaded")
+            logx("apikeys: libpackitkey not loaded", True)
             return
 
         deviceId = _get_device_id()
@@ -131,11 +132,11 @@ def _delete_gemini_key():
             b"gemini",
         )
         if result != 0:
-            log(f"apikeys: packitkey_delete returned {result}")
+            logx(f"apikeys: packitkey_delete returned {result}", True)
         else:
-            log("apikeys: gemini key deleted")
+            logx("apikeys: gemini key deleted", True)
     except Exception as e:
-        log(f"apikeys: _delete_gemini_key error: {e}")
+        logx(f"apikeys: _delete_gemini_key error: {e}", False)
 
 
 def _has_gemini_cache() -> bool:
@@ -169,14 +170,14 @@ def _on_reset_gemini_cache(view):
                 path = getGeminiCachePath()
                 if os.path.exists(path):
                     os.remove(path)
-                log("apikeys: gemini cache cleared")
+                logx("apikeys: gemini cache cleared", True)
             except Exception as e:
-                log(f"apikeys: _on_reset_gemini_cache delete error: {e}")
+                logx(f"apikeys: _on_reset_gemini_cache delete error: {e}", False)
             try:
                 from com.exteragram.messenger.plugins import PluginsController
                 PluginsController.getInstance().loadPluginSettings("shareui_packit")
             except Exception as e:
-                log(f"apikeys: settings reload failed: {e}")
+                logx(f"apikeys: settings reload failed: {e}", False)
             BulletinHelper.show_success(str(strings.api_key_reset_success), get_last_fragment())
 
         builder = AlertDialogBuilder(act)
@@ -186,7 +187,7 @@ def _on_reset_gemini_cache(view):
         builder.set_negative_button(str(strings.cancel_button), lambda b, w: b.dismiss())
         builder.show()
     except Exception as e:
-        log(f"apikeys: _on_reset_gemini_cache error: {e}")
+        logx(f"apikeys: _on_reset_gemini_cache error: {e}", False)
 
 
 def _on_reset_gemini_key(view):
@@ -207,7 +208,7 @@ def _on_reset_gemini_key(view):
                     from com.exteragram.messenger.plugins import PluginsController
                     PluginsController.getInstance().loadPluginSettings("shareui_packit")
                 except Exception as e:
-                    log(f"apikeys: settings reload failed: {e}")
+                    logx(f"apikeys: settings reload failed: {e}", False)
                 BulletinHelper.show_success(str(strings.api_key_reset_success), post_frag)
             else:
                 BulletinHelper.show_error(str(strings.api_key_saved_error), post_frag)
@@ -220,7 +221,7 @@ def _on_reset_gemini_key(view):
         builder.make_button_red(AlertDialogBuilder.BUTTON_POSITIVE)
         builder.show()
     except Exception as e:
-        log(f"apikeys: _on_reset_gemini_key error: {e}")
+        logx(f"apikeys: _on_reset_gemini_key error: {e}", False)
 
 
 def _on_add_gemini_key(view):
@@ -243,7 +244,7 @@ def _on_add_gemini_key(view):
                     from com.exteragram.messenger.plugins import PluginsController
                     PluginsController.getInstance().loadPluginSettings("shareui_packit")
                 except Exception as e:
-                    log(f"apikeys: settings reload failed: {e}")
+                    logx(f"apikeys: settings reload failed: {e}", False)
                 BulletinHelper.show_success(str(strings.api_key_saved_success), saved_frag)
             else:
                 BulletinHelper.show_error(str(strings.api_key_saved_error), saved_frag)
@@ -258,7 +259,7 @@ def _on_add_gemini_key(view):
             outline_label=str(strings.api_key_dialog_outline_label),
         )
     except Exception as e:
-        log(f"apikeys: _on_add_gemini_key error: {e}")
+        logx(f"apikeys: _on_add_gemini_key error: {e}", False)
 
 
 def build_apikeys_page():

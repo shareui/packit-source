@@ -1,11 +1,12 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import hashlib
 import os
 import ctypes
 
-from android_utils import log
+
 
 METHOD_SHA256 = 0
 METHOD_BITHASH = 1
@@ -29,7 +30,7 @@ def _getBitHashLib():
     from ..nativeLoader import loadBitHash
     _lib = loadBitHash()
     if _lib is not None:
-        log("hashutil: libbithash.so loaded successfully!")
+        logx("hashutil: libbithash.so loaded successfully!", True)
     return _lib
 
 
@@ -47,7 +48,7 @@ def _hashFileSha256(path: str) -> str:
 def _hashFileBithash(path: str) -> str:
     lib = _getBitHashLib()
     if lib is None:
-        log("hashutil: bithash unavailable, falling back to sha256")
+        logx("hashutil: bithash unavailable, falling back to sha256", True)
         return _hashFileSha256(path)
 
     BUF_SIZE = 256 * 1024
@@ -88,7 +89,7 @@ def _hashFileBithash(path: str) -> str:
         result = lib.bitHash_finish(ctypes.byref(state))
         return format(result, "016x")
     except Exception as e:
-        log(f"hashutil: bithash compute error: {e}")
+        logx(f"hashutil: bithash compute error: {e}", False)
         return _hashFileSha256(path)
 
 
@@ -107,7 +108,7 @@ def matchesStoredHash(path: str, sha256: str, bithash: str, label: str = "") -> 
     has_bithash = bool(bithash)
 
     if not has_sha256 and not has_bithash:
-        log(f"hashutil: no stored hash for '{label or path}', skipping check")
+        logx(f"hashutil: no stored hash for '{label or path}', skipping check", True)
         return True
 
     preferred = getHashMethod()
@@ -119,7 +120,7 @@ def matchesStoredHash(path: str, sha256: str, bithash: str, label: str = "") -> 
         # lib unavailable, fall back to sha256
         if has_sha256:
             return _hashFileSha256(path) == sha256
-        log(f"hashutil: bithash lib unavailable and no sha256 stored for '{label or path}', skipping check")
+        logx(f"hashutil: bithash lib unavailable and no sha256 stored for '{label or path}', skipping check", True)
         return True
     if preferred == METHOD_SHA256 and has_sha256:
         return _hashFileSha256(path) == sha256
@@ -129,5 +130,5 @@ def matchesStoredHash(path: str, sha256: str, bithash: str, label: str = "") -> 
         return _hashFileSha256(path) == sha256
     if _getBitHashLib() is not None:
         return _hashFileBithash(path) == bithash
-    log(f"hashutil: bithash lib unavailable and no sha256 stored for '{label or path}', skipping check")
+    logx(f"hashutil: bithash lib unavailable and no sha256 stored for '{label or path}', skipping check", True)
     return True

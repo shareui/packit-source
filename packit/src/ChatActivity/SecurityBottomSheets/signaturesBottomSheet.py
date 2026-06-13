@@ -1,13 +1,14 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 DEBUG_LOGS = False
 TEST_UI = False
 TEST_WARNING = False
 
 from base_plugin import MethodHook
 from hook_utils import find_class
-from android_utils import log, OnClickListener
+from android_utils import OnClickListener
 from client_utils import get_last_fragment
 from android.widget import ImageView
 from elyx import strings
@@ -15,17 +16,17 @@ try:
     from org.telegram.messenger import AndroidUtilities, R as R_tg
 except Exception as e:
     if DEBUG_LOGS:
-        log(f"securityUi: import error: {e}")
+        logx(f"securityUi: import error: {e}", False)
 try:
     from org.telegram.ui.ActionBar import Theme
 except Exception as e:
     if DEBUG_LOGS:
-        log(f"securityUi: import Theme error: {e}")
+        logx(f"securityUi: import Theme error: {e}", False)
 try:
     from org.telegram.ui.Components import LayoutHelper
 except Exception as e:
     if DEBUG_LOGS:
-        log(f"securityUi: import LayoutHelper error: {e}")
+        logx(f"securityUi: import LayoutHelper error: {e}", False)
 try:
     from android.view import View
 except Exception as e:
@@ -415,7 +416,7 @@ def _scanPlugin(source: str, signatures: list) -> dict:
             _scanSource(decoded_text, signatures, results, label_prefix=f"[{method}] ")
     except Exception as e:
         if DEBUG_LOGS:
-            log(f"securityUi: obfuscation unwrap error: {e}")
+            logx(f"securityUi: obfuscation unwrap error: {e}", False)
 
     return results
 
@@ -500,7 +501,7 @@ def _appendCleanState(act, root):
         container.addView(lottie, lp)
     except Exception as e:
         if DEBUG_LOGS:
-            log(f"securityUi: lottie error: {e}")
+            logx(f"securityUi: lottie error: {e}", False)
 
     label = TextView(act)
     label.setText(strings["sec_no_signatures"])
@@ -552,7 +553,7 @@ def _appendLevelBlock(act, root, level: str, patterns: list):
         block.setBackground(gd)
     except Exception as e:
         if DEBUG_LOGS:
-            log(f"securityUi: block bg error: {e}")
+            logx(f"securityUi: block bg error: {e}", False)
 
     # header: icon + level name
     header = LinearLayout(act)
@@ -633,7 +634,7 @@ def _applyPressScale(view):
         view.setOnTouchListener(_TouchListener())
     except Exception as e:
         if DEBUG_LOGS:
-            log(f"securityUi: _applyPressScale error: {e}")
+            logx(f"securityUi: _applyPressScale error: {e}", False)
 
 
 def _hasPackitkeySignature(results: dict) -> bool:
@@ -668,7 +669,7 @@ def _buildPackitkeyWarning(act) -> object:
         container.setBackground(gd)
     except Exception as e:
         if DEBUG_LOGS:
-            log(f"securityUi: packitkey warning bg error: {e}")
+            logx(f"securityUi: packitkey warning bg error: {e}", False)
 
     title = TextView(act)
     title.setText(strings["sec_packitkey_warning_title"])
@@ -803,7 +804,7 @@ def _showResults(results: dict, act):
                 LocalConfig.set("signatures", True)
             except Exception as ex:
                 if DEBUG_LOGS:
-                    log(f"securityUi: LocalConfig.set signatures error: {ex}")
+                    logx(f"securityUi: LocalConfig.set signatures error: {ex}", True)
             try:
                 from android.net import Uri
                 from org.telegram.messenger.browser import Browser
@@ -812,7 +813,7 @@ def _showResults(results: dict, act):
                     sheetRef[0].dismiss()
             except Exception as ex:
                 if DEBUG_LOGS:
-                    log(f"securityUi: open link error: {ex}")
+                    logx(f"securityUi: open link error: {ex}", True)
 
         wrapper = LinearLayout(act)
         wrapper.setOrientation(LinearLayout.VERTICAL)
@@ -878,7 +879,7 @@ def _showResults(results: dict, act):
 
     except Exception as e:
         if DEBUG_LOGS:
-            log(f"securityUi: _showResults error: {e}")
+            logx(f"securityUi: _showResults error: {e}", False)
         # fallback
         from ui.alert import AlertDialogBuilder
         msg = strings["sec_no_signatures"] if not results else "\n\n".join(
@@ -910,7 +911,7 @@ def _onPolicyClick(act, filePath: str):
 
             plugin_id = _extractPluginId(filePath, source)
             if DEBUG_LOGS:
-                log(f"securityUi: plugin_id={plugin_id!r}")
+                logx(f"securityUi: plugin_id={plugin_id!r}", True)
 
             if not TEST_UI and plugin_id == "shareui_packit":
                 run_on_ui_thread(lambda: (dlg.dismiss(), _showResults({}, act)))
@@ -921,7 +922,7 @@ def _onPolicyClick(act, filePath: str):
             run_on_ui_thread(lambda: (dlg.dismiss(), _showResults(results, act)))
         except Exception as e:
             if DEBUG_LOGS:
-                log(f"securityUi: scan error: {e}")
+                logx(f"securityUi: scan error: {e}", False)
             run_on_ui_thread(lambda: (dlg.dismiss(), _showResults({}, act)))
 
     threading.Thread(target=_work, daemon=True).start()
@@ -939,10 +940,10 @@ class ConstructorHook(MethodHook):
             sheet = param.thisObject
             _pending[sheet.hashCode()] = filePath
             if DEBUG_LOGS:
-                log(f"securityUi: stored filePath={filePath}")
+                logx(f"securityUi: stored filePath={filePath}", True)
         except Exception as e:
             if DEBUG_LOGS:
-                log(f"securityUi: ConstructorHook error: {e}")
+                logx(f"securityUi: ConstructorHook error: {e}", False)
 
 
 class SetCustomViewHook(MethodHook):
@@ -963,12 +964,12 @@ class SetCustomViewHook(MethodHook):
             frame = view.getChildAt(0)
             if not frame:
                 if DEBUG_LOGS:
-                    log("securityUi: frame not found")
+                    logx("securityUi: frame not found", True)
                 return
 
             filePath = _pending.pop(sheet.hashCode(), "")
             if DEBUG_LOGS:
-                log(f"securityUi: SetCustomViewHook filePath={filePath}")
+                logx(f"securityUi: SetCustomViewHook filePath={filePath}", True)
             act = sheet.getContext()
 
             policy_btn = ImageView(act)
@@ -1008,7 +1009,7 @@ class SetCustomViewHook(MethodHook):
 
         except Exception as e:
             if DEBUG_LOGS:
-                log(f"securityUi: SetCustomViewHook error: {e}")
+                logx(f"securityUi: SetCustomViewHook error: {e}", False)
 
 
 def setup_policy_button_hook(plugin):
@@ -1019,7 +1020,7 @@ def setup_policy_button_hook(plugin):
         )
         if not InstallSheet:
             if DEBUG_LOGS:
-                log("securityUi: InstallPluginBottomSheet not found")
+                logx("securityUi: InstallPluginBottomSheet not found", True)
             return None
 
         BaseFragment = find_class("org.telegram.ui.ActionBar.BaseFragment")
@@ -1046,5 +1047,5 @@ def setup_policy_button_hook(plugin):
         return hooks
     except Exception as e:
         if DEBUG_LOGS:
-            log(f"securityUi: setup error: {e}")
+            logx(f"securityUi: setup error: {e}", False)
         return None

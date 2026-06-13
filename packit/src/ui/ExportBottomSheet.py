@@ -1,6 +1,7 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import os
 import ast
 import re
@@ -13,7 +14,7 @@ from android.graphics.drawable import GradientDrawable
 from android.graphics import Color
 from java import dynamic_proxy
 from android.util import TypedValue
-from android_utils import log, run_on_ui_thread, OnClickListener
+from android_utils import run_on_ui_thread, OnClickListener
 from client_utils import get_last_fragment
 
 try:
@@ -122,7 +123,7 @@ def _tryLoadSticker(iv, icon_str: str, size_dp: int) -> bool:
             pass
         return False
     except Exception as e:
-        log(f"ExportBottomSheet._tryLoadSticker: {e}\n{traceback.format_exc()}")
+        logx(f"ExportBottomSheet._tryLoadSticker: {e}\n{traceback.format_exc()}", False)
         return False
 
 
@@ -165,7 +166,7 @@ def _readPluginMeta(filepath):
                 if m:
                     meta[key] = m.group(1)
     except Exception as e:
-        log(f"ExportBottomSheet._readPluginMeta: {e}\n{traceback.format_exc()}")
+        logx(f"ExportBottomSheet._readPluginMeta: {e}\n{traceback.format_exc()}", False)
     return meta
 
 
@@ -180,7 +181,7 @@ def loadPlugins():
             files_dir = ApplicationLoader.applicationContext.getFilesDir().getAbsolutePath()
             plugins_dir = os.path.join(files_dir, "plugins")
         except Exception as e:
-            log(f"ExportBottomSheet.loadPlugins: cannot resolve plugins dir: {e}\n{traceback.format_exc()}")
+            logx(f"ExportBottomSheet.loadPlugins: cannot resolve plugins dir: {e}\n{traceback.format_exc()}", False)
             return []
 
     result = []
@@ -197,7 +198,7 @@ def loadPlugins():
             icon = meta.get("__icon__") or ""
             result.append((fname, name, version, icon))
     except Exception as e:
-        log(f"ExportBottomSheet.loadPlugins: {e}\n{traceback.format_exc()}")
+        logx(f"ExportBottomSheet.loadPlugins: {e}\n{traceback.format_exc()}", False)
     return result
 
 
@@ -258,7 +259,7 @@ def _makeCheckbox2(act, checked):
         cb.setChecked(checked, False)
         return cb
     except Exception as e:
-        log(f"ExportBottomSheet._makeCheckbox2: {e}")
+        logx(f"ExportBottomSheet._makeCheckbox2: {e}", False)
         return None
 
 
@@ -294,7 +295,7 @@ def _createCheckRow(act, label, version_str, icon_str, checked, on_change):
             if not loaded:
                 _scheduleStickerRetry(icon_view, icon_str, icon_size_dp)
         except Exception as e:
-            log(f"ExportBottomSheet._createCheckRow: icon error: {e}\n{traceback.format_exc()}")
+            logx(f"ExportBottomSheet._createCheckRow: icon error: {e}\n{traceback.format_exc()}", False)
 
     name_tv = TextView(act)
     name_tv.setText(label)
@@ -586,7 +587,7 @@ def show(plugins, on_export):
                 plugins_scroll.setHorizontalFadingEdgeEnabled(False)
                 plugins_scroll.setFadingEdgeLength(AndroidUtilities.dp(20))
             except Exception as e:
-                log(f"ExportBottomSheet: fading edge error: {e}")
+                logx(f"ExportBottomSheet: fading edge error: {e}", False)
             
             dark_lp = LinearLayout.LayoutParams(-1, scroll_height_px + AndroidUtilities.dp(24))
             dark_lp.leftMargin = AndroidUtilities.dp(pad_h)
@@ -761,7 +762,7 @@ def show(plugins, on_export):
                     FrameLayout.LayoutParams(AndroidUtilities.dp(16), -1, Gravity.RIGHT)
                 )
             except Exception as e:
-                log(f"ExportBottomSheet: options fade overlay error: {e}")
+                logx(f"ExportBottomSheet: options fade overlay error: {e}", False)
 
             outer.addView(options_wrap, LayoutHelper.createLinear(-1, -2, pad_h, 4, pad_h, 4))
 
@@ -791,6 +792,6 @@ def show(plugins, on_export):
             sheet.show()
 
         except Exception as e:
-            log(f"ExportBottomSheet.show: {e}\n{traceback.format_exc()}")
+            logx(f"ExportBottomSheet.show: {e}\n{traceback.format_exc()}", False)
 
     run_on_ui_thread(_show)

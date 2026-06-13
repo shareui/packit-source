@@ -1,6 +1,7 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 from ui.settings import Header, Switch, Divider, Custom, Text
 from elyx import strings
 
@@ -14,7 +15,7 @@ def _buildScrollButtonToggle(context, key, default):
         from android.graphics import Color
         from android.animation import ValueAnimator
         from android.view.animation import DecelerateInterpolator
-        from android_utils import OnClickListener, log
+        from android_utils import OnClickListener
         from java import dynamic_proxy
         from hook_utils import find_class
         from elyx import settings as _settings
@@ -210,8 +211,8 @@ def _buildScrollButtonToggle(context, key, default):
 
         return root
     except Exception as e:
-        from android_utils import log
-        log(f"interface: _buildScrollButtonToggle error: {e}")
+        
+        logx(f"interface: _buildScrollButtonToggle error: {e}", False)
         return None
 
 

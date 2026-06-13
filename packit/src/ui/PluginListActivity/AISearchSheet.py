@@ -1,6 +1,7 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import ctypes
 import json
 import base64
@@ -19,12 +20,12 @@ try:
     from android.content.res import ColorStateList as AColorStateList
 except Exception:
     AColorStateList = None
-from android_utils import log, OnClickListener, run_on_ui_thread, R
+from android_utils import OnClickListener, run_on_ui_thread, R
 from client_utils import get_last_fragment
 try:
     from elyx import strings, settings
 except Exception as e:
-    log(f"AISearchSheet: import strings/settings failed: {e}")
+    logx(f"AISearchSheet: import strings/settings failed: {e}", False)
     strings = {}
     settings = None
 
@@ -42,7 +43,7 @@ def _load_gemini_cache() -> dict:
             data = json.load(f)
         return data if isinstance(data, dict) else {}
     except Exception as e:
-        log(f"AISearchSheet: _load_gemini_cache error: {e}")
+        logx(f"AISearchSheet: _load_gemini_cache error: {e}", False)
         return {}
 
 
@@ -54,7 +55,7 @@ def _save_gemini_cache(cache: dict) -> None:
         with open(path, "w", encoding="utf-8") as f:
             json.dump(cache, f, ensure_ascii=False)
     except Exception as e:
-        log(f"AISearchSheet: _save_gemini_cache error: {e}")
+        logx(f"AISearchSheet: _save_gemini_cache error: {e}", False)
 
 
 def _cache_key(model: str, query: str) -> str:
@@ -82,7 +83,7 @@ def _get_device_id() -> str:
         ctx = ApplicationLoader.applicationContext
         return str(Settings.Secure.getString(ctx.getContentResolver(), Settings.Secure.ANDROID_ID)) or "default"
     except Exception as e:
-        log(f"AISearchSheet: _get_device_id error: {e}")
+        logx(f"AISearchSheet: _get_device_id error: {e}", False)
         return "default"
 
 
@@ -92,7 +93,7 @@ def _load_gemini_key() -> "str | None":
         from ...nativeLoader import loadPackitKey
         from ...utils.paths import getKeysDir
     except Exception as e:
-        log(f"AISearchSheet: _load_gemini_key import failed: {e}")
+        logx(f"AISearchSheet: _load_gemini_key import failed: {e}", False)
         return None
     try:
         lib = loadPackitKey()
@@ -120,7 +121,7 @@ def _load_gemini_key() -> "str | None":
             return None
         return bytes(buf[:length.value]).decode("utf-8", errors="replace")
     except Exception as e:
-        log(f"AISearchSheet: _load_gemini_key error: {e}")
+        logx(f"AISearchSheet: _load_gemini_key error: {e}", False)
         return None
 
 
@@ -217,26 +218,26 @@ def _call_gemini(apiKey: str, model: str, pluginsCatalog: str, userQuery: str) -
 
     resp = requests.post(url, json=payload, headers=headers, timeout=30)
     if resp.status_code == 429:
-        log(f"AISearchSheet: gemini quota exceeded (429)")
+        logx(f"AISearchSheet: gemini quota exceeded (429)", True)
         raise _GeminiQuotaError()
     if resp.status_code in (400, 403):
-        log(f"AISearchSheet: gemini HTTP {resp.status_code}: {resp.text[:200]}")
+        logx(f"AISearchSheet: gemini HTTP {resp.status_code}: {resp.text[:200]}", True)
         raise _GeminiGeoError()
     if resp.status_code != 200:
-        log(f"AISearchSheet: gemini HTTP {resp.status_code}: {resp.text[:200]}")
+        logx(f"AISearchSheet: gemini HTTP {resp.status_code}: {resp.text[:200]}", True)
         raise Exception(f"gemini HTTP {resp.status_code}")
 
     body = resp.text
-    log(f"AISearchSheet: gemini response status={resp.status_code} body_len={len(body)} body_preview='{body[:200]}'")
+    logx(f"AISearchSheet: gemini response status={resp.status_code} body_len={len(body)} body_preview='{body[:200]}'", True)
     data = resp.json()
-    log(f"AISearchSheet: gemini data keys={list(data.keys())}")
+    logx(f"AISearchSheet: gemini data keys={list(data.keys())}", True)
     candidate = data["candidates"][0]
     finish = candidate.get("finishReason", "UNKNOWN")
-    log(f"AISearchSheet: gemini finishReason={finish}")
+    logx(f"AISearchSheet: gemini finishReason={finish}", True)
     content = candidate.get("content", {})
     parts = content.get("parts")
     if not parts:
-        log(f"AISearchSheet: unexpected gemini response shape: 'parts', data={data}")
+        logx(f"AISearchSheet: unexpected gemini response shape: 'parts', data={data}", True)
         raise Exception(f"gemini returned no parts (finishReason={finish})")
     text = parts[0]["text"]
     text = text.strip()
@@ -244,7 +245,7 @@ def _call_gemini(apiKey: str, model: str, pluginsCatalog: str, userQuery: str) -
     if text.startswith("```"):
         text = text.split("\n", 1)[-1]
         text = text.rsplit("```", 1)[0].strip()
-    log(f"AISearchSheet: gemini text to parse='{text}'")
+    logx(f"AISearchSheet: gemini text to parse='{text}'", True)
     parsed = json.loads(text)
     if not isinstance(parsed, list):
         return None
@@ -254,15 +255,15 @@ def _call_gemini(apiKey: str, model: str, pluginsCatalog: str, userQuery: str) -
 try:
     from org.telegram.ui.ActionBar import BottomSheet, Theme
 except Exception as e:
-    log(f"AISearchSheet: import BottomSheet/Theme failed: {e}")
+    logx(f"AISearchSheet: import BottomSheet/Theme failed: {e}", False)
 try:
     from org.telegram.ui.Components import LayoutHelper, EditTextBoldCursor
 except Exception as e:
-    log(f"AISearchSheet: import LayoutHelper/EditTextBoldCursor failed: {e}")
+    logx(f"AISearchSheet: import LayoutHelper/EditTextBoldCursor failed: {e}", False)
 try:
     from org.telegram.messenger import AndroidUtilities
 except Exception as e:
-    log(f"AISearchSheet: import AndroidUtilities failed: {e}")
+    logx(f"AISearchSheet: import AndroidUtilities failed: {e}", False)
 
 
 def _c(color: int) -> int:
@@ -301,7 +302,7 @@ def _open_settings_url(act):
         from org.telegram.messenger.browser import Browser
         Browser.openUrl(act, Uri.parse(_SETTINGS_URL), True, True, True, None, None, False, False, False)
     except Exception as e:
-        log(f"AISearchSheet: _open_settings_url error: {e}")
+        logx(f"AISearchSheet: _open_settings_url error: {e}", False)
 
 
 def _icon_btn(act, install_ui, icon_name: str, size_dp: int = 20, btn_size_dp: int = 36, radius_dp: int = 10):
@@ -313,16 +314,16 @@ def _icon_btn(act, install_ui, icon_name: str, size_dp: int = 20, btn_size_dp: i
         bg = _rounded_bg(surface, radius_dp)
         btn.setBackground(_ripple_bg(bg, 0x20000000))
     except Exception as e:
-        log(f"AISearchSheet: _icon_btn bg failed: {e}")
+        logx(f"AISearchSheet: _icon_btn bg failed: {e}", False)
     icon = ImageView(act)
     try:
         icon.setImageResource(install_ui._resolve_icon(icon_name))
     except Exception as e:
-        log(f"AISearchSheet: _icon_btn icon failed: {e}")
+        logx(f"AISearchSheet: _icon_btn icon failed: {e}", False)
     try:
         icon.setColorFilter(Theme.getColor(Theme.key_dialogTextBlack))
     except Exception as e:
-        log(f"AISearchSheet: _icon_btn colorFilter failed: {e}")
+        logx(f"AISearchSheet: _icon_btn colorFilter failed: {e}", False)
     # CENTER_INSIDE: scales down oversized icon-pack drawables so they never clip
     icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
     padding = AndroidUtilities.dp(8)
@@ -342,7 +343,7 @@ def _make_header(act, install_ui, sheet):
         surface = _alpha(Theme.getColor(Theme.key_dialogTextBlack), 0x10)
         ic_wrap.setBackground(_rounded_bg(surface, 12))
     except Exception as e:
-        log(f"AISearchSheet: header ic_wrap bg failed: {e}")
+        logx(f"AISearchSheet: header ic_wrap bg failed: {e}", False)
     ai_icon = ImageView(act)
     try:
         ai_icon.setImageResource(install_ui._resolve_icon("premium_ai_editor"))
@@ -350,11 +351,11 @@ def _make_header(act, install_ui, sheet):
         try:
             ai_icon.setImageResource(install_ui._resolve_icon("msg_search"))
         except Exception as e:
-            log(f"AISearchSheet: header ai_icon failed: {e}")
+            logx(f"AISearchSheet: header ai_icon failed: {e}", False)
     try:
         ai_icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_addButton))
     except Exception as e:
-        log(f"AISearchSheet: header ai_icon color failed: {e}")
+        logx(f"AISearchSheet: header ai_icon color failed: {e}", False)
     ai_icon.setScaleType(ImageView.ScaleType.CENTER)
     ic_wrap.addView(ai_icon, FrameLayout.LayoutParams(
         AndroidUtilities.dp(22), AndroidUtilities.dp(22), Gravity.CENTER
@@ -378,7 +379,7 @@ def _make_header(act, install_ui, sheet):
     try:
         title_tv.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
     except Exception as e:
-        log(f"AISearchSheet: title color failed: {e}")
+        logx(f"AISearchSheet: title color failed: {e}", False)
     titles.addView(title_tv, LinearLayout.LayoutParams(-2, -2))
 
     key_tv = TextView(act)
@@ -389,13 +390,13 @@ def _make_header(act, install_ui, sheet):
         else:
             key_tv.setText("Not configured")
     except Exception as e:
-        log(f"AISearchSheet: key_tv setText failed: {e}")
+        logx(f"AISearchSheet: key_tv setText failed: {e}", False)
         key_tv.setText("Not configured")
     key_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
     try:
         key_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
     except Exception as e:
-        log(f"AISearchSheet: key_tv color failed: {e}")
+        logx(f"AISearchSheet: key_tv color failed: {e}", False)
     titles.addView(key_tv, LinearLayout.LayoutParams(-2, -2))
 
     row.addView(titles, LinearLayout.LayoutParams(0, -2, 1.0))
@@ -425,7 +426,7 @@ def _make_input_field(act):
         bg = _rounded_bg(fill, 14, stroke, 1)
         container.setBackground(bg)
     except Exception as e:
-        log(f"AISearchSheet: input bg failed: {e}")
+        logx(f"AISearchSheet: input bg failed: {e}", False)
 
     try:
         hint_str = strings["ai_search_input_hint"]
@@ -447,17 +448,17 @@ def _make_input_field(act):
     try:
         search_input.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
     except Exception as e:
-        log(f"AISearchSheet: input text color failed: {e}")
+        logx(f"AISearchSheet: input text color failed: {e}", False)
     try:
         search_input.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
     except Exception as e:
-        log(f"AISearchSheet: input hint color failed: {e}")
+        logx(f"AISearchSheet: input hint color failed: {e}", False)
     try:
         accent = Theme.getColor(Theme.key_featuredStickers_addButton)
         search_input.setCursorColor(accent)
         search_input.setCursorWidth(1.5)
     except Exception as e:
-        log(f"AISearchSheet: input cursor failed: {e}")
+        logx(f"AISearchSheet: input cursor failed: {e}", False)
 
     container.addView(search_input, FrameLayout.LayoutParams(-1, -2))
     container_lp = LinearLayout.LayoutParams(-1, -2)
@@ -476,7 +477,7 @@ def _make_search_button(act, install_ui):
             AndroidUtilities.dp(28), base, pressed
         ))
     except Exception as e:
-        log(f"AISearchSheet: search_btn bg failed: {e}")
+        logx(f"AISearchSheet: search_btn bg failed: {e}", False)
     btn.setPadding(0, AndroidUtilities.dp(14), 0, AndroidUtilities.dp(14))
 
     inner = LinearLayout(act)
@@ -487,11 +488,11 @@ def _make_search_button(act, install_ui):
     try:
         icon.setImageResource(install_ui._resolve_icon("ic_ab_search"))
     except Exception as e:
-        log(f"AISearchSheet: search_btn icon failed: {e}")
+        logx(f"AISearchSheet: search_btn icon failed: {e}", False)
     try:
         icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_buttonText))
     except Exception as e:
-        log(f"AISearchSheet: search_btn icon color failed: {e}")
+        logx(f"AISearchSheet: search_btn icon color failed: {e}", False)
     icon.setScaleType(ImageView.ScaleType.CENTER)
     icon_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
     icon_lp.rightMargin = AndroidUtilities.dp(8)
@@ -511,7 +512,7 @@ def _make_search_button(act, install_ui):
     try:
         label.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
     except Exception as e:
-        log(f"AISearchSheet: search_btn label color failed: {e}")
+        logx(f"AISearchSheet: search_btn label color failed: {e}", False)
     inner.addView(label, LinearLayout.LayoutParams(-2, -2))
 
     btn.addView(inner, FrameLayout.LayoutParams(-2, -2, Gravity.CENTER))
@@ -565,17 +566,17 @@ def _set_btn_loading(btn, loading: bool, install_ui):
                 pass
             inner.addView(label, LinearLayout.LayoutParams(-2, -2))
     except Exception as e:
-        log(f"AISearchSheet: _set_btn_loading error: {e}")
+        logx(f"AISearchSheet: _set_btn_loading error: {e}", False)
 
 
 def show_ai_search_sheet(install_ui, act, on_ai_results=None):
     # on_ai_results(plugin_names: list[str], query: str) — callback when results arrive
-    log("AISearchSheet: show_ai_search_sheet called")
+    logx("AISearchSheet: show_ai_search_sheet called", True)
     try:
         sheet = BottomSheet(act, True, get_last_fragment().getResourceProvider())
         sheet.setApplyBottomPadding(False)
         sheet.setApplyTopPadding(False)
-        log("AISearchSheet: sheet created")
+        logx("AISearchSheet: sheet created", True)
 
         root = LinearLayout(act)
         root.setOrientation(LinearLayout.VERTICAL)
@@ -588,11 +589,11 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
         try:
             root.setBackground(install_ui._create_rounded_bg(Theme.getColor(Theme.key_dialogBackground)))
         except Exception as e:
-            log(f"AISearchSheet: root bg failed: {e}")
+            logx(f"AISearchSheet: root bg failed: {e}", False)
             try:
                 root.setBackgroundColor(Theme.getColor(Theme.key_dialogBackground))
             except Exception as e2:
-                log(f"AISearchSheet: root bg color failed: {e2}")
+                logx(f"AISearchSheet: root bg color failed: {e2}", True)
 
         header_row, header_lp = _make_header(act, install_ui, sheet)
         root.addView(header_row, header_lp)
@@ -615,7 +616,7 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
                 anim.setDuration(500)
                 anim.start()
             except Exception as e:
-                log(f"AISearchSheet: _shake_input error: {e}")
+                logx(f"AISearchSheet: _shake_input error: {e}", False)
 
         # guard: True while attention hint is active, prevents stacking on rapid taps
         _hint_animating = [False]
@@ -637,7 +638,7 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
                             R(lambda: _set_attention_hint(attention_text))
                         ).start()
                     except Exception as e:
-                        log(f"AISearchSheet: fade_to_attention error: {e}")
+                        logx(f"AISearchSheet: fade_to_attention error: {e}", False)
 
                 def _set_attention_hint(attn):
                     try:
@@ -645,7 +646,7 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
                         search_input.animate().alpha(1.0).setDuration(150).start()
                         run_on_ui_thread(_restore_hint, 1500)
                     except Exception as e:
-                        log(f"AISearchSheet: set_attention_hint error: {e}")
+                        logx(f"AISearchSheet: set_attention_hint error: {e}", False)
 
                 def _restore_hint():
                     try:
@@ -653,20 +654,20 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
                             R(_finish_restore)
                         ).start()
                     except Exception as e:
-                        log(f"AISearchSheet: restore_hint error: {e}")
+                        logx(f"AISearchSheet: restore_hint error: {e}", False)
 
                 def _finish_restore():
                     try:
                         search_input.setHint(original_hint)
                         search_input.animate().alpha(1.0).setDuration(150).start()
                     except Exception as e:
-                        log(f"AISearchSheet: finish_restore error: {e}")
+                        logx(f"AISearchSheet: finish_restore error: {e}", False)
                     finally:
                         _hint_animating[0] = False
 
                 _fade_to_attention()
             except Exception as e:
-                log(f"AISearchSheet: _swap_hint_attention error: {e}")
+                logx(f"AISearchSheet: _swap_hint_attention error: {e}", False)
                 _hint_animating[0] = False
 
         def _do_search():
@@ -690,12 +691,12 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
                         str(strings.get("ai_search_no_key", "Add the API key in the settings"))
                     ).show()
                 except Exception as be:
-                    log(f"AISearchSheet: no key bulletin error: {be}")
+                    logx(f"AISearchSheet: no key bulletin error: {be}", True)
                 return
 
             plugins = getattr(getattr(install_ui, '_active_delegate', None), 'plugins', None) or []
             if not plugins:
-                log("AISearchSheet: no plugins loaded yet")
+                logx("AISearchSheet: no plugins loaded yet", True)
                 return
 
             model = _get_selected_model()
@@ -719,16 +720,16 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
                         cache_enabled = True
                     cached = _get_cached_result(model, query) if cache_enabled else None
                     if cached is not None:
-                        log(f"AISearchSheet: cache hit for query '{query}', {len(cached)} results")
+                        logx(f"AISearchSheet: cache hit for query '{query}', {len(cached)} results", True)
                         names = cached
                     else:
                         catalog_lines = len(catalog.splitlines())
-                        log(f"AISearchSheet: calling gemini model={model} query='{query}' catalog_lines={catalog_lines}")
+                        logx(f"AISearchSheet: calling gemini model={model} query='{query}' catalog_lines={catalog_lines}", True)
                         results = _call_gemini(apiKey, model, catalog, query)
                         if results is None:
                             raise Exception("null result from gemini")
                         names = [r.get("name", "") for r in results if isinstance(r, dict) and r.get("name")]
-                        log(f"AISearchSheet: got {len(names)} results: {names}")
+                        logx(f"AISearchSheet: got {len(names)} results: {names}", True)
                         try:
                             if settings.get("gemini_cache_enabled", True):
                                 _put_cached_result(model, query, names)
@@ -756,7 +757,7 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
                                 str(strings.get("ai_search_quota", "Gemini API quota exceeded. Try again later."))
                             ).show()
                         except Exception as be:
-                            log(f"AISearchSheet: quota bulletin error: {be}")
+                            logx(f"AISearchSheet: quota bulletin error: {be}", True)
                     run_on_ui_thread(_on_quota)
                 except _GeminiGeoError:
                     def _on_geo():
@@ -771,10 +772,10 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
                                 str(strings.get("ai_search_geo_error", "Turn on VPN and try again"))
                             ).show()
                         except Exception as be:
-                            log(f"AISearchSheet: geo bulletin error: {be}")
+                            logx(f"AISearchSheet: geo bulletin error: {be}", True)
                     run_on_ui_thread(_on_geo)
                 except Exception as e:
-                    log(f"AISearchSheet: search task error: {e}")
+                    logx(f"AISearchSheet: search task error: {e}", False)
                     def _on_error():
                         _searching[0] = False
                         sheet.dismiss()
@@ -787,7 +788,7 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
                                 str(strings.get("ai_search_error", "Search error. Check the logs."))
                             ).show()
                         except Exception as be:
-                            log(f"AISearchSheet: error bulletin error: {be}")
+                            logx(f"AISearchSheet: error bulletin error: {be}", True)
                     run_on_ui_thread(_on_error)
 
             threading.Thread(target=_task, daemon=True).start()
@@ -799,8 +800,8 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
             from ..viewUtils import applyFontToTree
             applyFontToTree(root)
         except Exception as e:
-            log(f"AISearchSheet: applyFontToTree failed: {e}")
+            logx(f"AISearchSheet: applyFontToTree failed: {e}", False)
         sheet.show()
-        log("AISearchSheet: sheet shown")
+        logx("AISearchSheet: sheet shown", True)
     except Exception as e:
-        log(f"AISearchSheet: show error: {e}")
+        logx(f"AISearchSheet: show error: {e}", False)

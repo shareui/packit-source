@@ -1,9 +1,10 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 from ui.bulletin import BulletinHelper  
 from client_utils import get_last_fragment  
-from android_utils import log
+
 import threading
 import time
 import os
@@ -17,7 +18,7 @@ except Exception as e:
 def kill_process():
     time.sleep(1)
     pid = os.getpid()
-    log(f"Killing process {pid}")
+    logx(f"Killing process {pid}", True)
     os.kill(pid, signal.SIGKILL)
 
 def handle(url):  
@@ -31,7 +32,7 @@ def handle(url):
             thread.start()
             
         except Exception as e:  
-            log(f"Pkill error: {e}")
+            logx(f"Pkill error: {e}", False)
             try:
                 currentFragment = get_last_fragment()
                 BulletinHelper.show_error(f"Pkill failed: {e}", currentFragment)

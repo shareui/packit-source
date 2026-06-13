@@ -1,6 +1,7 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 try:
     from org.telegram.ui.Components import ItemOptions
 except Exception as e:
@@ -21,7 +22,7 @@ except Exception as e:
 
 from java import dynamic_proxy
 from java.lang import Runnable, String
-from android_utils import log
+
 
 
 def _resolve_icon(name: str) -> int:
@@ -40,7 +41,7 @@ def _make_runnable(fn) -> Runnable:
             try:
                 self._f()
             except Exception as e:
-                log(f"contextMenu: runnable error: {e}")
+                logx(f"contextMenu: runnable error: {e}", False)
     return _R(fn)
 
 
@@ -60,7 +61,7 @@ def show_plugin_context_menu(container, anchor_view, items: list):
         }
     """
     if ItemOptions is None:
-        log("contextMenu: ItemOptions not available")
+        logx("contextMenu: ItemOptions not available", True)
         return
 
     try:
@@ -89,4 +90,4 @@ def show_plugin_context_menu(container, anchor_view, items: list):
 
         menu.show()
     except Exception as e:
-        log(f"contextMenu: show_plugin_context_menu error: {e}")
+        logx(f"contextMenu: show_plugin_context_menu error: {e}", False)

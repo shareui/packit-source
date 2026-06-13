@@ -1,11 +1,12 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 from android.widget import LinearLayout, TextView, FrameLayout
 from android.util import TypedValue
 from android.graphics.drawable import GradientDrawable
 from android.view import Gravity, MotionEvent, View
-from android_utils import run_on_ui_thread, log, OnClickListener
+from android_utils import run_on_ui_thread, OnClickListener
 from client_utils import get_last_fragment
 try:
     from org.telegram.ui.ActionBar import Theme, BottomSheet
@@ -153,7 +154,7 @@ def _show_beta_dialog():
         run_on_ui_thread(update_btn)
         run_on_ui_thread(tick, 1000)
     except Exception as e:
-        log(f"isBeta._show_beta_dialog: error: {e}")
+        logx(f"isBeta._show_beta_dialog: error: {e}", False)
 
 
 def _check_beta():
@@ -162,7 +163,7 @@ def _check_beta():
             return
         run_on_ui_thread(_show_beta_dialog)
     except Exception as e:
-        log(f"isBeta._check_beta: error: {e}")
+        logx(f"isBeta._check_beta: error: {e}", False)
 
 
 def init():

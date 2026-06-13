@@ -1,9 +1,10 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment, run_on_queue
-from android_utils import log, run_on_ui_thread, OnClickListener
+from android_utils import run_on_ui_thread, OnClickListener
 from android.widget import LinearLayout, TextView, FrameLayout, ImageView, ScrollView
 from android.util import TypedValue
 from android.view import Gravity
@@ -87,7 +88,7 @@ def handle(url, repoManager):
                 strings.repo_add_fetching
             ).show()
         except Exception as e:
-            log(f"repo deeplink: bulletin error: {e}")
+            logx(f"repo deeplink: bulletin error: {e}", False)
 
         def fetch_task():
             repometa = None
@@ -106,7 +107,7 @@ def handle(url, repoManager):
                             with open(cache_path, "w", encoding="utf-8") as f:
                                 json.dump(data, f, indent=2, ensure_ascii=False)
                         except Exception as e:
-                            log(f"repo deeplink: cache error: {e}")
+                            logx(f"repo deeplink: cache error: {e}", False)
 
                     repomap = data.get("repomap", {})
                     plugins_url = repomap.get("plugins") if repomap else None
@@ -118,19 +119,19 @@ def handle(url, repoManager):
                                 plugins = pdata.get("plugins", [])
                                 pluginCount = len(plugins) if isinstance(plugins, (list, dict)) else 0
                         except Exception as e:
-                            log(f"repo deeplink: plugins count error: {e}")
+                            logx(f"repo deeplink: plugins count error: {e}", False)
                     else:
                         plugins = data.get("plugins", [])
                         if isinstance(plugins, (list, dict)):
                             pluginCount = len(plugins)
             except Exception as e:
-                log(f"repo deeplink: fetch error: {e}")
+                logx(f"repo deeplink: fetch error: {e}", False)
 
             run_on_ui_thread(lambda: _show_confirm_sheet(repometa, pluginCount, name, link, icon, repoManager))
 
         run_on_queue(fetch_task)
     except Exception as e:
-        log(f"repo deeplink: handle error: {e}")
+        logx(f"repo deeplink: handle error: {e}", False)
 
 
 def _show_confirm_sheet(repometa, pluginCount, name, link, icon, repoManager):
@@ -169,7 +170,7 @@ def _show_confirm_sheet(repometa, pluginCount, name, link, icon, repoManager):
             icon_view.setColorFilter(Theme.getColor(Theme.key_featuredStickers_addButton))
             linear.addView(icon_view, LayoutHelper.createLinear(48, 48, Gravity.CENTER_HORIZONTAL, 0, 20, 0, 0))
         except Exception as e:
-            log(f"repo deeplink: icon error: {e}")
+            logx(f"repo deeplink: icon error: {e}", False)
 
         # title
         title_tv = TextView(act)
@@ -231,9 +232,9 @@ def _show_confirm_sheet(repometa, pluginCount, name, link, icon, repoManager):
                         from ..ui.AchievementsActivity.service.AchivementsEngine import increment_category
                         increment_category("Repositories")
                     except Exception as e:
-                        log(f"repo deeplink: achievements increment error: {e}")
+                        logx(f"repo deeplink: achievements increment error: {e}", False)
                 except Exception as e:
-                    log(f"repo deeplink: on_add error: {e}")
+                    logx(f"repo deeplink: on_add error: {e}", False)
                 sheet.dismiss()
 
         add_btn.setOnClickListener(_AddClickSimple())
@@ -257,4 +258,4 @@ def _show_confirm_sheet(repometa, pluginCount, name, link, icon, repoManager):
         sheet.setCustomView(scroll)
         sheet.show()
     except Exception as e:
-        log(f"repo deeplink: _show_confirm_sheet error: {e}")
+        logx(f"repo deeplink: _show_confirm_sheet error: {e}", False)

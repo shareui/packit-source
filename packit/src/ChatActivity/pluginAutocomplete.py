@@ -1,6 +1,7 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import os
 import json
 import weakref
@@ -8,7 +9,7 @@ import requests
 from base_plugin import MethodHook
 from client_utils import get_last_fragment, run_on_queue
 from hook_utils import find_class, get_private_field
-from android_utils import run_on_ui_thread, log
+from android_utils import run_on_ui_thread
 from java import dynamic_proxy, jclass
 from org.telegram.ui import ChatActivity
 from markdown_utils import parse_markdown
@@ -145,7 +146,7 @@ class _PackitAutocompleteHook(MethodHook):
                 plugin._packit_attach_text_watcher(enter_view)
             run_on_ui_thread(attach_watcher, delay=500)
         except Exception as e:
-            log(f"PackitAutocompleteHook error: {e}")
+            logx(f"PackitAutocompleteHook error: {e}", False)
 
 def _packit_get_class(self, class_name):
     if class_name not in self._packit_class_cache:
@@ -171,7 +172,7 @@ def _packit_hook_enter_view_constructor(self):
         constructor.setAccessible(True)
         self.packit_hook_constructor_ref = self.hook_method(constructor, _PackitAutocompleteHook(self))
     except Exception as e:
-        log(f"Packit hook constructor error: {e}")
+        logx(f"Packit hook constructor error: {e}", False)
 
 def _packit_attach_text_watcher(self, enter_view):
     try:
@@ -210,11 +211,11 @@ def _packit_attach_text_watcher(self, enter_view):
                         if ds_enabled:
                             if text == "  ":
                                 cmd = _s.get("inline_search_command", ".packit").strip() or ".packit"
-                                log(f"packit_autocomplete: double space triggered, replacing with {cmd}")
+                                logx(f"packit_autocomplete: double space triggered, replacing with {cmd}", True)
                                 editable.replace(0, editable.length(), cmd + " ")
                                 return
                     except Exception as e:
-                        log(f"packit_autocomplete: double_space error: {e}")
+                        logx(f"packit_autocomplete: double_space error: {e}", False)
 
                     try:
                         from elyx import settings as _s
@@ -239,13 +240,13 @@ def _packit_attach_text_watcher(self, enter_view):
                         plugin._packit_search_token = None
                         plugin._packit_hide_popup()
                 except Exception as e:
-                    log(f"Packit text watcher error: {e}")
+                    logx(f"Packit text watcher error: {e}", False)
         
         watcher = CustomTextWatcher()
         message_edit_text.addTextChangedListener(watcher)
         self.packit_attached_views.add(view_id)
     except Exception as e:
-        log(f"Packit attach text watcher error: {e}")
+        logx(f"Packit attach text watcher error: {e}", False)
 
 
 def _packit_load_plugins_from_cache(self):
@@ -299,11 +300,11 @@ def _packit_load_plugins_from_cache(self):
                                     **item
                                 })
                 except Exception as e:
-                    log(f"Packit load plugins from url error: {e}")
+                    logx(f"Packit load plugins from url error: {e}", False)
             except Exception as e:
-                log(f"Packit load repo cache error for {repo_id}: {e}")
+                logx(f"Packit load repo cache error for {repo_id}: {e}", False)
     except Exception as e:
-        log(f"Packit load plugins from cache error: {e}")
+        logx(f"Packit load plugins from cache error: {e}", False)
     
     return plugins_list
 
@@ -314,7 +315,7 @@ def _packit_show_loading_popup(self):
         loading_placeholder = [{"name": "Loading...", "description": "", "_loading": True}]
         run_on_ui_thread(lambda: self._packit_show_plugins_popup(loading_placeholder))
     except Exception as e:
-        log(f"Packit show loading popup error: {e}")
+        logx(f"Packit show loading popup error: {e}", False)
 
 
 def _packit_search_in_background(self, search_key, token):
@@ -375,7 +376,7 @@ def _packit_search_in_background(self, search_key, token):
         result = [p for _, p in scored[:10]]
         run_on_ui_thread(lambda: self._packit_show_plugins_popup(result))
     except Exception as e:
-        log(f"Packit search in background error: {e}")
+        logx(f"Packit search in background error: {e}", False)
 
 
 def _packit_show_matching_plugins(self, search_key):
@@ -401,7 +402,7 @@ def _packit_show_matching_plugins(self, search_key):
         
         self._packit_show_plugins_popup(matching[:10])
     except Exception as e:
-        log(f"Packit show matching plugins error: {e}")
+        logx(f"Packit show matching plugins error: {e}", False)
 
 
 def _packit_show_plugins_popup(self, plugins):
@@ -428,7 +429,7 @@ def _packit_show_plugins_popup(self, plugins):
                 bot_container = get_private_field(enter_view, "botCommandsMenuContainer")
                 bot_adapter = get_private_field(enter_view, "botCommandsAdapter")
             except Exception as e:
-                log(f"Packit create bot container error: {e}")
+                logx(f"Packit create bot container error: {e}", False)
         
         if not bot_container or not bot_adapter:
             return
@@ -507,16 +508,16 @@ def _packit_show_plugins_popup(self, plugins):
                                                     if frag_ref and hasattr(frag_ref, "showFieldPanel"):
                                                         frag_ref.showFieldPanel(False, None, None, None, None, True, 0, None, True, 0, True)
                                                     else:
-                                                        log("Packit: clear_reply - fragment or showFieldPanel not found")
+                                                        logx("Packit: clear_reply - fragment or showFieldPanel not found", True)
                                                 except Exception as e:
-                                                    log(f"Packit: clear reply error: {e}")
+                                                    logx(f"Packit: clear reply error: {e}", False)
                                             run_on_ui_thread(do_clear_reply, 100)
                                     except Exception as e:
-                                        log(f"Packit click action error: {e}")
+                                        logx(f"Packit click action error: {e}", False)
 
                                 run_on_ui_thread(ui_actions)
                 except Exception as e:
-                    log(f"Packit click listener error: {e}")
+                    logx(f"Packit click listener error: {e}", False)
 
         class LongClickListener(dynamic_proxy(RecyclerListView.OnItemLongClickListener)):
             def onItemClick(self, view, position):
@@ -544,11 +545,11 @@ def _packit_show_plugins_popup(self, plugins):
                             bot_container.dismiss()
                             show_plugin_profile(plugin_data, install_ui, plugins_by_index, repo_id=repo_id)
                         except Exception as e:
-                            log(f"Packit long click open profile error: {e}")
+                            logx(f"Packit long click open profile error: {e}", False)
 
                     run_on_ui_thread(open_profile)
                 except Exception as e:
-                    log(f"Packit long click listener error: {e}")
+                    logx(f"Packit long click listener error: {e}", False)
                 return True
 
         bot_container.listView.setOnItemClickListener(ClickListener())
@@ -571,16 +572,16 @@ def _packit_show_plugins_popup(self, plugins):
                             list_params.width = enter_view_width
                             bot_container.listView.setLayoutParams(list_params)
             except Exception as e:
-                log(f"Packit resize popup error: {e}")
+                logx(f"Packit resize popup error: {e}", False)
             bot_container.requestLayout()
         except Exception as e:
-            log(f"Packit popup layout error: {e}")
+            logx(f"Packit popup layout error: {e}", False)
         
         self.packit_custom_container = bot_container
         self._packit_hook_container_dismiss(bot_container)
         bot_container.show()
     except Exception as e:
-        log(f"Packit show plugins popup error: {e}")
+        logx(f"Packit show plugins popup error: {e}", False)
 
 
 def _packit_hook_container_dismiss(self, bot_container):
@@ -603,7 +604,7 @@ def _packit_hook_container_dismiss(self, bot_container):
             except Exception:
                 klass = klass.getSuperclass()
         if dismiss_method is None:
-            log("Packit hook container dismiss error: dismiss method not found")
+            logx("Packit hook container dismiss error: dismiss method not found", True)
             return
         dismiss_method.setAccessible(True)
 
@@ -626,7 +627,7 @@ def _packit_hook_container_dismiss(self, bot_container):
 
         self.hook_method(dismiss_method, DismissHook())
     except Exception as e:
-        log(f"Packit hook container dismiss error: {e}")
+        logx(f"Packit hook container dismiss error: {e}", False)
 
 
 def _packit_hide_popup(self):
@@ -636,7 +637,7 @@ def _packit_hide_popup(self):
             self._packit_search_token = None
             self.packit_custom_container.dismiss()
     except Exception as e:
-        log(f"Packit hide popup error: {e}")
+        logx(f"Packit hide popup error: {e}", False)
 
 
 def _packit_send_plugin_info(self, plugin_data):
@@ -690,7 +691,7 @@ def _packit_send_plugin_info(self, plugin_data):
                 pass
         
         if not chat_id:
-            log("Packit: Could not get chat_id for sending plugin info")
+            logx("Packit: Could not get chat_id for sending plugin info", True)
             return
 
         # resolve forum topic if the chat is a forum
@@ -706,7 +707,7 @@ def _packit_send_plugin_info(self, plugin_data):
                         topic_msg_obj = MsgObj(frag.getCurrentAccount(), topic.topicStartMessage, False, False)
                         topic_msg_obj.isTopicMainMessage = True
         except Exception as e:
-            log(f"Packit: topic resolve error: {e}")
+            logx(f"Packit: topic resolve error: {e}", False)
 
         # get reply-to message if user is replying to something
         reply_msg_obj = None
@@ -719,7 +720,7 @@ def _packit_send_plugin_info(self, plugin_data):
                 if candidate is not None and not getattr(candidate, "isTopicMainMessage", False):
                     reply_msg_obj = candidate
         except Exception as e:
-            log(f"Packit: reply resolve error: {e}")
+            logx(f"Packit: reply resolve error: {e}", False)
 
         plugin_id = plugin_data.get("id", "unknown")
         repo_id = plugin_data.get("repo_id", "unknown")
@@ -912,9 +913,9 @@ def _packit_send_plugin_info(self, plugin_data):
                     params.replyToTopMsg = topic_msg_obj
                 smh.sendMessage(params)
             except Exception as e2:
-                log(f"Packit send plugin info fallback error: {e2}")
+                logx(f"Packit send plugin info fallback error: {e2}", True)
     except Exception as e:
-        log(f"Packit send plugin info error: {e}")
+        logx(f"Packit send plugin info error: {e}", False)
 
 
 def setup_packit_autocomplete(plugin):
@@ -931,6 +932,6 @@ def setup_packit_autocomplete(plugin):
         plugin._packit_hooked_containers = set()
         
         plugin._packit_hook_enter_view_constructor()
-        log("Packit autocomplete setup complete")
+        logx("Packit autocomplete setup complete", True)
     except Exception as e:
-        log(f"Packit autocomplete setup error: {e}")
+        logx(f"Packit autocomplete setup error: {e}", False)

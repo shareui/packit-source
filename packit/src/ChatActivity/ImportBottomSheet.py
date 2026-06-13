@@ -1,9 +1,10 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import traceback
 import threading
-from android_utils import log, run_on_ui_thread
+from android_utils import run_on_ui_thread
 from android.view import Gravity, View, MotionEvent, VelocityTracker
 from android.widget import FrameLayout, LinearLayout, TextView
 from android.util import TypedValue
@@ -45,7 +46,7 @@ def _load_sticker(iv, icon_str: str, size_dp: int) -> bool:
             pass
         return False
     except Exception as e:
-        log(f"ImportBottomSheet._load_sticker: {e}")
+        logx(f"ImportBottomSheet._load_sticker: {e}", False)
         return False
 
 
@@ -80,7 +81,7 @@ def _make_icon_view(activity, icon_str: str, size_dp: int):
             _schedule_sticker_retry(iv, icon_str, size_dp)
         return iv
     except Exception as e:
-        log(f"ImportBottomSheet._make_icon_view: {e}")
+        logx(f"ImportBottomSheet._make_icon_view: {e}", False)
         return None
 
 
@@ -215,7 +216,7 @@ def show(plugins: list, count: int, file_path: str = "", total_count: int = 0, s
                         )
                         container.addView(icon_view, stub_lp)
                     except Exception as e:
-                        log(f"ImportBottomSheet: fallback icon error: {e}")
+                        logx(f"ImportBottomSheet: fallback icon error: {e}", False)
 
                 cb = None
                 try:
@@ -239,7 +240,7 @@ def show(plugins: list, count: int, file_path: str = "", total_count: int = 0, s
                     cb_lp.rightMargin = AndroidUtilities.dp(cb_margin_dp)
                     container.addView(cb, cb_lp)
                 except Exception as e:
-                    log(f"ImportBottomSheet: checkbox create error: {e}")
+                    logx(f"ImportBottomSheet: checkbox create error: {e}", False)
 
                 icon_row.addView(container, lp_container)
                 icon_views.append(container)
@@ -357,7 +358,7 @@ def show(plugins: list, count: int, file_path: str = "", total_count: int = 0, s
                 lp_rf.topMargin = pad_top
                 outer.addView(right_fade, lp_rf)
             except Exception as e:
-                log(f"ImportBottomSheet: fade overlay error: {e}")
+                logx(f"ImportBottomSheet: fade overlay error: {e}", False)
             # shrink factor per slot away from center (0.12 = 12% per step, min 0.6)
             scale_per_slot = 0.12
 
@@ -807,7 +808,7 @@ def show(plugins: list, count: int, file_path: str = "", total_count: int = 0, s
                             from .ConfirmImportBottomSheet import show as showConfirm
                             showConfirm(file_path, selected, total_count=total_count or len(plugins), settings=settings)
                         except Exception as e:
-                            log(f"ImportBottomSheet: open confirm error: {e}")
+                            logx(f"ImportBottomSheet: open confirm error: {e}", False)
 
                 import_btn.setOnClickListener(_ImportClick())
                 import_lp = LinearLayout.LayoutParams(
@@ -819,7 +820,7 @@ def show(plugins: list, count: int, file_path: str = "", total_count: int = 0, s
                 import_lp.rightMargin = pad_h
                 root.addView(import_btn, import_lp)
             except Exception as e:
-                log(f"ImportBottomSheet: import btn error: {e}")
+                logx(f"ImportBottomSheet: import btn error: {e}", False)
 
             # close button
             try:
@@ -844,12 +845,12 @@ def show(plugins: list, count: int, file_path: str = "", total_count: int = 0, s
                 close_lp.rightMargin = pad_h
                 root.addView(close_btn, close_lp)
             except Exception as e:
-                log(f"ImportBottomSheet: close btn error: {e}")
+                logx(f"ImportBottomSheet: close btn error: {e}", False)
 
             sheet.setCustomView(root)
             sheet.show()
 
         except Exception as e:
-            log(f"ImportBottomSheet.show: {e}\n{traceback.format_exc()}")
+            logx(f"ImportBottomSheet.show: {e}\n{traceback.format_exc()}", False)
 
     run_on_ui_thread(_show)

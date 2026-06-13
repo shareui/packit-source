@@ -1,23 +1,24 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import ctypes
-from android_utils import log, run_on_ui_thread, OnClickListener
+from android_utils import run_on_ui_thread, OnClickListener
 from client_utils import get_last_fragment
 
 try:
     from elyx import strings
 except Exception as e:
-    log(f"restartDialog: import elyx.strings failed: {e}")
+    logx(f"restartDialog: import elyx.strings failed: {e}", False)
 try:
     from org.telegram.ui.ActionBar import Theme
 except Exception as e:
-    log(f"restartDialog: import Theme failed: {e}")
+    logx(f"restartDialog: import Theme failed: {e}", False)
 try:
     from org.telegram.ui.Components import LayoutHelper
     from org.telegram.messenger import AndroidUtilities
 except Exception as e:
-    log(f"restartDialog: import AndroidUtilities/LayoutHelper failed: {e}")
+    logx(f"restartDialog: import AndroidUtilities/LayoutHelper failed: {e}", False)
 
 _ANIM_DURATION = 220
 _SPRING_DURATION = 380
@@ -38,7 +39,7 @@ def _register_back_cb(act, on_back):
         act.getOnBackPressedDispatcher().addCallback(act, cb.java)
         return cb
     except Exception as e:
-        log(f"restartDialog: _register_back_cb error: {e}")
+        logx(f"restartDialog: _register_back_cb error: {e}", False)
         return None
 
 
@@ -47,7 +48,7 @@ def _unregister_back_cb(cb):
         if cb is not None:
             cb.remove()
     except Exception as e:
-        log(f"restartDialog: _unregister_back_cb error: {e}")
+        logx(f"restartDialog: _unregister_back_cb error: {e}", False)
 
 
 def _animate_in(overlay, card):
@@ -75,7 +76,7 @@ def _animate_in(overlay, card):
         s.playTogether(fade_overlay, fade_card, scale_x, scale_y)
         s.start()
     except Exception as e:
-        log(f"restartDialog: _animate_in error: {e}")
+        logx(f"restartDialog: _animate_in error: {e}", False)
 
 
 def _animate_out(overlay_ref, card, decor, on_end=None):
@@ -113,7 +114,7 @@ def _animate_out(overlay_ref, card, decor, on_end=None):
         s.addListener(_EndListener())
         s.start()
     except Exception as e:
-        log(f"restartDialog: _animate_out error: {e}")
+        logx(f"restartDialog: _animate_out error: {e}", False)
         try:
             decor.removeView(overlay_ref[0])
         except Exception:
@@ -231,11 +232,11 @@ def _show(restart_type: str, fragment):
 
         curr_frag = fragment or get_last_fragment()
         if not curr_frag:
-            log("restartDialog: curr_frag is None")
+            logx("restartDialog: curr_frag is None", True)
             return
         act = curr_frag.getParentActivity()
         if not act:
-            log("restartDialog: activity is None")
+            logx("restartDialog: activity is None", True)
             return
 
         dp = AndroidUtilities.dp
@@ -328,7 +329,7 @@ def _show(restart_type: str, fragment):
                 from ..deeplinks import pkill
                 pkill.handle("tg://packit?pkill")
             except Exception as e:
-                log(f"restartDialog: pkill error: {e}")
+                logx(f"restartDialog: pkill error: {e}", False)
 
         restart_btn = _make_action_btn(act, str(strings["restart_now"]), accent_color, is_primary=True)
         restart_btn.setOnClickListener(OnClickListener(lambda v: _dismiss(on_end=_do_restart)))
@@ -355,7 +356,7 @@ def _show(restart_type: str, fragment):
         back_cb_ref[0] = _register_back_cb(act, _dismiss)
         run_on_ui_thread(lambda: _animate_in(overlay, card))
     except Exception as e:
-        log(f"restartDialog: _show error: {e}")
+        logx(f"restartDialog: _show error: {e}", False)
 
 
 def show_restart_dialog(restart_type: str, fragment=None):

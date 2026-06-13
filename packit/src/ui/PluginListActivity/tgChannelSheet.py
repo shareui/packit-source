@@ -1,8 +1,9 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import traceback
-from android_utils import log
+
 from android.view import Gravity, View, MotionEvent
 from android.widget import FrameLayout, LinearLayout, ScrollView, TextView
 from java import dynamic_proxy
@@ -88,13 +89,13 @@ def show_tg_channel_sheet(activity, resource_provider):
                     from ...ui.AchievementsActivity.service.AchivementsEngine import unlock_secret
                     unlock_secret("subscriber")
                 except Exception as e:
-                    log(f"tgChannelSheet: achievement unlock error: {e}")
+                    logx(f"tgChannelSheet: achievement unlock error: {e}", False)
                 try:
                     url = "https://t.me/addlist/pgo-Kwox6_g2Nzlk"
                     uri = Uri.parse(url)
                     Browser.openUrl(activity, uri, True, True, True, None, None, False, False, False)
                 except Exception:
-                    log(f"tgChannelSheet: failed to open url: {traceback.format_exc()}")
+                    logx(f"tgChannelSheet: failed to open url: {traceback.format_exc()}", True)
 
         joinBtn.setOnClickListener(_JoinClick())
         _apply_press_scale(joinBtn)
@@ -124,4 +125,4 @@ def show_tg_channel_sheet(activity, resource_provider):
             pass
         sheet.show()
     except Exception:
-        log(f"tgChannelSheet: show error: {traceback.format_exc()}")
+        logx(f"tgChannelSheet: show error: {traceback.format_exc()}", True)

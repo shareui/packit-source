@@ -1,12 +1,13 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import os
 from android.view import View, Gravity, MotionEvent
 from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView, HorizontalScrollView
 from android.util import TypedValue
 from java import dynamic_proxy
-from android_utils import log, run_on_ui_thread, OnClickListener
+from android_utils import run_on_ui_thread, OnClickListener
 from client_utils import get_last_fragment
 from hook_utils import find_class
 
@@ -67,7 +68,7 @@ def _open_file(path, icon_view=None, delegate=None):
                 icon_view.clearColorFilter()
                 icon_view.setEnabled(False)
             except Exception as e:
-                log(f"filesActivity: _set_spinner error: {e}")
+                logx(f"filesActivity: _set_spinner error: {e}", False)
 
         def _restore_icon(icon_id):
             try:
@@ -76,7 +77,7 @@ def _open_file(path, icon_view=None, delegate=None):
                     icon_view.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
                 icon_view.setEnabled(True)
             except Exception as e:
-                log(f"filesActivity: _restore_icon error: {e}")
+                logx(f"filesActivity: _restore_icon error: {e}", False)
 
         icon_id = [0]
         if icon_view is not None:
@@ -84,13 +85,13 @@ def _open_file(path, icon_view=None, delegate=None):
                 icon_id[0] = _resolve_icon("msg_sendfile")
                 run_on_ui_thread(lambda: _set_spinner())
             except Exception as e:
-                log(f"filesActivity: _open_file spinner setup error: {e}")
+                logx(f"filesActivity: _open_file spinner setup error: {e}", False)
 
         def _task():
             try:
                 from .openFileFragment import _is_binary, open_file
                 if _is_binary(path):
-                    log("filesActivity: binary file, showing sheet")
+                    logx("filesActivity: binary file, showing sheet", True)
                     if icon_view is not None:
                         run_on_ui_thread(lambda: _restore_icon(icon_id[0]))
                     frag = get_last_fragment()
@@ -124,13 +125,13 @@ def _open_file(path, icon_view=None, delegate=None):
 
                 run_on_ui_thread(_present)
             except Exception as e:
-                log(f"filesActivity: _open_file task error: {e}")
+                logx(f"filesActivity: _open_file task error: {e}", False)
                 if icon_view is not None:
                     run_on_ui_thread(lambda: _restore_icon(icon_id[0]))
 
         run_on_queue(_task)
     except Exception as e:
-        log(f"filesActivity: _open_file error: {e}")
+        logx(f"filesActivity: _open_file error: {e}", False)
 
 
 def _resolve_icon(name):
@@ -155,7 +156,7 @@ def _get_cache_root():
         from ...utils.paths import getCacheRoot
         return getCacheRoot()
     except Exception as e:
-        log(f"filesActivity: _get_cache_root error: {e}")
+        logx(f"filesActivity: _get_cache_root error: {e}", False)
         return ""
 
 
@@ -174,7 +175,7 @@ def _list_dir(path):
         files = sorted([e for e in entries if os.path.isfile(os.path.join(path, e))])
         return dirs, files
     except Exception as e:
-        log(f"filesActivity: _list_dir error: {e}")
+        logx(f"filesActivity: _list_dir error: {e}", False)
         return [], []
 
 
@@ -214,24 +215,24 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
         self._back_callback = None
 
     def onFragmentCreate(self, *_):
-        log(f"filesActivity: onFragmentCreate stack={self._stack}")
+        logx(f"filesActivity: onFragmentCreate stack={self._stack}", True)
 
     def onFragmentDestroy(self, *_):
-        log(f"filesActivity: onFragmentDestroy stack={self._stack} alive={self._alive[0]}")
+        logx(f"filesActivity: onFragmentDestroy stack={self._stack} alive={self._alive[0]}", True)
         self._alive[0] = False
         self._unregister_back_callback()
         try:
             if self._content_view is not None:
                 parent = self._content_view.getParent()
-                log(f"filesActivity: onFragmentDestroy parent={parent}")
+                logx(f"filesActivity: onFragmentDestroy parent={parent}", True)
                 if parent is not None:
                     parent.removeView(self._content_view)
                 self._content_view = None
                 self._list_root = None
                 self._breadcrumb_bar = None
-                log("filesActivity: onFragmentDestroy views cleared")
+                logx("filesActivity: onFragmentDestroy views cleared", True)
         except Exception as e:
-            log(f"filesActivity: onFragmentDestroy error: {e}")
+            logx(f"filesActivity: onFragmentDestroy error: {e}", False)
 
     def _register_back_callback(self):
         if self._back_callback is not None:
@@ -257,9 +258,9 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             cb = _BackCallback.new_instance(True)
             self._back_callback = cb
             act.getOnBackPressedDispatcher().addCallback(act, cb.java)
-            log("filesActivity: back callback registered")
+            logx("filesActivity: back callback registered", True)
         except Exception as e:
-            log(f"filesActivity: _register_back_callback error: {e}")
+            logx(f"filesActivity: _register_back_callback error: {e}", False)
             self._back_callback = None
 
     def _unregister_back_callback(self):
@@ -268,9 +269,9 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             if cb is not None:
                 cb.remove()
                 self._back_callback = None
-                log("filesActivity: back callback unregistered")
+                logx("filesActivity: back callback unregistered", True)
         except Exception as e:
-            log(f"filesActivity: _unregister_back_callback error: {e}")
+            logx(f"filesActivity: _unregister_back_callback error: {e}", False)
 
     def getTitle(self):
         current_path = self._stack[-1]
@@ -282,16 +283,16 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
         return os.path.basename(current_path)
 
     def onBackPressed(self):
-        log(f"filesActivity: onBackPressed stack_len={len(self._stack)} stack={self._stack}")
+        logx(f"filesActivity: onBackPressed stack_len={len(self._stack)} stack={self._stack}", True)
         if len(self._stack) > 1:
             popped = self._stack.pop()
-            log(f"filesActivity: onBackPressed popped={popped} remaining={self._stack}")
+            logx(f"filesActivity: onBackPressed popped={popped} remaining={self._stack}", True)
             if len(self._stack) <= 1:
                 self._unregister_back_callback()
             run_on_ui_thread(lambda: self._render())
             # delegate True -> java !True = False -> finishFragment not called = stay open
             return True
-        log("filesActivity: onBackPressed at root, closing fragment")
+        logx("filesActivity: onBackPressed at root, closing fragment", True)
         # delegate False -> java !False = True -> finishFragment called = close
         return False
 
@@ -318,12 +319,12 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                     if frag:
                         frag.finishFragment()
                 except Exception as e:
-                    log(f"filesActivity: failed to finish fragment: {e}")
+                    logx(f"filesActivity: failed to finish fragment: {e}", False)
             return True
         return False
 
     def beforeCreateView(self):
-        log(f"filesActivity: beforeCreateView stack={self._stack}")
+        logx(f"filesActivity: beforeCreateView stack={self._stack}", True)
         if self._content_view is not None:
             try:
                 parent = self._content_view.getParent()
@@ -413,11 +414,11 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
         return f"{prefix}/{rel}"
 
     def _push(self, path):
-        log(f"filesActivity: _push path={path} alive={self._alive[0]} stack_before={self._stack}")
+        logx(f"filesActivity: _push path={path} alive={self._alive[0]} stack_before={self._stack}", True)
         if not self._alive[0]:
             return
         self._stack.append(path)
-        log(f"filesActivity: _push stack_after={self._stack}")
+        logx(f"filesActivity: _push stack_after={self._stack}", True)
         self._register_back_callback()
         self._render()
 
@@ -510,7 +511,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                 AndroidUtilities.addToClipboard(path)
                 BulletinHelper.show_info(str(strings["copied_to_clipboard"]))
             except Exception as e:
-                log(f"filesActivity: on_copy error: {e}")
+                logx(f"filesActivity: on_copy error: {e}", False)
 
         _show_entry_menu(act, anchor, path, on_rename, on_delete, on_copy)
 
@@ -563,7 +564,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                             self._stack[j] = s.replace(path, new_path, 1)
                     run_on_ui_thread(lambda: self._render())
                 except Exception as e:
-                    log(f"filesActivity: rename error: {e}")
+                    logx(f"filesActivity: rename error: {e}", False)
                 if dialog_ref[0]:
                     dialog_ref[0].dismiss()
 
@@ -600,17 +601,17 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             dialog.setOnDismissListener(_DismissListener())
             dialog.show()
         except Exception as e:
-            log(f"filesActivity: _do_rename error: {e}")
+            logx(f"filesActivity: _do_rename error: {e}", False)
 
     def _do_create_file(self):
-        log("filesActivity: _do_create_file called")
+        logx("filesActivity: _do_create_file called", True)
         try:
-            log(f"filesActivity: _do_create_file act={self._act} stack={self._stack}")
+            logx(f"filesActivity: _do_create_file act={self._act} stack={self._stack}", True)
             from org.telegram.ui.ActionBar import AlertDialog as TgAlertDialog, Theme as TgTheme
             from org.telegram.ui.Components import EditTextBoldCursor
             act = self._act
             current_dir = self._stack[-1]
-            log(f"filesActivity: _do_create_file current_dir={current_dir}")
+            logx(f"filesActivity: _do_create_file current_dir={current_dir}", True)
 
             layout = LinearLayout(act)
             layout.setOrientation(LinearLayout.VERTICAL)
@@ -648,7 +649,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                     open(new_path, "a").close()
                     run_on_ui_thread(lambda: self._render())
                 except Exception as e:
-                    log(f"filesActivity: create file error: {e}")
+                    logx(f"filesActivity: create file error: {e}", False)
                 if dialog_ref[0]:
                     dialog_ref[0].dismiss()
 
@@ -685,7 +686,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             dialog.setOnDismissListener(_DismissListener())
             dialog.show()
         except Exception as e:
-            log(f"filesActivity: _do_create_file error: {e}")
+            logx(f"filesActivity: _do_create_file error: {e}", False)
 
     def _inject_fab(self):
         try:
@@ -771,9 +772,9 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
 
             self._content_view.addView(fab, fab_lp)
             fab.bringToFront()
-            log("filesActivity: FAB injected")
+            logx("filesActivity: FAB injected", True)
         except Exception as e:
-            log(f"filesActivity: _inject_fab error: {e}")
+            logx(f"filesActivity: _inject_fab error: {e}", False)
 
     def _do_delete(self, path):
         try:
@@ -802,24 +803,24 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                         self._stack.pop()
                     run_on_ui_thread(lambda: self._render())
                 except Exception as e:
-                    log(f"filesActivity: delete error: {e}")
+                    logx(f"filesActivity: delete error: {e}", False)
 
             builder.set_positive_button(str(strings["fs_delete_title"]), on_yes)
             try:
                 builder.make_button_red(AlertDialogBuilder.BUTTON_POSITIVE)
             except Exception as e:
-                log(f"filesActivity: make_button_red error: {e}")
+                logx(f"filesActivity: make_button_red error: {e}", False)
             builder.show()
         except Exception as e:
-            log(f"filesActivity: _do_delete error: {e}")
+            logx(f"filesActivity: _do_delete error: {e}", False)
 
     def _render(self):
         if not self._alive[0]:
-            log("filesActivity: _render skipped, not alive")
+            logx("filesActivity: _render skipped, not alive", True)
             return
         try:
             path = self._stack[-1]
-            log(f"filesActivity: _render path={path} stack={self._stack} list_root={self._list_root is not None}")
+            logx(f"filesActivity: _render path={path} stack={self._stack} list_root={self._list_root is not None}", True)
 
             self._render_breadcrumbs()
 
@@ -870,7 +871,7 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                     list_root.addView(_make_divider(act, t["divider"]), LayoutHelper.createLinear(-1, 1, dp(56), 0, 0, 0))
 
         except Exception as e:
-            log(f"filesActivity: _render error: {e}")
+            logx(f"filesActivity: _render error: {e}", False)
 
 
 def _make_row(act, name, subtitle, icon_id, t, is_dir, on_menu=None):
@@ -969,7 +970,7 @@ def _get_file_info(path):
             _, ext = os.path.splitext(path)
             info["extension"] = ext.lower() if ext else "(none)"
     except Exception as e:
-        log(f"filesActivity: _get_file_info error: {e}")
+        logx(f"filesActivity: _get_file_info error: {e}", False)
     return info
 
 
@@ -980,7 +981,7 @@ def _show_file_info(act, path):
         name = os.path.basename(path)
         show_info_dialog(act, name, info)
     except Exception as e:
-        log(f"filesActivity: _show_file_info error: {e}")
+        logx(f"filesActivity: _show_file_info error: {e}", False)
 
 
 def _show_entry_menu(act, anchor_view, path, on_rename, on_delete, on_copy):
@@ -1088,7 +1089,7 @@ def _show_entry_menu(act, anchor_view, path, on_rename, on_delete, on_copy):
         popup_window.showAtLocation(anchor_view, Gravity.TOP | Gravity.LEFT, popup_x, popup_y)
         popup_window.dimBehind()
     except Exception as e:
-        log(f"filesActivity: _show_entry_menu error: {e}")
+        logx(f"filesActivity: _show_entry_menu error: {e}", False)
 
 
 def _hook_swipe_back(plugin, frag_instance, delegate):
@@ -1104,10 +1105,10 @@ def _hook_swipe_back(plugin, frag_instance, delegate):
         method = frag_instance.getClass().getMethod("canBeginSlide")
         method.setAccessible(True)
         ref = plugin.hook_method(method, _CanBeginSlide())
-        log("filesActivity: canBeginSlide hook registered")
+        logx("filesActivity: canBeginSlide hook registered", True)
         return ref
     except Exception as e:
-        log(f"filesActivity: _hook_swipe_back error: {e}")
+        logx(f"filesActivity: _hook_swipe_back error: {e}", False)
         return None
 
 
@@ -1115,11 +1116,11 @@ def show_files_browser(plugin=None):
     try:
         frag = get_last_fragment()
         if not frag:
-            log("filesActivity: show_files_browser no fragment")
+            logx("filesActivity: show_files_browser no fragment", True)
             return
         root = _get_cache_root()
         if not root:
-            log("filesActivity: show_files_browser no root")
+            logx("filesActivity: show_files_browser no root", True)
             return
         delegate = FilesFragment(root)
         new_frag = UniversalFragment(delegate)
@@ -1141,7 +1142,7 @@ def show_files_browser(plugin=None):
                         action_bar.setBackButtonImage(back_icon)
                         action_bar.setBackButtonContentDescription("Back")
                 except Exception as e:
-                    log(f"filesActivity: Failed to add back button: {e}")
+                    logx(f"filesActivity: Failed to add back button: {e}", False)
                 try:
                     back_button = action_bar.getBackButton()
                     if back_button:
@@ -1149,11 +1150,11 @@ def show_files_browser(plugin=None):
                             new_frag.finishFragment()
                         back_button.setOnClickListener(OnClickListener(_on_back_click))
                 except Exception as e:
-                    log(f"filesActivity: Failed to set back button click listener: {e}")
+                    logx(f"filesActivity: Failed to set back button click listener: {e}", False)
 
             delegate._frag_ref[0] = new_frag
         except Exception as e:
-            log(f"filesActivity: show_files_browser actionBar error: {e}")
+            logx(f"filesActivity: show_files_browser actionBar error: {e}", False)
 
         if plugin is not None:
             hook_ref = _hook_swipe_back(plugin, new_frag, delegate)
@@ -1163,11 +1164,11 @@ def show_files_browser(plugin=None):
                 def _on_destroy(*a):
                     try:
                         plugin.unhook_method(hook_ref)
-                        log("filesActivity: canBeginSlide hook removed")
+                        logx("filesActivity: canBeginSlide hook removed", True)
                     except Exception as e:
-                        log(f"filesActivity: unhook error: {e}")
+                        logx(f"filesActivity: unhook error: {e}", False)
                     orig_destroy(*a)
 
                 delegate.onFragmentDestroy = _on_destroy
     except Exception as e:
-        log(f"filesActivity: show_files_browser error: {e}")
+        logx(f"filesActivity: show_files_browser error: {e}", False)

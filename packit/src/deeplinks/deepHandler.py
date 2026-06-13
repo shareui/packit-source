@@ -1,9 +1,10 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 from base_plugin import MethodHook
 from hook_utils import find_class
-from android_utils import log, run_on_ui_thread
+from android_utils import run_on_ui_thread
 from ui.alert import AlertDialogBuilder
 from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment
@@ -55,14 +56,14 @@ class PackItDeeplinkHook(MethodHook):
             url = str(data)
             if url.startswith("tg://packit"):
                 _params = url.split("?", 1)[1] if "?" in url else ""
-                log(f'[PackIt] link "{url}" is triggered, parameters: {_params}')
+                logx(f'[PackIt] link "{url}" is triggered, parameters: {_params}', True)
                 self.pending_intent = intent
                 self.pending_param = param
                 param.setResult(None)
                 run_on_ui_thread(lambda: self.show_packit_notification(url))
                 return
         except Exception as e:
-            log(f"[PackIt] Error in deeplink hook: {e}")
+            logx(f"[PackIt] Error in deeplink hook: {e}", False)
 
     def show_packit_notification(self, url):
         try:
@@ -84,7 +85,7 @@ class PackItDeeplinkHook(MethodHook):
             aytist.handle(url)
             suggestion.handle(url, self.plugin)
         except Exception as e:
-            log(f"[PackIt] Error showing notification: {e}")
+            logx(f"[PackIt] Error showing notification: {e}", False)
             try:
                 fragment = get_last_fragment()
                 activity = fragment.getParentActivity() if fragment else None
@@ -106,7 +107,7 @@ class PackItDeeplinkHook(MethodHook):
             self.pending_param = None
             self.is_processing = False
         except Exception as e:
-            log(f"[PackIt] Error proceeding deeplink: {e}")
+            logx(f"[PackIt] Error proceeding deeplink: {e}", False)
             self.is_processing = False
 
 
@@ -127,5 +128,5 @@ def setup_deeplink_hook(plugin):
             method.setAccessible(True)
             return plugin.hook_method(method, PackItDeeplinkHook(plugin))
     except Exception as e:
-        log(f"[PackIt] Error setting up deeplink hook: {e}")
+        logx(f"[PackIt] Error setting up deeplink hook: {e}", False)
     return None

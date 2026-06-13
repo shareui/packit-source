@@ -1,8 +1,9 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import os
-from android_utils import log
+
 from android.media import MediaPlayer, AudioManager
 try:
     from elyx import settings
@@ -27,7 +28,7 @@ def playSound(soundPath: str, soundKey: str = None, check_pending: bool = True, 
             pass
 
     if not soundPath or not os.path.exists(soundPath):
-        log(f"media: sound file not found: {soundPath}")
+        logx(f"media: sound file not found: {soundPath}", True)
         return
 
     vol_pct = settings.get("sfx_volume", 100)
@@ -42,7 +43,7 @@ def playSound(soundPath: str, soundKey: str = None, check_pending: bool = True, 
         player.setDataSource(soundPath)
         player.prepare()
     except Exception as e:
-        log(f"media: failed to prepare player: {e}")
+        logx(f"media: failed to prepare player: {e}", False)
         try:
             player.reset()
             player.release()
@@ -54,7 +55,7 @@ def playSound(soundPath: str, soundKey: str = None, check_pending: bool = True, 
         player.setVolume(vol, vol)
         player.start()
     except Exception as e:
-        log(f"media: failed to start player: {e}")
+        logx(f"media: failed to start player: {e}", False)
         try:
             player.reset()
             player.release()
@@ -74,4 +75,4 @@ def playSound(soundPath: str, soundKey: str = None, check_pending: bool = True, 
     try:
         player.setOnCompletionListener(_Listener())
     except Exception as e:
-        log(f"media: failed to set completion listener: {e}")
+        logx(f"media: failed to set completion listener: {e}", False)

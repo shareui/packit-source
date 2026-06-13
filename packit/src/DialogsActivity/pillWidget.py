@@ -1,7 +1,8 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from android_utils import log, run_on_ui_thread
+from packutil import logx
+from android_utils import run_on_ui_thread
 from android.view import Gravity
 from android.widget import LinearLayout, ImageView, TextView
 from android.graphics import PorterDuff
@@ -72,7 +73,7 @@ class PackitPill(Base):
             from org.telegram.ui.Components import ScaleStateListAnimator
             ScaleStateListAnimator.apply(layout)
         except Exception as e:
-            log(f"PillWidget: ScaleStateListAnimator error: {e}")
+            logx(f"PillWidget: ScaleStateListAnimator error: {e}", False)
 
         self.updateColors()
 
@@ -90,7 +91,7 @@ class PackitPill(Base):
         try:
             run_on_ui_thread(lambda: _execute_action(_plugin_ref[0], _get_saved_action()))
         except Exception as e:
-            log(f"PillWidget: onPillClicked error: {e}")
+            logx(f"PillWidget: onPillClicked error: {e}", False)
 
     @joverride()
     def onPillLongClicked(self) -> bool:
@@ -99,7 +100,7 @@ class PackitPill(Base):
             run_on_ui_thread(lambda: _show_long_click_menu(_plugin_ref[0], pill_java))
             return True
         except Exception as e:
-            log(f"PillWidget: onPillLongClicked error: {e}")
+            logx(f"PillWidget: onPillLongClicked error: {e}", False)
             return False
 
     @joverride()
@@ -120,7 +121,7 @@ class PackitPill(Base):
                 self.icon_view.setColorFilter(color, PorterDuff.Mode.SRC_IN)
             self.updateLoadingColors()
         except Exception as e:
-            log(f"PillWidget: updateColors error: {e}")
+            logx(f"PillWidget: updateColors error: {e}", False)
 
     @joverride()
     def setPressed(self, pressed: bool):
@@ -142,15 +143,15 @@ _plugin_ref = [None]
 
 
 def setup_pill_widget(plugin):
-    log("PillWidget: setup start")
+    logx("PillWidget: setup start", True)
     try:
         _plugin_ref[0] = plugin
         _setup_save_hook(plugin)
         run_on_ui_thread(lambda: _register_pill(plugin))
-        log("PillWidget: setup scheduled")
+        logx("PillWidget: setup scheduled", True)
         return True
     except Exception as e:
-        log(f"PillWidget: setup error: {e}")
+        logx(f"PillWidget: setup error: {e}", False)
         return None
 
 
@@ -168,9 +169,9 @@ def _setup_save_hook(plugin):
                 _sync_state_from_config()
 
         plugin.hook_method(method, SaveLayoutHook())
-        log("PillWidget: savePillsLayout hook installed")
+        logx("PillWidget: savePillsLayout hook installed", True)
     except Exception as e:
-        log(f"PillWidget: _setup_save_hook error: {e}")
+        logx(f"PillWidget: _setup_save_hook error: {e}", False)
 
 
 def _get_prefs():
@@ -198,7 +199,7 @@ def _set_saved_state(state):
         prefs = _get_prefs()
         if prefs:
             prefs.edit().putInt("pill_state", int(state)).apply()
-            log(f"PillWidget: saved state={state}")
+            logx(f"PillWidget: saved state={state}", True)
     except Exception:
         pass
 
@@ -241,9 +242,9 @@ def _ensure_visibility():
             except Exception:
                 pass
         PillStackConfig.savePillsLayout()
-        log(f"PillWidget: ensure_visibility state={state}")
+        logx(f"PillWidget: ensure_visibility state={state}", True)
     except Exception as e:
-        log(f"PillWidget: _ensure_visibility error: {e}")
+        logx(f"PillWidget: _ensure_visibility error: {e}", False)
 
 
 def _sync_state_from_config():
@@ -252,7 +253,7 @@ def _sync_state_from_config():
         active = getattr(PillStackConfig, "activePills", None)
         hidden = getattr(PillStackConfig, "hiddenPills", None)
         if active is None or hidden is None:
-            log("PillWidget: _sync_state_from_config: lists not available")
+            logx("PillWidget: _sync_state_from_config: lists not available", True)
             return
         pid = jint(_PILL_ID)
         try:
@@ -261,20 +262,20 @@ def _sync_state_from_config():
                 idx = _active_index(active, pid)
                 if idx >= 0:
                     _set_saved_index(idx)
-                log(f"PillWidget: sync -> active, idx={idx}")
+                logx(f"PillWidget: sync -> active, idx={idx}", True)
                 return
         except Exception:
             pass
         try:
             if hidden.contains(pid):
                 _set_saved_state(0)
-                log("PillWidget: sync -> hidden")
+                logx("PillWidget: sync -> hidden", True)
                 return
         except Exception:
             pass
-        log("PillWidget: sync -> pill not found in either list")
+        logx("PillWidget: sync -> pill not found in either list", True)
     except Exception as e:
-        log(f"PillWidget: _sync_state_from_config error: {e}")
+        logx(f"PillWidget: _sync_state_from_config error: {e}", False)
 
 
 def _register_pill(plugin):
@@ -293,17 +294,17 @@ def _register_pill(plugin):
         PillRegistry.register(pill_info)
         _sync_pillstack()
         _notify_update()
-        log(f"PillWidget: registered id={_PILL_ID}")
+        logx(f"PillWidget: registered id={_PILL_ID}", True)
     except Exception as e:
-        log(f"PillWidget: _register_pill error: {e}")
+        logx(f"PillWidget: _register_pill error: {e}", False)
 
 
 def _unregister_pill():
     try:
         PillRegistry.unregister(_PILL_ID)
-        log("PillWidget: unregistered")
+        logx("PillWidget: unregistered", True)
     except Exception as e:
-        log(f"PillWidget: _unregister_pill error: {e}")
+        logx(f"PillWidget: _unregister_pill error: {e}", False)
 
 
 def _get_icon_res():
@@ -382,9 +383,9 @@ def _sync_pillstack():
             PillStackConfig.notifySettingsChanged()
         except Exception:
             pass
-        log("PillWidget: pillstack synced")
+        logx("PillWidget: pillstack synced", True)
     except Exception as e:
-        log(f"PillWidget: _sync_pillstack error: {e}")
+        logx(f"PillWidget: _sync_pillstack error: {e}", False)
 
 
 def _notify_update():
@@ -393,10 +394,10 @@ def _notify_update():
             try:
                 PillStackConfig.notifySettingsChanged()
             except Exception as e:
-                log(f"PillWidget: _notify_update inner error: {e}")
+                logx(f"PillWidget: _notify_update inner error: {e}", False)
         run_on_ui_thread(_do)
     except Exception as e:
-        log(f"PillWidget: _notify_update error: {e}")
+        logx(f"PillWidget: _notify_update error: {e}", False)
 
 
 def _execute_action(plugin, action):
@@ -423,7 +424,7 @@ def _open_settings(plugin):
             from elyx import strings
             BulletinHelper.show_error(strings.plugin_not_found)
     except Exception as e:
-        log(f"PillWidget: _open_settings error: {e}")
+        logx(f"PillWidget: _open_settings error: {e}", False)
 
 
 def _open_install(plugin):
@@ -431,7 +432,7 @@ def _open_install(plugin):
         from ..ui.PluginListActivity.fragment import InstallUI
         InstallUI(plugin).open()
     except Exception as e:
-        log(f"PillWidget: _open_install error: {e}")
+        logx(f"PillWidget: _open_install error: {e}", False)
 
 
 def _open_icons(plugin):
@@ -439,7 +440,7 @@ def _open_icons(plugin):
         from ..ui.IconsListActivity.fragment import InstallIconsUI
         InstallIconsUI(plugin).open()
     except Exception as e:
-        log(f"PillWidget: _open_icons error: {e}")
+        logx(f"PillWidget: _open_icons error: {e}", False)
 
 
 def _open_pill_stack_settings():
@@ -453,7 +454,7 @@ def _open_pill_stack_settings():
         if frag:
             frag.presentFragment(PillStackPreferencesActivity())
     except Exception as e:
-        log(f"PillWidget: _open_pill_stack_settings error: {e}")
+        logx(f"PillWidget: _open_pill_stack_settings error: {e}", False)
 
 
 def _action_label(action, strings):
@@ -535,7 +536,7 @@ def _show_long_click_menu(plugin, pill):
                         if act:
                             Browser.openUrl(act, Uri.parse(str(strings.tg_channel_url)), True, True, True, None, None, False, False, False)
                     except Exception as e:
-                        log(f"PillWidget: open channel error: {e}")
+                        logx(f"PillWidget: open channel error: {e}", False)
             return R()
 
         icon_channel = int(getattr(R_tg.drawable, "msg_channel", 0))
@@ -557,4 +558,4 @@ def _show_long_click_menu(plugin, pill):
         options.setDimAlpha(0)
         options.show()
     except Exception as e:
-        log(f"PillWidget: _show_long_click_menu error: {e}")
+        logx(f"PillWidget: _show_long_click_menu error: {e}", False)

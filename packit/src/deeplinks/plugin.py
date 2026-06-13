@@ -1,9 +1,10 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment, run_on_queue
-from android_utils import log, run_on_ui_thread
+from android_utils import run_on_ui_thread
 from urllib.parse import urlparse, parse_qs
 import requests
 import json
@@ -79,7 +80,7 @@ def handle(url, repoManager):
 
         _openPluginProfile(repo, pluginId, repoId, repoManager)
     except Exception as e:
-        log(f"deeplinks.plugin: error: {e}")
+        logx(f"deeplinks.plugin: error: {e}", False)
 
 
 def _openPluginProfile(repo: dict, pluginId: str, repoId: str, repoManager):
@@ -132,7 +133,7 @@ def _openPluginProfile(repo: dict, pluginId: str, repoId: str, repoManager):
 
             run_on_ui_thread(_show)
         except Exception as e:
-            log(f"deeplinks.plugin: fetch error: {e}")
+            logx(f"deeplinks.plugin: fetch error: {e}", False)
             run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings["dl_plugin_load_error"])))
 
     run_on_queue(task)

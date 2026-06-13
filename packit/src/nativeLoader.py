@@ -1,10 +1,11 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import ctypes
 import os
 
-from android_utils import log
+
 
 try:
     from elyx import strings as _strings
@@ -25,7 +26,7 @@ def checkSoPaths():
     for name in ("libbithash", "libsearch", "libpacklight", "libpackitdb", "libexport"):
         path = _soPath(name)
         exists = os.path.exists(path)
-        log(f"nativeLoader: {'Lib ' + path + ' exists!' if exists else 'Lib ' + path + ' NOT FOUND'}")
+        logx(f"nativeLoader: {'Lib ' + path + ' exists!' if exists else 'Lib ' + path + ' NOT FOUND'}", True)
 
 
 def showNativeErrorSheet(libName: str, error: str):
@@ -76,7 +77,7 @@ def showNativeErrorSheet(libName: str, error: str):
                         _abi = str(Build.CPU_ABI)
                     _android = str(Build.VERSION.RELEASE)
                 except Exception as _ie:
-                    log(f"nativeLoader: device info error: {_ie}")
+                    logx(f"nativeLoader: device info error: {_ie}", True)
                     _app_ver = "N/A"
                     _package = "N/A"
                     _abi = "N/A"
@@ -100,7 +101,7 @@ def showNativeErrorSheet(libName: str, error: str):
                 try:
                     AndroidUtilities.addToClipboard(clip_text)
                 except Exception as _ce:
-                    log(f"nativeLoader: clipboard copy error: {_ce}")
+                    logx(f"nativeLoader: clipboard copy error: {_ce}", True)
 
                 sheet = BottomSheet(activity, False, rp)
                 sheet.fixNavigationBar()
@@ -146,7 +147,7 @@ def showNativeErrorSheet(libName: str, error: str):
                         )
                         return True
                     except Exception as _e:
-                        log(f"nativeLoader: showNativeErrorSheet sticker error: {_e}")
+                        logx(f"nativeLoader: showNativeErrorSheet sticker error: {_e}", True)
                         return False
 
                 if not _try_sticker():
@@ -198,7 +199,7 @@ def showNativeErrorSheet(libName: str, error: str):
                             if act and Browser:
                                 Browser.openUrl(act, uri, True, True, True, None, None, False, False, False)
                         except Exception as _e:
-                            log(f"nativeLoader: showNativeErrorSheet report click error: {_e}")
+                            logx(f"nativeLoader: showNativeErrorSheet report click error: {_e}", True)
 
                 report_btn.setOnClickListener(_ReportClick())
                 linear.addView(report_btn, LayoutHelper.createFrame(-1, 48.0, 0, 16.0, 16.0, 16.0, 8.0))
@@ -221,11 +222,11 @@ def showNativeErrorSheet(libName: str, error: str):
                 sheet.setCustomView(scroll)
                 sheet.show()
             except Exception as _e:
-                log(f"nativeLoader: showNativeErrorSheet _show error: {_e}")
+                logx(f"nativeLoader: showNativeErrorSheet _show error: {_e}", True)
 
         run_on_ui_thread(_show)
     except Exception as e:
-        log(f"nativeLoader: showNativeErrorSheet error: {e}")
+        logx(f"nativeLoader: showNativeErrorSheet error: {e}", False)
 
 
 def loadBitHash() -> "ctypes.CDLL | None":
@@ -235,7 +236,7 @@ def loadBitHash() -> "ctypes.CDLL | None":
         lib.bitHash_oneshot.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_uint64]
         return lib
     except Exception as e:
-        log(f"nativeLoader: libbithash load error: {e}")
+        logx(f"nativeLoader: libbithash load error: {e}", False)
         showNativeErrorSheet("libbithash.so", str(e))
         return None
 
@@ -254,7 +255,7 @@ def loadSearch() -> "ctypes.CDLL | None":
         lib.search_free_str.argtypes = [ctypes.c_void_p]
         return lib
     except Exception as e:
-        log(f"nativeLoader: libsearch load error: {e}")
+        logx(f"nativeLoader: libsearch load error: {e}", False)
         showNativeErrorSheet("libsearch.so", str(e))
         return None
 
@@ -263,7 +264,7 @@ def loadPackLight() -> "ctypes.CDLL | None":
     try:
         return ctypes.CDLL(_soPath("libpacklight"))
     except Exception as e:
-        log(f"nativeLoader: libpacklight load error: {e}")
+        logx(f"nativeLoader: libpacklight load error: {e}", False)
         showNativeErrorSheet("libpacklight.so", str(e))
         return None
 
@@ -309,7 +310,7 @@ def loadPackitDb() -> "ctypes.CDLL | None":
         lib.packdb_entry_count.argtypes = [vp]
         return lib
     except Exception as e:
-        log(f"nativeLoader: libpackitdb load error: {e}")
+        logx(f"nativeLoader: libpackitdb load error: {e}", False)
         showNativeErrorSheet("libpackitdb.so", str(e))
         return None
 
@@ -332,7 +333,7 @@ def loadPackitKey() -> "ctypes.CDLL | None":
         lib.packitkey_exists.argtypes = [cp, cp, cp]
         return lib
     except Exception as e:
-        log(f"nativeLoader: libpackitkey load error: {e}")
+        logx(f"nativeLoader: libpackitkey load error: {e}", False)
         showNativeErrorSheet("libpackitkey.so", str(e))
         return None
 
@@ -358,6 +359,6 @@ def loadExport() -> "ctypes.CDLL | None":
         lib.packit_last_error.argtypes = []
         return lib
     except Exception as e:
-        log(f"nativeLoader: libexport load error: {e}")
+        logx(f"nativeLoader: libexport load error: {e}", False)
         showNativeErrorSheet("libexport.so", str(e))
         return None

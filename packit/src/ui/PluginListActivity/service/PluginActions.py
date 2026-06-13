@@ -1,7 +1,8 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from android_utils import log
+
+from packutil import logx
 from client_utils import get_last_fragment
 from hook_utils import find_class
 from .ReportService import report_plugin
@@ -51,9 +52,9 @@ def copy_plugin_link(plugin_info: dict, repo_title: str, sound_path: str = None)
             from ....ui.AchievementsActivity.service.AchivementsEngine import increment_category
             increment_category("Copying links")
         except Exception as e:
-            log(f"copy_plugin_link: achievements increment error: {e}")
+            logx(f"copy_plugin_link: achievements increment error: {e}", False)
     except Exception as e:
-        log(f"copy: failed to copy link: {e}")
+        logx(f"copy: failed to copy link: {e}", False)
 
 
 def share_plugin_file(plugin_info: dict, display_name: str, activity):
@@ -64,9 +65,9 @@ def share_plugin_file(plugin_info: dict, display_name: str, activity):
             from ....ui.AchievementsActivity.service.AchivementsEngine import increment_category
             increment_category("Sharing")
         except Exception as e:
-            log(f"share_plugin_file: achievements increment error: {e}")
+            logx(f"share_plugin_file: achievements increment error: {e}", False)
     except Exception as e:
-        log(f"Error sharing plugin: {e}")
+        logx(f"Error sharing plugin: {e}", False)
 
 
 def _convert_raw_github_url(url: str) -> str:
@@ -163,7 +164,7 @@ def download_plugin_file(plugin_info: dict):
                 _dismiss()
                 _run(lambda: _show_download_ok(dest_path))
             except Exception as e:
-                log(f"download: failed: {e}")
+                logx(f"download: failed: {e}", False)
                 _dismiss()
                 _run(lambda: _show_download_error(str(e)))
 
@@ -184,9 +185,9 @@ def download_plugin_file(plugin_info: dict):
                     from ....ui.AchievementsActivity.service.AchivementsEngine import increment_category
                     increment_category("Downloading")
                 except Exception as e:
-                    log(f"download: achievements increment error: {e}")
+                    logx(f"download: achievements increment error: {e}", False)
             except Exception as e:
-                log(f"download: show ok error: {e}")
+                logx(f"download: show ok error: {e}", False)
 
         def _show_download_error(msg):
             try:
@@ -198,11 +199,11 @@ def download_plugin_file(plugin_info: dict):
                 BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
                 BulletinFactory.of(container, rp).createErrorBulletin(strings("download_failed", msg=msg)).show()
             except Exception as e:
-                log(f"download: show error error: {e}")
+                logx(f"download: show error error: {e}", False)
 
         threading.Thread(target=_do_download, daemon=True).start()
     except Exception as e:
-        log(f"download: outer error: {e}")
+        logx(f"download: outer error: {e}", False)
 
 
 def view_plugin_code(plugin_info: dict, activity):
@@ -217,7 +218,7 @@ def view_plugin_code(plugin_info: dict, activity):
         if activity and Browser:
             uri = Uri.parse(plugin_url)
             Browser.openUrl(activity, uri, True, True, True, None, None, False, False, False)
-            log(f"Opening plugin URL: {plugin_url}")
+            logx(f"Opening plugin URL: {plugin_url}", True)
         else:
             try:
                 from android.content import Intent
@@ -227,19 +228,19 @@ def view_plugin_code(plugin_info: dict, activity):
                 intent.setData(Uri.parse(plugin_url))
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(intent)
-                log(f"Opening plugin URL via Intent: {plugin_url}")
+                logx(f"Opening plugin URL via Intent: {plugin_url}", True)
             except Exception as e:
-                log(f"Failed to open URL via Intent: {e}")
+                logx(f"Failed to open URL via Intent: {e}", False)
                 BulletinFactory.of(activity.getWindow().getDecorView(), None).createErrorBulletin(strings["failed_to_open_url"]).show()
                 return
         try:
             from ....ui.AchievementsActivity.service.AchivementsEngine import increment_category
             increment_category("Viewing code")
         except Exception as e:
-            log(f"view_plugin_code: achievements increment error: {e}")
+            logx(f"view_plugin_code: achievements increment error: {e}", False)
                 
     except Exception as e:
-        log(f"Error opening plugin URL: {e}")
+        logx(f"Error opening plugin URL: {e}", False)
         try:
             BulletinFactory.of(activity.getWindow().getDecorView(), None).createErrorBulletin(strings["failed_to_open_plugin_url"]).show()
         except Exception:

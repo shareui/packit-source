@@ -1,7 +1,8 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from android_utils import log, run_on_ui_thread
+from packutil import logx
+from android_utils import run_on_ui_thread
 from android.view import Gravity
 from android.widget import LinearLayout, ImageView, TextView
 from android.graphics import PorterDuff
@@ -46,7 +47,7 @@ def _apply_press_anim(layout, enabled: bool):
         else:
             layout.setStateListAnimator(None)
     except Exception as e:
-        log(f"UpdatesWidget: _apply_press_anim error: {e}")
+        logx(f"UpdatesWidget: _apply_press_anim error: {e}", False)
 
 
 @java_subclass(BasePill)
@@ -111,7 +112,7 @@ class UpdatesPill(Base):
             pill_self = self
             run_on_ui_thread(lambda: _on_click(_plugin_ref[0], pill_self))
         except Exception as e:
-            log(f"UpdatesWidget: onPillClicked error: {e}")
+            logx(f"UpdatesWidget: onPillClicked error: {e}", False)
 
     @joverride()
     def onPillLongClicked(self) -> bool:
@@ -120,7 +121,7 @@ class UpdatesPill(Base):
             run_on_ui_thread(lambda: _show_menu(_plugin_ref[0], pill_java))
             return True
         except Exception as e:
-            log(f"UpdatesWidget: onPillLongClicked error: {e}")
+            logx(f"UpdatesWidget: onPillLongClicked error: {e}", False)
             return False
 
     @joverride()
@@ -144,7 +145,7 @@ class UpdatesPill(Base):
             self.updateLoadingColors()
             _apply_press_anim(self.llayout, has_updates)
         except Exception as e:
-            log(f"UpdatesWidget: updateColors error: {e}")
+            logx(f"UpdatesWidget: updateColors error: {e}", False)
 
     @joverride()
     def setPressed(self, pressed: bool):
@@ -167,16 +168,16 @@ _active_pill_ref = [None]
 
 
 def setup_updates_widget(plugin):
-    log("UpdatesWidget: setup start")
+    logx("UpdatesWidget: setup start", True)
     try:
         _plugin_ref[0] = plugin
         _setup_save_hook(plugin)
         # check updates before registering so pill shows correct state from the start
         _prefetch_and_register(plugin)
-        log("UpdatesWidget: setup scheduled")
+        logx("UpdatesWidget: setup scheduled", True)
         return True
     except Exception as e:
-        log(f"UpdatesWidget: setup error: {e}")
+        logx(f"UpdatesWidget: setup error: {e}", False)
         return None
 
 
@@ -194,9 +195,9 @@ def _setup_save_hook(plugin):
                 _sync_state_from_config()
 
         plugin.hook_method(method, SaveLayoutHook())
-        log("UpdatesWidget: savePillsLayout hook installed")
+        logx("UpdatesWidget: savePillsLayout hook installed", True)
     except Exception as e:
-        log(f"UpdatesWidget: _setup_save_hook error: {e}")
+        logx(f"UpdatesWidget: _setup_save_hook error: {e}", False)
 
 
 def _prefetch_and_register(plugin):
@@ -208,9 +209,9 @@ def _prefetch_and_register(plugin):
             updates = _filter_ignored(None, _check_updates(None))
             _updates_count[0] = len(updates)
             _updates_list[0] = updates
-            log(f"UpdatesWidget: prefetch done, count={_updates_count[0]}")
+            logx(f"UpdatesWidget: prefetch done, count={_updates_count[0]}", True)
         except Exception as e:
-            log(f"UpdatesWidget: prefetch error: {e}")
+            logx(f"UpdatesWidget: prefetch error: {e}", False)
         run_on_ui_thread(lambda: _register_pill(plugin))
 
     run_on_queue(task)
@@ -241,7 +242,7 @@ def _set_saved_state(state):
         prefs = _get_prefs()
         if prefs:
             prefs.edit().putInt("pill_state", int(state)).apply()
-            log(f"UpdatesWidget: saved state={state}")
+            logx(f"UpdatesWidget: saved state={state}", True)
     except Exception:
         pass
 
@@ -284,9 +285,9 @@ def _ensure_visibility():
             except Exception:
                 pass
         PillStackConfig.savePillsLayout()
-        log(f"UpdatesWidget: ensure_visibility state={state}")
+        logx(f"UpdatesWidget: ensure_visibility state={state}", True)
     except Exception as e:
-        log(f"UpdatesWidget: _ensure_visibility error: {e}")
+        logx(f"UpdatesWidget: _ensure_visibility error: {e}", False)
 
 
 def _sync_state_from_config():
@@ -295,7 +296,7 @@ def _sync_state_from_config():
         active = getattr(PillStackConfig, "activePills", None)
         hidden = getattr(PillStackConfig, "hiddenPills", None)
         if active is None or hidden is None:
-            log("UpdatesWidget: _sync_state_from_config: lists not available")
+            logx("UpdatesWidget: _sync_state_from_config: lists not available", True)
             return
         pid = jint(_PILL_ID)
         try:
@@ -304,20 +305,20 @@ def _sync_state_from_config():
                 idx = _active_index(active, pid)
                 if idx >= 0:
                     _set_saved_index(idx)
-                log(f"UpdatesWidget: sync -> active, idx={idx}")
+                logx(f"UpdatesWidget: sync -> active, idx={idx}", True)
                 return
         except Exception:
             pass
         try:
             if hidden.contains(pid):
                 _set_saved_state(0)
-                log("UpdatesWidget: sync -> hidden")
+                logx("UpdatesWidget: sync -> hidden", True)
                 return
         except Exception:
             pass
-        log("UpdatesWidget: sync -> pill not found in either list")
+        logx("UpdatesWidget: sync -> pill not found in either list", True)
     except Exception as e:
-        log(f"UpdatesWidget: _sync_state_from_config error: {e}")
+        logx(f"UpdatesWidget: _sync_state_from_config error: {e}", False)
 
 
 def _register_pill(plugin):
@@ -341,9 +342,9 @@ def _register_pill(plugin):
         PillRegistry.register(pill_info)
         _sync_pillstack()
         _notify_update()
-        log(f"UpdatesWidget: registered id={_PILL_ID}")
+        logx(f"UpdatesWidget: registered id={_PILL_ID}", True)
     except Exception as e:
-        log(f"UpdatesWidget: _register_pill error: {e}")
+        logx(f"UpdatesWidget: _register_pill error: {e}", False)
 
 
 def _get_icon_res():
@@ -393,7 +394,7 @@ def _install_single(plugin, item):
             from ..core import remove_install_listener
             remove_install_listener(_on_installed)
         except Exception as e:
-            log(f"UpdatesWidget: remove_install_listener error: {e}")
+            logx(f"UpdatesWidget: remove_install_listener error: {e}", False)
         _run_check(plugin, _active_pill_ref[0])
 
     def task():
@@ -401,13 +402,13 @@ def _install_single(plugin, item):
             repos = _get_repos()
             repo = next((r for r in repos if str(r.get("id") or "") == repo_id), None)
             if not repo:
-                log(f"UpdatesWidget: _install_single repo '{repo_id}' not found")
+                logx(f"UpdatesWidget: _install_single repo '{repo_id}' not found", True)
                 return
             repo_url = str(repo.get("url") or "").strip()
             plugins_url = _get_repo_plugins_url(None, repo_id, repo_url)
             r = _req.get(plugins_url, timeout=20, headers={"User-Agent": "PackIt/1.0"})
             if r.status_code != 200:
-                log(f"UpdatesWidget: _install_single HTTP {r.status_code}")
+                logx(f"UpdatesWidget: _install_single HTTP {r.status_code}", True)
                 return
             data = r.json()
             plugins_raw = data.get("plugins", {})
@@ -427,14 +428,14 @@ def _install_single(plugin, item):
                         plugin_data = p
                         break
             if not plugin_data:
-                log(f"UpdatesWidget: _install_single plugin '{pid}' not found in repo")
+                logx(f"UpdatesWidget: _install_single plugin '{pid}' not found in repo", True)
                 return
             from ..core import install_plugin, add_install_listener
             add_install_listener(_on_installed)
             from android_utils import run_on_ui_thread
             run_on_ui_thread(lambda: install_plugin(plugin_data, all_plugins=all_plugins, rm_rid=repo_id))
         except Exception as e:
-            log(f"UpdatesWidget: _install_single task error: {e}")
+            logx(f"UpdatesWidget: _install_single task error: {e}", False)
 
     run_on_queue(task)
 
@@ -444,7 +445,7 @@ def _open_updates(plugin):
         from ..ui.pluginsUpdates.fragment import show_updates_fragment
         show_updates_fragment(plugin)
     except Exception as e:
-        log(f"UpdatesWidget: _open_updates error: {e}")
+        logx(f"UpdatesWidget: _open_updates error: {e}", False)
 
 
 def _run_check(plugin, pill=None):
@@ -457,7 +458,7 @@ def _run_check(plugin, pill=None):
                 pill.animateSizeChange()
                 pill.startLoading()
         except Exception as e:
-            log(f"UpdatesWidget: start_loading error: {e}")
+            logx(f"UpdatesWidget: start_loading error: {e}", False)
 
     def finish_loading(count, updates):
         try:
@@ -469,7 +470,7 @@ def _run_check(plugin, pill=None):
                 pill.updateColors()
             _notify_update()
         except Exception as e:
-            log(f"UpdatesWidget: finish_loading error: {e}")
+            logx(f"UpdatesWidget: finish_loading error: {e}", False)
 
     run_on_ui_thread(start_loading)
 
@@ -480,7 +481,7 @@ def _run_check(plugin, pill=None):
             count = len(updates)
             run_on_ui_thread(lambda: finish_loading(count, updates))
         except Exception as e:
-            log(f"UpdatesWidget: _run_check task error: {e}")
+            logx(f"UpdatesWidget: _run_check task error: {e}", False)
             run_on_ui_thread(lambda: finish_loading(_updates_count[0], _updates_list[0]))
 
     run_on_queue(task)
@@ -540,9 +541,9 @@ def _sync_pillstack():
             PillStackConfig.notifySettingsChanged()
         except Exception:
             pass
-        log("UpdatesWidget: pillstack synced")
+        logx("UpdatesWidget: pillstack synced", True)
     except Exception as e:
-        log(f"UpdatesWidget: _sync_pillstack error: {e}")
+        logx(f"UpdatesWidget: _sync_pillstack error: {e}", False)
 
 
 def _notify_update():
@@ -551,10 +552,10 @@ def _notify_update():
             try:
                 PillStackConfig.notifySettingsChanged()
             except Exception as e:
-                log(f"UpdatesWidget: _notify_update inner error: {e}")
+                logx(f"UpdatesWidget: _notify_update inner error: {e}", False)
         run_on_ui_thread(_do)
     except Exception as e:
-        log(f"UpdatesWidget: _notify_update error: {e}")
+        logx(f"UpdatesWidget: _notify_update error: {e}", False)
 
 
 def _open_pill_stack_settings():
@@ -568,7 +569,7 @@ def _open_pill_stack_settings():
         if frag:
             frag.presentFragment(PillStackPreferencesActivity())
     except Exception as e:
-        log(f"UpdatesWidget: _open_pill_stack_settings error: {e}")
+        logx(f"UpdatesWidget: _open_pill_stack_settings error: {e}", False)
 
 
 def _show_menu(plugin, pill):
@@ -609,7 +610,7 @@ def _show_menu(plugin, pill):
                 if act:
                     Browser.openUrl(act, Uri.parse(str(strings["tg_channel_url"])), True, True, True, None, None, False, False, False)
             except Exception as e:
-                log(f"UpdatesWidget: open channel error: {e}")
+                logx(f"UpdatesWidget: open channel error: {e}", False)
 
         icon_channel = int(getattr(R_tg.drawable, "msg_channel", 0))
         options.add(icon_channel, str(strings["packit_channel"]), make_runnable(open_channel))
@@ -622,4 +623,4 @@ def _show_menu(plugin, pill):
         options.setDimAlpha(0)
         options.show()
     except Exception as e:
-        log(f"UpdatesWidget: _show_menu error: {e}")
+        logx(f"UpdatesWidget: _show_menu error: {e}", False)

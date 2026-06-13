@@ -1,12 +1,13 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import os
 import ctypes
 import traceback
 import zipfile
 
-from android_utils import log, run_on_ui_thread, OnClickListener
+from android_utils import run_on_ui_thread, OnClickListener
 from android.view import Gravity, View
 from android.widget import FrameLayout, LinearLayout, TextView
 from android.util import TypedValue
@@ -26,7 +27,7 @@ def _selected_size(file_path: str, plugins: list) -> int:
                     total += zf.getinfo(path).file_size
         return total
     except Exception as e:
-        log(f"ConfirmImportBottomSheet: size error: {e}")
+        logx(f"ConfirmImportBottomSheet: size error: {e}", False)
         return 0
 
 
@@ -42,18 +43,18 @@ def _merge_plugin_settings(file_path: str, plugin_ids: list):
     try:
         with zipfile.ZipFile(file_path, "r") as zf:
             if "settings.json" not in zf.namelist():
-                log("ConfirmImportBottomSheet: settings.json not found in archive")
+                logx("ConfirmImportBottomSheet: settings.json not found in archive", True)
                 return
             archive_settings = json.loads(zf.read("settings.json").decode("utf-8"))
     except Exception as e:
-        log(f"ConfirmImportBottomSheet: failed to read settings.json from archive: {e}")
+        logx(f"ConfirmImportBottomSheet: failed to read settings.json from archive: {e}", False)
         return
 
     try:
         from org.telegram.messenger import ApplicationLoader
         client_path = ApplicationLoader.applicationContext.getFilesDir().getAbsolutePath() + "/plugins/plugin_settings.json"
     except Exception as e:
-        log(f"ConfirmImportBottomSheet: failed to get filesDir: {e}")
+        logx(f"ConfirmImportBottomSheet: failed to get filesDir: {e}", False)
         return
 
     try:
@@ -62,7 +63,7 @@ def _merge_plugin_settings(file_path: str, plugin_ids: list):
     except FileNotFoundError:
         client_settings = {}
     except Exception as e:
-        log(f"ConfirmImportBottomSheet: failed to read client plugin_settings.json: {e}")
+        logx(f"ConfirmImportBottomSheet: failed to read client plugin_settings.json: {e}", False)
         return
 
     merged = 0
@@ -70,18 +71,18 @@ def _merge_plugin_settings(file_path: str, plugin_ids: list):
         if plugin_id in archive_settings:
             client_settings[plugin_id] = archive_settings[plugin_id]
             merged += 1
-            log(f"ConfirmImportBottomSheet: merged settings for '{plugin_id}'")
+            logx(f"ConfirmImportBottomSheet: merged settings for '{plugin_id}'", True)
 
     if merged == 0:
-        log("ConfirmImportBottomSheet: no settings to merge for installed plugins")
+        logx("ConfirmImportBottomSheet: no settings to merge for installed plugins", True)
         return
 
     try:
         with open(client_path, "w", encoding="utf-8") as f:
             json.dump(client_settings, f, ensure_ascii=False, indent=2)
-        log(f"ConfirmImportBottomSheet: wrote settings for {merged} plugin(s)")
+        logx(f"ConfirmImportBottomSheet: wrote settings for {merged} plugin(s)", True)
     except Exception as e:
-        log(f"ConfirmImportBottomSheet: failed to write client plugin_settings.json: {e}")
+        logx(f"ConfirmImportBottomSheet: failed to write client plugin_settings.json: {e}", False)
 
 
 def _make_chip(act, text, color_key):
@@ -194,7 +195,7 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                 chip_lp.topMargin = AndroidUtilities.dp(8)
                 root.addView(chip, chip_lp)
             except Exception as e:
-                log(f"ConfirmImportBottomSheet: chip error: {e}")
+                logx(f"ConfirmImportBottomSheet: chip error: {e}", False)
 
             import_with_settings = [False]
 
@@ -225,7 +226,7 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                         cb_lp.rightMargin = AndroidUtilities.dp(8)
                         settings_row.addView(cb, cb_lp)
                     except Exception as e:
-                        log(f"ConfirmImportBottomSheet: checkbox error: {e}")
+                        logx(f"ConfirmImportBottomSheet: checkbox error: {e}", False)
 
                     settings_label = TextView(activity)
                     settings_label.setText(str(strings["afp_import_with_settings"]))
@@ -254,7 +255,7 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                     settings_row_lp.topMargin = AndroidUtilities.dp(12)
                     root.addView(settings_row, settings_row_lp)
                 except Exception as e:
-                    log(f"ConfirmImportBottomSheet: settings row error: {e}")
+                    logx(f"ConfirmImportBottomSheet: settings row error: {e}", False)
 
             # import button
             try:
@@ -285,7 +286,7 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                                     d.size = float(AndroidUtilities.dp(20))
                                     d.thickness = float(AndroidUtilities.dp(2))
                                 except Exception as e:
-                                    log(f"ConfirmImportBottomSheet: spinner size error: {e}")
+                                    logx(f"ConfirmImportBottomSheet: spinner size error: {e}", False)
                                 spin_iv = ImageView(activity)
                                 spin_iv.setImageDrawable(d)
                                 spin_iv.setScaleType(ImageView.ScaleType.CENTER)
@@ -297,16 +298,16 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                                 btn_wrapper.addView(spin_iv, overlay_lp)
                                 spinner_overlay_ref[0] = spin_iv
                             except Exception as e:
-                                log(f"ConfirmImportBottomSheet: spinner create error: {e}")
+                                logx(f"ConfirmImportBottomSheet: spinner create error: {e}", False)
                         else:
                             if spinner_overlay_ref[0] is not None:
                                 try:
                                     btn_wrapper.removeView(spinner_overlay_ref[0])
                                 except Exception as e:
-                                    log(f"ConfirmImportBottomSheet: spinner remove error: {e}")
+                                    logx(f"ConfirmImportBottomSheet: spinner remove error: {e}", False)
                                 spinner_overlay_ref[0] = None
                     except Exception as e:
-                        log(f"ConfirmImportBottomSheet: _set_btn_loading error: {e}")
+                        logx(f"ConfirmImportBottomSheet: _set_btn_loading error: {e}", False)
 
                 class _ImportClick(dynamic_proxy(View.OnClickListener)):
                     def __init__(self): super().__init__()
@@ -406,7 +407,7 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                                                         from org.telegram.messenger import AndroidUtilities as AU2
                                                         AU2.addToClipboard(copy_text)
                                                     except Exception as ex:
-                                                        log(f"ConfirmImportBottomSheet: err copy error: {ex}")
+                                                        logx(f"ConfirmImportBottomSheet: err copy error: {ex}", True)
                                                     tv.setText(str(strings["afp_copied"]))
                                                     def _restore(ref=tv, orig=err_text):
                                                         ref.setText(orig)
@@ -440,7 +441,7 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                                     try:
                                         frame.getViewTreeObserver().addOnGlobalLayoutListener(_LayoutListener())
                                     except Exception as e:
-                                        log(f"ConfirmImportBottomSheet: lock_frame_height error: {e}")
+                                        logx(f"ConfirmImportBottomSheet: lock_frame_height error: {e}", False)
 
                                 def _trim_err(err_str: str) -> str:
                                     # keep only first line for non-validation errors (java stacktraces)
@@ -535,7 +536,7 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                                         from org.telegram.messenger import AndroidUtilities as AU2
                                         AU2.addToClipboard(all_text)
                                     except Exception as ex:
-                                        log(f"ConfirmImportBottomSheet: copy error: {ex}")
+                                        logx(f"ConfirmImportBottomSheet: copy error: {ex}", True)
                                     copy_btn.setText(str(strings["afp_copied"]), True)
 
                                 copy_btn.setOnClickListener(OnClickListener(_on_copy))
@@ -566,7 +567,7 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                                 err_sheet.setCustomView(err_root)
                                 err_sheet.show()
                             except Exception as e:
-                                log(f"ConfirmImportBottomSheet: errors sheet error: {e}\n{traceback.format_exc()}")
+                                logx(f"ConfirmImportBottomSheet: errors sheet error: {e}\n{traceback.format_exc()}", False)
 
                         def on_plugin_done(plugin_name, error, plugin_id=None):
                             with lock:
@@ -592,7 +593,7 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                                             fragment
                                         )
                                     except Exception as e:
-                                        log(f"ConfirmImportBottomSheet: bulletin error: {e}")
+                                        logx(f"ConfirmImportBottomSheet: bulletin error: {e}", False)
                                 run_on_ui_thread(_show)
                             else:
                                 run_on_ui_thread(lambda: BulletinHelper.show_success(str(strings["afp_import_success"])))
@@ -610,21 +611,21 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
 
                                         # validate id
                                         plugin_id = p.get("id") or os.path.splitext(os.path.basename(arc_path))[0]
-                                        log(f"ConfirmImportBottomSheet: validating id='{plugin_id}' for '{plugin_name}'")
+                                        logx(f"ConfirmImportBottomSheet: validating id='{plugin_id}' for '{plugin_name}'", True)
                                         id_valid = (
                                             2 <= len(plugin_id) <= 32
                                             and plugin_id[0].isalpha()
                                             and bool(_re.match(r'^[a-zA-Z][a-zA-Z0-9_]*$', plugin_id))
                                         )
                                         if not id_valid:
-                                            log(f"ConfirmImportBottomSheet: id validation failed for '{plugin_name}': id='{plugin_id}'")
+                                            logx(f"ConfirmImportBottomSheet: id validation failed for '{plugin_name}': id='{plugin_id}'", True)
                                             on_plugin_done(plugin_name, "ID must be 2-32 characters long, the first character is always a letter and must not contain any non-English letters.")
                                             continue
-                                        log(f"ConfirmImportBottomSheet: id ok for '{plugin_name}'")
+                                        logx(f"ConfirmImportBottomSheet: id ok for '{plugin_name}'", True)
 
                                         # validate app_version
                                         app_version_expr = str(p.get("app_version") or "").strip()
-                                        log(f"ConfirmImportBottomSheet: validating app_version='{app_version_expr}' for '{plugin_name}'")
+                                        logx(f"ConfirmImportBottomSheet: validating app_version='{app_version_expr}' for '{plugin_name}'", True)
                                         if app_version_expr:
                                             try:
                                                 client_ver = _get_app_version()
@@ -646,15 +647,15 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                                                         compat = client_t <= req_t
                                                     else:
                                                         compat = client_t == req_t
-                                                    log(f"ConfirmImportBottomSheet: app_version check: client={client_ver} {op} required={req_str.strip()} -> compat={compat}")
+                                                    logx(f"ConfirmImportBottomSheet: app_version check: client={client_ver} {op} required={req_str.strip()} -> compat={compat}", True)
                                                     if not compat:
                                                         on_plugin_done(plugin_name, f"The client version is not compatible with the plugin. Client version: {client_ver}, plugin version: {app_version_expr}.")
                                                         continue
                                                 else:
-                                                    log(f"ConfirmImportBottomSheet: app_version '{app_version_expr}' has no known operator, skipping check")
+                                                    logx(f"ConfirmImportBottomSheet: app_version '{app_version_expr}' has no known operator, skipping check", True)
                                             except Exception as e:
-                                                log(f"ConfirmImportBottomSheet: app_version check error for '{plugin_name}': {e}")
-                                        log(f"ConfirmImportBottomSheet: app_version ok for '{plugin_name}'")
+                                                logx(f"ConfirmImportBottomSheet: app_version check error for '{plugin_name}': {e}", False)
+                                        logx(f"ConfirmImportBottomSheet: app_version ok for '{plugin_name}'", True)
 
                                         if not arc_path:
                                             on_plugin_done(plugin_name, "missing path")
@@ -663,14 +664,14 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                                             zf.extract(arc_path, tmp_dir)
                                             extracted = os.path.join(tmp_dir, arc_path)
                                         except Exception as e:
-                                            log(f"ConfirmImportBottomSheet: extract error for {arc_path}: {e}")
+                                            logx(f"ConfirmImportBottomSheet: extract error for {arc_path}: {e}", False)
                                             on_plugin_done(plugin_name, e)
                                             continue
-                                        log(f"ConfirmImportBottomSheet: starting install for '{plugin_name}' id='{plugin_id}'")
+                                        logx(f"ConfirmImportBottomSheet: starting install for '{plugin_name}' id='{plugin_id}'", True)
                                         onlyLocalInstallNoUi(extracted, plugin_id,
                                                              lambda err, _n=plugin_name, _id=plugin_id: on_plugin_done(_n, err, _id))
                             except Exception as e:
-                                log(f"ConfirmImportBottomSheet: _run_installs error: {e}\n{traceback.format_exc()}")
+                                logx(f"ConfirmImportBottomSheet: _run_installs error: {e}\n{traceback.format_exc()}", False)
                                 for p in plugins:
                                     on_plugin_done(p.get("name") or "unknown", e)
 
@@ -689,7 +690,7 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                 import_lp.rightMargin = pad_h
                 root.addView(btn_wrapper, import_lp)
             except Exception as e:
-                log(f"ConfirmImportBottomSheet: import btn error: {e}")
+                logx(f"ConfirmImportBottomSheet: import btn error: {e}", False)
 
             # close button
             try:
@@ -713,12 +714,12 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                 close_lp.rightMargin = pad_h
                 root.addView(close_btn, close_lp)
             except Exception as e:
-                log(f"ConfirmImportBottomSheet: close btn error: {e}")
+                logx(f"ConfirmImportBottomSheet: close btn error: {e}", False)
 
             sheet.setCustomView(root)
             sheet.show()
 
         except Exception as e:
-            log(f"ConfirmImportBottomSheet.show: {e}\n{traceback.format_exc()}")
+            logx(f"ConfirmImportBottomSheet.show: {e}\n{traceback.format_exc()}", False)
 
     run_on_ui_thread(_show)

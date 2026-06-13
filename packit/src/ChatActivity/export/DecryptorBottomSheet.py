@@ -1,12 +1,13 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import json
 import threading
 import traceback
 from base_plugin import MethodHook
 from hook_utils import find_class
-from android_utils import log, run_on_ui_thread
+from android_utils import run_on_ui_thread
 from java.lang import Integer
 
 
@@ -15,7 +16,7 @@ def _kill_process(*_):
         from android.os import Process
         Process.killProcess(Process.myPid())
     except Exception as e:
-        log(f"decryptorUi._kill_process: {e}")
+        logx(f"decryptorUi._kill_process: {e}", False)
 
 
 class _DocumentHandler(MethodHook):
@@ -69,7 +70,7 @@ class _DocumentHandler(MethodHook):
 
                     import_level, import_xp, _ = get_level_info(account_data)
                 except Exception as e:
-                    log(f"decryptorUi: failed to extract level info: {e}")
+                    logx(f"decryptorUi: failed to extract level info: {e}", False)
 
             from client_utils import get_last_fragment
             from .ImportBottomSheet import show_import_bottom_sheet
@@ -128,7 +129,7 @@ def BulletinHelper_show_wrong_account(strings):
         from ui.bulletin import BulletinHelper
         BulletinHelper.show_error(strings["import_db_wrong_account"])
     except Exception as e:
-        log(f"decryptorUi: show_wrong_account: {e}")
+        logx(f"decryptorUi: show_wrong_account: {e}", False)
 
 
 def setup_packit_file_hook(plugin) -> list:
@@ -148,7 +149,7 @@ def setup_packit_file_hook(plugin) -> list:
         ][0]
 
         hooks.append(plugin.hook_method(method, _DocumentHandler(plugin), Integer.MAX_VALUE))
-        log("decryptorUi: hook registered")
+        logx("decryptorUi: hook registered", True)
     except Exception as e:
-        log(f"decryptorUi: setup error: {e}")
+        logx(f"decryptorUi: setup error: {e}", False)
     return hooks

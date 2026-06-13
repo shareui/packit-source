@@ -1,19 +1,20 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import os
 import json
 import zipfile
 import threading
 
-from android_utils import log, run_on_ui_thread
+from android_utils import run_on_ui_thread
 from client_utils import get_last_fragment
 from ui.bulletin import BulletinHelper
 
 try:
     from elyx import strings
 except Exception as e:
-    log(f"pluginsExport: import strings failed: {e}")
+    logx(f"pluginsExport: import strings failed: {e}", False)
     strings = None
 
 
@@ -28,7 +29,7 @@ def _resolvePluginsDir() -> str | None:
         files_dir = ApplicationLoader.applicationContext.getFilesDir().getAbsolutePath()
         return os.path.join(files_dir, "plugins")
     except Exception as e:
-        log(f"pluginsExport._resolvePluginsDir: {e}")
+        logx(f"pluginsExport._resolvePluginsDir: {e}", False)
         return None
 
 
@@ -37,7 +38,7 @@ def _resolveLocalConfigPath() -> str | None:
         from ...utils.paths import getConfigsDir
         return os.path.join(getConfigsDir(), "localConfig.json")
     except Exception as e:
-        log(f"pluginsExport._resolveLocalConfigPath: {e}")
+        logx(f"pluginsExport._resolveLocalConfigPath: {e}", False)
         return None
 
 
@@ -71,7 +72,7 @@ def _readPluginMeta(filepath: str) -> dict:
                 if m:
                     meta[key] = m.group(1)
     except Exception as e:
-        log(f"pluginsExport._readPluginMeta: {e}")
+        logx(f"pluginsExport._readPluginMeta: {e}", False)
     return meta
 
 
@@ -137,7 +138,7 @@ def _buildSettingsJson(selected_files: list, plugins_dir: str) -> str:
             with open(settings_path, "r", encoding="utf-8") as f:
                 all_settings = json.load(f)
         except Exception as e:
-            log(f"pluginsExport._buildSettingsJson: read failed: {e}")
+            logx(f"pluginsExport._buildSettingsJson: read failed: {e}", False)
 
     result = {}
     for fname in selected_files:
@@ -171,7 +172,7 @@ def buildArchive(selected_files: list, export_settings: bool, export_locally: bo
                 dlg = builder.show()
                 spinner_dlg[0] = dlg
             except Exception as e:
-                log(f"pluginsExport.buildArchive._show_spinner: {e}")
+                logx(f"pluginsExport.buildArchive._show_spinner: {e}", False)
 
         def _dismiss_spinner():
             try:
@@ -179,7 +180,7 @@ def buildArchive(selected_files: list, export_settings: bool, export_locally: bo
                     spinner_dlg[0].dismiss()
                     spinner_dlg[0] = None
             except Exception as e:
-                log(f"pluginsExport.buildArchive._dismiss_spinner: {e}")
+                logx(f"pluginsExport.buildArchive._dismiss_spinner: {e}", False)
 
         if act is not None:
             run_on_ui_thread(_show_spinner)
@@ -253,7 +254,7 @@ def buildArchive(selected_files: list, export_settings: bool, export_locally: bo
                                         rp = _fragment.getResourceProvider()
                                         BulletinFactory.of(container, rp).createSimpleBulletin(R_tg.raw.voip_invite, strings["utilities_afp_shared"]).show()
                                     except Exception as e:
-                                        log(f"pluginsExport.ShareDelegate.didShare: {e}")
+                                        logx(f"pluginsExport.ShareDelegate.didShare: {e}", False)
                                 run_on_ui_thread(_show_bulletin)
 
                             def didCopy(self):
@@ -272,16 +273,16 @@ def buildArchive(selected_files: list, export_settings: bool, export_locally: bo
                         share_alert.setDelegate(ShareDelegate())
                         cur_fragment.showDialog(share_alert)
                     except Exception as e:
-                        log(f"pluginsExport.buildArchive.open_share: {e}")
+                        logx(f"pluginsExport.buildArchive.open_share: {e}", False)
                         BulletinHelper.show_error(strings["utilities_afp_error"])
 
                 run_on_ui_thread(open_share)
             except Exception as e:
-                log(f"pluginsExport.buildArchive._build: {e}")
+                logx(f"pluginsExport.buildArchive._build: {e}", False)
                 run_on_ui_thread(_dismiss_spinner)
                 run_on_ui_thread(lambda: BulletinHelper.show_error(strings["utilities_afp_error"]))
 
         threading.Thread(target=_build, daemon=True).start()
     except Exception as e:
-        log(f"pluginsExport.buildArchive: {e}")
+        logx(f"pluginsExport.buildArchive: {e}", False)
         run_on_ui_thread(lambda: BulletinHelper.show_error(strings["utilities_afp_error"]))

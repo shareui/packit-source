@@ -1,6 +1,7 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import ctypes
 from android.view import View, Gravity
 from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView, SeekBar
@@ -8,7 +9,7 @@ from android.util import TypedValue
 from android.graphics.drawable import GradientDrawable
 from android.graphics import Canvas, Paint, RectF
 from android.animation import ValueAnimator
-from android_utils import OnClickListener, log, run_on_ui_thread
+from android_utils import OnClickListener, run_on_ui_thread
 from client_utils import get_last_fragment
 from java import dynamic_proxy, jarray, jfloat
 
@@ -209,10 +210,10 @@ class _HighlightDelegate:
                 y = ty - sy
                 w = target_view.getWidth()
                 h = target_view.getHeight()
-                log(f"highlight: self=({sx},{sy}) target=({tx},{ty}) -> ({x},{y}) {w}x{h}")
+                logx(f"highlight: self=({sx},{sy}) target=({tx},{ty}) -> ({x},{y}) {w}x{h}", True)
                 end = RectF(float(x), float(y), float(x + w), float(y + h))
             except Exception as e:
-                log(f"highlight: setTarget error: {e}")
+                logx(f"highlight: setTarget error: {e}", False)
                 return
         self._start_anim(RectF(self._current_rect), end)
 
@@ -248,7 +249,7 @@ class _HighlightDelegate:
             anim.start()
             self._anim = anim
         except Exception as e:
-            log(f"highlight: anim error: {e}")
+            logx(f"highlight: anim error: {e}", False)
             self._current_rect.set(end)
             self._alpha = 0.0 if end.isEmpty() else 1.0
             if self.view:
@@ -296,7 +297,7 @@ def _make_highlight_view(context):
         delegate.view = uv
         return uv, delegate
     except Exception as e:
-        log(f"highlight: _make_highlight_view error: {e}")
+        logx(f"highlight: _make_highlight_view error: {e}", False)
         return None, None
 
 
@@ -359,7 +360,7 @@ def _make_ghost_overlay(context, on_click, radius_dp=6):
         _view[0] = uv
         return uv
     except Exception as e:
-        log(f"ghost overlay error: {e}")
+        logx(f"ghost overlay error: {e}", False)
         return None
 
 
@@ -621,7 +622,7 @@ class PluginCardPreview:
                 self.highlight = hl_delegate
                 row.addView(hl_view, FrameLayout.LayoutParams(-1, -1))
         except Exception as e:
-            log(f"PCE: highlight create error: {e}")
+            logx(f"PCE: highlight create error: {e}", False)
 
         outer.setPadding(
             AndroidUtilities.dp(8), AndroidUtilities.dp(8),
@@ -686,7 +687,7 @@ class PluginCardPreview:
             pill.addView(content, FrameLayout.LayoutParams(-2, -2))
             return pill
         except Exception as e:
-            log(f"PCE: _create_pill_button error: {e}")
+            logx(f"PCE: _create_pill_button error: {e}", False)
             return View(self.context)
 
     def _create_icon_pill(self, icon_name):
@@ -718,7 +719,7 @@ class PluginCardPreview:
             pill.setLayoutParams(LinearLayout.LayoutParams(AndroidUtilities.dp(36), AndroidUtilities.dp(36)))
             return pill
         except Exception as e:
-            log(f"PCE: _create_icon_pill error: {e}")
+            logx(f"PCE: _create_icon_pill error: {e}", False)
 
             pill = View(self.context)
             pill.setLayoutParams(LinearLayout.LayoutParams(AndroidUtilities.dp(40), AndroidUtilities.dp(40)))
@@ -836,7 +837,7 @@ class PluginCardPreview:
                             gray_color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
                             icon.setColorFilter(gray_color)
                 except Exception as e:
-                    log(f"PCE: Error setting gray state for details button: {e}")
+                    logx(f"PCE: Error setting gray state for details button: {e}", False)
 
         if key == 'more':
             try:
@@ -847,7 +848,7 @@ class PluginCardPreview:
                         normal_color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
                         icon.setColorFilter(normal_color)
             except Exception as e:
-                log(f"PCE: Error setting more button color: {e}")
+                logx(f"PCE: Error setting more button color: {e}", False)
 
     def _refreshHighlight(self):
         if not self.highlight or not self.currentSelection or not self.currentView:
@@ -860,7 +861,7 @@ class PluginCardPreview:
         try:
             self.highlight.setTarget(self.currentView, radius)
         except Exception as e:
-            log(f"PCE: _refreshHighlight error: {e}")
+            logx(f"PCE: _refreshHighlight error: {e}", False)
 
     def select(self, view, key):
         self.currentSelection = key
@@ -873,7 +874,7 @@ class PluginCardPreview:
                     radius = 12 if key == 'icon' else (int(_gs(_KEY_CARD_RADIUS)) if key == 'card' else 6)
                 self.highlight.setTarget(view, radius)
             except Exception as e:
-                log(f"PCE: select error: {e}")
+                logx(f"PCE: select error: {e}", False)
         self.on_select(key)
 
     def deselect(self):
@@ -895,7 +896,7 @@ class PluginCardPreview:
             p = AndroidUtilities.dp(_gs(_KEY_CARD_PADDING))
             card.setPadding(p, p, p, p)
         except Exception as e:
-            log(f"PCE: _apply_card_style error: {e}")
+            logx(f"PCE: _apply_card_style error: {e}", False)
 
     def _apply_icon_style(self):
         try:
@@ -905,7 +906,7 @@ class PluginCardPreview:
                 if bg and hasattr(bg, 'setCornerRadius'):
                     bg.setCornerRadius(float(AndroidUtilities.dp(_gs(_KEY_STICKER_RADIUS))))
         except Exception as e:
-            log(f"PCE: _apply_icon_style error: {e}")
+            logx(f"PCE: _apply_icon_style error: {e}", False)
 
     def _apply_visibility(self, animated=False):
         try:
@@ -925,7 +926,7 @@ class PluginCardPreview:
                         pass
                     TransitionManager.beginDelayedTransition(card, ts)
                 except Exception as e:
-                    log(f"PCE: transition error: {e}")
+                    logx(f"PCE: transition error: {e}", False)
 
             show_icon  = _gs(_KEY_SHOW_ICON)
             icon_frame = self.elements['icon_frame']
@@ -1021,7 +1022,7 @@ class PluginCardPreview:
                 self.elements['tags_row'].getChildAt(i).setVisibility(View.VISIBLE if show_tags else View.GONE)
             self.elements['tags_ph'].setVisibility(View.GONE if show_tags else View.VISIBLE)
         except Exception as e:
-            log(f"PCE: _apply_visibility error: {e}")
+            logx(f"PCE: _apply_visibility error: {e}", False)
 
     def refresh(self):
         try:
@@ -1059,7 +1060,7 @@ class PluginCardPreview:
                             gray_color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
                             icon.setColorFilter(gray_color)
                 except Exception as e:
-                    log(f"PCE: Error updating details button color: {e}")
+                    logx(f"PCE: Error updating details button color: {e}", False)
 
             relocate_keys = [
                 "relocate_copy_link", "relocate_share", "relocate_code",
@@ -1083,7 +1084,7 @@ class PluginCardPreview:
                         else:
                             more_btn.setVisibility(View.GONE)
                 except Exception as e:
-                    log(f"PCE: Error updating more button: {e}")
+                    logx(f"PCE: Error updating more button: {e}", False)
             
             # recalculate highlight after transition (220ms) settles
             try:
@@ -1092,7 +1093,7 @@ class PluginCardPreview:
             except Exception:
                 pass
         except Exception as e:
-            log(f"PCE: refresh error: {e}")
+            logx(f"PCE: refresh error: {e}", False)
 
 
 class PluginCardEditorPage:
@@ -1165,7 +1166,7 @@ class PluginCardEditorPage:
             from org.telegram.ui.Components import UItem as _UItem
             return [Custom(item=_UItem.asCustomShadow(container))]
         except Exception as e:
-            log(f"PluginCardEditor: build error: {e}")
+            logx(f"PluginCardEditor: build error: {e}", False)
             return []
 
     def _show_settings_for(self, key):
@@ -1394,7 +1395,7 @@ class PluginCardEditorPage:
                                 resource_provider = fragment.getResourceProvider()
                                 BulletinFactory.of(container, resource_provider).createErrorBulletin(strings["max_buttons_allowed"]).show()
                         except Exception as e:
-                            log(f"PCE: Failed to show button limit popup: {e}")
+                            logx(f"PCE: Failed to show button limit popup: {e}", False)
                         return
                         
                     if new_val and details_enabled and enabled_count >= 3:
@@ -1405,7 +1406,7 @@ class PluginCardEditorPage:
                                 resource_provider = fragment.getResourceProvider()
                                 BulletinFactory.of(container, resource_provider).createErrorBulletin(strings["max_buttons_allowed"]).show()
                         except Exception as e:
-                            log(f"PCE: Failed to show button limit popup: {e}")
+                            logx(f"PCE: Failed to show button limit popup: {e}", False)
                         return
                     
                     _cs(key, new_val)
@@ -1416,7 +1417,7 @@ class PluginCardEditorPage:
             cell.setOnClickListener(CellClick())
             self.settings_root.addView(cell, LayoutHelper.createLinear(-1, -2))
         except Exception as e:
-            log(f"PCE: _check_relocate_button error: {e}")
+            logx(f"PCE: _check_relocate_button error: {e}", False)
 
     def _check_details_button(self, ctx, key, label):
         try:
@@ -1446,7 +1447,7 @@ class PluginCardEditorPage:
                                 resource_provider = fragment.getResourceProvider()
                                 BulletinFactory.of(container, resource_provider).createErrorBulletin(strings["max_buttons_allowed"]).show()
                         except Exception as e:
-                            log(f"PCE: Failed to show button limit popup: {e}")
+                            logx(f"PCE: Failed to show button limit popup: {e}", False)
                         return
                     
                     _cs(key, new_val)
@@ -1457,7 +1458,7 @@ class PluginCardEditorPage:
             cell.setOnClickListener(CellClick())
             self.settings_root.addView(cell, LayoutHelper.createLinear(-1, -2))
         except Exception as e:
-            log(f"PCE: _check_details_button error: {e}")
+            logx(f"PCE: _check_details_button error: {e}", False)
 
     def _check(self, ctx, key, label):
         try:
@@ -1480,7 +1481,7 @@ class PluginCardEditorPage:
             cell.setOnClickListener(CellClick())
             self.settings_root.addView(cell, LayoutHelper.createLinear(-1, -2))
         except Exception as e:
-            log(f"PCE: _check error: {e}")
+            logx(f"PCE: _check error: {e}", False)
 
     def _slider(self, ctx, label, key, min_val, max_val, default):
         ll = LinearLayout(ctx)

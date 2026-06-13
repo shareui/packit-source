@@ -1,8 +1,9 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import os
-from android_utils import log
+
 from android.media import MediaPlayer, AudioManager
 from java import dynamic_proxy
 try:
@@ -20,7 +21,7 @@ def handle(url):
         from ...ui.AchievementsActivity.service.AchivementsEngine import unlock_secret
         unlock_secret("premium")
     except Exception as e:
-        log(f"deeplinks.premium: error: {e}")
+        logx(f"deeplinks.premium: error: {e}", False)
 
 
 def _playMaxVolume():
@@ -40,7 +41,7 @@ def _playMaxVolume():
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
         player.start()
     except Exception as e:
-        log(f"deeplinks.premium: player error: {e}")
+        logx(f"deeplinks.premium: player error: {e}", False)
         try:
             player.reset()
             player.release()
@@ -59,4 +60,4 @@ def _playMaxVolume():
     try:
         player.setOnCompletionListener(_Listener())
     except Exception as e:
-        log(f"deeplinks.premium: completion listener error: {e}")
+        logx(f"deeplinks.premium: completion listener error: {e}", False)

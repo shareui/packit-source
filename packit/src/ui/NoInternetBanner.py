@@ -3,12 +3,13 @@
 
 # вача скажи ему пусть комментарии на английском пишет, без декораций, и без """ а то ты как чмо.
 
+from packutil import logx
 from android.view import Gravity, View
 from android.widget import FrameLayout, LinearLayout, TextView, ImageView
 from android.util import TypedValue
 from android.graphics.drawable import GradientDrawable
 from android.view.animation import TranslateAnimation, AlphaAnimation, AnimationSet, DecelerateInterpolator, AccelerateInterpolator
-from android_utils import log, run_on_ui_thread
+from android_utils import run_on_ui_thread
 
 try:
     from org.telegram.ui.ActionBar import Theme
@@ -58,25 +59,25 @@ _is_network_available = True  # assume available at start
 def _on_network_available():
     global _is_network_available
     _is_network_available = True
-    log(f"NoInternetBanner: _on_network_available fired, notifying {len(_listeners)} listeners")
+    logx(f"NoInternetBanner: _on_network_available fired, notifying {len(_listeners)} listeners", True)
     for i, listener in enumerate(_listeners):
         try:
-            log(f"NoInternetBanner: calling on_network_restored on listener[{i}] id={id(listener)}")
+            logx(f"NoInternetBanner: calling on_network_restored on listener[{i}] id={id(listener)}", True)
             listener.on_network_restored()
         except Exception as e:
-            log(f"NoInternetBanner: _on_network_available listener error: {e}")
+            logx(f"NoInternetBanner: _on_network_available listener error: {e}", False)
 
 
 def _on_network_lost():
     global _is_network_available
     _is_network_available = False
-    log(f"NoInternetBanner: _on_network_lost fired, notifying {len(_listeners)} listeners")
+    logx(f"NoInternetBanner: _on_network_lost fired, notifying {len(_listeners)} listeners", True)
     for i, listener in enumerate(_listeners):
         try:
-            log(f"NoInternetBanner: calling on_network_lost on listener[{i}] id={id(listener)}")
+            logx(f"NoInternetBanner: calling on_network_lost on listener[{i}] id={id(listener)}", True)
             listener.on_network_lost()
         except Exception as e:
-            log(f"NoInternetBanner: _on_network_lost listener error: {e}")
+            logx(f"NoInternetBanner: _on_network_lost listener error: {e}", False)
 
 
 def _create_network_callback():
@@ -92,21 +93,21 @@ def _create_network_callback():
         class _PackItNetworkCallback(Base):
             @joverride()
             def onAvailable(self, *args, **kwargs):
-                log("NoInternetBanner: onAvailable")
+                logx("NoInternetBanner: onAvailable", True)
                 run_on_ui_thread(_on_network_available)
 
             @joverride()
             def onLost(self, *args, **kwargs):
-                log("NoInternetBanner: onLost")
+                logx("NoInternetBanner: onLost", True)
                 run_on_ui_thread(_on_network_lost)
 
         _network_callback_instance = _PackItNetworkCallback.new_instance()
-        log("NoInternetBanner: NetworkCallback created")
+        logx("NoInternetBanner: NetworkCallback created", True)
         return _network_callback_instance
     except Exception as e:
-        log(f"NoInternetBanner: _create_network_callback error: {e}")
+        logx(f"NoInternetBanner: _create_network_callback error: {e}", False)
         import traceback
-        log(traceback.format_exc())
+        logx(traceback.format_exc(), True)
         return None
 
 
@@ -123,7 +124,7 @@ def _register_callback():
             return
         cm.registerDefaultNetworkCallback(cb.java)
         _callback_registered = True
-        log("NoInternetBanner: callback registered")
+        logx("NoInternetBanner: callback registered", True)
         
         # Check initial network state
         try:
@@ -131,14 +132,14 @@ def _register_callback():
             if active_net is None:
                 global _is_network_available
                 _is_network_available = False
-                log("NoInternetBanner: initial network is offline")
+                logx("NoInternetBanner: initial network is offline", True)
         except Exception as e:
-            log(f"NoInternetBanner: failed to get active network: {e}")
+            logx(f"NoInternetBanner: failed to get active network: {e}", False)
             
     except Exception as e:
-        log(f"NoInternetBanner: _register_callback error: {e}")
+        logx(f"NoInternetBanner: _register_callback error: {e}", False)
         import traceback
-        log(traceback.format_exc())
+        logx(traceback.format_exc(), True)
 
 
 def _poll_network_recovery(banner_id):
@@ -148,31 +149,31 @@ def _poll_network_recovery(banner_id):
     Stops as soon as network is detected or the listener is gone.
     """
     import time as _time
-    log(f"NoInternetBanner: poll thread started for banner_id={banner_id}")
+    logx(f"NoInternetBanner: poll thread started for banner_id={banner_id}", True)
     while True:
         _time.sleep(3)
         listener = next((l for l in _listeners if id(l) == banner_id), None)
         if listener is None:
-            log(f"NoInternetBanner: poll thread — listener {banner_id} gone, stopping")
+            logx(f"NoInternetBanner: poll thread — listener {banner_id} gone, stopping", True)
             break
         if _is_network_available:
-            log(f"NoInternetBanner: poll thread — network already available, stopping")
+            logx(f"NoInternetBanner: poll thread — network already available, stopping", True)
             break
         try:
             ctx = ApplicationLoader.applicationContext
             cm = ctx.getSystemService(Context.CONNECTIVITY_SERVICE)
             active_net = cm.getActiveNetwork()
-            log(f"NoInternetBanner: poll — active_net={active_net is not None}")
+            logx(f"NoInternetBanner: poll — active_net={active_net is not None}", True)
             if active_net is not None:
                 caps = cm.getNetworkCapabilities(active_net)
                 has_inet = caps is not None and caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                log(f"NoInternetBanner: poll — has_internet_cap={has_inet}")
+                logx(f"NoInternetBanner: poll — has_internet_cap={has_inet}", True)
                 if has_inet:
-                    log("NoInternetBanner: poll — network restored detected, firing _on_network_available")
+                    logx("NoInternetBanner: poll — network restored detected, firing _on_network_available", True)
                     run_on_ui_thread(_on_network_available)
                     break
         except Exception as ex:
-            log(f"NoInternetBanner: poll error: {ex}")
+            logx(f"NoInternetBanner: poll error: {ex}", True)
 
 
 def _unregister_callback():
@@ -188,9 +189,9 @@ def _unregister_callback():
         cm.unregisterNetworkCallback(_network_callback_instance.java)
         _callback_registered = False
         _network_callback_instance = None
-        log("NoInternetBanner: callback unregistered")
+        logx("NoInternetBanner: callback unregistered", True)
     except Exception as e:
-        log(f"NoInternetBanner: _unregister_callback error: {e}")
+        logx(f"NoInternetBanner: _unregister_callback error: {e}", False)
 
 
 # ─── Banner View ───
@@ -207,19 +208,19 @@ class NoInternetBanner:
         self._visible = False
         self._config_loaded = False
         self._z_index_above_blur = z_index_above_blur
-        log("NoInternetBanner: instance created")
+        logx("NoInternetBanner: instance created", True)
 
     def register(self):
         """Register this banner as a listener and start the global callback if needed."""
         if self not in _listeners:
             _listeners.append(self)
         _register_callback()
-        log(f"NoInternetBanner: registered id={id(self)}, listeners={len(_listeners)}, _callback_registered={_callback_registered}, _is_network_available={_is_network_available}")
+        logx(f"NoInternetBanner: registered id={id(self)}, listeners={len(_listeners)}, _callback_registered={_callback_registered}, _is_network_available={_is_network_available}", True)
         if not _is_network_available:
             import threading
             t = threading.Thread(target=_poll_network_recovery, args=(id(self),), daemon=True)
             t.start()
-            log(f"NoInternetBanner: poll thread launched for id={id(self)}")
+            logx(f"NoInternetBanner: poll thread launched for id={id(self)}", True)
 
     def unregister(self):
         """Unregister this banner and stop the global callback if no listeners remain."""
@@ -227,33 +228,33 @@ class NoInternetBanner:
             _listeners.remove(self)
         self._hide_immediate()
         _unregister_callback()
-        log(f"NoInternetBanner: unregistered id={id(self)}, listeners={len(_listeners)}")
+        logx(f"NoInternetBanner: unregistered id={id(self)}, listeners={len(_listeners)}", True)
 
     def on_config_loaded(self):
         """Call this after config/data has loaded. Shows the banner if network is already lost."""
         self._config_loaded = True
-        log(f"NoInternetBanner: on_config_loaded id={id(self)}, _is_network_available={_is_network_available}")
+        logx(f"NoInternetBanner: on_config_loaded id={id(self)}, _is_network_available={_is_network_available}", True)
         if not _is_network_available:
             self._show_banner()
 
     def on_network_restored(self):
         """Network restored — hide the banner with animation."""
-        log(f"NoInternetBanner: on_network_restored id={id(self)}, _visible={self._visible}, has_callback={hasattr(self, '_on_network_restored_callback') and self._on_network_restored_callback is not None}")
+        logx(f"NoInternetBanner: on_network_restored id={id(self)}, _visible={self._visible}, has_callback={hasattr(self, '_on_network_restored_callback') and self._on_network_restored_callback is not None}", True)
         if self._visible:
             self._hide_banner()
         if hasattr(self, '_on_network_restored_callback') and self._on_network_restored_callback:
-            log(f"NoInternetBanner: firing _on_network_restored_callback id={id(self)}")
+            logx(f"NoInternetBanner: firing _on_network_restored_callback id={id(self)}", True)
             self._on_network_restored_callback()
 
     def on_network_lost(self):
         """Network lost — show the banner with animation (only if config already loaded)."""
-        log(f"NoInternetBanner: on_network_lost id={id(self)}, _config_loaded={self._config_loaded}, _visible={self._visible}")
+        logx(f"NoInternetBanner: on_network_lost id={id(self)}, _config_loaded={self._config_loaded}, _visible={self._visible}", True)
         if self._config_loaded and not self._visible:
             self._show_banner()
         import threading
         t = threading.Thread(target=_poll_network_recovery, args=(id(self),), daemon=True)
         t.start()
-        log(f"NoInternetBanner: poll thread launched on_network_lost for id={id(self)}")
+        logx(f"NoInternetBanner: poll thread launched on_network_lost for id={id(self)}", True)
 
     # ─── Internal ───
 
@@ -312,7 +313,7 @@ class NoInternetBanner:
                 icon_lp.rightMargin = AndroidUtilities.dp(10)
                 inner.addView(icon, icon_lp)
             except Exception as e:
-                log(f"NoInternetBanner: icon error: {e}")
+                logx(f"NoInternetBanner: icon error: {e}", False)
 
             # Text
             tv = TextView(ctx)
@@ -363,14 +364,14 @@ class NoInternetBanner:
             retry_lp.leftMargin = AndroidUtilities.dp(16)
             
             def _on_retry_click(v):
-                log(f"NoInternetBanner: retry clicked, _is_network_available={_is_network_available}, has_callback={hasattr(self, '_on_network_restored_callback') and self._on_network_restored_callback is not None}")
+                logx(f"NoInternetBanner: retry clicked, _is_network_available={_is_network_available}, has_callback={hasattr(self, '_on_network_restored_callback') and self._on_network_restored_callback is not None}", True)
                 if _is_network_available:
                     self._hide_banner()
                     if hasattr(self, '_on_network_restored_callback') and self._on_network_restored_callback:
-                        log("NoInternetBanner: retry — network available, firing _on_network_restored_callback")
+                        logx("NoInternetBanner: retry — network available, firing _on_network_restored_callback", True)
                         self._on_network_restored_callback()
                 else:
-                    log("NoInternetBanner: retry — network still down, re-showing banner")
+                    logx("NoInternetBanner: retry — network still down, re-showing banner", True)
                     self._hide_banner()
                     run_on_ui_thread(self._show_banner, 400)
                     import threading
@@ -386,9 +387,9 @@ class NoInternetBanner:
             self.banner_view = container
             return container
         except Exception as e:
-            log(f"NoInternetBanner: _create_banner error: {e}")
+            logx(f"NoInternetBanner: _create_banner error: {e}", False)
             import traceback
-            log(traceback.format_exc())
+            logx(traceback.format_exc(), True)
             return None
 
     def _show_banner(self):
@@ -430,14 +431,14 @@ class NoInternetBanner:
                 anim_set.setFillAfter(True)
                 banner.startAnimation(anim_set)
             except Exception as e:
-                log(f"NoInternetBanner: show animation error: {e}")
+                logx(f"NoInternetBanner: show animation error: {e}", False)
 
             self._visible = True
-            log("NoInternetBanner: banner shown")
+            logx("NoInternetBanner: banner shown", True)
         except Exception as e:
-            log(f"NoInternetBanner: _show_banner error: {e}")
+            logx(f"NoInternetBanner: _show_banner error: {e}", False)
             import traceback
-            log(traceback.format_exc())
+            logx(traceback.format_exc(), True)
 
     def _hide_banner(self):
         """Hide the banner with a slide-up + fade-out animation."""
@@ -485,13 +486,13 @@ class NoInternetBanner:
                 anim_set.setAnimationListener(_AnimEndListener())
                 banner.startAnimation(anim_set)
             except Exception as e:
-                log(f"NoInternetBanner: hide animation error: {e}")
+                logx(f"NoInternetBanner: hide animation error: {e}", False)
                 self._remove_banner(banner)
 
             self._visible = False
-            log("NoInternetBanner: banner hiding")
+            logx("NoInternetBanner: banner hiding", True)
         except Exception as e:
-            log(f"NoInternetBanner: _hide_banner error: {e}")
+            logx(f"NoInternetBanner: _hide_banner error: {e}", False)
 
     def _remove_banner(self, banner):
         """Remove the banner view from its parent."""
@@ -503,7 +504,7 @@ class NoInternetBanner:
             if self.banner_view is banner:
                 self.banner_view = None
         except Exception as e:
-            log(f"NoInternetBanner: _remove_banner error: {e}")
+            logx(f"NoInternetBanner: _remove_banner error: {e}", False)
 
     def _hide_immediate(self):
         """Remove banner immediately without animation (for cleanup)."""

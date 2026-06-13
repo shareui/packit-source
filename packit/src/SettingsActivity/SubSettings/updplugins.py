@@ -1,9 +1,10 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 from ui.settings import Header, Switch, Text
 from elyx import strings
-from android_utils import log
+
 
 
 def _open_pill_stack_settings(view):
@@ -17,7 +18,7 @@ def _open_pill_stack_settings(view):
         if frag:
             frag.presentFragment(PillStackPreferencesActivity())
     except Exception as e:
-        log(f"updplugins: _open_pill_stack_settings error: {e}")
+        logx(f"updplugins: _open_pill_stack_settings error: {e}", False)
 
 
 def build_updplugins_page(other_settings):

@@ -1,12 +1,13 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import json
 import os
 import re
 import threading
 
-from android_utils import log
+
 
 _lock = threading.Lock()
 
@@ -37,7 +38,7 @@ def _hash_matches(p: dict) -> bool:
             label=str(p.get("id") or local_path),
         )
     except Exception as e:
-        log(f"installIndex.purge: hash check error for '{local_path}': {e}")
+        logx(f"installIndex.purge: hash check error for '{local_path}': {e}", False)
         return True
 
 
@@ -51,7 +52,7 @@ def purge_missing():
         if not isinstance(repos, list):
             repos = []
     except Exception as e:
-        log(f"installIndex.purge: cannot read repos: {e}")
+        logx(f"installIndex.purge: cannot read repos: {e}", False)
         return
 
     for repo in repos:
@@ -81,14 +82,14 @@ def purge_missing():
                 plugin_id = str(p.get("id") or "<no_id>")
                 local_path = str(p.get("local_path") or "")
                 if not os.path.exists(local_path):
-                    log(f"installIndex.purge: drop '{plugin_id}' — file missing: '{local_path}'")
+                    logx(f"installIndex.purge: drop '{plugin_id}' — file missing: '{local_path}'", True)
                     removed_missing += 1
                     removed_ids.append(plugin_id)
                     continue
                 if not _hash_matches(p):
                     stored_hash = str(p.get("hash") or "")
                     stored_bithash = str(p.get("bithash") or "")
-                    log(f"installIndex.purge: drop '{plugin_id}' — hash mismatch (hash='{stored_hash}', bithash='{stored_bithash}', path='{local_path}')")
+                    logx(f"installIndex.purge: drop '{plugin_id}' — hash mismatch (hash='{stored_hash}', bithash='{stored_bithash}', path='{local_path}')", True)
                     removed_hash += 1
                     removed_ids.append(plugin_id)
                     continue
@@ -106,16 +107,16 @@ def purge_missing():
                     cleaned = [e for e in ignore_list if str(e.get("id") or "") not in removed_ids]
                     if len(cleaned) != len(ignore_list):
                         data["ignore_list"] = cleaned
-                        log(f"installIndex.purge: cleaned {len(ignore_list) - len(cleaned)} ignore_list entry(s) from '{rm_rid}-index.json'")
+                        logx(f"installIndex.purge: cleaned {len(ignore_list) - len(cleaned)} ignore_list entry(s) from '{rm_rid}-index.json'", True)
             with open(index_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
 
             if removed_missing:
-                log(f"installIndex.purge: removed {removed_missing} missing plugin(s) from '{rm_rid}-index.json'")
+                logx(f"installIndex.purge: removed {removed_missing} missing plugin(s) from '{rm_rid}-index.json'", True)
             if removed_hash:
-                log(f"installIndex.purge: removed {removed_hash} hash-mismatch plugin(s) from '{rm_rid}-index.json'")
+                logx(f"installIndex.purge: removed {removed_hash} hash-mismatch plugin(s) from '{rm_rid}-index.json'", True)
         except Exception as e:
-            log(f"installIndex.purge: error processing '{rm_rid}': {e}")
+            logx(f"installIndex.purge: error processing '{rm_rid}': {e}", False)
 
 
 def set_pending(plugin_info: dict, rm_rid: str):
@@ -142,18 +143,18 @@ def commit_pending():
 
     plugin_info, rm_rid = entry
     if not rm_rid:
-        log("installIndex: no rm_rid, skipping")
+        logx("installIndex: no rm_rid, skipping", True)
         return
 
     try:
         from .paths import getPluginsDir, getRepoIndexPath
     except Exception as e:
-        log(f"installIndex: cannot import paths: {e}")
+        logx(f"installIndex: cannot import paths: {e}", False)
         return
 
     plugin_id = str(plugin_info.get("id") or "")
     if not plugin_id:
-        log("installIndex: no plugin id, skipping")
+        logx("installIndex: no plugin id, skipping", True)
         return
 
     version = _strip_version(plugin_info.get("version") or "")
@@ -172,10 +173,10 @@ def commit_pending():
     file_exists = os.path.exists(candidate_path)
     local_path = candidate_path if file_exists else "Unknown"
 
-    log(f"installIndex: commit_pending '{plugin_id}' v={version} state={state} path_exists={file_exists} path='{candidate_path}'")
+    logx(f"installIndex: commit_pending '{plugin_id}' v={version} state={state} path_exists={file_exists} path='{candidate_path}'", True)
 
     if not file_exists:
-        log(f"installIndex: WARNING — plugin file not found at '{candidate_path}', local_path will be 'Unknown'")
+        logx(f"installIndex: WARNING — plugin file not found at '{candidate_path}', local_path will be 'Unknown'", True)
 
     # hash the installed file, not the source index hash:
     # PluginsController may modify the file during install
@@ -187,9 +188,9 @@ def commit_pending():
             hash_val = _hashFileSha256(candidate_path)
             if _getBitHashLib() is not None:
                 bithash_val = _hashFileBithash(candidate_path)
-            log(f"installIndex: hashed '{plugin_id}' sha256='{hash_val[:16]}...' bithash='{bithash_val[:16] if bithash_val else ''}'")
+            logx(f"installIndex: hashed '{plugin_id}' sha256='{hash_val[:16]}...' bithash='{bithash_val[:16] if bithash_val else ''}'", True)
         except Exception as e:
-            log(f"installIndex: failed to hash plugin file for '{plugin_id}': {e}")
+            logx(f"installIndex: failed to hash plugin file for '{plugin_id}': {e}", False)
             hash_val = str(plugin_info.get("hash") or "")
             bithash_val = str(plugin_info.get("bithash") or "")
 
@@ -210,10 +211,10 @@ def commit_pending():
             with open(index_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             if not isinstance(data, dict):
-                log(f"installIndex: index file '{index_path}' is not a dict, resetting")
+                logx(f"installIndex: index file '{index_path}' is not a dict, resetting", True)
                 data = {}
         else:
-            log(f"installIndex: index file not found, creating new '{index_path}'")
+            logx(f"installIndex: index file not found, creating new '{index_path}'", True)
             data = {}
 
         plugins = data.get("installed_plugins")
@@ -229,26 +230,26 @@ def commit_pending():
             json.dump(data, f, indent=2, ensure_ascii=False)
 
         replaced = before_count != after_dedup
-        log(f"installIndex: wrote '{plugin_id}' to '{rm_rid}-index.json' (replaced={replaced}, total={len(plugins)}, local_path='{local_path}')")
+        logx(f"installIndex: wrote '{plugin_id}' to '{rm_rid}-index.json' (replaced={replaced}, total={len(plugins)}, local_path='{local_path}')", True)
     except Exception as e:
-        log(f"installIndex: write error for '{plugin_id}': {e}")
+        logx(f"installIndex: write error for '{plugin_id}': {e}", False)
 
 
 def commit_elyx_pending(plugin_info: dict, rm_rid: str, original_path: str = ""):
     # called after successful elyxcore install
     if not rm_rid:
-        log("installIndex.elyx: no rm_rid, skipping")
+        logx("installIndex.elyx: no rm_rid, skipping", True)
         return
 
     try:
         from .paths import getPackitArchivesDir
     except Exception as e:
-        log(f"installIndex.elyx: cannot import paths: {e}")
+        logx(f"installIndex.elyx: cannot import paths: {e}", False)
         return
 
     plugin_id = str(plugin_info.get("id") or "")
     if not plugin_id:
-        log("installIndex.elyx: no plugin id, skipping")
+        logx("installIndex.elyx: no plugin id, skipping", True)
         return
 
     version = _strip_version(plugin_info.get("version") or "")
@@ -263,7 +264,7 @@ def commit_elyx_pending(plugin_info: dict, rm_rid: str, original_path: str = "")
     packit_dir = getPackitArchivesDir()
     archive_path = packit_dir + f"/{link_filename}"
 
-    log(f"installIndex.elyx: commit '{plugin_id}' v={version} state={state} original_path='{original_path}' dest='{archive_path}'")
+    logx(f"installIndex.elyx: commit '{plugin_id}' v={version} state={state} original_path='{original_path}' dest='{archive_path}'", True)
 
     # copy original archive into packit dir if source is available
     if original_path and os.path.exists(original_path):
@@ -271,13 +272,13 @@ def commit_elyx_pending(plugin_info: dict, rm_rid: str, original_path: str = "")
             os.makedirs(packit_dir, exist_ok=True)
             import shutil
             shutil.copy2(original_path, archive_path)
-            log(f"installIndex.elyx: saved original archive to '{archive_path}'")
+            logx(f"installIndex.elyx: saved original archive to '{archive_path}'", True)
         except Exception as e:
-            log(f"installIndex.elyx: failed to copy original archive for '{plugin_id}': {e}")
+            logx(f"installIndex.elyx: failed to copy original archive for '{plugin_id}': {e}", False)
 
     # check file is present (either we copied it or elyxcore placed it)
     if not os.path.exists(archive_path):
-        log(f"installIndex.elyx: archive not found at '{archive_path}', using original_path for index")
+        logx(f"installIndex.elyx: archive not found at '{archive_path}', using original_path for index", True)
         # still write index so the install is tracked; use original_path if available
         local_path = original_path if original_path and os.path.exists(original_path) else "Unknown"
     else:
@@ -293,9 +294,9 @@ def commit_elyx_pending(plugin_info: dict, rm_rid: str, original_path: str = "")
             hash_val = _hashFileSha256(hash_source)
             if _getBitHashLib() is not None:
                 bithash_val = _hashFileBithash(hash_source)
-            log(f"installIndex.elyx: hashed '{plugin_id}' sha256='{hash_val[:16]}...' bithash='{bithash_val[:16] if bithash_val else ''}'")
+            logx(f"installIndex.elyx: hashed '{plugin_id}' sha256='{hash_val[:16]}...' bithash='{bithash_val[:16] if bithash_val else ''}'", True)
         except Exception as e:
-            log(f"installIndex.elyx: failed to hash archive for '{plugin_id}': {e}")
+            logx(f"installIndex.elyx: failed to hash archive for '{plugin_id}': {e}", False)
             hash_val = str(plugin_info.get("hash") or "")
             bithash_val = str(plugin_info.get("bithash") or "")
     else:
@@ -318,10 +319,10 @@ def commit_elyx_pending(plugin_info: dict, rm_rid: str, original_path: str = "")
             with open(index_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             if not isinstance(data, dict):
-                log(f"installIndex.elyx: index file '{index_path}' is not a dict, resetting")
+                logx(f"installIndex.elyx: index file '{index_path}' is not a dict, resetting", True)
                 data = {}
         else:
-            log(f"installIndex.elyx: index file not found, creating new '{index_path}'")
+            logx(f"installIndex.elyx: index file not found, creating new '{index_path}'", True)
             data = {}
 
         plugins = data.get("installed_plugins")
@@ -337,6 +338,6 @@ def commit_elyx_pending(plugin_info: dict, rm_rid: str, original_path: str = "")
             json.dump(data, f, indent=2, ensure_ascii=False)
 
         replaced = before_count != after_dedup
-        log(f"installIndex.elyx: wrote '{plugin_id}' to '{rm_rid}-index.json' (replaced={replaced}, total={len(plugins)}, local_path='{local_path}')")
+        logx(f"installIndex.elyx: wrote '{plugin_id}' to '{rm_rid}-index.json' (replaced={replaced}, total={len(plugins)}, local_path='{local_path}')", True)
     except Exception as e:
-        log(f"installIndex.elyx: write error for '{plugin_id}': {e}")
+        logx(f"installIndex.elyx: write error for '{plugin_id}': {e}", False)

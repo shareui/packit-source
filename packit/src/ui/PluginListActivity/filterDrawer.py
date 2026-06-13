@@ -1,6 +1,7 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 from android.view import View, Gravity, ViewTreeObserver, MotionEvent
 from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView
 from android.util import TypedValue
@@ -10,20 +11,20 @@ from android.animation import ValueAnimator, Animator
 from android.view.animation import DecelerateInterpolator
 from java import dynamic_proxy
 from hook_utils import find_class
-from android_utils import log, OnClickListener
+from android_utils import OnClickListener
 from .service import filterEngine
 try:
     from org.telegram.ui.ActionBar import Theme
 except Exception as e:
-    log(f"SortDrawer: import Theme failed: {e}")
+    logx(f"SortDrawer: import Theme failed: {e}", False)
 try:
     from org.telegram.messenger import AndroidUtilities
 except Exception as e:
-    log(f"SortDrawer: import AndroidUtilities failed: {e}")
+    logx(f"SortDrawer: import AndroidUtilities failed: {e}", False)
 try:
     from elyx import strings
 except Exception as e:
-    log(f"SortDrawer: import strings failed: {e}")
+    logx(f"SortDrawer: import strings failed: {e}", False)
 
 
 _DRAWER_WIDTH_DP = 280
@@ -285,7 +286,7 @@ class SortDrawer:
                 FrameLayout.LayoutParams(self._drawer_width, -1, Gravity.RIGHT)
             )
         except Exception as e:
-            log(f"SortDrawer._build error: {e}")
+            logx(f"SortDrawer._build error: {e}", False)
 
     def _build_section(self, parent, drawer_bg):
         act = self.act
@@ -557,7 +558,7 @@ class SortDrawer:
             anim.addUpdateListener(_Listener())
             anim.start()
         except Exception as e:
-            log(f"SortDrawer._update_row_style error: {e}")
+            logx(f"SortDrawer._update_row_style error: {e}", False)
 
     def _build_buttons(self):
         act = self.act
@@ -909,7 +910,7 @@ class SortDrawer:
                 list_view.addView(row, row_lp)
                 rows_dict[key] = (row, border, name_tv)
         except Exception as e:
-            log(f"SortDrawer._populate_generic({section_key}) error: {e}")
+            logx(f"SortDrawer._populate_generic({section_key}) error: {e}", False)
 
     def _populate_tags(self):
         try:
@@ -949,7 +950,7 @@ class SortDrawer:
                 self._tags_list.addView(row, row_lp)
                 self._tag_rows[tag_name] = (row, border, name_tv)
         except Exception as e:
-            log(f"SortDrawer._populate_tags error: {e}")
+            logx(f"SortDrawer._populate_tags error: {e}", False)
 
     def _refresh_rows(self):
         for tag_name, (row, border, name_tv) in self._tag_rows.items():
@@ -977,7 +978,7 @@ class SortDrawer:
             self._back_callback = cb
             self.act.getOnBackPressedDispatcher().addCallback(self.act, cb.java)
         except Exception as e:
-            log(f"SortDrawer._register_back_callback error: {e}")
+            logx(f"SortDrawer._register_back_callback error: {e}", False)
             self._back_callback = None
 
     def _unregister_back_callback(self):
@@ -987,7 +988,7 @@ class SortDrawer:
                 cb.remove()
                 self._back_callback = None
         except Exception as e:
-            log(f"SortDrawer._unregister_back_callback error: {e}")
+            logx(f"SortDrawer._unregister_back_callback error: {e}", False)
 
     def open(self, selected_tags, selected_authors=None, selected_app_versions=None, selected_saved=None):
         try:
@@ -1009,7 +1010,7 @@ class SortDrawer:
             self._adjust_spacer()
             self._register_back_callback()
         except Exception as e:
-            log(f"SortDrawer.open error: {e}")
+            logx(f"SortDrawer.open error: {e}", False)
 
     def _adjust_spacer(self):
         spacer_ref = self._spacer
@@ -1024,7 +1025,7 @@ class SortDrawer:
                         spacer_ref.getLayoutParams().height = h
                         spacer_ref.requestLayout()
                 except Exception as ex:
-                    log(f"SortDrawer._adjust_spacer error: {ex}")
+                    logx(f"SortDrawer._adjust_spacer error: {ex}", True)
 
         section_ref.getViewTreeObserver().addOnGlobalLayoutListener(_LayoutListener())
 
@@ -1034,7 +1035,7 @@ class SortDrawer:
             self._unregister_back_callback()
             self._animate(False)
         except Exception as e:
-            log(f"SortDrawer.close error: {e}")
+            logx(f"SortDrawer.close error: {e}", False)
 
     def _animate(self, opening):
         try:
@@ -1079,7 +1080,7 @@ class SortDrawer:
             animator.addListener(_EndListener())
             animator.start()
         except Exception as e:
-            log(f"SortDrawer._animate error: {e}")
+            logx(f"SortDrawer._animate error: {e}", False)
             # snap fallback
             target = 0.0 if opening else float(self._drawer_width)
             self._drawer.setTranslationX(target)
@@ -1101,5 +1102,5 @@ def show_tag_drawer(act, content_view, plugins, selected_tags, on_apply,
         drawer.open(selected_tags, selected_authors, selected_app_versions, selected_saved)
         return drawer
     except Exception as e:
-        log(f"show_tag_drawer error: {e}")
+        logx(f"show_tag_drawer error: {e}", False)
         return None

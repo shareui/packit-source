@@ -1,28 +1,29 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 DEBUG_LOGS = False
 
 from base_plugin import MethodHook
 from hook_utils import find_class
-from android_utils import log, OnClickListener
+from android_utils import OnClickListener
 from android.widget import ImageView
 from elyx import strings
 try:
     from org.telegram.messenger import AndroidUtilities, R as R_tg
 except Exception as e:
     if DEBUG_LOGS:
-        log(f"hashBottomSheet: import error: {e}")
+        logx(f"hashBottomSheet: import error: {e}", False)
 try:
     from org.telegram.ui.ActionBar import Theme
 except Exception as e:
     if DEBUG_LOGS:
-        log(f"hashBottomSheet: import Theme error: {e}")
+        logx(f"hashBottomSheet: import Theme error: {e}", False)
 try:
     from org.telegram.ui.Components import LayoutHelper
 except Exception as e:
     if DEBUG_LOGS:
-        log(f"hashBottomSheet: import LayoutHelper error: {e}")
+        logx(f"hashBottomSheet: import LayoutHelper error: {e}", False)
 
 
 from ...utils.hashUtil import hashFile as _computeSha256
@@ -68,7 +69,7 @@ def _loadCachedRepos() -> list:
         cacheDir = getReposCacheDir()
     except Exception as e:
         if DEBUG_LOGS:
-            log(f"hashBottomSheet: _loadCachedRepos error: {e}")
+            logx(f"hashBottomSheet: _loadCachedRepos error: {e}", False)
         return result
 
     if not os.path.isdir(cacheDir):
@@ -88,7 +89,7 @@ def _loadCachedRepos() -> list:
             result.append((name, pluginsUrl, repoId))
         except Exception as e:
             if DEBUG_LOGS:
-                log(f"hashBottomSheet: error reading cache {fname}: {e}")
+                logx(f"hashBottomSheet: error reading cache {fname}: {e}", False)
 
     return result
 
@@ -98,7 +99,7 @@ def _getRepoPluginInfo(pluginId: str, pluginsUrl: str) -> dict | None:
     r = requests.get(pluginsUrl, timeout=10)
     if r.status_code != 200:
         if DEBUG_LOGS:
-            log(f"hashBottomSheet: HTTP {r.status_code} for {pluginsUrl}")
+            logx(f"hashBottomSheet: HTTP {r.status_code} for {pluginsUrl}", True)
         return None
     for plugin in r.json().get("plugins", []):
         if plugin.get("id") == pluginId:
@@ -117,7 +118,7 @@ def _installFromRepo(pluginId: str, pluginsUrl: str, repoManager, act):
         from com.exteragram.messenger.plugins import PluginsController
     except Exception as e:
         if DEBUG_LOGS:
-            log(f"hashBottomSheet: _installFromRepo import error: {e}")
+            logx(f"hashBottomSheet: _installFromRepo import error: {e}", False)
         return
 
     builder = AlertDialogBuilder(act, AlertDialogBuilder.ALERT_TYPE_SPINNER)
@@ -189,13 +190,13 @@ def _installFromRepo(pluginId: str, pluginsUrl: str, repoManager, act):
                     PluginsController.getInstance().showInstallDialog(fragment, tempPath, True)
                 except Exception as e:
                     if DEBUG_LOGS:
-                        log(f"hashBottomSheet: openDialog error: {e}")
+                        logx(f"hashBottomSheet: openDialog error: {e}", False)
                     BulletinHelper.show_error(strings["sec_install_dialog_failed"])
 
             run_on_ui_thread(openDialog)
         except Exception as e:
             if DEBUG_LOGS:
-                log(f"hashBottomSheet: _installFromRepo error: {e}")
+                logx(f"hashBottomSheet: _installFromRepo error: {e}", False)
             dismissDlg()
             run_on_ui_thread(lambda: BulletinHelper.show_error(strings["sec_error_occurred"]))
 
@@ -234,7 +235,7 @@ def _applyPressScale(view):
         view.setOnTouchListener(_T())
     except Exception as e:
         if DEBUG_LOGS:
-            log(f"hashBottomSheet: _applyPressScale error: {e}")
+            logx(f"hashBottomSheet: _applyPressScale error: {e}", False)
 
 
 def _makeAccentBtn(act, text: str, onPress, colorKey: str = "key_featuredStickers_addButton",
@@ -328,7 +329,7 @@ def _showErrorSheet(act, msg: str):
             root.addView(lottie, lp)
         except Exception as e:
             if DEBUG_LOGS:
-                log(f"hashBottomSheet: error lottie: {e}")
+                logx(f"hashBottomSheet: error lottie: {e}", False)
 
         tv = TextView(act)
         tv.setText(msg)
@@ -358,7 +359,7 @@ def _showErrorSheet(act, msg: str):
         sheet.show()
     except Exception as e:
         if DEBUG_LOGS:
-            log(f"hashBottomSheet: _showErrorSheet error: {e}")
+            logx(f"hashBottomSheet: _showErrorSheet error: {e}", False)
 
 
 def _showResult(act, pluginId: str, localHash: str, localVersion: str | None,
@@ -382,7 +383,7 @@ def _showResult(act, pluginId: str, localHash: str, localVersion: str | None,
             repoHash = repoInfo.get("hash") if repoInfo else None
             repoVersion = repoInfo.get("version") if repoInfo else None
             if DEBUG_LOGS:
-                log(f"hashBottomSheet: repoHash={repoHash} repoVersion={repoVersion}")
+                logx(f"hashBottomSheet: repoHash={repoHash} repoVersion={repoVersion}", True)
 
             if repoHash is None:
                 state = "not_found"
@@ -407,7 +408,7 @@ def _showResult(act, pluginId: str, localHash: str, localVersion: str | None,
 
         except Exception as e:
             if DEBUG_LOGS:
-                log(f"hashBottomSheet: _showResult work error: {e}")
+                logx(f"hashBottomSheet: _showResult work error: {e}", False)
             state = "error"
             msg = f"Error: {e}"
 
@@ -487,7 +488,7 @@ def _showResultSheet(act, state: str, msg: str, localHash: str, showInstall: boo
             root.addView(lottie, lp)
         except Exception as e:
             if DEBUG_LOGS:
-                log(f"hashBottomSheet: lottie {lottieRaw} error: {e}")
+                logx(f"hashBottomSheet: lottie {lottieRaw} error: {e}", False)
 
         # status title (larger, black)
         statusTv = TextView(act)
@@ -583,7 +584,7 @@ def _showResultSheet(act, state: str, msg: str, localHash: str, showInstall: boo
         s.show()
     except Exception as e:
         if DEBUG_LOGS:
-            log(f"hashBottomSheet: _showResultSheet error: {e}")
+            logx(f"hashBottomSheet: _showResultSheet error: {e}", False)
 
 
 def _doInstall(sheet, pluginId: str, pluginsUrl: str, repoManager, act):
@@ -591,7 +592,7 @@ def _doInstall(sheet, pluginId: str, pluginsUrl: str, repoManager, act):
         sheet.dismiss()
     except Exception as e:
         if DEBUG_LOGS:
-            log(f"hashBottomSheet: sheet dismiss error: {e}")
+            logx(f"hashBottomSheet: sheet dismiss error: {e}", False)
     _installFromRepo(pluginId, pluginsUrl, repoManager, act)
 
 
@@ -610,19 +611,19 @@ def _showRepoSelector(act, filePath: str, repoManager, sheet):
         try:
             pluginId = _extractPluginId(filePath)
             if DEBUG_LOGS:
-                log(f"hashBottomSheet: pluginId={pluginId}")
+                logx(f"hashBottomSheet: pluginId={pluginId}", True)
             localHash = _computeSha256(filePath)
             if DEBUG_LOGS:
-                log(f"hashBottomSheet: localHash={localHash}")
+                logx(f"hashBottomSheet: localHash={localHash}", True)
             localVersion = _extractPluginVersion(filePath)
             if DEBUG_LOGS:
-                log(f"hashBottomSheet: localVersion={localVersion}")
+                logx(f"hashBottomSheet: localVersion={localVersion}", True)
             repos = _loadCachedRepos()
             if DEBUG_LOGS:
-                log(f"hashBottomSheet: repos={[r[0] for r in repos]}")
+                logx(f"hashBottomSheet: repos={[r[0] for r in repos]}", True)
         except Exception as e:
             if DEBUG_LOGS:
-                log(f"hashBottomSheet: work error: {e}")
+                logx(f"hashBottomSheet: work error: {e}", False)
             run_on_ui_thread(lambda: dlg.dismiss())
             return
 
@@ -834,12 +835,12 @@ def _showRepoSelectorSheet(act, repos: list, pluginId: str, localHash: str,
         s.show()
     except Exception as e:
         if DEBUG_LOGS:
-            log(f"hashBottomSheet: _showRepoSelectorSheet error: {e}")
+            logx(f"hashBottomSheet: _showRepoSelectorSheet error: {e}", False)
 
 
 def _onHashClick(act, filePath: str, repoManager, sheet):
     if DEBUG_LOGS:
-        log(f"hashBottomSheet: _onHashClick filePath={filePath}")
+        logx(f"hashBottomSheet: _onHashClick filePath={filePath}", True)
     _showRepoSelector(act, filePath, repoManager, sheet)
 
 
@@ -856,10 +857,10 @@ class ConstructorHook(MethodHook):
             sheet = param.thisObject
             _pending[sheet.hashCode()] = (filePath, _repoManager, sheet)
             if DEBUG_LOGS:
-                log(f"hashBottomSheet: stored filePath={filePath}")
+                logx(f"hashBottomSheet: stored filePath={filePath}", True)
         except Exception as e:
             if DEBUG_LOGS:
-                log(f"hashBottomSheet: ConstructorHook error: {e}")
+                logx(f"hashBottomSheet: ConstructorHook error: {e}", False)
 
 
 class SetCustomViewHook(MethodHook):
@@ -877,19 +878,19 @@ class SetCustomViewHook(MethodHook):
             view = param.args[0]
             if not view:
                 if DEBUG_LOGS:
-                    log("hashBottomSheet: view is None")
+                    logx("hashBottomSheet: view is None", True)
                 return
 
             frame = view.getChildAt(0)
             if not frame:
                 if DEBUG_LOGS:
-                    log("hashBottomSheet: frame not found")
+                    logx("hashBottomSheet: frame not found", True)
                 return
 
             stored = _pending.pop(sheet.hashCode(), ("", None, None))
             filePath, _repoManager, _sheet = stored
             if DEBUG_LOGS:
-                log(f"hashBottomSheet: SetCustomViewHook filePath={filePath}")
+                logx(f"hashBottomSheet: SetCustomViewHook filePath={filePath}", True)
             act = sheet.getContext()
 
             hash_btn = ImageView(act)
@@ -897,18 +898,18 @@ class SetCustomViewHook(MethodHook):
                 hash_btn.setImageResource(getattr(R_tg.drawable, "msg_sendfile"))
             except Exception as e:
                 if DEBUG_LOGS:
-                    log(f"hashBottomSheet: msg_sendfile failed: {e}")
+                    logx(f"hashBottomSheet: msg_sendfile failed: {e}", False)
                 try:
                     hash_btn.setImageResource(getattr(R_tg.drawable, "msg_secret"))
                 except Exception as e2:
                     if DEBUG_LOGS:
-                        log(f"hashBottomSheet: fallback icon failed: {e2}")
+                        logx(f"hashBottomSheet: fallback icon failed: {e2}", True)
 
             try:
                 hash_btn.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon))
             except Exception as e:
                 if DEBUG_LOGS:
-                    log(f"hashBottomSheet: setColorFilter error: {e}")
+                    logx(f"hashBottomSheet: setColorFilter error: {e}", False)
 
             hash_btn.setScaleType(ImageView.ScaleType.CENTER)
             hash_btn.setClickable(True)
@@ -920,7 +921,7 @@ class SetCustomViewHook(MethodHook):
                 ScaleStateListAnimator.apply(hash_btn, 0.15, 1.5)
             except Exception as e:
                 if DEBUG_LOGS:
-                    log(f"hashBottomSheet: ScaleStateListAnimator error: {e}")
+                    logx(f"hashBottomSheet: ScaleStateListAnimator error: {e}", False)
 
             try:
                 selector_color = Theme.getColor(Theme.key_dialogButtonSelector)
@@ -928,23 +929,23 @@ class SetCustomViewHook(MethodHook):
                 hash_btn.setBackground(bg)
             except Exception as e:
                 if DEBUG_LOGS:
-                    log(f"hashBottomSheet: setBackground error: {e}")
+                    logx(f"hashBottomSheet: setBackground error: {e}", False)
 
             lp = LayoutHelper.createFrame(40, 40.0, 53, 0.0, 104.0, 16.0, 0.0)
             frame.addView(hash_btn, lp)
             if DEBUG_LOGS:
-                log("hashBottomSheet: hash_btn added to frame")
+                logx("hashBottomSheet: hash_btn added to frame", True)
 
         except Exception as e:
             if DEBUG_LOGS:
-                log(f"hashBottomSheet: SetCustomViewHook error: {e}")
+                logx(f"hashBottomSheet: SetCustomViewHook error: {e}", False)
 
 
 def setup_hash_button_hook(plugin, repoManager):
     global _repoManager
     _repoManager = repoManager
     if DEBUG_LOGS:
-        log("hashBottomSheet: setup_hash_button_hook called")
+        logx("hashBottomSheet: setup_hash_button_hook called", True)
     hooks = []
     try:
         InstallSheet = find_class(
@@ -952,7 +953,7 @@ def setup_hash_button_hook(plugin, repoManager):
         )
         if not InstallSheet:
             if DEBUG_LOGS:
-                log("hashBottomSheet: InstallPluginBottomSheet not found")
+                logx("hashBottomSheet: InstallPluginBottomSheet not found", True)
             return None
 
         BaseFragment = find_class("org.telegram.ui.ActionBar.BaseFragment")
@@ -969,10 +970,10 @@ def setup_hash_button_hook(plugin, repoManager):
             constructor.setAccessible(True)
             hooks.append(plugin.hook_method(constructor, ConstructorHook()))
             if DEBUG_LOGS:
-                log("hashBottomSheet: ConstructorHook registered")
+                logx("hashBottomSheet: ConstructorHook registered", True)
         else:
             if DEBUG_LOGS:
-                log(f"hashBottomSheet: ValidationResult={ValidationResult} InstallParams={InstallParams}")
+                logx(f"hashBottomSheet: ValidationResult={ValidationResult} InstallParams={InstallParams}", True)
 
         BottomSheet = find_class("org.telegram.ui.ActionBar.BottomSheet")
         ViewClass = find_class("android.view.View")
@@ -981,15 +982,15 @@ def setup_hash_button_hook(plugin, repoManager):
             method.setAccessible(True)
             hooks.append(plugin.hook_method(method, SetCustomViewHook()))
             if DEBUG_LOGS:
-                log("hashBottomSheet: SetCustomViewHook registered")
+                logx("hashBottomSheet: SetCustomViewHook registered", True)
         else:
             if DEBUG_LOGS:
-                log(f"hashBottomSheet: BottomSheet={BottomSheet} ViewClass={ViewClass}")
+                logx(f"hashBottomSheet: BottomSheet={BottomSheet} ViewClass={ViewClass}", True)
 
         if DEBUG_LOGS:
-            log(f"hashBottomSheet: setup done, hooks={len(hooks)}")
+            logx(f"hashBottomSheet: setup done, hooks={len(hooks)}", True)
         return hooks
     except Exception as e:
         if DEBUG_LOGS:
-            log(f"hashBottomSheet: setup error: {e}")
+            logx(f"hashBottomSheet: setup error: {e}", False)
         return None

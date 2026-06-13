@@ -1,13 +1,14 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import os
 import json
 import random
 import string
 import time
 import ctypes
-from android_utils import log
+
 try:
     from org.telegram.messenger import ApplicationLoader, UserConfig
 except Exception as e:
@@ -34,7 +35,7 @@ def _get_user_id() -> int:
         uc = UserConfig.getInstance(account)
         return int(uc.getClientUserId())
     except Exception as e:
-        log(f"exportBin.writer._get_user_id: {e}")
+        logx(f"exportBin.writer._get_user_id: {e}", False)
         return 0
 
 
@@ -45,11 +46,11 @@ def _get_install_ts() -> int:
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             ts = int(data.get("ts", 0))
-            log(f"exportBin: install_ts={ts}")
+            logx(f"exportBin: install_ts={ts}", True)
             return ts
     except Exception as e:
-        log(f"exportBin.writer._get_install_ts: {e}")
-    log("exportBin: install_ts=0 (not found)")
+        logx(f"exportBin.writer._get_install_ts: {e}", False)
+    logx("exportBin: install_ts=0 (not found)", True)
     return 0
 
 
@@ -66,10 +67,10 @@ def _read_achievements_block() -> str:
         account_id = _get_current_account_id()
         data, _ = _load_account(account_id)
         content = json.dumps({account_id: data}, ensure_ascii=False)
-        log(f"exportBin: achievements block read ({len(content)} bytes)")
+        logx(f"exportBin: achievements block read ({len(content)} bytes)", True)
         return content
     except Exception as e:
-        log(f"exportBin: achievements block read error: {e}")
+        logx(f"exportBin: achievements block read error: {e}", False)
         return "{}"
 
 
@@ -78,10 +79,10 @@ def _read_saved_plugins_block() -> str:
         from ....ui.PluginActivity.fragment import _read_saved_plugins
         data = _read_saved_plugins()
         content = json.dumps(data, ensure_ascii=False)
-        log(f"exportBin: saved_plugins block read ({len(data)} items)")
+        logx(f"exportBin: saved_plugins block read ({len(data)} items)", True)
         return content
     except Exception as e:
-        log(f"exportBin: saved_plugins block read error: {e}")
+        logx(f"exportBin: saved_plugins block read error: {e}", False)
         return "[]"
 
 
@@ -92,16 +93,16 @@ def _read_block(key: str) -> str:
         return _read_saved_plugins_block()
     path = os.path.join(_get_configs_dir(), _FILE_NAMES[key])
     if not os.path.exists(path):
-        log(f"exportBin: block '{key}' not found, using {{}}")
+        logx(f"exportBin: block '{key}' not found, using {{}}", True)
         return "{}"
     try:
         with open(path, "r", encoding="utf-8") as f:
             content = f.read().strip()
         json.loads(content)
-        log(f"exportBin: block '{key}' read ({len(content)} bytes)")
+        logx(f"exportBin: block '{key}' read ({len(content)} bytes)", True)
         return content
     except Exception as e:
-        log(f"exportBin: block '{key}' read error: {e}")
+        logx(f"exportBin: block '{key}' read error: {e}", False)
         return "{}"
 
 
@@ -117,8 +118,8 @@ def build_binary(
     user_id    = _get_user_id()
     install_ts = _get_install_ts()
     ts         = int(time.time())
-    log(f"exportBin: write user_id={user_id} install_ts={install_ts} ts={ts}")
-    log(f"exportBin: flags local_config={include_local_config} achievements={include_achievements} saved_plugins={include_saved_plugins}")
+    logx(f"exportBin: write user_id={user_id} install_ts={install_ts} ts={ts}", True)
+    logx(f"exportBin: flags local_config={include_local_config} achievements={include_achievements} saved_plugins={include_saved_plugins}", True)
 
     lib = _get_lib()
 
@@ -148,10 +149,10 @@ def build_binary(
         )
         if rc != 0:
             err = lib.packit_last_error().decode("utf-8", errors="replace")
-            log(f"exportBin: packit_write_file failed: {err}")
+            logx(f"exportBin: packit_write_file failed: {err}", True)
             raise RuntimeError(f"packit_write_file failed: {err}")
         size = os.path.getsize(tmp_path)
-        log(f"exportBin: write ok, {size} bytes")
+        logx(f"exportBin: write ok, {size} bytes", True)
         with open(tmp_path, "rb") as f:
             return f.read()
     finally:
@@ -168,5 +169,5 @@ def export_to_downloads(download_path: str) -> str:
     data = build_binary()
     with open(out_path, "wb") as f:
         f.write(data)
-    log(f"exportBin: exported to {out_path}")
+    logx(f"exportBin: exported to {out_path}", True)
     return out_path

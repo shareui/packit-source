@@ -1,7 +1,8 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from android_utils import log
+
+from packutil import logx
 from hook_utils import find_class, get_private_field
 import weakref
 
@@ -30,7 +31,7 @@ class _SetTitleIconsHook(MethodHook):
             # store on container object via tag
             container.setTag(right)
         except Exception as e:
-            log(f"[Packit Badges] SetTitleIconsHook error: {e}")
+            logx(f"[Packit Badges] SetTitleIconsHook error: {e}", False)
 
 
 class _UpdateTitleIconsHook(MethodHook):
@@ -80,19 +81,19 @@ class _UpdateTitleIconsHook(MethodHook):
             right = container.getTag()
             container.setTitleIcons(drawable, right)
         except Exception as e:
-            log(f"[Packit Badges] TitleIconHook error: {e}")
+            logx(f"[Packit Badges] TitleIconHook error: {e}", False)
 
 
 def setup_title_icon_hook(plugin, cache_lookup):
     try:
         chat_cls = find_class("org.telegram.ui.ChatActivity")
         if not chat_cls:
-            log("[Packit Badges] ChatActivity class not found (title icon)")
+            logx("[Packit Badges] ChatActivity class not found (title icon)", True)
             return []
 
         container_cls = find_class("org.telegram.ui.Components.ChatAvatarContainer")
         if not container_cls:
-            log("[Packit Badges] ChatAvatarContainer class not found")
+            logx("[Packit Badges] ChatAvatarContainer class not found", True)
             return []
 
         refs = []
@@ -100,16 +101,16 @@ def setup_title_icon_hook(plugin, cache_lookup):
         set_refs = plugin.hook_all_methods(container_cls, "setTitleIcons", _SetTitleIconsHook())
         if set_refs:
             refs.extend(set_refs)
-            log(f"[Packit Badges] hooked setTitleIcons ({len(set_refs)} overload(s))")
+            logx(f"[Packit Badges] hooked setTitleIcons ({len(set_refs)} overload(s))", True)
 
         update_refs = plugin.hook_all_methods(chat_cls, "updateTitleIcons", _UpdateTitleIconsHook(cache_lookup))
         if update_refs:
             refs.extend(update_refs)
-            log(f"[Packit Badges] hooked updateTitleIcons ({len(update_refs)} overload(s))")
+            logx(f"[Packit Badges] hooked updateTitleIcons ({len(update_refs)} overload(s))", True)
         else:
-            log("[Packit Badges] updateTitleIcons hook failed")
+            logx("[Packit Badges] updateTitleIcons hook failed", True)
 
         return refs
     except Exception as e:
-        log(f"[Packit Badges] title icon hook setup error: {e}")
+        logx(f"[Packit Badges] title icon hook setup error: {e}", False)
         return []

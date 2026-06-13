@@ -1,8 +1,9 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import math
-from android_utils import log, run_on_ui_thread, OnClickListener
+from android_utils import run_on_ui_thread, OnClickListener
 from base_plugin import MethodHook
 from hook_utils import find_class
 
@@ -13,7 +14,7 @@ def setup_plugins_activity_fab(plugin):
             "com.exteragram.messenger.plugins.ui.PluginsActivity"
         )
         if PluginsActivityClass is None:
-            log("addPluginFab: PluginsActivity not found")
+            logx("addPluginFab: PluginsActivity not found", True)
             return None
 
         ContextClass = find_class("android.content.Context")
@@ -30,13 +31,13 @@ def setup_plugins_activity_fab(plugin):
                         return
                     run_on_ui_thread(lambda: _inject_fab(plugin, frag_view))
                 except Exception as e:
-                    log(f"addPluginFab: after_hooked_method error: {e}")
+                    logx(f"addPluginFab: after_hooked_method error: {e}", False)
 
         hook_ref = plugin.hook_method(create_view_method, PluginsActivityCreateViewHook())
-        log("addPluginFab: PluginsActivity.createView hooked")
+        logx("addPluginFab: PluginsActivity.createView hooked", True)
         return hook_ref
     except Exception as e:
-        log(f"addPluginFab: setup_plugins_activity_fab error: {e}")
+        logx(f"addPluginFab: setup_plugins_activity_fab error: {e}", False)
         return None
 
 
@@ -110,7 +111,7 @@ def _inject_fab(plugin, frag_view):
                 from ..ui.PluginListActivity.fragment import InstallUI
                 InstallUI(plugin).open()
             except Exception as e:
-                log(f"addPluginFab: on_fab_click error: {e}")
+                logx(f"addPluginFab: on_fab_click error: {e}", False)
 
         fab.setOnClickListener(OnClickListener(on_fab_click))
 
@@ -126,9 +127,9 @@ def _inject_fab(plugin, frag_view):
 
         _attach_scroll_listener(frag_view, fab, fab_lp, fab_margin, state_ref)
 
-        log("addPluginFab: FAB injected into PluginsActivity")
+        logx("addPluginFab: FAB injected into PluginsActivity", True)
     except Exception as e:
-        log(f"addPluginFab: _inject_fab error: {e}")
+        logx(f"addPluginFab: _inject_fab error: {e}", False)
 
 
 def _attach_scroll_listener(frag_view, fab, fab_lp, fab_margin, state_ref):
@@ -172,7 +173,7 @@ def _attach_scroll_listener(frag_view, fab, fab_lp, fab_margin, state_ref):
                     fab.setVisibility(View.GONE)
                     state_ref["animating"] = False
                 except Exception as e:
-                    log(f"addPluginFab: on_hide_end error: {e}")
+                    logx(f"addPluginFab: on_hide_end error: {e}", False)
 
             phase1.addListener(_make_end_listener(on_hide_end))
             phase1.start()
@@ -205,7 +206,7 @@ def _attach_scroll_listener(frag_view, fab, fab_lp, fab_margin, state_ref):
                 try:
                     state_ref["animating"] = False
                 except Exception as e:
-                    log(f"addPluginFab: on_show_end error: {e}")
+                    logx(f"addPluginFab: on_show_end error: {e}", False)
 
             phase2.addListener(_make_end_listener(on_show_end))
             phase2.start()
@@ -229,11 +230,11 @@ def _attach_scroll_listener(frag_view, fab, fab_lp, fab_margin, state_ref):
                     if newState == 0:  # SCROLL_STATE_IDLE
                         update_fab_visibility(rv)
                 except Exception as e:
-                    log(f"addPluginFab: onScrollStateChanged error: {e}")
+                    logx(f"addPluginFab: onScrollStateChanged error: {e}", False)
 
         list_view.addOnScrollListener(FabScrollListener.new_java_instance())
     except Exception as e:
-        log(f"addPluginFab: _attach_scroll_listener error: {e}")
+        logx(f"addPluginFab: _attach_scroll_listener error: {e}", False)
 
 
 def _attach_press_animation(fab, state_ref):
@@ -251,7 +252,7 @@ def _attach_press_animation(fab, state_ref):
                 elif action in (MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL):
                     fab.animate().scaleX(1.0).scaleY(1.0).alpha(1.0).setDuration(220).start()
             except Exception as e:
-                log(f"addPluginFab: press touch error: {e}")
+                logx(f"addPluginFab: press touch error: {e}", False)
             return False
 
         class _TL(dynamic_proxy(View.OnTouchListener)):
@@ -260,7 +261,7 @@ def _attach_press_animation(fab, state_ref):
 
         fab.setOnTouchListener(_TL())
     except Exception as e:
-        log(f"addPluginFab: _attach_press_animation error: {e}")
+        logx(f"addPluginFab: _attach_press_animation error: {e}", False)
 
 
 def _make_end_listener(on_end):
@@ -272,7 +273,7 @@ def _make_end_listener(on_end):
             try:
                 on_end()
             except Exception as e:
-                log(f"addPluginFab: AnimatorListener.onAnimationEnd error: {e}")
+                logx(f"addPluginFab: AnimatorListener.onAnimationEnd error: {e}", False)
 
         def onAnimationStart(self, a, *args): pass
 

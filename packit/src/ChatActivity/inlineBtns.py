@@ -1,12 +1,13 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import weakref
 import threading
 import random
 from base_plugin import MethodHook
 from hook_utils import find_class
-from android_utils import log, run_on_ui_thread
+from android_utils import run_on_ui_thread
 from extera_utils.classes import Base, java_subclass, joverride
 from java import jint
 
@@ -45,28 +46,28 @@ def _is_packit_inline_message(message_object):
     try:
         owner = message_object.messageOwner
         if owner is None:
-            log("inlineBtns: _is_packit_inline_message: messageOwner is None")
+            logx("inlineBtns: _is_packit_inline_message: messageOwner is None", True)
             return False
         msg_params = owner.params
         if msg_params is None:
             return False
         result = msg_params.get("packit_inline") == "1"
         if result:
-            log("inlineBtns: packit_inline message confirmed")
+            logx("inlineBtns: packit_inline message confirmed", True)
         return result
     except Exception as e:
-        log(f"inlineBtns: _is_packit_inline_message error: {e}")
+        logx(f"inlineBtns: _is_packit_inline_message error: {e}", False)
         return False
 
 
 def _build_translate_button_class():
     BotInlineKeyboard = _get_bot_inline_keyboard_class()
     if BotInlineKeyboard is None:
-        log("inlineBtns: BotInlineKeyboard class not found")
+        logx("inlineBtns: BotInlineKeyboard class not found", True)
         return None
     ButtonBase = find_class("org.telegram.messenger.BotInlineKeyboard$ButtonCustom")
     if ButtonBase is None:
-        log("inlineBtns: BotInlineKeyboard$ButtonCustom class not found")
+        logx("inlineBtns: BotInlineKeyboard$ButtonCustom class not found", True)
         return None
 
     try:
@@ -87,10 +88,10 @@ def _build_translate_button_class():
             def get_icon_emoji(self):
                 return 0
 
-        log("inlineBtns: PackitTranslateButton class built")
+        logx("inlineBtns: PackitTranslateButton class built", True)
         return PackitTranslateButton
     except Exception as e:
-        log(f"inlineBtns: _build_translate_button_class error: {e}")
+        logx(f"inlineBtns: _build_translate_button_class error: {e}", False)
         return None
 
 
@@ -107,7 +108,7 @@ def _get_translate_button_class():
 def _build_send_file_button_class():
     ButtonBase = find_class("org.telegram.messenger.BotInlineKeyboard$ButtonCustom")
     if ButtonBase is None:
-        log("inlineBtns: BotInlineKeyboard$ButtonCustom class not found for SendFileButton")
+        logx("inlineBtns: BotInlineKeyboard$ButtonCustom class not found for SendFileButton", True)
         return None
     try:
         @java_subclass(ButtonBase)
@@ -127,10 +128,10 @@ def _build_send_file_button_class():
             def get_icon_emoji(self):
                 return 0
 
-        log("inlineBtns: PackitSendFileButton class built")
+        logx("inlineBtns: PackitSendFileButton class built", True)
         return PackitSendFileButton
     except Exception as e:
-        log(f"inlineBtns: _build_send_file_button_class error: {e}")
+        logx(f"inlineBtns: _build_send_file_button_class error: {e}", False)
         return None
 
 
@@ -210,51 +211,51 @@ def _do_translate_inline(message_object):
 
         owner = message_object.messageOwner
         if owner is None:
-            log("inlineBtns: _do_translate_inline: messageOwner is None")
+            logx("inlineBtns: _do_translate_inline: messageOwner is None", True)
             return
 
         msg_params = owner.params
         if msg_params is None:
-            log("inlineBtns: _do_translate_inline: no params on message")
+            logx("inlineBtns: _do_translate_inline: no params on message", True)
             return
 
         raw_desc = msg_params.get("packit_desc") or ""
         if not raw_desc.strip():
-            log("inlineBtns: _do_translate_inline: description is empty, nothing to translate")
+            logx("inlineBtns: _do_translate_inline: description is empty, nothing to translate", True)
             return
 
-        log(f"inlineBtns: translating description, len={len(raw_desc)}")
+        logx(f"inlineBtns: translating description, len={len(raw_desc)}", True)
 
         pending_text = _get_random_pending_text()
 
         def set_pending():
             try:
                 edit_message(message_object, text=pending_text)
-                log("inlineBtns: pending text set")
+                logx("inlineBtns: pending text set", True)
             except Exception as e:
-                log(f"inlineBtns: set_pending error: {e}")
+                logx(f"inlineBtns: set_pending error: {e}", False)
 
         run_on_ui_thread(set_pending)
 
         target_lang = Locale.getDefault().getLanguage() or "en"
-        log(f"inlineBtns: translating to lang={target_lang}")
+        logx(f"inlineBtns: translating to lang={target_lang}", True)
         translated_desc = _translate_text(raw_desc, target_lang)
-        log(f"inlineBtns: translation done, len={len(translated_desc)}")
+        logx(f"inlineBtns: translation done, len={len(translated_desc)}", True)
 
         rebuilt = _build_plugin_message_html(msg_params, translated_desc)
-        log(f"inlineBtns: rebuilt message html, len={len(rebuilt)}")
+        logx(f"inlineBtns: rebuilt message html, len={len(rebuilt)}", True)
 
         def set_translated():
             try:
                 edit_message(message_object, text=rebuilt, parse_mode="HTML")
-                log("inlineBtns: translated message set")
+                logx("inlineBtns: translated message set", True)
             except Exception as e:
-                log(f"inlineBtns: set_translated error: {e}")
+                logx(f"inlineBtns: set_translated error: {e}", False)
 
         run_on_ui_thread(set_translated)
 
     except Exception as e:
-        log(f"inlineBtns: _do_translate_inline error: {e}")
+        logx(f"inlineBtns: _do_translate_inline error: {e}", False)
 
 
 def _rebuild_keyboard_without_send_file(message_object):
@@ -304,9 +305,9 @@ def _rebuild_keyboard_without_send_file(message_object):
         new_source = builder.build()
         from hook_utils import set_private_field
         set_private_field(message_object, "inlineKeyboardSource", new_source)
-        log("inlineBtns: send file button removed from keyboard")
+        logx("inlineBtns: send file button removed from keyboard", True)
     except Exception as e:
-        log(f"inlineBtns: _rebuild_keyboard_without_send_file error: {e}")
+        logx(f"inlineBtns: _rebuild_keyboard_without_send_file error: {e}", False)
 
 
 def _do_send_file_inline(message_object, plugin_ref):
@@ -320,23 +321,23 @@ def _do_send_file_inline(message_object, plugin_ref):
 
         owner = message_object.messageOwner
         if owner is None:
-            log("inlineBtns: _do_send_file_inline: messageOwner is None")
+            logx("inlineBtns: _do_send_file_inline: messageOwner is None", True)
             return
 
         msg_params = owner.params
         if msg_params is None:
-            log("inlineBtns: _do_send_file_inline: no params on message")
+            logx("inlineBtns: _do_send_file_inline: no params on message", True)
             return
 
         plugin_id = str(msg_params.get("packit_plugin_id") or "")
         repo_id = str(msg_params.get("packit_repo_id") or "")
 
         if not plugin_id or not repo_id:
-            log("inlineBtns: _do_send_file_inline: missing plugin_id or repo_id")
+            logx("inlineBtns: _do_send_file_inline: missing plugin_id or repo_id", True)
             _run(lambda: _show_send_file_error(strings["send_as_file_no_link"]))
             return
 
-        log(f"inlineBtns: resolving plugin link for plugin_id={plugin_id} repo_id={repo_id}")
+        logx(f"inlineBtns: resolving plugin link for plugin_id={plugin_id} repo_id={repo_id}", True)
 
         # resolve plugins url from repo cache
         link = None
@@ -354,14 +355,14 @@ def _do_send_file_inline(message_object, plugin_ref):
                 plugin_info = plugins_data.get(plugin_id) or {}
                 link = plugin_info.get("link") or plugin_info.get("raw")
         except Exception as e:
-            log(f"inlineBtns: _do_send_file_inline: repo resolve error: {e}")
+            logx(f"inlineBtns: _do_send_file_inline: repo resolve error: {e}", False)
 
         if not link:
-            log("inlineBtns: _do_send_file_inline: no download link found")
+            logx("inlineBtns: _do_send_file_inline: no download link found", True)
             _run(lambda: _show_send_file_error(strings["send_as_file_no_link"]))
             return
 
-        log(f"inlineBtns: downloading plugin from {link}")
+        logx(f"inlineBtns: downloading plugin from {link}", True)
 
         # show loading dialog
         dlg_ref = [None]
@@ -378,14 +379,14 @@ def _do_send_file_inline(message_object, plugin_ref):
                 dlg_ref[0] = builder.create()
                 dlg_ref[0].show()
             except Exception as e:
-                log(f"inlineBtns: show_loading error: {e}")
+                logx(f"inlineBtns: show_loading error: {e}", False)
 
         def dismiss_loading():
             try:
                 if dlg_ref[0]:
                     dlg_ref[0].dismiss()
             except Exception as e:
-                log(f"inlineBtns: dismiss_loading error: {e}")
+                logx(f"inlineBtns: dismiss_loading error: {e}", False)
 
         _run(show_loading)
 
@@ -410,15 +411,15 @@ def _do_send_file_inline(message_object, plugin_ref):
         os.makedirs(str(cache_dir), exist_ok=True)
         with open(file_path, "wb") as f:
             f.write(r.content)
-        log(f"inlineBtns: downloaded {len(r.content)} bytes to {file_path}")
+        logx(f"inlineBtns: downloaded {len(r.content)} bytes to {file_path}", True)
 
         # send document to current dialog
         try:
             dialog_id = message_object.getDialogId()
             send_document(dialog_id, file_path)
-            log(f"inlineBtns: sent document to dialog_id={dialog_id}")
+            logx(f"inlineBtns: sent document to dialog_id={dialog_id}", True)
         except Exception as e:
-            log(f"inlineBtns: send_document error: {e}")
+            logx(f"inlineBtns: send_document error: {e}", False)
             _run(dismiss_loading)
             _run(lambda: _show_send_file_error(strings["send_as_file_failed"]))
             return
@@ -429,7 +430,7 @@ def _do_send_file_inline(message_object, plugin_ref):
         _run(lambda: _rebuild_keyboard_without_send_file(message_object))
 
     except Exception as e:
-        log(f"inlineBtns: _do_send_file_inline error: {e}")
+        logx(f"inlineBtns: _do_send_file_inline error: {e}", False)
         try:
             from android_utils import run_on_ui_thread as _run
             _run(lambda: _show_send_file_error(strings["send_as_file_failed"]))
@@ -442,7 +443,7 @@ def _show_send_file_error(msg):
         from ui.bulletin import BulletinHelper
         BulletinHelper.show_error(str(msg))
     except Exception as e:
-        log(f"inlineBtns: _show_send_file_error: {e}")
+        logx(f"inlineBtns: _show_send_file_error: {e}", False)
 
 
 class _MeasureInlineButtonsHook(MethodHook):
@@ -530,7 +531,7 @@ class _MeasureInlineButtonsHook(MethodHook):
             set_private_field(message_object, "inlineKeyboardSource", new_source)
 
         except Exception as e:
-            log(f"inlineBtns: _MeasureInlineButtonsHook error: {e}")
+            logx(f"inlineBtns: _MeasureInlineButtonsHook error: {e}", False)
 
 
 class _DidPressCustomBotButtonHook(MethodHook):
@@ -539,57 +540,57 @@ class _DidPressCustomBotButtonHook(MethodHook):
             from . import inlineState
             if not inlineState.get_state():
                 return
-            log(f"inlineBtns: didPressCustomBotButton fired, args={len(param.args)}")
+            logx(f"inlineBtns: didPressCustomBotButton fired, args={len(param.args)}", True)
 
             # args[0] = ChatMessageCell, args[1] = BotInlineKeyboard.ButtonCustom
             if len(param.args) < 2:
-                log("inlineBtns: not enough args")
+                logx("inlineBtns: not enough args", True)
                 return
 
             button = param.args[1]
             if button is None:
-                log("inlineBtns: button is None")
+                logx("inlineBtns: button is None", True)
                 return
 
             try:
                 btn_id = button.id
-                log(f"inlineBtns: button.id={btn_id}")
+                logx(f"inlineBtns: button.id={btn_id}", True)
             except Exception as e:
-                log(f"inlineBtns: cannot read button.id: {e}")
+                logx(f"inlineBtns: cannot read button.id: {e}", False)
                 return
 
             if btn_id not in (_PACKIT_TRANSLATE_BTN_ID, _PACKIT_SEND_FILE_BTN_ID):
-                log(f"inlineBtns: not our button (id={btn_id}), skip")
+                logx(f"inlineBtns: not our button (id={btn_id}), skip", True)
                 return
 
             cell = param.args[0]
             if cell is None:
-                log("inlineBtns: cell is None")
+                logx("inlineBtns: cell is None", True)
                 return
 
             try:
                 message_object = cell.getMessageObject()
             except Exception as e:
-                log(f"inlineBtns: getMessageObject error: {e}")
+                logx(f"inlineBtns: getMessageObject error: {e}", False)
                 return
 
             if message_object is None:
-                log("inlineBtns: message_object is None")
+                logx("inlineBtns: message_object is None", True)
                 return
 
             if not _is_packit_inline_message(message_object):
-                log("inlineBtns: not a packit inline message")
+                logx("inlineBtns: not a packit inline message", True)
                 return
 
             if btn_id == _PACKIT_TRANSLATE_BTN_ID:
-                log("inlineBtns: starting translate thread")
+                logx("inlineBtns: starting translate thread", True)
                 threading.Thread(
                     target=_do_translate_inline,
                     args=(message_object,),
                     daemon=True
                 ).start()
             else:
-                log("inlineBtns: starting send file thread")
+                logx("inlineBtns: starting send file thread", True)
                 threading.Thread(
                     target=_do_send_file_inline,
                     args=(message_object, None),
@@ -597,7 +598,7 @@ class _DidPressCustomBotButtonHook(MethodHook):
                 ).start()
 
         except Exception as e:
-            log(f"inlineBtns: _DidPressCustomBotButtonHook error: {e}")
+            logx(f"inlineBtns: _DidPressCustomBotButtonHook error: {e}", False)
 
 
 def setup_inline_translate_button(plugin):
@@ -605,7 +606,7 @@ def setup_inline_translate_button(plugin):
         # hook measureInlineBotButtons to inject translate button
         MessageObject = find_class("org.telegram.messenger.MessageObject")
         if MessageObject is None:
-            log("inlineBtns: MessageObject not found")
+            logx("inlineBtns: MessageObject not found", True)
             return
 
         measure_method = None
@@ -618,22 +619,22 @@ def setup_inline_translate_button(plugin):
                 continue
 
         if measure_method is None:
-            log("inlineBtns: measureInlineBotButtons not found")
+            logx("inlineBtns: measureInlineBotButtons not found", True)
             return
 
         measure_method.setAccessible(True)
         plugin.hook_method(measure_method, _MeasureInlineButtonsHook(plugin))
-        log("inlineBtns: measureInlineBotButtons hook set")
+        logx("inlineBtns: measureInlineBotButtons hook set", True)
 
         # hook didPressCustomBotButton on ChatActivity$ChatMessageCellDelegate (actual impl)
         ChatMessageCellDelegate = find_class("org.telegram.ui.ChatActivity$ChatMessageCellDelegate")
         if ChatMessageCellDelegate is None:
-            log("inlineBtns: ChatMessageCellDelegate not found")
+            logx("inlineBtns: ChatMessageCellDelegate not found", True)
             return
 
-        log("inlineBtns: hooking all didPressCustomBotButton on ChatActivity$ChatMessageCellDelegate")
+        logx("inlineBtns: hooking all didPressCustomBotButton on ChatActivity$ChatMessageCellDelegate", True)
         plugin.hook_all_methods(ChatMessageCellDelegate, "didPressCustomBotButton", _DidPressCustomBotButtonHook())
-        log("inlineBtns: setup done")
+        logx("inlineBtns: setup done", True)
 
     except Exception as e:
-        log(f"inlineBtns: setup error: {e}")
+        logx(f"inlineBtns: setup error: {e}", False)

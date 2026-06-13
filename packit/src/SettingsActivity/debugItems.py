@@ -1,7 +1,8 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from android_utils import log
+
+from packutil import logx
 from client_utils import get_last_fragment
 from java import dynamic_proxy
 from android.content import DialogInterface
@@ -13,14 +14,14 @@ def _show_bulletin(msg: str):
         from ui.bulletin import BulletinHelper
         run_on_ui_thread(lambda: BulletinHelper.show_info(msg))
     except Exception as e:
-        log(f"debugItems: _show_bulletin: {e}")
+        logx(f"debugItems: _show_bulletin: {e}", False)
 
 
 def _test_native_error():
     try:
         _ = 123 / 0
     except Exception as e:
-        log(f"debugItems: test native error triggered: {e}")
+        logx(f"debugItems: test native error triggered: {e}", False)
         from ..nativeLoader import showNativeErrorSheet
         showNativeErrorSheet("libpackitdb.so", str(e))
 
@@ -39,12 +40,12 @@ def _migrate_achievements():
         old_path = f"{configs_dir}/achievements.packdb"
 
         if not os.path.exists(old_path):
-            log("debugItems: migrate: old achievements.packdb not found")
+            logx("debugItems: migrate: old achievements.packdb not found", True)
             _show_bulletin("No old file found (achievements.packdb missing)")
             return
 
         if _lib is None:
-            log("debugItems: migrate: _lib is None")
+            logx("debugItems: migrate: _lib is None", True)
             _show_bulletin("Native lib not loaded")
             return
 
@@ -52,11 +53,11 @@ def _migrate_achievements():
         out_len = ctypes.c_uint32(_BUF_SIZE)
         rc = _lib.packdb_read_raw(old_path.encode(), account_id.encode(), buf, ctypes.byref(out_len))
         if rc == -3:
-            log(f"debugItems: migrate: INVALID sig in old file for {account_id}")
+            logx(f"debugItems: migrate: INVALID sig in old file for {account_id}", True)
             _show_bulletin("Signature mismatch — old file belongs to a different account")
             return
         if rc != 0:
-            log(f"debugItems: migrate: read_raw error {rc}")
+            logx(f"debugItems: migrate: read_raw error {rc}", True)
             _show_bulletin(f"Read error: {rc}")
             return
 
@@ -64,24 +65,24 @@ def _migrate_achievements():
         try:
             raw = zlib.decompress(compressed)
         except Exception as e:
-            log(f"debugItems: migrate: decompress error: {e}")
+            logx(f"debugItems: migrate: decompress error: {e}", False)
             _show_bulletin(f"Decompress error: {e}")
             return
 
         raw_buf = (ctypes.c_uint8 * len(raw))(*raw)
         db = _lib.packdb_open_from_payload(old_path.encode(), account_id.encode(), raw_buf, len(raw))
         if not db:
-            log("debugItems: migrate: packdb_open_from_payload returned NULL")
+            logx("debugItems: migrate: packdb_open_from_payload returned NULL", True)
             _show_bulletin("Failed to open old db")
             return
 
         data = _db_to_dict(db)
         _lib.packdb_close(db)
         _save_account(data, account_id)
-        log(f"debugItems: migrate: done for {account_id}")
+        logx(f"debugItems: migrate: done for {account_id}", True)
         _show_bulletin("Migration done")
     except Exception as e:
-        log(f"debugItems: _migrate_achievements: {e}")
+        logx(f"debugItems: _migrate_achievements: {e}", False)
         _show_bulletin(f"Error: {e}")
 
 
@@ -155,7 +156,7 @@ def _show_class_input_dialog(title: str, on_submit):
         dialog.setOnShowListener(_ShowListener())
         dialog.show()
     except Exception as e:
-        log(f"debugItems._show_class_input_dialog: {e}")
+        logx(f"debugItems._show_class_input_dialog: {e}", False)
 
 
 def _inspect_class():
@@ -228,9 +229,9 @@ def _dump_class_info(class_name: str, methods: bool = True, fields: bool = True)
                         if entry.endswith(f".{simple_name}") or entry == simple_name:
                             candidates.append(entry)
             except Exception as e:
-                log(f"inspect: dex scan failed: {e}")
+                logx(f"inspect: dex scan failed: {e}", False)
             if candidates:
-                log(f"inspect: dex candidates for '{simple_name}': {candidates}")
+                logx(f"inspect: dex candidates for '{simple_name}': {candidates}", True)
                 _show_bulletin(f"Not found, dex has {len(candidates)} candidate(s) — check log")
             else:
                 _show_bulletin(f"Class not found: {class_name}")
@@ -241,23 +242,23 @@ def _dump_class_info(class_name: str, methods: bool = True, fields: bool = True)
                     try:
                         params = [p.getName() for p in m.getParameterTypes()]
                         ret = m.getReturnType().getName()
-                        log(f"method {m.getName()} {params} -> {ret}")
+                        logx(f"method {m.getName()} {params} -> {ret}", True)
                     except Exception as me:
-                        log(f"method dump error: {me}")
+                        logx(f"method dump error: {me}", True)
             except Exception as e:
-                log(f"getDeclaredMethods failed: {e}")
+                logx(f"getDeclaredMethods failed: {e}", False)
         if fields:
             try:
                 for f in java_cls.getDeclaredFields():
                     try:
-                        log(f"field {f.getName()} {f.getType().getName()}")
+                        logx(f"field {f.getName()} {f.getType().getName()}", True)
                     except Exception as fe:
-                        log(f"field dump error: {fe}")
+                        logx(f"field dump error: {fe}", True)
             except Exception as e:
-                log(f"getDeclaredFields failed: {e}")
-        log(f"inspect done: {class_name}")
+                logx(f"getDeclaredFields failed: {e}", False)
+        logx(f"inspect done: {class_name}", True)
     except Exception as e:
-        log(f"debugItems._dump_class_info: {e}")
+        logx(f"debugItems._dump_class_info: {e}", False)
 
 
 def _check_build_info():
@@ -267,14 +268,14 @@ def _check_build_info():
             getCurrClientName, getCurrClientPkg,
             getBuildStaticVersion, getClientVersion
         )
-        log(f"buildInfo.getBuildClientName: {getBuildClientName()}")
-        log(f"buildInfo.getBuildClientPkg: {getBuildClientPkg()}")
-        log(f"buildInfo.getCurrClientName: {getCurrClientName()}")
-        log(f"buildInfo.getCurrClientPkg: {getCurrClientPkg()}")
-        log(f"buildInfo.getBuildStaticVersion: {getBuildStaticVersion()}")
-        log(f"buildInfo.getClientVersion: {getClientVersion()}")
+        logx(f"buildInfo.getBuildClientName: {getBuildClientName()}", True)
+        logx(f"buildInfo.getBuildClientPkg: {getBuildClientPkg()}", True)
+        logx(f"buildInfo.getCurrClientName: {getCurrClientName()}", True)
+        logx(f"buildInfo.getCurrClientPkg: {getCurrClientPkg()}", True)
+        logx(f"buildInfo.getBuildStaticVersion: {getBuildStaticVersion()}", True)
+        logx(f"buildInfo.getClientVersion: {getClientVersion()}", True)
     except Exception as e:
-        log(f"debugItems._check_build_info: {e}")
+        logx(f"debugItems._check_build_info: {e}", False)
 
 
 def _migrate_installdate_to_b64():
@@ -308,7 +309,7 @@ def _migrate_installdate_to_b64():
             json.dump(data, f)
         _show_bulletin("Migrated to b64")
     except Exception as e:
-        log(f"debugItems._migrate_installdate_to_b64: {e}")
+        logx(f"debugItems._migrate_installdate_to_b64: {e}", False)
         _show_bulletin(f"Error: {e}")
 
 
@@ -353,7 +354,7 @@ def show_debug_menu():
                 try:
                     ITEMS[which][1]()
                 except Exception as e:
-                    log(f"debugItems.on_click: {e}")
+                    logx(f"debugItems.on_click: {e}", False)
 
         builder = AlertDialog.Builder(act)
         builder.setTitle("Debug")
@@ -361,4 +362,4 @@ def show_debug_menu():
         builder.setNegativeButton("Cancel", None)
         builder.show()
     except Exception as e:
-        log(f"debugItems.show_debug_menu: {e}")
+        logx(f"debugItems.show_debug_menu: {e}", False)

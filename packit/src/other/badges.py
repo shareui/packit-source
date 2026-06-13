@@ -1,7 +1,8 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from android_utils import log
+
+from packutil import logx
 from hook_utils import find_class, get_private_field
 try:
     from org.telegram.messenger import ApplicationLoader
@@ -119,7 +120,7 @@ class BadgeManager:
             try:
                 from elyx import settings as _s
                 if not _s.get("packit_verification", True):
-                    log("[Packit Badges] disabled via settings")
+                    logx("[Packit Badges] disabled via settings", True)
                     return
             except Exception:
                 pass
@@ -129,12 +130,12 @@ class BadgeManager:
             if prefs:
                 new_cache = _build_cache(prefs.get('badges', []), lang)
                 _set_cache(new_cache)
-                log(f"[Packit Badges] loaded {len(_cache)} entry(s) from prefs")
+                logx(f"[Packit Badges] loaded {len(_cache)} entry(s) from prefs", True)
 
             threading.Thread(target=self._update_from_url, daemon=True).start()
             self._install_hooks()
         except Exception as e:
-            log(f"[Packit Badges] setup error: {e}")
+            logx(f"[Packit Badges] setup error: {e}", False)
 
     def _update_from_url(self):
         try:
@@ -145,45 +146,45 @@ class BadgeManager:
             new_cache = _build_cache(config.get('badges', []), lang)
             _set_cache(new_cache)
             _save_to_prefs(self.context, config)
-            log(f"[Packit Badges] updated {len(_cache)} entry(s) from url")
+            logx(f"[Packit Badges] updated {len(_cache)} entry(s) from url", True)
         except Exception as e:
-            log(f"[Packit Badges] update error: {e}")
+            logx(f"[Packit Badges] update error: {e}", False)
 
     def _install_hooks(self):
         try:
             adapter_cls = find_class("org.telegram.ui.ProfileActivity$ListAdapter")
             if not adapter_cls:
-                log("[Packit Badges] ListAdapter class not found")
+                logx("[Packit Badges] ListAdapter class not found", True)
                 return
             refs = self.plugin.hook_all_methods(adapter_cls, "onBindViewHolder", _BindHook())
             if refs:
                 self._hook_refs.extend(refs)
-                log(f"[Packit Badges] hooked onBindViewHolder ({len(refs)} overload(s))")
+                logx(f"[Packit Badges] hooked onBindViewHolder ({len(refs)} overload(s))", True)
             else:
-                log("[Packit Badges] onBindViewHolder hook failed")
+                logx("[Packit Badges] onBindViewHolder hook failed", True)
         except Exception as e:
-            log(f"[Packit Badges] hook install error: {e}")
+            logx(f"[Packit Badges] hook install error: {e}", False)
 
         try:
             from .chatBadge import setup_chat_badge_hook
             chat_refs = setup_chat_badge_hook(self.plugin, _lookup)
             self._hook_refs.extend(chat_refs)
         except Exception as e:
-            log(f"[Packit Badges] chat hook error: {e}")
+            logx(f"[Packit Badges] chat hook error: {e}", False)
 
         try:
             from .chatTitleIcon import setup_title_icon_hook
             title_refs = setup_title_icon_hook(self.plugin, _lookup)
             self._hook_refs.extend(title_refs)
         except Exception as e:
-            log(f"[Packit Badges] title icon hook error: {e}")
+            logx(f"[Packit Badges] title icon hook error: {e}", False)
 
         try:
             from .profileTitleIcon import setup_profile_title_icon_hook
             profile_refs = setup_profile_title_icon_hook(self.plugin, _lookup)
             self._hook_refs.extend(profile_refs)
         except Exception as e:
-            log(f"[Packit Badges] profile title icon hook error: {e}")
+            logx(f"[Packit Badges] profile title icon hook error: {e}", False)
 
     def cleanup(self):
         try:
@@ -192,7 +193,7 @@ class BadgeManager:
                     self.plugin.unhook_method(ref)
             self._hook_refs.clear()
         except Exception as e:
-            log(f"[Packit Badges] cleanup error: {e}")
+            logx(f"[Packit Badges] cleanup error: {e}", False)
 
 
 class _BindHook(MethodHook):
@@ -233,7 +234,7 @@ class _BindHook(MethodHook):
 
             _apply_cell(holder.itemView, entry["emoji_id"], entry["text"])
         except Exception as e:
-            log(f"[Packit Badges] BindHook error: {e}")
+            logx(f"[Packit Badges] BindHook error: {e}", False)
 
 
 def _apply_cell(cell, emoji_id, text):
@@ -258,4 +259,4 @@ def _apply_cell(cell, emoji_id, text):
         cell.setFixedSize(0)
         cell.setText(sb)
     except Exception as e:
-        log(f"[Packit Badges] apply cell error: {e}")
+        logx(f"[Packit Badges] apply cell error: {e}", False)

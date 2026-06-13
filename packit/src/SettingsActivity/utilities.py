@@ -1,13 +1,14 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import threading
 
 from ui.settings import Header, Text, Divider, Input
 from ui.alert import AlertDialogBuilder
 from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment
-from android_utils import log, run_on_ui_thread
+from android_utils import run_on_ui_thread
 
 try:
     from elyx import strings
@@ -39,7 +40,7 @@ def _calcPluginsDirSize():
                 pass
         return count, total_bytes
     except Exception as e:
-        log(f"utilities._calcPluginsDirSize: {e}")
+        logx(f"utilities._calcPluginsDirSize: {e}", False)
         return 0, 0
 
 
@@ -68,14 +69,14 @@ class UtilitiesSettings:
             self._size_loaded = True
             self._reloadSettings()
         except Exception as e:
-            log(f"utilities._loadSubtextInBackground: {e}")
+            logx(f"utilities._loadSubtextInBackground: {e}", False)
 
     def _reloadSettings(self):
         try:
             from com.exteragram.messenger.plugins import PluginsController
             PluginsController.getInstance().loadPluginSettings("shareui_packit")
         except Exception as e:
-            log(f"utilities._reloadSettings: {e}")
+            logx(f"utilities._reloadSettings: {e}", False)
 
     def _on_export(self, selected_files, export_settings, export_locally):
         from .service.pluginsExport import buildArchive
@@ -99,14 +100,14 @@ class UtilitiesSettings:
                 dlg_ref[0] = loading.create()
                 dlg_ref[0].show()
             except Exception as e:
-                log(f"utilities._share_afp: show_spinner error: {e}")
+                logx(f"utilities._share_afp: show_spinner error: {e}", False)
 
         def dismiss_spinner():
             try:
                 if dlg_ref[0]:
                     dlg_ref[0].dismiss()
             except Exception as e:
-                log(f"utilities._share_afp: dismiss_spinner error: {e}")
+                logx(f"utilities._share_afp: dismiss_spinner error: {e}", False)
 
         def load_and_show():
             try:
@@ -114,7 +115,7 @@ class UtilitiesSettings:
                 plugins = loadPlugins()
                 run_on_ui_thread(lambda: (dismiss_spinner(), showExportSheet(plugins, self._on_export)))
             except Exception as e:
-                log(f"utilities._share_afp: load_and_show error: {e}")
+                logx(f"utilities._share_afp: load_and_show error: {e}", False)
                 run_on_ui_thread(lambda: (dismiss_spinner(), BulletinHelper.show_error(strings["utilities_afp_error"])))
 
         run_on_ui_thread(show_spinner)

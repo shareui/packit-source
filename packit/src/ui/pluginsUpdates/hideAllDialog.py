@@ -1,23 +1,24 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import ctypes
-from android_utils import log, run_on_ui_thread, OnClickListener
+from android_utils import run_on_ui_thread, OnClickListener
 from java import dynamic_proxy
 
 try:
     from elyx import strings
 except Exception as e:
-    log(f"hideAllDialog: import elyx.strings failed: {e}")
+    logx(f"hideAllDialog: import elyx.strings failed: {e}", False)
 try:
     from org.telegram.ui.ActionBar import Theme
 except Exception as e:
-    log(f"hideAllDialog: import Theme failed: {e}")
+    logx(f"hideAllDialog: import Theme failed: {e}", False)
 try:
     from org.telegram.ui.Components import LayoutHelper
     from org.telegram.messenger import AndroidUtilities
 except Exception as e:
-    log(f"hideAllDialog: import AndroidUtilities/LayoutHelper failed: {e}")
+    logx(f"hideAllDialog: import AndroidUtilities/LayoutHelper failed: {e}", False)
 
 
 _ANIM_DURATION = 220
@@ -39,7 +40,7 @@ def _register_back_cb(act, on_back):
         act.getOnBackPressedDispatcher().addCallback(act, cb.java)
         return cb
     except Exception as e:
-        log(f"hideAllDialog: _register_back_cb error: {e}")
+        logx(f"hideAllDialog: _register_back_cb error: {e}", False)
         return None
 
 
@@ -48,7 +49,7 @@ def _unregister_back_cb(cb):
         if cb is not None:
             cb.remove()
     except Exception as e:
-        log(f"hideAllDialog: _unregister_back_cb error: {e}")
+        logx(f"hideAllDialog: _unregister_back_cb error: {e}", False)
 
 
 def _animate_in(overlay, card):
@@ -76,7 +77,7 @@ def _animate_in(overlay, card):
         s.playTogether(fade_overlay, fade_card, scale_x, scale_y)
         s.start()
     except Exception as e:
-        log(f"hideAllDialog: _animate_in error: {e}")
+        logx(f"hideAllDialog: _animate_in error: {e}", False)
 
 
 def _animate_out(overlay_ref, card, decor, on_end=None):
@@ -113,7 +114,7 @@ def _animate_out(overlay_ref, card, decor, on_end=None):
         s.addListener(_EndListener())
         s.start()
     except Exception as e:
-        log(f"hideAllDialog: _animate_out error: {e}")
+        logx(f"hideAllDialog: _animate_out error: {e}", False)
         try:
             decor.removeView(overlay_ref[0])
         except Exception:
@@ -254,4 +255,4 @@ def show_hide_all_dialog(act, on_confirm):
         back_cb_ref[0] = _register_back_cb(act, _dismiss)
         run_on_ui_thread(lambda: _animate_in(overlay, card))
     except Exception as e:
-        log(f"hideAllDialog: show_hide_all_dialog error: {e}")
+        logx(f"hideAllDialog: show_hide_all_dialog error: {e}", False)

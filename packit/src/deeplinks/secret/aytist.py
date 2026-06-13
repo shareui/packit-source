@@ -1,9 +1,10 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import os
 import random
-from android_utils import log, run_on_ui_thread
+from android_utils import run_on_ui_thread
 from android.media import MediaPlayer, AudioManager
 from android.widget import FrameLayout, VideoView
 from android.view import ViewGroup
@@ -28,7 +29,7 @@ def handle(url):
         unlock_secret("aytist")
         run_on_ui_thread(_startSpawnChain)
     except Exception as e:
-        log(f"deeplinks.aytist: handle error: {e}")
+        logx(f"deeplinks.aytist: handle error: {e}", False)
 
 
 def _dpToPx(act, dp):
@@ -41,12 +42,12 @@ def _startSpawnChain():
         from client_utils import get_last_fragment
         fragment = get_last_fragment()
         if not fragment:
-            log("deeplinks.aytist: no fragment")
+            logx("deeplinks.aytist: no fragment", True)
             return
 
         act = fragment.getParentActivity()
         if not act:
-            log("deeplinks.aytist: no activity")
+            logx("deeplinks.aytist: no activity", True)
             return
 
         decor = act.getWindow().getDecorView()
@@ -55,7 +56,7 @@ def _startSpawnChain():
         screenH = metrics.heightPixels
 
         count = random.randint(_MIN_COUNT, _MAX_COUNT)
-        log(f"deeplinks.aytist: spawning {count} videos")
+        logx(f"deeplinks.aytist: spawning {count} videos", True)
 
         for i in range(count):
             run_on_ui_thread(
@@ -64,7 +65,7 @@ def _startSpawnChain():
             )
     except Exception as e:
         import traceback
-        log(f"deeplinks.aytist: startSpawnChain error: {e}\n{traceback.format_exc()}")
+        logx(f"deeplinks.aytist: startSpawnChain error: {e}\n{traceback.format_exc()}", False)
 
 
 def _spawnOneVideo(act, decor, screenW, screenH, idx):
@@ -94,7 +95,7 @@ def _spawnOneVideo(act, decor, screenW, screenH, idx):
                     mp.setVolume(1.0, 1.0)
                     mp.start()
                 except Exception as e:
-                    log(f"deeplinks.aytist: onPrepared error [{idx}]: {e}")
+                    logx(f"deeplinks.aytist: onPrepared error [{idx}]: {e}", False)
 
         class _CompletionListener(dynamic_proxy(MediaPlayer.OnCompletionListener)):
             def onCompletion(self, mp):
@@ -116,4 +117,4 @@ def _spawnOneVideo(act, decor, screenW, screenH, idx):
         videoView.start()
     except Exception as e:
         import traceback
-        log(f"deeplinks.aytist: spawnOneVideo error [{idx}]: {e}\n{traceback.format_exc()}")
+        logx(f"deeplinks.aytist: spawnOneVideo error [{idx}]: {e}\n{traceback.format_exc()}", False)
