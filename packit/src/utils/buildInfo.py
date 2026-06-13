@@ -1,9 +1,10 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import os
 import yaml
-from android_utils import log
+
 
 _META_PATH = os.path.join(os.path.dirname(__file__), "../../meta.yml")
 
@@ -17,7 +18,7 @@ def _readMeta():
         with open(_META_PATH, "r", encoding="utf-8") as f:
             return yaml.safe_load(f) or {}
     except Exception as e:
-        log(f"buildInfo: failed to read meta.yml: {e}")
+        logx(f"buildInfo: failed to read meta.yml: {e}", False)
         return {}
 
 def _resolveClientName(pkg):
@@ -43,7 +44,7 @@ def getCurrClientPkg():
         from org.telegram.messenger import ApplicationLoader
         return str(ApplicationLoader.applicationContext.getPackageName())
     except Exception as e:
-        log(f"buildInfo: failed to get current package: {e}")
+        logx(f"buildInfo: failed to get current package: {e}", False)
         return None
         
 # return current client name Universal/AyuGram/exteraGram/Unknown
@@ -60,5 +61,5 @@ def getClientVersion():
         from org.telegram.messenger import BuildVars
         return str(BuildVars.BUILD_VERSION_STRING)
     except Exception as e:
-        log(f"buildInfo: failed to get client version: {e}")
+        logx(f"buildInfo: failed to get client version: {e}", False)
         return None

@@ -1,6 +1,7 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import json
 import os
 import threading
@@ -10,28 +11,28 @@ from android.util import TypedValue
 from android.graphics.drawable import GradientDrawable
 from android.widget import FrameLayout, LinearLayout, TextView, ProgressBar, ImageView
 from java import dynamic_proxy
-from android_utils import log, run_on_ui_thread
+from android_utils import run_on_ui_thread
 from client_utils import get_last_fragment, run_on_queue
 # penis
 try:
     from org.telegram.ui.ActionBar import Theme
 except Exception as e:
-    log(f"pluginsUpdates: import Theme failed: {e}")
+    logx(f"pluginsUpdates: import Theme failed: {e}", False)
     from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.ui.Components import LayoutHelper
 except Exception as e:
-    log(f"pluginsUpdates: import LayoutHelper failed: {e}")
+    logx(f"pluginsUpdates: import LayoutHelper failed: {e}", False)
     from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.messenger import AndroidUtilities, ApplicationLoader
 except Exception as e:
-    log(f"pluginsUpdates: import AndroidUtilities/ApplicationLoader failed: {e}")
+    logx(f"pluginsUpdates: import AndroidUtilities/ApplicationLoader failed: {e}", False)
     from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment
 except Exception as e:
-    log(f"pluginsUpdates: import UniversalFragment failed: {e}")
+    logx(f"pluginsUpdates: import UniversalFragment failed: {e}", False)
     from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 from android_utils import OnClickListener
@@ -40,7 +41,7 @@ import requests
 try:
     from elyx import settings, strings
 except Exception as e:
-    log(f"pluginsUpdates: import elyx.settings failed: {e}")
+    logx(f"pluginsUpdates: import elyx.settings failed: {e}", False)
     from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 
@@ -60,7 +61,7 @@ def _get_repos() -> list:
         repos = json.loads(raw)
         return repos if isinstance(repos, list) else []
     except Exception as e:
-        log(f"pluginsUpdates: _get_repos error: {e}")
+        logx(f"pluginsUpdates: _get_repos error: {e}", False)
         return []
 
 
@@ -75,7 +76,7 @@ def _read_index(pkg: str, rm_rid: str) -> list:
         plugins = data.get("installed_plugins")
         return plugins if isinstance(plugins, list) else []
     except Exception as e:
-        log(f"pluginsUpdates: _read_index error for '{rm_rid}': {e}")
+        logx(f"pluginsUpdates: _read_index error for '{rm_rid}': {e}", False)
         return []
 
 
@@ -90,7 +91,7 @@ def _get_repo_plugins_url(pkg: str, rm_rid: str, fallback_url: str) -> str:
             if resolved:
                 return resolved
         except Exception as e:
-            log(f"pluginsUpdates: _get_repo_plugins_url error for '{rm_rid}': {e}")
+            logx(f"pluginsUpdates: _get_repo_plugins_url error for '{rm_rid}': {e}", False)
     return fallback_url
 
 
@@ -99,7 +100,7 @@ def _fetch_repo_plugins(url: str) -> dict:
     try:
         r = requests.get(url, timeout=20, headers={"User-Agent": "PackIt/1.0"})
         if r.status_code != 200:
-            log(f"pluginsUpdates: HTTP {r.status_code} for {url}")
+            logx(f"pluginsUpdates: HTTP {r.status_code} for {url}", True)
             return {}
         config = r.json()
         raw = config.get("plugins", {})
@@ -114,7 +115,7 @@ def _fetch_repo_plugins(url: str) -> dict:
                     result[item["id"]] = item
         return result
     except Exception as e:
-        log(f"pluginsUpdates: _fetch_repo_plugins error for '{url}': {e}")
+        logx(f"pluginsUpdates: _fetch_repo_plugins error for '{url}': {e}", False)
         return {}
 
 
@@ -188,7 +189,7 @@ def _check_updates(pkg: str) -> list:
         plugins_url = _get_repo_plugins_url(pkg, rm_rid, repo_url)
         repo_plugins = _fetch_repo_plugins(plugins_url)
         if not repo_plugins:
-            log(f"pluginsUpdates: no repo plugins for '{rm_rid}', skipping")
+            logx(f"pluginsUpdates: no repo plugins for '{rm_rid}', skipping", True)
             continue
 
         for entry in installed:
@@ -209,7 +210,7 @@ def _check_updates(pkg: str) -> list:
                     if not check_app_version(repo_app_ver):
                         continue
                 except Exception as e:
-                    log(f"pluginsUpdates: app_version check error for '{pid}': {e}")
+                    logx(f"pluginsUpdates: app_version check error for '{pid}': {e}", False)
 
             local_hash = str(entry.get("hash") or "")
             local_bithash = str(entry.get("bithash") or "")
@@ -274,7 +275,7 @@ def _get_ignore_list(pkg: str, repo_id: str) -> list:
         lst = data.get("ignore_list")
         return lst if isinstance(lst, list) else []
     except Exception as e:
-        log(f"pluginsUpdates: _get_ignore_list error for '{repo_id}': {e}")
+        logx(f"pluginsUpdates: _get_ignore_list error for '{repo_id}': {e}", False)
         return []
 
 
@@ -291,7 +292,7 @@ def _save_ignore_list(pkg: str, repo_id: str, lst: list):
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as e:
-        log(f"pluginsUpdates: _save_ignore_list error for '{repo_id}': {e}")
+        logx(f"pluginsUpdates: _save_ignore_list error for '{repo_id}': {e}", False)
 
 
 def _is_ignored(pkg: str, pid: str, repo_id: str, repo_version: str) -> bool:
@@ -364,7 +365,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 remove_install_listener(fn)
             self._active_listeners.clear()
         except Exception as e:
-            log(f"pluginsUpdates: onFragmentDestroy listeners cleanup error: {e}")
+            logx(f"pluginsUpdates: onFragmentDestroy listeners cleanup error: {e}", False)
         try:
             if self._content_view is not None:
                 parent = self._content_view.getParent()
@@ -372,7 +373,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     parent.removeView(self._content_view)
                 self._content_view = None
         except Exception as e:
-            log(f"pluginsUpdates: onFragmentDestroy error: {e}")
+            logx(f"pluginsUpdates: onFragmentDestroy error: {e}", False)
 
     def onBackPressed(self):
         return False
@@ -396,7 +397,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 if frag:
                     frag.finishFragment()
             except Exception as e:
-                log(f"pluginsUpdates: finishFragment error: {e}")
+                logx(f"pluginsUpdates: finishFragment error: {e}", False)
             return True
         return False
 
@@ -447,7 +448,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             self._spinner = spinner_view
             self._spinner_container = spinner_container
         except Exception as e:
-            log(f"pluginsUpdates: spinner error: {e}")
+            logx(f"pluginsUpdates: spinner error: {e}", False)
             fallback = ProgressBar(act)
             fallback_lp = FrameLayout.LayoutParams(AndroidUtilities.dp(48), AndroidUtilities.dp(48))
             fallback_lp.gravity = Gravity.CENTER
@@ -475,13 +476,13 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         try:
             accent = Theme.getColor(Theme.key_featuredStickers_addButton)
         except Exception as e:
-            log(f"pluginsUpdates: _add_button_bar accent color error: {e}")
+            logx(f"pluginsUpdates: _add_button_bar accent color error: {e}", False)
             accent = 0xFF2196F3
 
         try:
             accent_text = Theme.getColor(Theme.key_featuredStickers_buttonText)
         except Exception as e:
-            log(f"pluginsUpdates: _add_button_bar accent_text color error: {e}")
+            logx(f"pluginsUpdates: _add_button_bar accent_text color error: {e}", False)
             accent_text = 0xFFFFFFFF
 
         island_r = dp(32)
@@ -526,7 +527,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     d.setColorFilter(accent_text, PorterDuff.Mode.SRC_IN)
                     btn.setCompoundDrawablesRelative(d, None, None, None)
             except Exception as e:
-                log(f"pluginsUpdates: _make_icon_btn '{res_name}' error: {e}")
+                logx(f"pluginsUpdates: _make_icon_btn '{res_name}' error: {e}", False)
             return btn
 
         # two separate islands: full_row (refresh+ignore+download) and empty_row (refresh+ignore_list)
@@ -579,7 +580,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 empty_refresh_btn.setCompoundDrawablesRelative(d, None, None, None)
                 empty_refresh_btn.setCompoundDrawablePadding(dp(6))
         except Exception as e:
-            log(f"pluginsUpdates: empty_refresh_btn icon error: {e}")
+            logx(f"pluginsUpdates: empty_refresh_btn icon error: {e}", False)
         er_bg = GradientDrawable()
         er_bg.setShape(GradientDrawable.RECTANGLE)
         er_bg.setCornerRadius(float(btn_r))
@@ -671,7 +672,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             from .clearIgnoreListDialog import show_clear_ignore_list_dialog
             show_clear_ignore_list_dialog(self._act, on_close=self._on_refresh_click)
         except Exception as e:
-            log(f"pluginsUpdates: _open_ignore_list_dialog error: {e}")
+            logx(f"pluginsUpdates: _open_ignore_list_dialog error: {e}", False)
 
     def _on_ignore_all_click(self):
         updates = getattr(self, "_current_updates", [])
@@ -684,7 +685,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     for item in updates:
                         _ignore_until_next(None, item["id"], item.get("repo_id", ""), item.get("repo_version", ""))
                 except Exception as e:
-                    log(f"pluginsUpdates: _on_ignore_all_click task error: {e}")
+                    logx(f"pluginsUpdates: _on_ignore_all_click task error: {e}", False)
                 run_on_ui_thread(self._on_refresh_click)
 
             run_on_queue(task)
@@ -693,7 +694,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             from .hideAllDialog import show_hide_all_dialog
             show_hide_all_dialog(self._act, on_confirm)
         except Exception as e:
-            log(f"pluginsUpdates: _on_ignore_all_click error: {e}")
+            logx(f"pluginsUpdates: _on_ignore_all_click error: {e}", False)
 
     def _on_refresh_click(self):
         if self._is_loading:
@@ -767,7 +768,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         fragment_ref._done_count[0] = 0
                         fragment_ref._start_load()
                     except Exception as e:
-                        log(f"pluginsUpdates: _on_refresh_click reset error: {e}")
+                        logx(f"pluginsUpdates: _on_refresh_click reset error: {e}", False)
                 def onAnimationStart(self, *args): pass
                 def onAnimationCancel(self, *args): pass
                 def onAnimationRepeat(self, *args): pass
@@ -775,7 +776,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             out_set.addListener(_OutDone())
             out_set.start()
         except Exception as e:
-            log(f"pluginsUpdates: _on_refresh_click error: {e}")
+            logx(f"pluginsUpdates: _on_refresh_click error: {e}", False)
 
     def _has_any_ignored(self) -> bool:
         # returns True if at least one plugin is in any repo ignore list
@@ -788,7 +789,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 if _get_ignore_list(None, rm_rid):
                     return True
         except Exception as e:
-            log(f"pluginsUpdates: _has_any_ignored error: {e}")
+            logx(f"pluginsUpdates: _has_any_ignored error: {e}", False)
         return False
 
     def _show_bar(self):
@@ -819,7 +820,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             s.playTogether(fade, sx, sy, tr)
             s.start()
         except Exception as e:
-            log(f"pluginsUpdates: _show_bar error: {e}")
+            logx(f"pluginsUpdates: _show_bar error: {e}", False)
             try:
                 row = self._bar_island
                 row.setAlpha(1.0)
@@ -865,7 +866,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 self._bar_full_island.setVisibility(visible)
                 self._bar_right_btn.setVisibility(visible)
         except Exception as e:
-            log(f"pluginsUpdates: _apply_bar_empty_mode error: {e}")
+            logx(f"pluginsUpdates: _apply_bar_empty_mode error: {e}", False)
 
     def _set_bar_empty_mode(self, empty: bool):
         # island flies down off screen, inner buttons swapped while invisible, slides back up
@@ -932,7 +933,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         in_set.playTogether(fly_in, fade_in)
                         in_set.start()
                     except Exception as e:
-                        log(f"pluginsUpdates: bar anim in error: {e}")
+                        logx(f"pluginsUpdates: bar anim in error: {e}", False)
 
                 def onAnimationStart(self, *args): pass
                 def onAnimationCancel(self, *args): pass
@@ -941,7 +942,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             out_set.addListener(_OutListener())
             out_set.start()
         except Exception as e:
-            log(f"pluginsUpdates: _set_bar_empty_mode error: {e}")
+            logx(f"pluginsUpdates: _set_bar_empty_mode error: {e}", False)
             self._apply_bar_empty_mode(empty)
 
     def _start_load(self):
@@ -955,7 +956,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     from ...utils.installIndex import purge_missing
                     purge_missing()
                 except Exception as e:
-                    log(f"pluginsUpdates: purge_missing error: {e}")
+                    logx(f"pluginsUpdates: purge_missing error: {e}", False)
 
                 # collect all index entries across all repos
                 repos = _get_repos()
@@ -984,7 +985,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                             from ..PluginListActivity.fragment import InstallUI
                             InstallUI(self._plugin).open()
                         except Exception as e:
-                            log(f"pluginsUpdates: _open_catalog error: {e}")
+                            logx(f"pluginsUpdates: _open_catalog error: {e}", False)
                     chip = str(strings("updates_empty_available_chip", count=total_available)) if total_available > 0 else None
                     run_on_ui_thread(lambda: self._show_empty(
                         str(strings["updates_no_plugins_installed"]),
@@ -1011,7 +1012,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
                 run_on_ui_thread(on_done)
             except Exception as e:
-                log(f"pluginsUpdates: task error: {e}")
+                logx(f"pluginsUpdates: task error: {e}", False)
                 run_on_ui_thread(lambda: (setattr(self, '_is_loading', False), self._show_empty(str(strings["updates_failed_to_check"]), "error", title=str(strings["updates_error_title"]))) if alive[0] else None)
 
         run_on_queue(task)
@@ -1021,7 +1022,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             if self._spinner_container is not None:
                 self._spinner_container.setVisibility(4)  # GONE
         except Exception as e:
-            log(f"pluginsUpdates: _hide_spinner error: {e}")
+            logx(f"pluginsUpdates: _hide_spinner error: {e}", False)
 
     def _show_empty(self, message: str, anim_name: str = "done", action_label: str = None, action_icon: str = None, on_action=None, title: str = None, chip_text: str = None):
         try:
@@ -1055,7 +1056,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 lottie_lp.bottomMargin = dp(12)
                 card.addView(lottie, lottie_lp)
             except Exception as e:
-                log(f"pluginsUpdates: _show_empty lottie error: {e}")
+                logx(f"pluginsUpdates: _show_empty lottie error: {e}", False)
 
             tv = TextView(act)
             tv.setText(message)
@@ -1117,7 +1118,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                             btn.setCompoundDrawablesRelative(d, None, None, None)
                             btn.setCompoundDrawablePadding(dp(6))
                     except Exception as e:
-                        log(f"pluginsUpdates: _show_empty action icon error: {e}")
+                        logx(f"pluginsUpdates: _show_empty action icon error: {e}", False)
 
                 btn_bg = GradientDrawable()
                 btn_bg.setShape(GradientDrawable.RECTANGLE)
@@ -1165,7 +1166,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             card_lp.topMargin = dp(-80)
             self._content_view.addView(card, card_lp)
         except Exception as e:
-            log(f"pluginsUpdates: _show_empty error: {e}")
+            logx(f"pluginsUpdates: _show_empty error: {e}", False)
 
     def _make_repo_chip(self, act, repo_name: str):
         import ctypes
@@ -1316,7 +1317,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
                     threading.Thread(target=_retry_load, daemon=True).start()
             except Exception as e:
-                log(f"pluginsUpdates: icon init error for '{pid}': {e}")
+                logx(f"pluginsUpdates: icon init error for '{pid}': {e}", False)
 
         col = LinearLayout(act)
         col.setOrientation(LinearLayout.VERTICAL)
@@ -1467,7 +1468,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
     def _open_plugin_profile(self, item: dict):
         try:
             if not self._plugin:
-                log("pluginsUpdates: _open_plugin_profile no plugin ref")
+                logx("pluginsUpdates: _open_plugin_profile no plugin ref", True)
                 return
             pid = item["id"]
             repo_id = item.get("repo_id", "")
@@ -1480,7 +1481,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     break
 
             if not repo:
-                log(f"pluginsUpdates: _open_plugin_profile repo '{repo_id}' not found")
+                logx(f"pluginsUpdates: _open_plugin_profile repo '{repo_id}' not found", True)
                 return
 
             repo_url = str(repo.get("url") or "").strip()
@@ -1492,7 +1493,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     repo_plugins = _fetch_repo_plugins(plugins_url)
                     full_data = repo_plugins.get(pid)
                     if not full_data:
-                        log(f"pluginsUpdates: _open_plugin_profile plugin '{pid}' not in repo data")
+                        logx(f"pluginsUpdates: _open_plugin_profile plugin '{pid}' not in repo data", True)
                         return
                     plugin_data = {"id": pid, **full_data}
 
@@ -1504,15 +1505,15 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                             all_plugins = [{"id": k, **v} for k, v in repo_plugins.items() if isinstance(v, dict)]
                             show_plugin_profile(plugin_data, install_ui, all_plugins=all_plugins, repo_id=repo_id)
                         except Exception as e:
-                            log(f"pluginsUpdates: _open_plugin_profile on_ui error: {e}")
+                            logx(f"pluginsUpdates: _open_plugin_profile on_ui error: {e}", False)
 
                     run_on_ui_thread(on_ui)
                 except Exception as e:
-                    log(f"pluginsUpdates: _open_plugin_profile task error: {e}")
+                    logx(f"pluginsUpdates: _open_plugin_profile task error: {e}", False)
 
             run_on_queue(task)
         except Exception as e:
-            log(f"pluginsUpdates: _open_plugin_profile error: {e}")
+            logx(f"pluginsUpdates: _open_plugin_profile error: {e}", False)
 
     def _show_ignore_dialog(self, pid: str, repo_id: str, repo_version: str, card_view):
         try:
@@ -1523,7 +1524,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
             show_hide_dialog(self._act, pid, repo_id, repo_version, on_apply)
         except Exception as e:
-            log(f"pluginsUpdates: _show_ignore_dialog error: {e}")
+            logx(f"pluginsUpdates: _show_ignore_dialog error: {e}", False)
 
     def _apply_ignore(self, pid: str, repo_id: str, repo_version: str, forever: bool, card_view):
         try:
@@ -1533,7 +1534,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 _ignore_until_next(None, pid, repo_id, repo_version)
             run_on_ui_thread(lambda: self._remove_card(card_view))
         except Exception as e:
-            log(f"pluginsUpdates: _apply_ignore error: {e}")
+            logx(f"pluginsUpdates: _apply_ignore error: {e}", False)
 
     def _install_update(self, item: dict, download_btn=None, download_icon_view=None, act=None):
         pid = item["id"]
@@ -1545,7 +1546,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 repo = r
                 break
         if not repo:
-            log(f"pluginsUpdates: _install_update repo '{repo_id}' not found")
+            logx(f"pluginsUpdates: _install_update repo '{repo_id}' not found", True)
             return
 
         def set_btn_state(state: str):
@@ -1572,7 +1573,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         spin_iv.setScaleType(ImageView.ScaleType.CENTER)
                         download_btn.addView(spin_iv, btn_lp)
                     except Exception as e:
-                        log(f"pluginsUpdates: spinner create error: {e}")
+                        logx(f"pluginsUpdates: spinner create error: {e}", False)
                         if download_icon_view is not None:
                             download_btn.addView(download_icon_view, btn_lp)
                 elif state == "done":
@@ -1600,7 +1601,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     if download_icon_view is not None:
                         download_btn.addView(download_icon_view, btn_lp)
             except Exception as e:
-                log(f"pluginsUpdates: set_btn_state error: {e}")
+                logx(f"pluginsUpdates: set_btn_state error: {e}", False)
 
         run_on_ui_thread(lambda: set_btn_state("loading"))
 
@@ -1612,13 +1613,13 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
                 plugins_url = _resolvePluginsUrl(repo)
                 if not plugins_url:
-                    log(f"pluginsUpdates: _install_update no plugins url for '{repo_id}'")
+                    logx(f"pluginsUpdates: _install_update no plugins url for '{repo_id}'", True)
                     run_on_ui_thread(lambda: set_btn_state("idle"))
                     return
 
                 r = _requests.get(plugins_url, timeout=20, headers={"User-Agent": "PackIt/1.0"})
                 if r.status_code != 200:
-                    log(f"pluginsUpdates: _install_update HTTP {r.status_code}")
+                    logx(f"pluginsUpdates: _install_update HTTP {r.status_code}", True)
                     run_on_ui_thread(lambda: set_btn_state("idle"))
                     return
 
@@ -1642,7 +1643,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                             break
 
                 if not plugin:
-                    log(f"pluginsUpdates: _install_update plugin '{pid}' not found in repo")
+                    logx(f"pluginsUpdates: _install_update plugin '{pid}' not found in repo", True)
                     run_on_ui_thread(lambda: set_btn_state("idle"))
                     return
 
@@ -1670,7 +1671,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
                 run_on_ui_thread(lambda: install_plugin(plugin, all_plugins=all_plugins, rm_rid=repo_id, on_finish=on_finish))
             except Exception as e:
-                log(f"pluginsUpdates: _install_update task error: {e}")
+                logx(f"pluginsUpdates: _install_update task error: {e}", False)
                 run_on_ui_thread(lambda: set_btn_state("idle"))
 
         run_on_queue(task)
@@ -1727,7 +1728,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 anim.addListener(_FadeListener(child, self, count))
                 anim.start()
         except Exception as e:
-            log(f"pluginsUpdates: _remove_all_cards_then_empty error: {e}")
+            logx(f"pluginsUpdates: _remove_all_cards_then_empty error: {e}", False)
             self._show_all_up_to_date()
 
     def _on_card_removed(self):
@@ -1793,7 +1794,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         center_anim.setInterpolator(_DI(2.0))
                         center_anim.start()
                     except Exception as e:
-                        log(f"pluginsUpdates: center shift error: {e}")
+                        logx(f"pluginsUpdates: center shift error: {e}", False)
                 def onAnimationStart(self, *args): pass
                 def onAnimationCancel(self, *args): pass
                 def onAnimationRepeat(self, *args): pass
@@ -1803,7 +1804,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             s.addListener(_Done())
             s.start()
         except Exception as e:
-            log(f"pluginsUpdates: _hide_update_all_btn_animated error: {e}")
+            logx(f"pluginsUpdates: _hide_update_all_btn_animated error: {e}", False)
             try:
                 self._bar_right_btn.setVisibility(4)
             except Exception:
@@ -1826,7 +1827,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             fade_in.setDuration(300)
             fade_in.start()
         except Exception as e:
-            log(f"pluginsUpdates: _show_all_up_to_date error: {e}")
+            logx(f"pluginsUpdates: _show_all_up_to_date error: {e}", False)
 
     def _build_all_up_to_date_card(self):
         act = self._act
@@ -1842,7 +1843,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             bg.setColor(Theme.getColor(Theme.key_windowBackgroundGray))
             card.setBackground(bg)
         except Exception as e:
-            log(f"pluginsUpdates: _build_all_up_to_date_card bg error: {e}")
+            logx(f"pluginsUpdates: _build_all_up_to_date_card bg error: {e}", False)
 
         try:
             from org.telegram.ui.Components import RLottieImageView
@@ -1856,7 +1857,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             lottie_lp.bottomMargin = dp(12)
             card.addView(lottie, lottie_lp)
         except Exception as e:
-            log(f"pluginsUpdates: _build_all_up_to_date_card lottie error: {e}")
+            logx(f"pluginsUpdates: _build_all_up_to_date_card lottie error: {e}", False)
 
         title_tv = TextView(act)
         title_tv.setText(str(strings["updates_up_to_date_title"]))
@@ -1866,7 +1867,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         try:
             title_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
         except Exception as e:
-            log(f"pluginsUpdates: _build_all_up_to_date_card title typeface error: {e}")
+            logx(f"pluginsUpdates: _build_all_up_to_date_card title typeface error: {e}", False)
         title_lp = LinearLayout.LayoutParams(-2, -2)
         title_lp.gravity = Gravity.CENTER_HORIZONTAL
         title_lp.bottomMargin = dp(4)
@@ -1918,7 +1919,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 try:
                     val_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
                 except Exception as e:
-                    log(f"pluginsUpdates: stat val typeface error: {e}")
+                    logx(f"pluginsUpdates: stat val typeface error: {e}", False)
 
                 lbl_tv = TextView(act)
                 lbl_tv.setText(label)
@@ -1939,7 +1940,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             stat_lp.topMargin = dp(18)
             card.addView(stat_row, stat_lp)
         except Exception as e:
-            log(f"pluginsUpdates: _build_all_up_to_date_card stats error: {e}")
+            logx(f"pluginsUpdates: _build_all_up_to_date_card stats error: {e}", False)
 
         return card
 
@@ -2000,7 +2001,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         collapse.addListener(_CollapseEndListener())
                         collapse.start()
                     except Exception as e:
-                        log(f"pluginsUpdates: _remove_card collapse error: {e}")
+                        logx(f"pluginsUpdates: _remove_card collapse error: {e}", False)
                         try:
                             parent = card_view.getParent()
                             if parent is not None:
@@ -2016,7 +2017,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             exit_anim.addListener(_ExitListener())
             exit_anim.start()
         except Exception as e:
-            log(f"pluginsUpdates: _remove_card error: {e}")
+            logx(f"pluginsUpdates: _remove_card error: {e}", False)
             try:
                 parent = card_view.getParent()
                 if parent is not None:
@@ -2037,7 +2038,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 repo = r
                 break
         if not repo:
-            log(f"pluginsUpdates: _install_update_silent repo '{repo_id}' not found")
+            logx(f"pluginsUpdates: _install_update_silent repo '{repo_id}' not found", True)
             if on_done:
                 on_done()
             return
@@ -2065,7 +2066,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         spin_iv.setScaleType(ImageView.ScaleType.CENTER)
                         download_btn.addView(spin_iv, btn_lp)
                     except Exception as e:
-                        log(f"pluginsUpdates: _install_update_silent spinner error: {e}")
+                        logx(f"pluginsUpdates: _install_update_silent spinner error: {e}", False)
                         if download_icon_view is not None:
                             download_btn.addView(download_icon_view, btn_lp)
                 elif state == "done":
@@ -2093,7 +2094,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     if download_icon_view is not None:
                         download_btn.addView(download_icon_view, btn_lp)
             except Exception as e:
-                log(f"pluginsUpdates: _install_update_silent set_btn_state error: {e}")
+                logx(f"pluginsUpdates: _install_update_silent set_btn_state error: {e}", False)
 
         run_on_ui_thread(lambda: set_btn_state("loading"))
 
@@ -2107,7 +2108,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
                 plugins_url = _resolvePluginsUrl(repo)
                 if not plugins_url:
-                    log(f"pluginsUpdates: _install_update_silent no plugins url for '{repo_id}'")
+                    logx(f"pluginsUpdates: _install_update_silent no plugins url for '{repo_id}'", True)
                     run_on_ui_thread(lambda: set_btn_state("idle"))
                     if on_done:
                         on_done()
@@ -2115,7 +2116,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
                 r = _requests.get(plugins_url, timeout=20, headers={"User-Agent": "PackIt/1.0"})
                 if r.status_code != 200:
-                    log(f"pluginsUpdates: _install_update_silent plugins list HTTP {r.status_code} for '{pid}'")
+                    logx(f"pluginsUpdates: _install_update_silent plugins list HTTP {r.status_code} for '{pid}'", True)
                     run_on_ui_thread(lambda: set_btn_state("idle"))
                     if on_done:
                         on_done()
@@ -2135,7 +2136,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                             break
 
                 if not plugin:
-                    log(f"pluginsUpdates: _install_update_silent plugin '{pid}' not found in repo")
+                    logx(f"pluginsUpdates: _install_update_silent plugin '{pid}' not found in repo", True)
                     run_on_ui_thread(lambda: set_btn_state("idle"))
                     if on_done:
                         on_done()
@@ -2143,13 +2144,13 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
                 url = plugin.get("link") or plugin.get("raw")
                 if not url:
-                    log(f"pluginsUpdates: _install_update_silent no link for '{pid}'")
+                    logx(f"pluginsUpdates: _install_update_silent no link for '{pid}'", True)
                     run_on_ui_thread(lambda: set_btn_state("idle"))
                     if on_done:
                         on_done()
                     return
 
-                log(f"pluginsUpdates: _install_update_silent downloading '{pid}'")
+                logx(f"pluginsUpdates: _install_update_silent downloading '{pid}'", True)
                 plugins_dir = getPluginsDir()
                 try:
                     _os.makedirs(plugins_dir, exist_ok=True)
@@ -2159,33 +2160,33 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
                 dl = _requests.get(url, timeout=30, headers={"User-Agent": "PackIt/1.0"})
                 if dl.status_code != 200:
-                    log(f"pluginsUpdates: _install_update_silent download HTTP {dl.status_code} for '{pid}'")
+                    logx(f"pluginsUpdates: _install_update_silent download HTTP {dl.status_code} for '{pid}'", True)
                     run_on_ui_thread(lambda: set_btn_state("idle"))
                     if on_done:
                         on_done()
                     return
                 with open(file_path, "wb") as f:
                     f.write(dl.content)
-                log(f"pluginsUpdates: _install_update_silent downloaded '{pid}', installing")
+                logx(f"pluginsUpdates: _install_update_silent downloaded '{pid}', installing", True)
 
                 fragment_ref = self
 
                 def on_complete():
-                    log(f"pluginsUpdates: _install_update_silent installed '{pid}'")
+                    logx(f"pluginsUpdates: _install_update_silent installed '{pid}'", True)
                     run_on_ui_thread(lambda: set_btn_state("done"))
                     fragment_ref._on_plugin_done()
                     if on_done:
                         on_done()
 
                 def on_error(error):
-                    log(f"pluginsUpdates: _install_update_silent install error for '{pid}': {error}")
+                    logx(f"pluginsUpdates: _install_update_silent install error for '{pid}': {error}", True)
                     run_on_ui_thread(lambda: set_btn_state("idle"))
                     if on_done:
                         on_done()
 
                 install_plugin_silent(file_path, plugin, repo_id, on_complete=on_complete, on_error=on_error)
             except Exception as e:
-                log(f"pluginsUpdates: _install_update_silent task error for '{pid}': {e}")
+                logx(f"pluginsUpdates: _install_update_silent task error for '{pid}': {e}", False)
                 run_on_ui_thread(lambda: set_btn_state("idle"))
                 if on_done:
                     on_done()
@@ -2217,7 +2218,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 if dl_btn.isEnabled():
                     pending.append((updates[i], dl_btn, dl_icon))
             except Exception as e:
-                log(f"pluginsUpdates: _on_update_all_click card {i} error: {e}")
+                logx(f"pluginsUpdates: _on_update_all_click card {i} error: {e}", False)
 
         if not pending:
             return
@@ -2240,7 +2241,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             if idx >= len(silent_items):
                 return
             item, btn, icon = silent_items[idx]
-            log(f"pluginsUpdates: update-all silent chain [{idx+1}/{len(silent_items)}] start '{item['id']}'")
+            logx(f"pluginsUpdates: update-all silent chain [{idx+1}/{len(silent_items)}] start '{item['id']}'", True)
             self._install_update_silent(item, btn, icon, self._act, on_done=lambda: run_chain(idx + 1))
 
         run_chain(0)
@@ -2273,14 +2274,14 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 card, lp = self._make_update_card(act, item)
                 container.addView(card, lp)
         except Exception as e:
-            log(f"pluginsUpdates: _show_updates error: {e}")
+            logx(f"pluginsUpdates: _show_updates error: {e}", False)
 
 
 def show_updates_fragment(plugin=None):
     try:
         frag = get_last_fragment()
         if not frag:
-            log("pluginsUpdates: show_updates_fragment no fragment")
+            logx("pluginsUpdates: show_updates_fragment no fragment", True)
             return
         delegate = UpdatesFragment(plugin)
         new_frag = UniversalFragment(delegate)
@@ -2307,8 +2308,8 @@ def show_updates_fragment(plugin=None):
                         except Exception:
                             pass
                 except Exception as e:
-                    log(f"pluginsUpdates: back button error: {e}")
+                    logx(f"pluginsUpdates: back button error: {e}", False)
         except Exception as e:
-            log(f"pluginsUpdates: actionBar setup error: {e}")
+            logx(f"pluginsUpdates: actionBar setup error: {e}", False)
     except Exception as e:
-        log(f"pluginsUpdates: show_updates_fragment error: {e}")
+        logx(f"pluginsUpdates: show_updates_fragment error: {e}", False)

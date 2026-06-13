@@ -1,7 +1,8 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from android_utils import log
+
+from packutil import logx
 from hook_utils import find_class, get_private_field, set_private_field
 from org.telegram.messenger import AndroidUtilities
 
@@ -17,11 +18,11 @@ def _init_classes():
     try:
         AnimatedEmojiDrawable = find_class("org.telegram.ui.Components.AnimatedEmojiDrawable")
         if not AnimatedEmojiDrawable:
-            log("[Packit Badges] AnimatedEmojiDrawable not found")
+            logx("[Packit Badges] AnimatedEmojiDrawable not found", True)
             return False
         _SwapDrawable = find_class("org.telegram.ui.Components.AnimatedEmojiDrawable$SwapAnimatedEmojiDrawable")
         if not _SwapDrawable:
-            log("[Packit Badges] SwapAnimatedEmojiDrawable not found")
+            logx("[Packit Badges] SwapAnimatedEmojiDrawable not found", True)
             return False
         # fallback values used if field lookup fails
         _CACHE_STATUS = 4
@@ -38,7 +39,7 @@ def _init_classes():
             pass
         return True
     except Exception as e:
-        log(f"[Packit Badges] _init_classes error: {e}")
+        logx(f"[Packit Badges] _init_classes error: {e}", False)
         return False
 
 
@@ -50,7 +51,7 @@ def _make_drawable(name_view, index):
         d.offset(0, AndroidUtilities.dp(1))
         return d
     except Exception as e:
-        log(f"[Packit Badges] _make_drawable [{index}] error: {e}")
+        logx(f"[Packit Badges] _make_drawable [{index}] error: {e}", False)
         return None
 
 
@@ -116,21 +117,21 @@ class _UpdateProfileDataHook(MethodHook):
                 name_view.setLeftDrawableOutside(True)
                 name_view.setLeftDrawable(d)
         except Exception as e:
-            log(f"[Packit Badges] ProfileDataHook error: {e}")
+            logx(f"[Packit Badges] ProfileDataHook error: {e}", False)
 
 
 def setup_profile_title_icon_hook(plugin, cache_lookup):
     try:
         profile_cls = find_class("org.telegram.ui.ProfileActivity")
         if not profile_cls:
-            log("[Packit Badges] ProfileActivity class not found (title icon)")
+            logx("[Packit Badges] ProfileActivity class not found (title icon)", True)
             return []
         refs = plugin.hook_all_methods(profile_cls, "updateProfileData", _UpdateProfileDataHook(cache_lookup))
         if refs:
-            log(f"[Packit Badges] hooked updateProfileData ({len(refs)} overload(s))")
+            logx(f"[Packit Badges] hooked updateProfileData ({len(refs)} overload(s))", True)
         else:
-            log("[Packit Badges] updateProfileData hook failed")
+            logx("[Packit Badges] updateProfileData hook failed", True)
         return refs or []
     except Exception as e:
-        log(f"[Packit Badges] profile title icon setup error: {e}")
+        logx(f"[Packit Badges] profile title icon setup error: {e}", False)
         return []

@@ -1,7 +1,8 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from android_utils import log, run_on_ui_thread
+from packutil import logx
+from android_utils import run_on_ui_thread
 from base_plugin import MethodHook
 from hook_utils import find_class
 from java import jclass
@@ -61,7 +62,7 @@ def _set_btn_enabled(val):
         from elyx import settings
         settings.set(_MENU_STATE_KEY, bool(val))
     except Exception as e:
-        log(f"ChatDialogButton: _set_btn_enabled error: {e}")
+        logx(f"ChatDialogButton: _set_btn_enabled error: {e}", False)
 
 
 def _register_menu_id():
@@ -71,12 +72,12 @@ def _register_menu_id():
     try:
         cfg = _get_extera_config()
         if cfg is None:
-            log("ChatDialogButton: ExteraConfig not found")
+            logx("ChatDialogButton: ExteraConfig not found", True)
             return False
         layout = cfg.mainMenuLayout
         hidden = cfg.mainMenuHiddenItems
         if layout is None or hidden is None:
-            log("ChatDialogButton: mainMenuLayout/mainMenuHiddenItems not found")
+            logx("ChatDialogButton: mainMenuLayout/mainMenuHiddenItems not found", True)
             return False
         id_obj = _Integer(_PACKIT_MENU_ID)
         enabled = _is_btn_enabled()
@@ -89,10 +90,10 @@ def _register_menu_id():
         try:
             cfg.saveMainMenuLayout()
         except Exception as e:
-            log(f"ChatDialogButton: saveMainMenuLayout error: {e}")
+            logx(f"ChatDialogButton: saveMainMenuLayout error: {e}", False)
         return True
     except Exception as e:
-        log(f"ChatDialogButton: _register_menu_id error: {e}")
+        logx(f"ChatDialogButton: _register_menu_id error: {e}", False)
         return False
 
 
@@ -132,15 +133,15 @@ class ChatDialogButton:
             else:
                 self._setup_dots_hook()
 
-            log("ChatDialogButton: hooks set up")
+            logx("ChatDialogButton: hooks set up", True)
         except Exception as e:
-            log(f"ChatDialogButton: setup_dialogs_menu_hook error: {e}")
+            logx(f"ChatDialogButton: setup_dialogs_menu_hook error: {e}", False)
 
     def _setup_dots_hook(self):
         try:
             DialogsActivity = find_class("org.telegram.ui.DialogsActivity")
             if DialogsActivity is None:
-                log("ChatDialogButton: DialogsActivity not found")
+                logx("ChatDialogButton: DialogsActivity not found", True)
                 return None
 
             target_method = None
@@ -153,7 +154,7 @@ class ChatDialogButton:
                     continue
 
             if target_method is None:
-                log("ChatDialogButton: addMainMenuConfiguredItem not found")
+                logx("ChatDialogButton: addMainMenuConfiguredItem not found", True)
                 return None
 
             target_method.setAccessible(True)
@@ -197,7 +198,7 @@ class ChatDialogButton:
                                                 if pluginObj and frag:
                                                     frag.presentFragment(PluginSettingsActivity(pluginObj))
                                             except Exception as e:
-                                                log(f"ChatDialogButton: open settings error: {e}")
+                                                logx(f"ChatDialogButton: open settings error: {e}", False)
                                         run_on_ui_thread(_open)
                                     elif m == 2:
                                         from ..ui.IconsListActivity.fragment import InstallIconsUI
@@ -206,23 +207,23 @@ class ChatDialogButton:
                                         from ..ui.PluginListActivity.fragment import InstallUI
                                         run_on_ui_thread(lambda: InstallUI(plugin).open())
                                 except Exception as e:
-                                    log(f"ChatDialogButton: onClick error: {e}")
+                                    logx(f"ChatDialogButton: onClick error: {e}", False)
 
                         io.add(icon_id, _String(label), _OnClick())
                         param.setResult(True)
                     except Exception as e:
-                        log(f"ChatDialogButton: before_hooked_method error: {e}")
+                        logx(f"ChatDialogButton: before_hooked_method error: {e}", False)
 
             return self.plugin.hook_method(target_method, AddMainMenuItemHook())
         except Exception as e:
-            log(f"ChatDialogButton: _setup_dots_hook error: {e}")
+            logx(f"ChatDialogButton: _setup_dots_hook error: {e}", False)
             return None
 
     def _setup_drawer_hook(self):
         try:
             DrawerMenuViewClass = _safe_find_class("com.exteragram.messenger.drawer.DrawerMenuView")
             if DrawerMenuViewClass is None:
-                log("ChatDialogButton: DrawerMenuView not found")
+                logx("ChatDialogButton: DrawerMenuView not found", True)
                 return None
 
             rebuild_method = None
@@ -235,7 +236,7 @@ class ChatDialogButton:
                     continue
 
             if rebuild_method is None:
-                log("ChatDialogButton: DrawerMenuView.rebuildMenu not found")
+                logx("ChatDialogButton: DrawerMenuView.rebuildMenu not found", True)
                 return None
 
             rebuild_method.setAccessible(True)
@@ -263,7 +264,7 @@ class ChatDialogButton:
                         from ..ui.PluginListActivity.fragment import InstallUI
                         InstallUI(plugin).open()
                 except Exception as e:
-                    log(f"ChatDialogButton: drawer onClick error: {e}")
+                    logx(f"ChatDialogButton: drawer onClick error: {e}", False)
 
             self.plugin.add_menu_item(MenuItemData(
                 menu_type=MenuItemType.DRAWER_MENU,
@@ -271,9 +272,9 @@ class ChatDialogButton:
                 on_click=on_drawer_click,
                 icon=icon_name
             ))
-            log("ChatDialogButton: drawer menu item added")
+            logx("ChatDialogButton: drawer menu item added", True)
         except Exception as e:
-            log(f"ChatDialogButton: _setup_drawer_hook error: {e}")
+            logx(f"ChatDialogButton: _setup_drawer_hook error: {e}", False)
 
     def _setup_sanitize_hook(self):
         try:
@@ -300,11 +301,11 @@ class ChatDialogButton:
                     try:
                         _register_menu_id()
                     except Exception as e:
-                        log(f"ChatDialogButton: sanitize after hook error: {e}")
+                        logx(f"ChatDialogButton: sanitize after hook error: {e}", False)
 
             return self.plugin.hook_method(sanitize_method, SanitizeMenuHook())
         except Exception as e:
-            log(f"ChatDialogButton: _setup_sanitize_hook error: {e}")
+            logx(f"ChatDialogButton: _setup_sanitize_hook error: {e}", False)
             return None
 
     def _setup_main_menu_prefs_hooks(self):
@@ -315,14 +316,14 @@ class ChatDialogButton:
                 "com.exteragram.messenger.preferences.appearance.AppNavigationPreferencesActivity"
             )
             if activity_cls is None:
-                log("ChatDialogButton: MainMenuPreferencesActivity not found")
+                logx("ChatDialogButton: MainMenuPreferencesActivity not found", True)
                 return
 
             item_info_cls = _safe_find_class(
                 "com.exteragram.messenger.preferences.appearance.AppNavigationPreferencesActivity$ItemInfo"
             )
             if item_info_cls is None:
-                log("ChatDialogButton: ItemInfo class not found")
+                logx("ChatDialogButton: ItemInfo class not found", True)
                 return
 
             java_cls = activity_cls.getClass()
@@ -359,7 +360,7 @@ class ChatDialogButton:
                         info_obj = item_info_ctor.newInstance(label, _Integer(_get_mode_icon_id(mode)))
                         item_details.put(_Integer(_PACKIT_MENU_ID), info_obj)
                     except Exception as e:
-                        log(f"ChatDialogButton: initItemDetails hook error: {e}")
+                        logx(f"ChatDialogButton: initItemDetails hook error: {e}", False)
 
             init_method = java_cls.getDeclaredMethod("initItemDetails")
             init_method.setAccessible(True)
@@ -391,7 +392,7 @@ class ChatDialogButton:
                             uitem.object2 = reorder_icon_field.get(param.thisObject)
                             param.setResult(uitem)
                         except Exception as e:
-                            log(f"ChatDialogButton: createMenuItem hook error: {e}")
+                            logx(f"ChatDialogButton: createMenuItem hook error: {e}", False)
 
                 self.plugin.hook_method(create_method, CreateMenuItemHook())
 
@@ -456,10 +457,10 @@ class ChatDialogButton:
                                 pass
                             param.setResult(None)
                         except Exception as e:
-                            log(f"ChatDialogButton: onClick hook error: {e}")
+                            logx(f"ChatDialogButton: onClick hook error: {e}", False)
 
                 self.plugin.hook_method(on_click_method, OnClickHook())
 
-            log("ChatDialogButton: main menu prefs hooks set up")
+            logx("ChatDialogButton: main menu prefs hooks set up", True)
         except Exception as e:
-            log(f"ChatDialogButton: _setup_main_menu_prefs_hooks error: {e}")
+            logx(f"ChatDialogButton: _setup_main_menu_prefs_hooks error: {e}", False)

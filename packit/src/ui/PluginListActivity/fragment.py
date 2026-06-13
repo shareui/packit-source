@@ -1,6 +1,7 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import re
 import json
 import threading
@@ -17,7 +18,7 @@ from java import dynamic_proxy
 import os
 from hook_utils import find_class
 import requests
-from android_utils import log, run_on_ui_thread
+from android_utils import run_on_ui_thread
 from client_utils import get_last_fragment, run_on_queue
 from ui.bulletin import BulletinHelper
 try:
@@ -247,7 +248,7 @@ class InstallUI:
     def __init__(self, plugin):
         self.plugin = plugin
         self.repoManager = plugin.repoManager
-        log(f"InstallUI: created id={id(self)}")
+        logx(f"InstallUI: created id={id(self)}", True)
 
     def _parse_github_url(self, url):
         try:
@@ -752,7 +753,7 @@ class InstallUI:
             self._live_search_spinner = None
             self._live_search_spinner_view = None
             self._load_trigger_y = -1  # scrollY threshold to fire next load_more; -1 = disarmed
-            log(f"InstallUI: PluginListFragment created id={id(self)} title='{title}' repo_id='{repo_id}' install_ui_id={id(install_ui)}")
+            logx(f"InstallUI: PluginListFragment created id={id(self)} title='{title}' repo_id='{repo_id}' install_ui_id={id(install_ui)}", True)
 
         def onFragmentCreate(self, *_):
             try:
@@ -761,35 +762,35 @@ class InstallUI:
 
                 def _on_restore():
                     plugin_count = len(self.plugins) if self.plugins else 0
-                    log(f"InstallUI: _on_restore called, plugins={plugin_count}, repo_id='{self.repo_id}'")
+                    logx(f"InstallUI: _on_restore called, plugins={plugin_count}, repo_id='{self.repo_id}'", True)
                     try:
                         lc = getattr(self, 'loading_container', None)
                         rc = getattr(self, 'results_container', None)
-                        log(f"InstallUI: _on_restore loading_container={lc is not None}, results_container={rc is not None}")
+                        logx(f"InstallUI: _on_restore loading_container={lc is not None}, results_container={rc is not None}", True)
                         if lc and rc:
                             lc.setVisibility(AView.VISIBLE)
                             rc.setVisibility(AView.GONE)
-                            log("InstallUI: _on_restore visibility set — loading visible, results gone")
+                            logx("InstallUI: _on_restore visibility set — loading visible, results gone", True)
                     except Exception as ex:
-                        log(f"InstallUI: _on_restore visibility error: {ex}")
-                    log("InstallUI: _on_restore triggering _reload_current_plugins")
+                        logx(f"InstallUI: _on_restore visibility error: {ex}", True)
+                    logx("InstallUI: _on_restore triggering _reload_current_plugins", True)
                     self.install_ui._reload_current_plugins(self.repo_id)
 
                 self._no_internet_banner._on_network_restored_callback = _on_restore
                 self._no_internet_banner.register()
-                log(f"InstallUI: NoInternetBanner registered for fragment id={id(self)}")
+                logx(f"InstallUI: NoInternetBanner registered for fragment id={id(self)}", True)
             except Exception as e:
-                log(f"InstallUI: NoInternetBanner register error: {e}")
+                logx(f"InstallUI: NoInternetBanner register error: {e}", False)
 
         def onFragmentDestroy(self, *_):
-            log(f"InstallUI: PluginListFragment destroyed id={id(self)} title='{getattr(self, 'title', '?')}' repo_id='{getattr(self, 'repo_id', '?')}'")
+            logx(f"InstallUI: PluginListFragment destroyed id={id(self)} title='{getattr(self, 'title', '?')}' repo_id='{getattr(self, 'repo_id', '?')}'", True)
             try:
                 banner = getattr(self, '_no_internet_banner', None)
                 if banner:
                     banner.unregister()
                     self._no_internet_banner = None
             except Exception as e:
-                log(f"InstallUI: NoInternetBanner unregister error: {e}")
+                logx(f"InstallUI: NoInternetBanner unregister error: {e}", False)
             try:
                 if hasattr(self, 'content_view') and self.content_view is not None:
                     from ...ui.AchievementsActivity.service.AchivementsEngine import unregister_bulletin_container
@@ -1199,11 +1200,11 @@ class InstallUI:
                                 self.subtitle.setText(f"{len(ordered)}/{_build_plugin_count_label(total)}")
                             self._load_initial_batch()
                         except Exception as e:
-                            log(f"fragment: on_ai_results error: {e}")
+                            logx(f"fragment: on_ai_results error: {e}", False)
 
                     show_ai_search_sheet(self.install_ui, act, on_ai_results=_on_ai_results)
                 except Exception as e:
-                    log(f"fragment: ai search sheet error: {e}")
+                    logx(f"fragment: ai search sheet error: {e}", False)
 
             ai_pill.setOnClickListener(OnClickListener(on_ai_pill_click))
             self.install_ui._apply_press_scale(ai_pill)
@@ -1611,7 +1612,7 @@ class InstallUI:
                     if not self.show_loading_initial:
                         banner.on_config_loaded()
             except Exception as e:
-                log(f"InstallUI: NoInternetBanner attach error: {e}")
+                logx(f"InstallUI: NoInternetBanner attach error: {e}", False)
 
             return self.content_view
 
@@ -1765,7 +1766,7 @@ class InstallUI:
                             if (str(p.get("id") or "") in saved_ids) == show_saved
                         ]
                 except Exception as e:
-                    log(f"pluginList: saved filter error: {e}")
+                    logx(f"pluginList: saved filter error: {e}", False)
             
             if not q:
                 if sort_type == "alpha_az":
@@ -1829,7 +1830,7 @@ class InstallUI:
                     pass
             else:
                 self._load_initial_batch()
-            log(f"Build list took {time() - start_time:.3f}s")
+            logx(f"Build list took {time() - start_time:.3f}s", True)
 
         def build_list(self, q):
             self.build_list_with_sort(self.current_sort_type, q)
@@ -1840,7 +1841,7 @@ class InstallUI:
                 if _banner:
                     _banner.on_config_loaded()
             except Exception as e:
-                log(f"InstallUI: NoInternetBanner on_config_loaded error: {e}")
+                logx(f"InstallUI: NoInternetBanner on_config_loaded error: {e}", False)
             try:
                 if hasattr(self, 'subtitle'):
                     self.subtitle.setText(_build_plugin_count_label(len(self.plugins)))
@@ -1962,18 +1963,18 @@ class InstallUI:
                             super().__init__()
                             self.outer = outer
                         def onClick(self, v):
-                            log(f"InstallUI: retry button clicked, repo_id='{self.outer.repo_id}', plugins={len(self.outer.plugins) if self.outer.plugins else 0}")
+                            logx(f"InstallUI: retry button clicked, repo_id='{self.outer.repo_id}', plugins={len(self.outer.plugins) if self.outer.plugins else 0}", True)
                             try:
                                 if hasattr(self.outer, 'loading_container') and self.outer.loading_container:
                                     self.outer.loading_container.setVisibility(View.VISIBLE)
-                                    log("InstallUI: retry — loading_container made visible")
+                                    logx("InstallUI: retry — loading_container made visible", True)
                                     if hasattr(self.outer, 'results_container'):
                                         self.outer.results_container.setVisibility(View.GONE)
                                 else:
-                                    log(f"InstallUI: retry — no loading_container (is None={self.outer.loading_container is None})")
+                                    logx(f"InstallUI: retry — no loading_container (is None={self.outer.loading_container is None})", True)
                             except Exception as ex:
-                                log(f"InstallUI: retry visibility error: {ex}")
-                            log("InstallUI: retry — calling _reload_current_plugins")
+                                logx(f"InstallUI: retry visibility error: {ex}", True)
+                            logx("InstallUI: retry — calling _reload_current_plugins", True)
                             self.outer.install_ui._reload_current_plugins(self.outer.repo_id)
 
                     retry.setOnClickListener(RetryClickListener(self))
@@ -2238,7 +2239,7 @@ class InstallUI:
                     stub_lp.topMargin = AndroidUtilities.dp(5)
                     top_row.addView(stub_view, stub_lp)
                 except Exception as e:
-                    log(f"PluginList: stub icon error: {e}")
+                    logx(f"PluginList: stub icon error: {e}", False)
             if show_icon:
                 try:
                     icon_view = BackupImageView(act)

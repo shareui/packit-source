@@ -1,4 +1,5 @@
-from android_utils import log
+
+from packutil import logx
 import time
 
 
@@ -29,4 +30,4 @@ def startInit(plugin, launchStart):
     plugin.everyone_hook_refs = []
     plugin.packit_hook_constructor_ref = None
     plugin._init_time = time.time() - plugin._launch_start
-    log(f"PackIt initialized in {plugin._init_time:.3f}s")
+    logx(f"PackIt initialized in {plugin._init_time:.3f}s", True)

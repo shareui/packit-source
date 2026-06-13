@@ -1,10 +1,11 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import os
 import json
 from datetime import date
-from android_utils import log
+
 try:
     from elyx import assets
 except Exception as e:
@@ -57,9 +58,9 @@ def _ensure_install_date():
                     data["ts"] = int(time.time())
                 with open(path, "w", encoding="utf-8") as f:
                     json.dump(data, f)
-                log(f"localConfig: migrated installDate ts={data['ts']}")
+                logx(f"localConfig: migrated installDate ts={data['ts']}", True)
         except Exception as e:
-            log(f"localConfig._ensure_install_date migrate: {e}")
+            logx(f"localConfig._ensure_install_date migrate: {e}", False)
         return
     try:
         os.makedirs(_get_configs_dir(), exist_ok=True)
@@ -68,9 +69,9 @@ def _ensure_install_date():
         b64_date = base64.b64encode(date.today().isoformat().encode("utf-8")).decode("utf-8")
         with open(path, "w", encoding="utf-8") as f:
             json.dump({"date": b64_date, "ts": ts}, f)
-        log(f"localConfig: install date recorded ts={ts}")
+        logx(f"localConfig: install date recorded ts={ts}", True)
     except Exception as e:
-        log(f"localConfig._ensure_install_date: error: {e}")
+        logx(f"localConfig._ensure_install_date: error: {e}", False)
 
 
 def days_since_install() -> int:
@@ -88,7 +89,7 @@ def days_since_install() -> int:
         install = date.fromisoformat(date_str)
         return (date.today() - install).days
     except Exception as e:
-        log(f"localConfig.days_since_install: error: {e}")
+        logx(f"localConfig.days_since_install: error: {e}", False)
         return 0
 
 
@@ -108,7 +109,7 @@ class LocalConfig:
                 os.makedirs(_get_configs_dir(), exist_ok=True)
                 with open(config_path, "w", encoding="utf-8") as f:
                     f.write(assets.localConfig.content_string())
-                log(f"localConfig.init: done, final keys={list(defaults.keys())}")
+                logx(f"localConfig.init: done, final keys={list(defaults.keys())}", True)
                 return
 
             with open(config_path, "r", encoding="utf-8") as f:
@@ -133,10 +134,10 @@ class LocalConfig:
                 with open(config_path, "w", encoding="utf-8") as f:
                     json.dump(data, f, indent=2, ensure_ascii=False)
 
-            log(f"localConfig.init: done, final keys={list(data.keys())}")
+            logx(f"localConfig.init: done, final keys={list(data.keys())}", True)
 
         except Exception as e:
-            log(f"localConfig.init: error: {e}")
+            logx(f"localConfig.init: error: {e}", False)
 
     @staticmethod
     def get(key: str, default=None):
@@ -144,7 +145,7 @@ class LocalConfig:
             with open(_get_config_path(), "r", encoding="utf-8") as f:
                 return json.load(f).get(key, default)
         except Exception as e:
-            log(f"localConfig.get: error reading '{key}': {e}")
+            logx(f"localConfig.get: error reading '{key}': {e}", False)
             return default
 
     @staticmethod
@@ -157,4 +158,4 @@ class LocalConfig:
             with open(config_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
         except Exception as e:
-            log(f"localConfig.set: error setting '{key}': {e}")
+            logx(f"localConfig.set: error setting '{key}': {e}", False)

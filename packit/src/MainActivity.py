@@ -1,6 +1,7 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 from ui.settings import Header, Text, Divider
 try:
     from elyx import strings, metainfo
@@ -16,7 +17,7 @@ from .SettingsActivity.profile import ProfileSettings
 from .SettingsActivity.utilities import UtilitiesSettings
 from ui.bulletin import BulletinHelper
 from base_plugin import BasePlugin, MethodHook
-from android_utils import run_on_ui_thread, log
+from android_utils import run_on_ui_thread
 from hook_utils import find_class, get_private_field
 try:
     from org.telegram.ui.ActionBar import Theme, BottomSheet
@@ -114,7 +115,7 @@ class SettingsBuilder:
                             try:
                                 item.setTransparent(True)
                             except Exception as e:
-                                log(f"MainActivity: setTransparent header error: {e}")
+                                logx(f"MainActivity: setTransparent header error: {e}", False)
                             items.add(0, item)
                             items.add(1, UItem.asShadow())
 
@@ -124,10 +125,10 @@ class SettingsBuilder:
                             try:
                                 f_item.setTransparent(True)
                             except Exception as e:
-                                log(f"MainActivity: setTransparent footer error: {e}")
+                                logx(f"MainActivity: setTransparent footer error: {e}", False)
                             items.add(f_item)
                     except Exception as e:
-                        log(f"MainActivity: hook after_hooked_method error: {e}")
+                        logx(f"MainActivity: hook after_hooked_method error: {e}", False)
 
             PSA = find_class("com.exteragram.messenger.plugins.ui.PluginSettingsActivity")
             if PSA:
@@ -135,7 +136,7 @@ class SettingsBuilder:
                 method.setAccessible(True)
                 return self.plugin.hook_method(method, PackitSettingsHeaderHook(self))
         except Exception as e:
-            log(f"MainActivity: _setup_settings_header_hook error: {e}")
+            logx(f"MainActivity: _setup_settings_header_hook error: {e}", False)
         return None
 
     def _create_settings_header(self, context):
@@ -178,7 +179,7 @@ class SettingsBuilder:
                     from .SettingsActivity.debugItems import show_debug_menu
                     show_debug_menu()
                 except Exception as _e:
-                    log(f"MainActivity: sticker long click error: {_e}")
+                    logx(f"MainActivity: sticker long click error: {_e}", True)
                 return True
 
             imageView.setOnLongClickListener(OnLongClickListener(lambda v: _on_sticker_long_click()))
@@ -219,8 +220,8 @@ class SettingsBuilder:
             from .ui.pluginsUpdates.fragment import show_updates_fragment
             show_updates_fragment(self.plugin)
         except Exception as e:
-            from android_utils import log
-            log(f"MainActivity: _check_updates error: {e}")
+            
+            logx(f"MainActivity: _check_updates error: {e}", False)
     
     def _install_icons(self, view):
         try:
@@ -373,7 +374,7 @@ class SettingsBuilder:
         client_str = getBuildClientName()
         static_ver = getBuildStaticVersion()
 
-        log(f"MainActivity: buildInfo client={client_str!r} static_ver={static_ver!r}")
+        logx(f"MainActivity: buildInfo client={client_str!r} static_ver={static_ver!r}", True)
 
         if client_str == "Universal" and not static_ver:
             return "Universal"
@@ -418,5 +419,5 @@ class SettingsBuilder:
 
             return root
         except Exception as e:
-            log(f"MainActivity: _create_footer_view error: {e}")
+            logx(f"MainActivity: _create_footer_view error: {e}", False)
             return None

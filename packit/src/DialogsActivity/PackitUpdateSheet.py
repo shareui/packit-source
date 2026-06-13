@@ -1,10 +1,11 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import threading
 import requests
 import traceback
-from android_utils import log, run_on_ui_thread
+from android_utils import run_on_ui_thread
 from android.view import Gravity, View
 from android.widget import FrameLayout, LinearLayout, TextView
 from java import dynamic_proxy
@@ -40,14 +41,14 @@ def _parse_version(ver: str) -> tuple:
         parts = [int(x) for x in clean.split(".") if x]
         return tuple(parts)
     except Exception as e:
-        log(f"updateSheet: _parse_version error for '{ver}': {e}")
+        logx(f"updateSheet: _parse_version error for '{ver}': {e}", False)
         return (0,)
 
 
 def _is_newer(remote: str, current: str) -> bool:
     r = _parse_version(remote)
     c = _parse_version(current)
-    log(f"updateSheet: semver compare remote={r} current={c} is_newer={r > c}")
+    logx(f"updateSheet: semver compare remote={r} current={c} is_newer={r > c}", True)
     return r > c
 
 
@@ -56,13 +57,13 @@ def _get_current_version() -> str:
         from elyx import assets
         import yaml
         raw = assets.meta.content_string()
-        log(f"updateSheet: meta raw={raw[:120]}")
+        logx(f"updateSheet: meta raw={raw[:120]}", True)
         meta = yaml.safe_load(raw)
         ver = str(meta.get("version", "0.0.0"))
-        log(f"updateSheet: current version={ver}")
+        logx(f"updateSheet: current version={ver}", True)
         return ver
     except Exception as e:
-        log(f"updateSheet: _get_current_version error: {e}")
+        logx(f"updateSheet: _get_current_version error: {e}", False)
         return "0.0.0"
 
 
@@ -70,10 +71,10 @@ def _get_dismissed_ver() -> str:
     try:
         from ..utils.localConfig import LocalConfig
         v = LocalConfig.get("update_dismissed_ver", "")
-        log(f"updateSheet: dismissed_ver='{v}'")
+        logx(f"updateSheet: dismissed_ver='{v}'", True)
         return v
     except Exception as e:
-        log(f"updateSheet: _get_dismissed_ver error: {e}")
+        logx(f"updateSheet: _get_dismissed_ver error: {e}", False)
         return ""
 
 
@@ -81,55 +82,55 @@ def _save_dismissed_ver(ver: str):
     try:
         from ..utils.localConfig import LocalConfig
         LocalConfig.set("update_dismissed_ver", ver)
-        log(f"updateSheet: saved dismissed_ver='{ver}'")
+        logx(f"updateSheet: saved dismissed_ver='{ver}'", True)
     except Exception as e:
-        log(f"updateSheet: _save_dismissed_ver error: {e}")
+        logx(f"updateSheet: _save_dismissed_ver error: {e}", False)
 
 
 def _try_load_sticker(iv, icon_str: str, size_dp: int) -> bool:
     try:
         if "/" not in icon_str:
-            log(f"updateSheet: sticker bad format '{icon_str}'")
+            logx(f"updateSheet: sticker bad format '{icon_str}'", True)
             return False
         pack_name, index_str = icon_str.split("/", 1)
         sticker_index = int(index_str)
-        log(f"updateSheet: trying sticker pack='{pack_name}' index={sticker_index}")
+        logx(f"updateSheet: trying sticker pack='{pack_name}' index={sticker_index}", True)
         mdc = MediaDataController.getInstance(0)
         ss = None
         try:
             ss = mdc.getStickerSetByName(pack_name)
-            log(f"updateSheet: getStickerSetByName -> {ss}")
+            logx(f"updateSheet: getStickerSetByName -> {ss}", True)
         except Exception as e:
-            log(f"updateSheet: getStickerSetByName error: {e}")
+            logx(f"updateSheet: getStickerSetByName error: {e}", False)
         if not ss:
             try:
                 ss = mdc.getStickerSetByEmojiOrName(pack_name)
-                log(f"updateSheet: getStickerSetByEmojiOrName -> {ss}")
+                logx(f"updateSheet: getStickerSetByEmojiOrName -> {ss}", True)
             except Exception as e:
-                log(f"updateSheet: getStickerSetByEmojiOrName error: {e}")
+                logx(f"updateSheet: getStickerSetByEmojiOrName error: {e}", False)
         if not ss:
-            log(f"updateSheet: sticker set '{pack_name}' not in cache, triggering load")
+            logx(f"updateSheet: sticker set '{pack_name}' not in cache, triggering load", True)
             try:
                 mdc.loadStickersByEmojiOrName(pack_name, False, False)
             except Exception as e:
-                log(f"updateSheet: loadStickersByEmojiOrName error: {e}")
+                logx(f"updateSheet: loadStickersByEmojiOrName error: {e}", False)
             return False
         docs_count = ss.documents.size() if getattr(ss, "documents", None) else 0
-        log(f"updateSheet: sticker set found, docs count={docs_count}")
+        logx(f"updateSheet: sticker set found, docs count={docs_count}", True)
         if docs_count <= sticker_index:
-            log(f"updateSheet: index {sticker_index} out of range ({docs_count})")
+            logx(f"updateSheet: index {sticker_index} out of range ({docs_count})", True)
             return False
         doc = ss.documents.get(sticker_index)
-        log(f"updateSheet: got doc={doc}, calling setImage")
+        logx(f"updateSheet: got doc={doc}, calling setImage", True)
         iv.setImage(
             ImageLocation.getForDocument(doc),
             f"{size_dp}_{size_dp}",
             None, None, 0, 1
         )
-        log("updateSheet: sticker loaded ok")
+        logx("updateSheet: sticker loaded ok", True)
         return True
     except Exception as e:
-        log(f"updateSheet: _try_load_sticker error: {e}")
+        logx(f"updateSheet: _try_load_sticker error: {e}", False)
         return False
 
 
@@ -137,7 +138,7 @@ def _schedule_sticker_retry(iv, icon_str: str, size_dp: int):
     def _retry():
         import time
         time.sleep(_STICKER_RETRY_DELAY)
-        log(f"updateSheet: retry sticker load for '{icon_str}'")
+        logx(f"updateSheet: retry sticker load for '{icon_str}'", True)
         run_on_ui_thread(lambda: _try_load_sticker(iv, icon_str, size_dp))
     threading.Thread(target=_retry, daemon=True).start()
 
@@ -146,14 +147,14 @@ def _show_update_sheet(new_ver: str, changelog: str, sticker: str, download_url:
     try:
         from client_utils import get_last_fragment
         frag = get_last_fragment()
-        log(f"updateSheet: _show fragment={frag}")
+        logx(f"updateSheet: _show fragment={frag}", True)
         if not frag:
-            log("updateSheet: no fragment, aborting show")
+            logx("updateSheet: no fragment, aborting show", True)
             return
         activity = frag.getParentActivity()
-        log(f"updateSheet: activity={activity}")
+        logx(f"updateSheet: activity={activity}", True)
         if not activity:
-            log("updateSheet: no activity, aborting show")
+            logx("updateSheet: no activity, aborting show", True)
             return
         resource_provider = frag.getResourceProvider()
 
@@ -181,7 +182,7 @@ def _show_update_sheet(new_ver: str, changelog: str, sticker: str, download_url:
         try:
             iv.getImageReceiver().setCrossfadeWithOldImage(True)
         except Exception as e:
-            log(f"updateSheet: setCrossfadeWithOldImage error: {e}")
+            logx(f"updateSheet: setCrossfadeWithOldImage error: {e}", False)
         loaded = _try_load_sticker(iv, sticker, sticker_size_dp)
         if not loaded:
             _schedule_sticker_retry(iv, sticker, sticker_size_dp)
@@ -210,9 +211,9 @@ def _show_update_sheet(new_ver: str, changelog: str, sticker: str, download_url:
                 changelog_tv.setText(LocaleUtils.fullyFormatText(changelog))
                 changelog_tv.setLinkTextColor(sheet.getThemedColor(Theme.key_windowBackgroundWhiteBlueText))
                 changelog_tv.setMovementMethod(LinkMovementMethod.getInstance())
-                log("updateSheet: changelog fullyFormatText ok")
+                logx("updateSheet: changelog fullyFormatText ok", True)
             except Exception as e:
-                log(f"updateSheet: fullyFormatText failed, fallback plain text: {e}")
+                logx(f"updateSheet: fullyFormatText failed, fallback plain text: {e}", False)
                 changelog_tv.setText(changelog)
             linear.addView(changelog_tv, LayoutHelper.createFrame(-1, -2.0, 0, 24.0, 8.0, 24.0, 0.0))
 
@@ -227,11 +228,11 @@ def _show_update_sheet(new_ver: str, changelog: str, sticker: str, download_url:
                 try:
                     uri = Uri.parse(download_url)
                     act_ref = frag.getParentActivity()
-                    log(f"updateSheet: opening url='{download_url}' Browser={Browser} act={act_ref}")
+                    logx(f"updateSheet: opening url='{download_url}' Browser={Browser} act={act_ref}", True)
                     if act_ref and Browser:
                         Browser.openUrl(act_ref, uri, True, True, True, None, None, False, False, False)
                 except Exception:
-                    log(f"updateSheet: open url error: {traceback.format_exc()}")
+                    logx(f"updateSheet: open url error: {traceback.format_exc()}", True)
 
         update_btn.setOnClickListener(_UpdateClick())
         linear.addView(update_btn, LayoutHelper.createFrame(-1, 48.0, 0, 16.0, 16.0, 16.0, 8.0))
@@ -255,50 +256,50 @@ def _show_update_sheet(new_ver: str, changelog: str, sticker: str, download_url:
         scroll.addView(frame)
         sheet.setCustomView(scroll)
         sheet.show()
-        log("updateSheet: sheet.show() called")
+        logx("updateSheet: sheet.show() called", True)
     except Exception:
-        log(f"updateSheet: _show_update_sheet error: {traceback.format_exc()}")
+        logx(f"updateSheet: _show_update_sheet error: {traceback.format_exc()}", True)
 
 
 def check_and_show():
     def _task():
         try:
             if not SHOWUPD:
-                log("updateSheet: SHOWUPD=False, skipping")
+                logx("updateSheet: SHOWUPD=False, skipping", True)
                 return
-            log(f"updateSheet: fetching {INTERNAL_CFG_URL}")
+            logx(f"updateSheet: fetching {INTERNAL_CFG_URL}", True)
             r = requests.get(INTERNAL_CFG_URL, timeout=10)
-            log(f"updateSheet: fetch status={r.status_code}")
+            logx(f"updateSheet: fetch status={r.status_code}", True)
             if r.status_code != 200:
-                log(f"updateSheet: bad HTTP {r.status_code}")
+                logx(f"updateSheet: bad HTTP {r.status_code}", True)
                 return
             data = r.json()
-            log(f"updateSheet: json keys={list(data.keys())}")
+            logx(f"updateSheet: json keys={list(data.keys())}", True)
             latest_ver_arr = data.get("latest_ver")
             if not isinstance(latest_ver_arr, list) or len(latest_ver_arr) < 4:
-                log(f"updateSheet: invalid latest_ver={latest_ver_arr}")
+                logx(f"updateSheet: invalid latest_ver={latest_ver_arr}", True)
                 return
 
             new_ver = str(latest_ver_arr[0])
             changelog = str(latest_ver_arr[1])
             sticker = str(latest_ver_arr[2])
             download_url = str(latest_ver_arr[3])
-            log(f"updateSheet: remote ver='{new_ver}' sticker='{sticker}' url='{download_url}'")
+            logx(f"updateSheet: remote ver='{new_ver}' sticker='{sticker}' url='{download_url}'", True)
 
             current_ver = _get_current_version()
 
             if not _is_newer(new_ver, current_ver):
-                log("updateSheet: already up to date")
+                logx("updateSheet: already up to date", True)
                 return
 
             dismissed = _get_dismissed_ver()
             if dismissed == new_ver:
-                log(f"updateSheet: '{new_ver}' already dismissed")
+                logx(f"updateSheet: '{new_ver}' already dismissed", True)
                 return
 
-            log("updateSheet: scheduling sheet show on UI thread")
+            logx("updateSheet: scheduling sheet show on UI thread", True)
             run_on_ui_thread(lambda: _show_update_sheet(new_ver, changelog, sticker, download_url))
         except Exception as e:
-            log(f"updateSheet: task error: {e}\n{traceback.format_exc()}")
+            logx(f"updateSheet: task error: {e}\n{traceback.format_exc()}", False)
 
     threading.Thread(target=_task, daemon=True).start()

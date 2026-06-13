@@ -1,7 +1,8 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from android_utils import log
+
+from packutil import logx
 from client_utils import get_last_fragment
 from hook_utils import find_class
 from java import dynamic_proxy
@@ -94,7 +95,7 @@ def _translate_text(text: str, target_lang: str) -> str:
             else:
                 part = chunk
         except Exception as e:
-            log(f"translate: chunk error: {e}")
+            logx(f"translate: chunk error: {e}", False)
             part = chunk
         translated_parts.append(part)
 
@@ -128,14 +129,14 @@ def translate_plugin(plugin_info: dict, text_override: str = None):
                     dlg_ref[0] = loading.create()
                     dlg_ref[0].show()
                 except Exception as e:
-                    log(f"translate: show_spinner error: {e}")
+                    logx(f"translate: show_spinner error: {e}", False)
 
             def dismiss_spinner():
                 try:
                     if dlg_ref[0]:
                         dlg_ref[0].dismiss()
                 except Exception as e:
-                    log(f"translate: dismiss_spinner error: {e}")
+                    logx(f"translate: dismiss_spinner error: {e}", False)
 
             run_on_ui_thread(show_spinner)
 
@@ -145,7 +146,7 @@ def translate_plugin(plugin_info: dict, text_override: str = None):
             run_on_ui_thread(lambda: _show_translate_sheet(act, plugin_info, target_lang, translated))
 
         except Exception as e:
-            log(f"translate: error: {e}")
+            logx(f"translate: error: {e}", False)
             try:
                 run_on_ui_thread(lambda: BulletinFactory.of(get_last_fragment().getParentActivity().getWindow().getDecorView(), None).createErrorBulletin(strings["translation_failed"]).show())
             except Exception:
@@ -263,4 +264,4 @@ def _show_translate_sheet(act, plugin_info, lang, translated_text):
             pass
         translate_sheet.show()
     except Exception as e:
-        log(f"translate: show sheet error: {e}")
+        logx(f"translate: show sheet error: {e}", False)

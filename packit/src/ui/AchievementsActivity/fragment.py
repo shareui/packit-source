@@ -1,12 +1,13 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 from android.view import View, MotionEvent, Gravity
 from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView
 from android.util import TypedValue
 from android.graphics.drawable import GradientDrawable
 from java import dynamic_proxy, jclass
-from android_utils import log, run_on_ui_thread, OnClickListener
+from android_utils import run_on_ui_thread, OnClickListener
 from client_utils import get_last_fragment
 try:
     from elyx import strings
@@ -37,7 +38,7 @@ def _add_actionbar_glow(fv):
         overlay.setClickable(False)
         fv.addView(overlay, LayoutHelper.createFrame(-1, 24, 0x30, 0, 0, 0, 0))
     except Exception as e:
-        log(f"_add_actionbar_glow: {e}")
+        logx(f"_add_actionbar_glow: {e}", False)
 
 
 def _add_bottom_glow(fv):
@@ -54,7 +55,7 @@ def _add_bottom_glow(fv):
         overlay.setClickable(False)
         fv.addView(overlay, LayoutHelper.createFrame(-1, 24, 0x50, 0, 0, 0, 0))
     except Exception as e:
-        log(f"_add_bottom_glow: {e}")
+        logx(f"_add_bottom_glow: {e}", False)
 
 
 def _resolve_icon(name: str) -> int:
@@ -355,7 +356,7 @@ def _make_achievement_card(act, achievement: dict, on_hint_click):
                 from .service.AchivementsEngine import unlock_secret
                 unlock_secret("curiosity")
             except Exception as _e:
-                log(f"_make_achievement_card: unlock_secret failed: {_e}")
+                logx(f"_make_achievement_card: unlock_secret failed: {_e}", True)
             is_secret_locked = False
         if not is_secret_locked:
             on_hint_click()
@@ -373,44 +374,44 @@ class _AchievementListFragment(dynamic_proxy(UniversalFragment.UniversalFragment
         self.show_hint_fn = show_hint_fn
 
     def onFragmentCreate(self, *_):
-        log("achiev: _AchievementListFragment.onFragmentCreate called")
+        logx("achiev: _AchievementListFragment.onFragmentCreate called", True)
 
     def onFragmentDestroy(self, *_):
-        log("achiev: _AchievementListFragment.onFragmentDestroy called")
+        logx("achiev: _AchievementListFragment.onFragmentDestroy called", True)
         try:
             from .service.AchivementsEngine import unregister_bulletin_container
             if hasattr(self, '_root_view') and self._root_view is not None:
                 unregister_bulletin_container(self._root_view)
             has_view = hasattr(self, '_root_view')
-            log(f"achiev: has _root_view={has_view}")
+            logx(f"achiev: has _root_view={has_view}", True)
             if has_view and self._root_view is not None:
                 parent = self._root_view.getParent()
-                log(f"achiev: parent={parent}")
+                logx(f"achiev: parent={parent}", True)
                 if parent is not None:
                     parent.removeView(self._root_view)
-                    log("achiev: removeView done")
+                    logx("achiev: removeView done", True)
                 else:
-                    log("achiev: parent is None, skip removeView")
+                    logx("achiev: parent is None, skip removeView", True)
             else:
-                log("achiev: _root_view is None or missing")
+                logx("achiev: _root_view is None or missing", True)
         except Exception as e:
-            log(f"achiev: onFragmentDestroy error: {e}")
+            logx(f"achiev: onFragmentDestroy error: {e}", False)
 
     def beforeCreateView(self):
-        log("achiev: _AchievementListFragment.beforeCreateView called")
+        logx("achiev: _AchievementListFragment.beforeCreateView called", True)
         try:
             if hasattr(self, '_root_view') and self._root_view is not None:
                 parent = self._root_view.getParent()
                 if parent is not None:
                     parent.removeView(self._root_view)
-                    log("achiev: _AchievementListFragment removed old root_view")
+                    logx("achiev: _AchievementListFragment removed old root_view", True)
                 self._root_view = None
         except Exception as e:
-            log(f"achiev: _AchievementListFragment cleanup error: {e}")
+            logx(f"achiev: _AchievementListFragment cleanup error: {e}", False)
         frag = get_last_fragment()
         act = frag.getParentActivity() if frag else None
         if not act:
-            log("achiev: act is None, abort")
+            logx("achiev: act is None, abort", True)
             return None
         try:
             bg = Theme.getColor(Theme.key_windowBackgroundGray)
@@ -446,14 +447,14 @@ class _AchievementListFragment(dynamic_proxy(UniversalFragment.UniversalFragment
             scroll.addView(content, ScrollView.LayoutParams(-1, -2))
             root.addView(scroll, FrameLayout.LayoutParams(-1, -1))
             self._root_view = root
-            log(f"achiev: _AchievementListFragment._root_view set: {root}")
+            logx(f"achiev: _AchievementListFragment._root_view set: {root}", True)
             from .service.AchivementsEngine import register_bulletin_container
             register_bulletin_container(root)
             _add_actionbar_glow(root)
             _add_bottom_glow(root)
             return root
         except Exception as e:
-            log(f"achiev: _AchievementListFragment.beforeCreateView error: {e}")
+            logx(f"achiev: _AchievementListFragment.beforeCreateView error: {e}", False)
             return None
 
     def afterCreateView(self, view):
@@ -489,7 +490,7 @@ class _AchievementListFragment(dynamic_proxy(UniversalFragment.UniversalFragment
                 if frag:
                     frag.finishFragment()
             except Exception as e:
-                log(f"achiev: failed to finish fragment (list): {e}")
+                logx(f"achiev: failed to finish fragment (list): {e}", False)
             return True
         return False
 
@@ -505,44 +506,44 @@ class _CategoryFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegat
         self.show_hint_fn = show_hint_fn
 
     def onFragmentCreate(self, *_):
-        log("achiev: _CategoryFragment.onFragmentCreate called")
+        logx("achiev: _CategoryFragment.onFragmentCreate called", True)
 
     def onFragmentDestroy(self, *_):
-        log("achiev: _CategoryFragment.onFragmentDestroy called")
+        logx("achiev: _CategoryFragment.onFragmentDestroy called", True)
         try:
             from .service.AchivementsEngine import unregister_bulletin_container
             if hasattr(self, '_root_view') and self._root_view is not None:
                 unregister_bulletin_container(self._root_view)
             has_view = hasattr(self, '_root_view')
-            log(f"achiev: has _root_view={has_view}")
+            logx(f"achiev: has _root_view={has_view}", True)
             if has_view and self._root_view is not None:
                 parent = self._root_view.getParent()
-                log(f"achiev: parent={parent}")
+                logx(f"achiev: parent={parent}", True)
                 if parent is not None:
                     parent.removeView(self._root_view)
-                    log("achiev: removeView done")
+                    logx("achiev: removeView done", True)
                 else:
-                    log("achiev: parent is None, skip removeView")
+                    logx("achiev: parent is None, skip removeView", True)
             else:
-                log("achiev: _root_view is None or missing")
+                logx("achiev: _root_view is None or missing", True)
         except Exception as e:
-            log(f"achiev: _CategoryFragment.onFragmentDestroy error: {e}")
+            logx(f"achiev: _CategoryFragment.onFragmentDestroy error: {e}", False)
 
     def beforeCreateView(self):
-        log("achiev: _CategoryFragment.beforeCreateView called")
+        logx("achiev: _CategoryFragment.beforeCreateView called", True)
         try:
             if hasattr(self, '_root_view') and self._root_view is not None:
                 parent = self._root_view.getParent()
                 if parent is not None:
                     parent.removeView(self._root_view)
-                    log("achiev: _CategoryFragment removed old root_view")
+                    logx("achiev: _CategoryFragment removed old root_view", True)
                 self._root_view = None
         except Exception as e:
-            log(f"achiev: _CategoryFragment cleanup error: {e}")
+            logx(f"achiev: _CategoryFragment cleanup error: {e}", False)
         frag = get_last_fragment()
         act = frag.getParentActivity() if frag else None
         if not act:
-            log("achiev: act is None, abort")
+            logx("achiev: act is None, abort", True)
             return None
         try:
             bg = Theme.getColor(Theme.key_windowBackgroundGray)
@@ -600,9 +601,9 @@ class _CategoryFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegat
                                 else:
                                     new_frag.setTitle(str(strings[c]) if c in strings else c, False, 0)
                             except Exception as _e:
-                                log(f"achievementsUi: category actionbar setup error: {_e}")
+                                logx(f"achievementsUi: category actionbar setup error: {_e}", True)
                         except Exception as e:
-                            log(f"achievementsUi: open category fragment failed: {e}")
+                            logx(f"achievementsUi: open category fragment failed: {e}", False)
                     return on_click
 
                 card = _make_category_card(act, cat, achievements, make_click_cb())
@@ -614,14 +615,14 @@ class _CategoryFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegat
             scroll.addView(content, ScrollView.LayoutParams(-1, -2))
             root.addView(scroll, FrameLayout.LayoutParams(-1, -1))
             self._root_view = root
-            log(f"achiev: _CategoryFragment._root_view set: {root}")
+            logx(f"achiev: _CategoryFragment._root_view set: {root}", True)
             from .service.AchivementsEngine import register_bulletin_container
             register_bulletin_container(root)
             _add_actionbar_glow(root)
             _add_bottom_glow(root)
             return root
         except Exception as e:
-            log(f"achiev: _CategoryFragment.beforeCreateView error: {e}")
+            logx(f"achiev: _CategoryFragment.beforeCreateView error: {e}", False)
             return None
 
     def afterCreateView(self, view):
@@ -654,7 +655,7 @@ class _CategoryFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegat
                 if frag:
                     frag.finishFragment()
             except Exception as e:
-                log(f"achiev: failed to finish fragment (category): {e}")
+                logx(f"achiev: failed to finish fragment (category): {e}", False)
             return True
         return False
 
@@ -727,7 +728,7 @@ def show_hint_sheet(achievement: dict):
             hint_tv.setMovementMethod(LinkMovementMethod.getInstance())
             hint_tv.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
         except Exception as _e:
-            log(f"achievements: fullyFormatText hint failed: {_e}")
+            logx(f"achievements: fullyFormatText hint failed: {_e}", True)
             hint_tv.setText(hint_text)
         hint_tv.setTextColor(Theme.getColor(Theme.key_dialogTextGray2))
         hint_tv.setLineSpacing(AndroidUtilities.dp(2), 1.0)
@@ -766,7 +767,7 @@ def show_hint_sheet(achievement: dict):
             pass
         sheet.show()
     except Exception as e:
-        log(f"achievementsUi.show_hint_sheet: {e}")
+        logx(f"achievementsUi.show_hint_sheet: {e}", False)
 
 
 def _create_rounded_bg(act, color: int):
@@ -812,6 +813,6 @@ def show_achievements(categories: dict, cat_names: list):
                         pass
             new_frag.setTitle(strings["profile_achievements"], False, 0)
         except Exception as _e:
-            log(f"achievementsUi: show_achievements actionbar setup error: {_e}")
+            logx(f"achievementsUi: show_achievements actionbar setup error: {_e}", True)
     except Exception as e:
-        log(f"achievementsUi.show_achievements: {e}")
+        logx(f"achievementsUi.show_achievements: {e}", False)

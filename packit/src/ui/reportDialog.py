@@ -1,25 +1,26 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import ctypes
 import json
 import os
-from android_utils import log, run_on_ui_thread, OnClickListener
+from android_utils import run_on_ui_thread, OnClickListener
 from java import dynamic_proxy
 
 try:
     from elyx import strings
 except Exception as e:
-    log(f"reportDialog: import elyx.strings failed: {e}")
+    logx(f"reportDialog: import elyx.strings failed: {e}", False)
 try:
     from org.telegram.ui.ActionBar import Theme
 except Exception as e:
-    log(f"reportDialog: import Theme failed: {e}")
+    logx(f"reportDialog: import Theme failed: {e}", False)
 try:
     from org.telegram.ui.Components import LayoutHelper
     from org.telegram.messenger import AndroidUtilities
 except Exception as e:
-    log(f"reportDialog: import AndroidUtilities/LayoutHelper failed: {e}")
+    logx(f"reportDialog: import AndroidUtilities/LayoutHelper failed: {e}", False)
 
 _ANIM_DURATION = 220
 _SPRING_DURATION = 380
@@ -40,7 +41,7 @@ def _register_back_cb(act, on_back):
         act.getOnBackPressedDispatcher().addCallback(act, cb.java)
         return cb
     except Exception as e:
-        log(f"reportDialog: _register_back_cb error: {e}")
+        logx(f"reportDialog: _register_back_cb error: {e}", False)
         return None
 
 
@@ -49,7 +50,7 @@ def _unregister_back_cb(cb):
         if cb is not None:
             cb.remove()
     except Exception as e:
-        log(f"reportDialog: _unregister_back_cb error: {e}")
+        logx(f"reportDialog: _unregister_back_cb error: {e}", False)
 
 
 def _animate_in(overlay, card):
@@ -77,7 +78,7 @@ def _animate_in(overlay, card):
         s.playTogether(fade_overlay, fade_card, scale_x, scale_y)
         s.start()
     except Exception as e:
-        log(f"reportDialog: _animate_in error: {e}")
+        logx(f"reportDialog: _animate_in error: {e}", False)
 
 
 def _animate_out(overlay_ref, card, decor):
@@ -112,7 +113,7 @@ def _animate_out(overlay_ref, card, decor):
         s.addListener(_EndListener())
         s.start()
     except Exception as e:
-        log(f"reportDialog: _animate_out error: {e}")
+        logx(f"reportDialog: _animate_out error: {e}", False)
         try:
             decor.removeView(overlay_ref[0])
         except Exception:
@@ -135,7 +136,7 @@ def _load_reasons(repo_id: str) -> list:
             return [str(r) for r in reasons if r]
         return []
     except Exception as e:
-        log(f"reportDialog: _load_reasons error: {e}")
+        logx(f"reportDialog: _load_reasons error: {e}", False)
         return []
 
 
@@ -155,7 +156,7 @@ def _load_report_settings(repo_id: str):
             return str(settings[0]), int(settings[1])
         return None, None
     except Exception as e:
-        log(f"reportDialog: _load_report_settings error: {e}")
+        logx(f"reportDialog: _load_report_settings error: {e}", False)
         return None, None
 
 
@@ -177,7 +178,7 @@ def _submit_report(forum_username: str, topic_msg_id: int, plugin_name: str, plu
                     str(strings["report_dialog_sent"])
                 ).show()
             except Exception as e:
-                log(f"reportDialog: _show_success bulletin error: {e}")
+                logx(f"reportDialog: _show_success bulletin error: {e}", False)
 
         def _show_failure():
             try:
@@ -188,7 +189,7 @@ def _submit_report(forum_username: str, topic_msg_id: int, plugin_name: str, plu
                     str(strings["report_dialog_failed"])
                 ).show()
             except Exception as e:
-                log(f"reportDialog: _show_failure bulletin error: {e}")
+                logx(f"reportDialog: _show_failure bulletin error: {e}", False)
 
         def _do_submit():
             try:
@@ -256,7 +257,7 @@ def _submit_report(forum_username: str, topic_msg_id: int, plugin_name: str, plu
                             plain_parts.append(_status)
                             pending_bold_labels.append(("Status:", None, None, None))
                         except Exception as _ie:
-                            log(f"reportDialog: status item error: {_ie}")
+                            logx(f"reportDialog: status item error: {_ie}", True)
                             item_errors.append(("Status", _ie))
 
                         # Reason — always present
@@ -363,37 +364,37 @@ def _submit_report(forum_username: str, topic_msg_id: int, plugin_name: str, plu
                         req.clear_draft = False
 
                         dialog_id = int(f"-100{channel_id}")
-                        log(f"reportDialog: sending report to dialog={dialog_id} topic={topic_msg_id}")
+                        logx(f"reportDialog: sending report to dialog={dialog_id} topic={topic_msg_id}", True)
 
                         def _on_sent(r, e):
-                            log(f"reportDialog: send result error={e.text if e else None}")
+                            logx(f"reportDialog: send result error={e.text if e else None}", True)
                             if e:
                                 run_on_ui_thread(lambda: (on_done(), _show_failure()))
                             else:
                                 run_on_ui_thread(lambda: (on_done(), _show_success()))
 
                         send_request(req, RequestCallback(_on_sent))
-                        log("reportDialog: report request sent")
+                        logx("reportDialog: report request sent", True)
                     except Exception as e:
-                        log(f"reportDialog: _send_to_topic error: {e}")
+                        logx(f"reportDialog: _send_to_topic error: {e}", False)
                         run_on_ui_thread(lambda: (on_done(), _show_failure()))
 
                 def _on_resolved(response, error):
                     try:
                         if error:
-                            log(f"reportDialog: resolve error: {error.text}")
+                            logx(f"reportDialog: resolve error: {error.text}", True)
                             run_on_ui_thread(lambda: (on_done(), _show_failure()))
                             return
                         if not response.chats:
-                            log("reportDialog: resolved peer has no chats")
+                            logx("reportDialog: resolved peer has no chats", True)
                             run_on_ui_thread(lambda: (on_done(), _show_failure()))
                             return
                         chat = response.chats.get(0)
                         channel_id = chat.id
-                        log(f"reportDialog: resolved forum channel_id={channel_id} left={chat.left}")
+                        logx(f"reportDialog: resolved forum channel_id={channel_id} left={chat.left}", True)
 
                         if chat.left:
-                            log("reportDialog: not in forum, joining...")
+                            logx("reportDialog: not in forum, joining...", True)
                             join_req = TLRPC.TL_channels_joinChannel()
                             input_ch = TLRPC.TL_inputChannel()
                             input_ch.channel_id = channel_id
@@ -401,10 +402,10 @@ def _submit_report(forum_username: str, topic_msg_id: int, plugin_name: str, plu
 
                             def _on_joined(join_resp, join_err, _cid=channel_id, _ah=chat.access_hash):
                                 if join_err:
-                                    log(f"reportDialog: join error: {join_err.text}")
+                                    logx(f"reportDialog: join error: {join_err.text}", True)
                                     run_on_ui_thread(lambda: (on_done(), _show_failure()))
                                     return
-                                log("reportDialog: joined forum successfully")
+                                logx("reportDialog: joined forum successfully", True)
                                 _send_to_topic(_cid, _ah)
 
                             join_req.channel = input_ch
@@ -412,18 +413,18 @@ def _submit_report(forum_username: str, topic_msg_id: int, plugin_name: str, plu
                         else:
                             _send_to_topic(channel_id, chat.access_hash)
                     except Exception as e:
-                        log(f"reportDialog: _on_resolved error: {e}")
+                        logx(f"reportDialog: _on_resolved error: {e}", False)
 
                 resolve_req = TLRPC.TL_contacts_resolveUsername()
                 resolve_req.username = forum_username
-                log(f"reportDialog: resolving forum @{forum_username}")
+                logx(f"reportDialog: resolving forum @{forum_username}", True)
                 send_request(resolve_req, RequestCallback(_on_resolved))
             except Exception as e:
-                log(f"reportDialog: _do_submit error: {e}")
+                logx(f"reportDialog: _do_submit error: {e}", False)
 
         run_on_queue(_do_submit, PLUGINS_QUEUE)
     except Exception as e:
-        log(f"reportDialog: _submit_report error: {e}")
+        logx(f"reportDialog: _submit_report error: {e}", False)
 
 
 def _make_round_bg(dp, corner: int, color):
@@ -492,7 +493,7 @@ def show_report_dialog(act, plugin_name: str, repo_id: str, plugin_id: str = "")
                 s.addListener(_End())
                 s.start()
             except Exception as e:
-                log(f"reportDialog: close_dropdown error: {e}")
+                logx(f"reportDialog: close_dropdown error: {e}", False)
                 try:
                     decor.removeView(dropdown_ref[0])
                 except Exception:
@@ -658,7 +659,7 @@ def show_report_dialog(act, plugin_name: str, repo_id: str, plugin_id: str = "")
                 anchor_w = selector_row_ref[0].getWidth()
                 anchor_h = selector_row_ref[0].getHeight()
             except Exception as e:
-                log(f"reportDialog: dropdown position error: {e}")
+                logx(f"reportDialog: dropdown position error: {e}", False)
                 return
 
             from android.widget import ScrollView
@@ -803,7 +804,7 @@ def show_report_dialog(act, plugin_name: str, repo_id: str, plugin_id: str = "")
                         thumb.setTranslationY(float(thumb_top))
                         thumb.setAlpha(1.0)
                     except Exception as e:
-                        log(f"reportDialog: scrollbar update error: {e}")
+                        logx(f"reportDialog: scrollbar update error: {e}", False)
 
                 class _ScrollListener(dynamic_proxy(ViewTreeObserver.OnScrollChangedListener)):
                     def onScrollChanged(self):
@@ -839,7 +840,7 @@ def show_report_dialog(act, plugin_name: str, repo_id: str, plugin_id: str = "")
                 s.playTogether(fade, scale)
                 s.start()
             except Exception as e:
-                log(f"reportDialog: dropdown open anim error: {e}")
+                logx(f"reportDialog: dropdown open anim error: {e}", False)
                 popup.setAlpha(1.0)
                 popup.setScaleY(1.0)
 
@@ -929,7 +930,7 @@ def show_report_dialog(act, plugin_name: str, repo_id: str, plugin_id: str = "")
                 spinner.setPadding(0, dp(14), 0, dp(14))
                 submit_btn_ref[0].addView(spinner, FrameLayout.LayoutParams(-1, dp(20 + 28), Gravity.CENTER))
             except Exception as e:
-                log(f"reportDialog: _set_submit_loading error: {e}")
+                logx(f"reportDialog: _set_submit_loading error: {e}", False)
                 try:
                     from android.widget import ProgressBar
                     submit_btn_ref[0].removeAllViews()
@@ -1020,12 +1021,12 @@ def show_report_dialog(act, plugin_name: str, repo_id: str, plugin_id: str = "")
                 error_anim_ref[vid] = s
                 s.start()
             except Exception as e:
-                log(f"reportDialog: _shake_error error: {e}")
+                logx(f"reportDialog: _shake_error error: {e}", False)
 
         def _on_submit(v):
             reason = selected_reason[0]
             description = str(input_field.getText()).strip()
-            log(f"reportDialog: submit clicked reason={reason!r} description={description!r}")
+            logx(f"reportDialog: submit clicked reason={reason!r} description={description!r}", True)
             try:
                 if input_field_ref[0] is not None:
                     AndroidUtilities.hideKeyboard(input_field_ref[0])
@@ -1046,7 +1047,7 @@ def show_report_dialog(act, plugin_name: str, repo_id: str, plugin_id: str = "")
                 _set_submit_loading()
                 _submit_report(forum_username, topic_msg_id, plugin_name, plugin_id, repo_id, reason or "", description, act, _dismiss)
             else:
-                log("reportDialog: no forum settings found, skipping report send")
+                logx("reportDialog: no forum settings found, skipping report send", True)
                 _dismiss()
 
         submit_btn.setOnClickListener(OnClickListener(_on_submit))
@@ -1072,4 +1073,4 @@ def show_report_dialog(act, plugin_name: str, repo_id: str, plugin_id: str = "")
         back_cb_ref[0] = _register_back_cb(act, _dismiss)
         run_on_ui_thread(lambda: _animate_in(overlay, card))
     except Exception as e:
-        log(f"reportDialog: show_report_dialog error: {e}")
+        logx(f"reportDialog: show_report_dialog error: {e}", False)

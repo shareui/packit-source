@@ -1,13 +1,14 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 from android.view import View
 from android.widget import LinearLayout, TextView, FrameLayout, ImageView
 from android.view import Gravity
 from android.util import TypedValue
 from android.graphics import Color
 from android.graphics.drawable import GradientDrawable
-from android_utils import log
+
 from android_utils import OnClickListener
 from client_utils import get_last_fragment
 try:
@@ -221,4 +222,4 @@ def show_icon_sort_menu(install_ui, act, current_sort_type, on_sort_selected):
         sort_sheet.setCustomView(sort_root)
         sort_sheet.show()
     except Exception as e:
-        log(f"icon sort menu error: {e}")
+        logx(f"icon sort menu error: {e}", False)

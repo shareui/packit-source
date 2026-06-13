@@ -1,10 +1,11 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 from ui.settings import Header, Switch, Divider, Text, Input, Custom
 from ui.alert import AlertDialogBuilder
 from client_utils import get_last_fragment
-from android_utils import log, run_on_ui_thread, OnClickListener
+from android_utils import run_on_ui_thread, OnClickListener
 try:
     from org.telegram.messenger import ApplicationLoader, AndroidUtilities, R
 except Exception as e:
@@ -50,7 +51,7 @@ def _reload_plugin_settings():
         from com.exteragram.messenger.plugins import PluginsController
         PluginsController.getInstance().loadPluginSettings("shareui_packit")
     except Exception as e:
-        log(f"settings: reload failed: {e}")
+        logx(f"settings: reload failed: {e}", False)
 
 
 def _open_url(url):
@@ -68,10 +69,10 @@ def _open_url(url):
                     intent.setData(Uri.parse(url))
                     act.startActivity(intent)
             except Exception as e:
-                log(f"settings: _open_url ui error: {e}")
+                logx(f"settings: _open_url ui error: {e}", False)
         run_on_ui_thread(_do)
     except Exception as e:
-        log(f"settings: _open_url error: {e}")
+        logx(f"settings: _open_url error: {e}", False)
 
 def _fmt_inline_str(template):
     # replaces {cmd} in template with the current inline command setting
@@ -188,7 +189,7 @@ class TextSubtextCell(Base):
         try:
             icon_id = int(getattr(find_class("org.telegram.messenger.R").drawable, icon_name))
         except Exception as e:
-            log(f"TextSubtextCell icon resolve error: {e}")
+            logx(f"TextSubtextCell icon resolve error: {e}", False)
 
         self._titleView.setText(str(text))
 
@@ -247,7 +248,7 @@ def _buildTextSubtextCell(context, text, subtext, icon, on_click, icon_right=Fal
         cell.set_data(text, subtext, icon, on_click, icon_right=icon_right)
         return cell.java
     except Exception as e:
-        log(f"other: _buildTextSubtextCell error: {e}")
+        logx(f"other: _buildTextSubtextCell error: {e}", False)
         return None
 
 
@@ -303,7 +304,7 @@ class CacheCard(Base):
             size, count = _getCacheInfo(self._cache_dir)
             self._sizeView.setText(str(strings.cache_size_label).format(size=size, count=count))
         except Exception as e:
-            log(f"CacheCard refresh error: {e}")
+            logx(f"CacheCard refresh error: {e}", False)
 
 
 def _buildCacheCard(context, cacheDir, on_clear, title=None):
@@ -314,7 +315,7 @@ def _buildCacheCard(context, cacheDir, on_clear, title=None):
         card.set_data(cacheDir, cardTitle, on_clear)
         return card.java, card.refresh
     except Exception as e:
-        log(f"other: _buildCacheCard error: {e}")
+        logx(f"other: _buildCacheCard error: {e}", False)
         return None, None
 
 
@@ -350,7 +351,7 @@ def _showEditPathDialog(context, pathView, freeView):
             anim.playAnimation()
             linear.addView(anim, LayoutHelper.createLinear(100, 100, Gravity.CENTER_HORIZONTAL, 0, 16, 0, 0))
         except Exception as e:
-            log(f"other: folder_in anim error: {e}")
+            logx(f"other: folder_in anim error: {e}", False)
 
         title = TextView(context)
         title.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
@@ -396,7 +397,7 @@ def _showEditPathDialog(context, pathView, freeView):
             try:
                 settings.set("download_path", newPath)
             except Exception as e:
-                log(f"other: save download_path error: {e}")
+                logx(f"other: save download_path error: {e}", False)
             pathView.setText(newPath)
             freeView.setText(str(strings("settings_free_space", space=_getFreeSpace(newPath))))
             AndroidUtilities.hideKeyboard(input)
@@ -430,7 +431,7 @@ def _showEditPathDialog(context, pathView, freeView):
         dialog.setOnShowListener(_ShowListener())
         dialog.show()
     except Exception as e:
-        log(f"other: _showEditPathDialog error: {e}")
+        logx(f"other: _showEditPathDialog error: {e}", False)
 
 def _buildDownloadPathCard(context, currentPath):
     # card: text block on the left, edit icon on the right
@@ -482,7 +483,7 @@ def _buildDownloadPathCard(context, currentPath):
 
         return card
     except Exception as e:
-        log(f"other: _buildDownloadPathCard error: {e}")
+        logx(f"other: _buildDownloadPathCard error: {e}", False)
         return None
 
 
@@ -633,7 +634,7 @@ def _buildSearchEngineCards(context, key, default, on_change=None):
 
         return wrapper
     except Exception as e:
-        log(f"_buildSearchEngineCards error: {e}")
+        logx(f"_buildSearchEngineCards error: {e}", False)
         return None
 
 
@@ -723,7 +724,7 @@ def _buildSearchEngineToggle(context, key, default, on_change=None):
 
         return wrapper
     except Exception as e:
-        log(f"_buildSearchEngineToggle error: {e}")
+        logx(f"_buildSearchEngineToggle error: {e}", False)
         return None
 
 
@@ -873,7 +874,7 @@ def _buildHashFunctionCards(context, key, default, on_change=None):
 
         return wrapper
     except Exception as e:
-        log(f"_buildHashFunctionCards error: {e}")
+        logx(f"_buildHashFunctionCards error: {e}", False)
         return None
 
 
@@ -1046,7 +1047,7 @@ def _buildDialogsMenuToggle(context, key, default, on_change=None):
 
         return wrapper
     except Exception as e:
-        log(f"_buildDialogsMenuToggle error: {e}")
+        logx(f"_buildDialogsMenuToggle error: {e}", False)
         return None
 
 
@@ -1306,7 +1307,7 @@ def _buildSortMenuDesignToggle(context, key, default, on_change=None):
         card.setup(key, default, on_change)
         return card.java
     except Exception as e:
-        log(f"_buildSortMenuDesignToggle error: {e}")
+        logx(f"_buildSortMenuDesignToggle error: {e}", False)
         return None
 
 
@@ -1415,7 +1416,7 @@ class OtherSettings:
 
     def _es_toggle_and_reload(self, key):
         self._es_expanded_states[key] = not self._es_expanded_states.get(key, False)
-        log(f"OtherSettings: _es_toggle_and_reload key={key} expanded={self._es_expanded_states[key]}")
+        logx(f"OtherSettings: _es_toggle_and_reload key={key} expanded={self._es_expanded_states[key]}", True)
         from elyx import settings as _s
         _s.set("_es_dummy", not _s.get("_es_dummy", False), reload_settings=True)
 
@@ -1442,7 +1443,7 @@ class OtherSettings:
             item.setCollapsed(not is_expanded)
             return Custom(item=item, on_click=lambda v, k=key: self._es_toggle_and_reload(k))
         except Exception as e:
-            log(f"OtherSettings: _make_expandable_switch error: {e}")
+            logx(f"OtherSettings: _make_expandable_switch error: {e}", False)
             return None
 
     def _make_es_child(self, key, text, default=False):
@@ -1460,7 +1461,7 @@ class OtherSettings:
 
             return Custom(item=item, on_click=on_click)
         except Exception as e:
-            log(f"OtherSettings: _make_es_child error: {e}")
+            logx(f"OtherSettings: _make_es_child error: {e}", False)
             return None
 
     def _build_dialogs_btn_item(self, ctx):
@@ -1475,9 +1476,9 @@ class OtherSettings:
                 )
                 if view is not None:
                     return Custom(view=view)
-            log("other: _build_dialogs_btn_item falling back to Text")
+            logx("other: _build_dialogs_btn_item falling back to Text", True)
         except Exception as e:
-            log(f"other: _build_dialogs_btn_item error: {e}")
+            logx(f"other: _build_dialogs_btn_item error: {e}", False)
         return Text(
             text=strings.button_in_dialogs_menu,
             icon="msg_addbot",
@@ -1513,14 +1514,14 @@ class OtherSettings:
                             frag
                         )
                     except Exception as e:
-                        log(f"other: dialogs menu bulletin error: {e}")
+                        logx(f"other: dialogs menu bulletin error: {e}", False)
 
                 view = _buildDialogsMenuToggle(ctx, key="dialogs_menu_button", default=0, on_change=onDialogsMenuChange)
                 if view is not None:
                     return Custom(view=view)
-            log("other: _build_dialogs_menu_toggle_item falling back")
+            logx("other: _build_dialogs_menu_toggle_item falling back", True)
         except Exception as e:
-            log(f"other: _build_dialogs_menu_toggle_item error: {e}")
+            logx(f"other: _build_dialogs_menu_toggle_item error: {e}", False)
         return None
 
     def _build_sort_menu_design_item(self, ctx):
@@ -1529,9 +1530,9 @@ class OtherSettings:
                 view = _buildSortMenuDesignToggle(ctx, key="old_sort_menu_design", default=False)
                 if view is not None:
                     return Custom(view=view)
-            log("other: _build_sort_menu_design_item falling back to Switch")
+            logx("other: _build_sort_menu_design_item falling back to Switch", True)
         except Exception as e:
-            log(f"other: _build_sort_menu_design_item error: {e}")
+            logx(f"other: _build_sort_menu_design_item error: {e}", False)
         return Switch(
             key="old_sort_menu_design",
             text=strings.classic_sort_menu,
@@ -1547,9 +1548,9 @@ class OtherSettings:
                 view = _buildSearchEngineCards(ctx, key="search_engine", default=0)
                 if view is not None:
                     return Custom(view=view)
-            log("other: _build_search_engine_item falling back to Text")
+            logx("other: _build_search_engine_item falling back to Text", True)
         except Exception as e:
-            log(f"other: _build_search_engine_item error: {e}")
+            logx(f"other: _build_search_engine_item error: {e}", False)
         return Text(
             text=strings.search_engine,
             icon="msg_speed",
@@ -1562,9 +1563,9 @@ class OtherSettings:
                 view = _buildHashFunctionCards(ctx, key="hash_function", default=0)
                 if view is not None:
                     return Custom(view=view)
-            log("other: _build_hash_function_item falling back to Text")
+            logx("other: _build_hash_function_item falling back to Text", True)
         except Exception as e:
-            log(f"other: _build_hash_function_item error: {e}")
+            logx(f"other: _build_hash_function_item error: {e}", False)
         return Text(
             text=strings.hash_function,
             icon="msg_sendfile",
@@ -1579,7 +1580,7 @@ class OtherSettings:
             slider.bind()
             return Custom(view=slider.java)
         except Exception as e:
-            log(f"other: _build_sfx_volume_slider error: {e}")
+            logx(f"other: _build_sfx_volume_slider error: {e}", False)
             return None
 
 
@@ -1591,7 +1592,7 @@ class OtherSettings:
                 MainMenuPreferencesActivity = find_class("com.exteragram.messenger.preferences.appearance.AppNavigationPreferencesActivity")
                 frag.presentFragment(MainMenuPreferencesActivity())
         except Exception as e:
-            log(f"OtherSettings: _open_main_menu_settings error: {e}")
+            logx(f"OtherSettings: _open_main_menu_settings error: {e}", False)
 
     def _build_pill_stack_item(self, ctx):
         try:
@@ -1605,9 +1606,9 @@ class OtherSettings:
                 )
                 if view is not None:
                     return Custom(view=view)
-            log("other: _build_pill_stack_item falling back to Text")
+            logx("other: _build_pill_stack_item falling back to Text", True)
         except Exception as e:
-            log(f"other: _build_pill_stack_item error: {e}")
+            logx(f"other: _build_pill_stack_item error: {e}", False)
         return Text(
             text=strings.pill_stack_settings,
             icon="msg_view_file",
@@ -1634,9 +1635,9 @@ class OtherSettings:
                 )
                 if view is not None:
                     return Custom(view=view)
-            log("other: _build_font_picker_item falling back to Text")
+            logx("other: _build_font_picker_item falling back to Text", True)
         except Exception as e:
-            log(f"other: _build_font_picker_item error: {e}")
+            logx(f"other: _build_font_picker_item error: {e}", False)
         return Text(
             text=strings.font_picker,
             icon="msg_theme",
@@ -1651,7 +1652,7 @@ class OtherSettings:
                 return
             showFontPicker(act)
         except Exception as e:
-            log(f"OtherSettings: _open_font_picker error: {e}")
+            logx(f"OtherSettings: _open_font_picker error: {e}", False)
 
     def _open_pill_stack_settings(self, view):
         try:
@@ -1663,14 +1664,14 @@ class OtherSettings:
             if frag:
                 frag.presentFragment(PillStackPreferencesActivity())
         except Exception as e:
-            log(f"OtherSettings: _open_pill_stack_settings error: {e}")
+            logx(f"OtherSettings: _open_pill_stack_settings error: {e}", False)
 
     def _open_files_browser(self):
         try:
             from ..ui.FilesActivity.fragment import show_files_browser
             show_files_browser(plugin=self.plugin)
         except Exception as e:
-            log(f"OtherSettings: _open_files_browser error: {e}")
+            logx(f"OtherSettings: _open_files_browser error: {e}", False)
 
     def _getCacheDir(self) -> str:
         from ..utils.paths import getCacheRoot
@@ -1698,13 +1699,13 @@ class OtherSettings:
                     if os.path.exists(cacheDir):
                         shutil.rmtree(cacheDir)
                 except Exception as e:
-                    log(f"clear cache error: {e}")
+                    logx(f"clear cache error: {e}", False)
 
                 if update_callback:
                     try:
                         update_callback()
                     except Exception as e:
-                        log(f"clear cache update callback error: {e}")
+                        logx(f"clear cache update callback error: {e}", False)
 
                 try:
                     frag2 = get_last_fragment()
@@ -1726,17 +1727,17 @@ class OtherSettings:
                     restartBuilder.set_negative_button(strings.restart_later, lambda rb, rw: rb.dismiss())
                     restartBuilder.show()
                 except Exception as e:
-                    log(f"clear cache restart dialog error: {e}")
+                    logx(f"clear cache restart dialog error: {e}", False)
 
             builder.set_positive_button(strings.clear_cache_button, onConfirm)
             builder.set_negative_button(strings.cancel_button, lambda b, w: b.dismiss())
             try:
                 builder.make_button_red(AlertDialogBuilder.BUTTON_POSITIVE)
             except Exception as e:
-                log(f"make_button_red error: {e}")
+                logx(f"make_button_red error: {e}", False)
             builder.show()
         except Exception as e:
-            log(f"clear cache dialog error: {e}")
+            logx(f"clear cache dialog error: {e}", False)
 
     def _onClearPluginCacheClick(self, view, update_callback=None):
         try:
@@ -1756,24 +1757,24 @@ class OtherSettings:
                     plugin_cache_dir = getCacheRoot() + "/.cache/plugins"
                     if os.path.exists(plugin_cache_dir):
                         shutil.rmtree(plugin_cache_dir)
-                        log("other: plugin cache cleared")
+                        logx("other: plugin cache cleared", True)
                 except Exception as e:
-                    log(f"other: clear plugin cache error: {e}")
+                    logx(f"other: clear plugin cache error: {e}", False)
                 if update_callback:
                     try:
                         update_callback()
                     except Exception as e:
-                        log(f"other: clear plugin cache update callback error: {e}")
+                        logx(f"other: clear plugin cache update callback error: {e}", False)
 
             builder.set_positive_button(strings.clear_cache_button, onConfirm)
             builder.set_negative_button(strings.cancel_button, lambda b, w: b.dismiss())
             try:
                 builder.make_button_red(AlertDialogBuilder.BUTTON_POSITIVE)
             except Exception as e:
-                log(f"make_button_red error: {e}")
+                logx(f"make_button_red error: {e}", False)
             builder.show()
         except Exception as e:
-            log(f"other: clear plugin cache dialog error: {e}")
+            logx(f"other: clear plugin cache dialog error: {e}", False)
 
     def _getContext(self):
         frag = get_last_fragment()
@@ -1800,7 +1801,7 @@ class OtherSettings:
                 builder.set_negative_button(strings.restart_later, lambda b, w: b.dismiss())
                 builder.show()
             except Exception as e:
-                log(f"other: _onRestartRequiredSwitch error: {e}")
+                logx(f"other: _onRestartRequiredSwitch error: {e}", False)
 
         from android_utils import run_on_ui_thread
         run_on_ui_thread(show)
@@ -1810,7 +1811,7 @@ class OtherSettings:
             from .SubSettings.PluginCardEditor import build_card_editor_page
             return build_card_editor_page()
         except Exception as e:
-            log(f"OtherSettings: _open_card_editor error: {e}")
+            logx(f"OtherSettings: _open_card_editor error: {e}", False)
             return []
 
     def _open_interface_page(self):
@@ -1818,7 +1819,7 @@ class OtherSettings:
             from .SubSettings.interface import build_interface_page
             return build_interface_page(self, self._getContext())
         except Exception as e:
-            log(f"OtherSettings: _open_interface_page error: {e}")
+            logx(f"OtherSettings: _open_interface_page error: {e}", False)
             return []
 
     def _open_sfx_page(self):
@@ -1826,7 +1827,7 @@ class OtherSettings:
             from .SubSettings.sfx import build_sfx_page
             return build_sfx_page(self, self._getContext())
         except Exception as e:
-            log(f"OtherSettings: _open_sfx_page error: {e}")
+            logx(f"OtherSettings: _open_sfx_page error: {e}", False)
             return []
 
     def _open_comps_page(self):
@@ -1834,7 +1835,7 @@ class OtherSettings:
             from .SubSettings.comps import build_comps_page
             return build_comps_page(self, self._getContext())
         except Exception as e:
-            log(f"OtherSettings: _open_comps_page error: {e}")
+            logx(f"OtherSettings: _open_comps_page error: {e}", False)
             return []
 
     def _open_hotkeys_page(self):
@@ -1842,7 +1843,7 @@ class OtherSettings:
             from .SubSettings.hotkeys import build_hotkeys_page
             return build_hotkeys_page(self, self._getContext())
         except Exception as e:
-            log(f"OtherSettings: _open_hotkeys_page error: {e}")
+            logx(f"OtherSettings: _open_hotkeys_page error: {e}", False)
             return []
 
     def _open_plugin_profile_page(self):
@@ -1850,7 +1851,7 @@ class OtherSettings:
             from .SubSettings.pluginProfile import build_plugin_profile_page
             return build_plugin_profile_page()
         except Exception as e:
-            log(f"OtherSettings: _open_plugin_profile_page error: {e}")
+            logx(f"OtherSettings: _open_plugin_profile_page error: {e}", False)
             return []
 
     def _open_inline_page(self):
@@ -1858,7 +1859,7 @@ class OtherSettings:
             from .SubSettings.inline import build_inline_page
             return build_inline_page(self, _fmt_inline_str, _reload_plugin_settings, _open_url)
         except Exception as e:
-            log(f"OtherSettings: _open_inline_page error: {e}")
+            logx(f"OtherSettings: _open_inline_page error: {e}", False)
             return []
 
     def _open_file_settings_page(self):
@@ -1866,7 +1867,7 @@ class OtherSettings:
             from .SubSettings.fileSettings import build_file_settings_page
             return build_file_settings_page(self)
         except Exception as e:
-            log(f"OtherSettings: _open_file_settings_page error: {e}")
+            logx(f"OtherSettings: _open_file_settings_page error: {e}", False)
             return []
 
     def _open_misc_page(self):
@@ -1874,7 +1875,7 @@ class OtherSettings:
             from .SubSettings.misc import build_misc_page
             return build_misc_page(self)
         except Exception as e:
-            log(f"OtherSettings: _open_misc_page error: {e}")
+            logx(f"OtherSettings: _open_misc_page error: {e}", False)
             return []
 
     def _open_apikeys_page(self):
@@ -1882,7 +1883,7 @@ class OtherSettings:
             from .SubSettings.apikeys import build_apikeys_page
             return build_apikeys_page()
         except Exception as e:
-            log(f"OtherSettings: _open_apikeys_page error: {e}")
+            logx(f"OtherSettings: _open_apikeys_page error: {e}", False)
             return []
 
     def _open_updplugins_page(self):
@@ -1890,7 +1891,15 @@ class OtherSettings:
             from .SubSettings.updplugins import build_updplugins_page
             return build_updplugins_page(self)
         except Exception as e:
-            log(f"OtherSettings: _open_updplugins_page error: {e}")
+            logx(f"OtherSettings: _open_updplugins_page error: {e}", False)
+            return []
+
+    def _open_debug_page(self):
+        try:
+            from .SubSettings.debug import build_debug_page
+            return build_debug_page()
+        except Exception as e:
+            logx(f"OtherSettings: _open_debug_page error: {e}", False)
             return []
 
     def _onClearIgnoreListClick(self, view):
@@ -1902,7 +1911,7 @@ class OtherSettings:
                 return
             show_clear_ignore_list_dialog(act)
         except Exception as e:
-            log(f"OtherSettings: _onClearIgnoreListClick error: {e}")
+            logx(f"OtherSettings: _onClearIgnoreListClick error: {e}", False)
 
     def build(self):
         ctx = self._getContext()
@@ -1963,6 +1972,12 @@ class OtherSettings:
                 icon="msg_settings_old",
                 create_sub_fragment=self._open_misc_page
             ),
+            Text(
+                text=strings.debug_menu,
+                subtext=strings.debug_menu_desc,
+                icon="msg_log",
+                create_sub_fragment=self._open_debug_page
+            ),
         ]
 
         items.append(Divider())
@@ -2000,7 +2015,7 @@ class OtherSettings:
                 items.append(Custom(view=pathCard))
                 pathCardBuilt = True
             else:
-                log("OtherSettings.build: _buildDownloadPathCard returned None")
+                logx("OtherSettings.build: _buildDownloadPathCard returned None", True)
 
         if not pathCardBuilt:
             items.append(

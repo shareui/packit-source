@@ -1,6 +1,7 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import threading
 import time
 
@@ -8,26 +9,26 @@ from android.view import Gravity, View
 from android.widget import FrameLayout, LinearLayout, ScrollView, TextView, ImageView
 from android.util import TypedValue
 from android.graphics.drawable import GradientDrawable
-from android_utils import log, run_on_ui_thread, OnClickListener
+from android_utils import run_on_ui_thread, OnClickListener
 from client_utils import get_last_fragment, run_on_queue
 
 try:
     from org.telegram.ui.ActionBar import BottomSheet, Theme
 except Exception as e:
-    log(f"startupSheet: import BottomSheet/Theme failed: {e}")
+    logx(f"startupSheet: import BottomSheet/Theme failed: {e}", False)
 try:
     from org.telegram.ui.Components import LayoutHelper, BackupImageView
 except Exception as e:
-    log(f"startupSheet: import LayoutHelper/BackupImageView failed: {e}")
+    logx(f"startupSheet: import LayoutHelper/BackupImageView failed: {e}", False)
 try:
     from org.telegram.messenger import AndroidUtilities, ApplicationLoader, ImageLocation, MediaDataController
 except Exception as e:
-    log(f"startupSheet: import AndroidUtilities failed: {e}")
+    logx(f"startupSheet: import AndroidUtilities failed: {e}", False)
 
 try:
     from elyx import strings, settings
 except Exception as e:
-    log(f"startupSheet: import elyx failed: {e}")
+    logx(f"startupSheet: import elyx failed: {e}", False)
 
 from .fragment import (
     _get_repos, _check_updates, _filter_ignored,
@@ -68,7 +69,7 @@ def _try_load_sticker(iv, icon_str: str, size_dp: int) -> bool:
             pass
         return False
     except Exception as e:
-        log(f"startupSheet: _try_load_sticker error: {e}")
+        logx(f"startupSheet: _try_load_sticker error: {e}", False)
         return False
 
 
@@ -175,7 +176,7 @@ def _make_item_card(act, item: dict, plugin_ref, on_action):
             if not loaded:
                 _schedule_sticker_retry(icon_view, icon_str, icon_size_dp)
         except Exception as e:
-            log(f"startupSheet: icon error for '{pid}': {e}")
+            logx(f"startupSheet: icon error for '{pid}': {e}", False)
 
     center_col = LinearLayout(act)
     center_col.setOrientation(LinearLayout.VERTICAL)
@@ -323,7 +324,7 @@ def _make_item_card(act, item: dict, plugin_ref, on_action):
                         pass
                     update_icon_iv.setImageDrawable(d)
                 except Exception as e:
-                    log(f"startupSheet: spinner create error: {e}")
+                    logx(f"startupSheet: spinner create error: {e}", False)
                     update_tv.setVisibility(View.VISIBLE)
                     update_icon_iv.setVisibility(View.GONE)
             elif state == "done":
@@ -343,7 +344,7 @@ def _make_item_card(act, item: dict, plugin_ref, on_action):
                     icon_color = 0xFFFFFFFF
                 update_icon_iv.setColorFilter(icon_color)
         except Exception as e:
-            log(f"startupSheet: _set_update_btn_state error: {e}")
+            logx(f"startupSheet: _set_update_btn_state error: {e}", False)
 
     update_btn.setOnClickListener(OnClickListener(lambda v: on_action("update", item, _set_update_btn_state)))
     ignore_btn.setOnClickListener(OnClickListener(lambda v: on_action("ignore", item, None)))
@@ -433,13 +434,13 @@ def _show_sheet(updates: list, plugin, on_sheet_closed=None):
     try:
         frag = get_last_fragment()
         if not frag:
-            log("startupSheet: no fragment")
+            logx("startupSheet: no fragment", True)
             if on_sheet_closed:
                 on_sheet_closed(None)
             return
         act = frag.getParentActivity()
         if not act:
-            log("startupSheet: no activity")
+            logx("startupSheet: no activity", True)
             if on_sheet_closed:
                 on_sheet_closed(None)
             return
@@ -496,21 +497,21 @@ def _show_sheet(updates: list, plugin, on_sheet_closed=None):
         acted_items = []
 
         def _check_all_done():
-            log(f"startupSheet: _check_all_done done={done_count[0]} total={total_items}")
+            logx(f"startupSheet: _check_all_done done={done_count[0]} total={total_items}", True)
             if done_count[0] >= total_items:
-                log("startupSheet: all items done, dismissing sheet")
+                logx("startupSheet: all items done, dismissing sheet", True)
                 try:
                     sheet.dismiss()
                 except Exception as e:
-                    log(f"startupSheet: _check_all_done dismiss error: {e}")
+                    logx(f"startupSheet: _check_all_done dismiss error: {e}", False)
 
         def _on_action(action: str, item: dict, set_btn_state=None):
             pid = item.get("id", "?")
-            log(f"startupSheet: _on_action action='{action}' plugin='{pid}'")
+            logx(f"startupSheet: _on_action action='{action}' plugin='{pid}'", True)
             if action == "ignore":
                 acted_items.append((action, item, set_btn_state))
                 done_count[0] += 1
-                log(f"startupSheet: ignored '{pid}', done={done_count[0]}/{total_items}")
+                logx(f"startupSheet: ignored '{pid}', done={done_count[0]}/{total_items}", True)
                 try:
                     sheet.dismiss()
                 except Exception:
@@ -521,16 +522,16 @@ def _show_sheet(updates: list, plugin, on_sheet_closed=None):
                 original_set_state = set_btn_state
 
                 def _wrapped_set_state(state: str, _orig=original_set_state):
-                    log(f"startupSheet: btn_state='{state}' plugin='{pid}'")
+                    logx(f"startupSheet: btn_state='{state}' plugin='{pid}'", True)
                     if _orig:
                         _orig(state)
                     if state == "done":
                         done_count[0] += 1
-                        log(f"startupSheet: update done '{pid}', done={done_count[0]}/{total_items}")
+                        logx(f"startupSheet: update done '{pid}', done={done_count[0]}/{total_items}", True)
                         run_on_ui_thread(_check_all_done)
 
                 acted_items.append((action, item, _wrapped_set_state))
-                log(f"startupSheet: starting install for '{pid}'")
+                logx(f"startupSheet: starting install for '{pid}'", True)
                 if on_sheet_closed:
                     on_sheet_closed(acted_items)
 
@@ -572,7 +573,7 @@ def _show_sheet(updates: list, plugin, on_sheet_closed=None):
                 if on_sheet_closed:
                     on_sheet_closed(None)
             except Exception as e:
-                log(f"startupSheet: _ignore_all error: {e}")
+                logx(f"startupSheet: _ignore_all error: {e}", False)
 
         ignore_all_btn.setOnClickListener(OnClickListener(_ignore_all))
         root.addView(ignore_all_btn, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 8))
@@ -609,7 +610,7 @@ def _show_sheet(updates: list, plugin, on_sheet_closed=None):
         sheet.setCustomView(scroll)
         sheet.show()
     except Exception as e:
-        log(f"startupSheet: _show_sheet error: {e}")
+        logx(f"startupSheet: _show_sheet error: {e}", False)
         if on_sheet_closed:
             on_sheet_closed(None)
 
@@ -628,7 +629,7 @@ def _apply_actions_and_refresh(acted_items, plugin):
                 has_updates = True
                 _do_install(item, plugin, set_btn_state)
     except Exception as e:
-        log(f"startupSheet: _apply_actions_and_refresh error: {e}")
+        logx(f"startupSheet: _apply_actions_and_refresh error: {e}", False)
 
     # if only updates were triggered (no ignores), skip refresh — installs are async
     if has_updates and not has_ignores:
@@ -644,7 +645,7 @@ def _apply_actions_and_refresh(acted_items, plugin):
                     on_sheet_closed=_make_closed_handler(plugin)
                 ))
         except Exception as e:
-            log(f"startupSheet: refresh task error: {e}")
+            logx(f"startupSheet: refresh task error: {e}", False)
 
     threading.Thread(target=task, daemon=True).start()
 
@@ -668,7 +669,7 @@ def _do_install(item: dict, plugin, set_btn_state=None):
             repo = r
             break
     if not repo:
-        log(f"startupSheet: _do_install repo '{repo_id}' not found")
+        logx(f"startupSheet: _do_install repo '{repo_id}' not found", True)
         return
 
     if set_btn_state:
@@ -714,7 +715,7 @@ def _do_install(item: dict, plugin, set_btn_state=None):
 
             url = plugin_data.get("link") or plugin_data.get("raw")
             if not url:
-                log(f"startupSheet: _do_install no link for '{pid}'")
+                logx(f"startupSheet: _do_install no link for '{pid}'", True)
                 if set_btn_state:
                     run_on_ui_thread(lambda: set_btn_state("idle"))
                 return
@@ -728,7 +729,7 @@ def _do_install(item: dict, plugin, set_btn_state=None):
             file_path = os.path.join(plugins_dir, f".temp_{pid}.plugin")
             dl = _req.get(url, timeout=30, headers={"User-Agent": "PackIt/1.0"})
             if dl.status_code != 200:
-                log(f"startupSheet: _do_install download failed for '{pid}': HTTP {dl.status_code}")
+                logx(f"startupSheet: _do_install download failed for '{pid}': HTTP {dl.status_code}", True)
                 if set_btn_state:
                     run_on_ui_thread(lambda: set_btn_state("idle"))
                 return
@@ -740,13 +741,13 @@ def _do_install(item: dict, plugin, set_btn_state=None):
                     run_on_ui_thread(lambda: set_btn_state("done"))
 
             def on_error(error):
-                log(f"startupSheet: _do_install install error for '{pid}': {error}")
+                logx(f"startupSheet: _do_install install error for '{pid}': {error}", True)
                 if set_btn_state:
                     run_on_ui_thread(lambda: set_btn_state("idle"))
 
             install_plugin_silent(file_path, plugin_data, repo_id, on_complete=on_complete, on_error=on_error)
         except Exception as e:
-            log(f"startupSheet: _do_install task error for '{pid}': {e}")
+            logx(f"startupSheet: _do_install task error for '{pid}': {e}", False)
             if set_btn_state:
                 run_on_ui_thread(lambda: set_btn_state("idle"))
 
@@ -760,11 +761,11 @@ def check_and_show_startup_updates(plugin=None):
                 from ...utils.installIndex import purge_missing
                 purge_missing()
             except Exception as e:
-                log(f"startupSheet: purge_missing error: {e}")
+                logx(f"startupSheet: purge_missing error: {e}", False)
 
             updates = _filter_ignored(None, _check_updates(None))
             if not updates:
-                log("startupSheet: no updates found")
+                logx("startupSheet: no updates found", True)
                 return
 
             time.sleep(2.0)
@@ -774,6 +775,6 @@ def check_and_show_startup_updates(plugin=None):
                 on_sheet_closed=_make_closed_handler(plugin)
             ))
         except Exception as e:
-            log(f"startupSheet: check error: {e}")
+            logx(f"startupSheet: check error: {e}", False)
 
     threading.Thread(target=task, daemon=True).start()

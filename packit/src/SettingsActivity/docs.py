@@ -1,6 +1,7 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 from ui.settings import Header, Text, Divider, Custom
 from ui.bulletin import BulletinHelper
 from android.net import Uri
@@ -142,35 +143,35 @@ class DocumentationSettings:
         self._openUrl(strings.publish_plugin_guide_url)
 
     def _openEnlightenment(self, view, *_):
-        from android_utils import log
+        
         try:
             clicks = settings.get("enlighten_clicks", 0) + 1
-            log(f"docs._openEnlightenment: clicks={clicks}")
+            logx(f"docs._openEnlightenment: clicks={clicks}", True)
             settings.set_setting("enlighten_clicks", clicks)
             fragment = get_last_fragment()
-            log(f"docs._openEnlightenment: fragment={fragment}")
+            logx(f"docs._openEnlightenment: fragment={fragment}", True)
 
             if clicks <= 9:
-                log(f"docs._openEnlightenment: showing enlighten_{clicks}")
+                logx(f"docs._openEnlightenment: showing enlighten_{clicks}", True)
                 BulletinHelper.show_info(getattr(strings, f"enlighten_{clicks}"), fragment)
             elif clicks == 10:
-                log(f"docs._openEnlightenment: showing enlighten_10, scheduling kill")
+                logx(f"docs._openEnlightenment: showing enlighten_10, scheduling kill", True)
                 BulletinHelper.show_info(strings.enlighten_10, fragment)
                 run_on_queue(lambda *_: Process.killProcess(Process.myPid()), GLOBAL_QUEUE, 1000)
             elif clicks >= 11:
-                log(f"docs._openEnlightenment: showing enlighten_11, resetting clicks, unlocking achievement")
+                logx(f"docs._openEnlightenment: showing enlighten_11, resetting clicks, unlocking achievement", True)
                 BulletinHelper.show_info(strings.enlighten_11, fragment)
                 settings.set_setting("enlighten_clicks", 0)
                 try:
                     from ..ui.AchievementsActivity.service.AchivementsEngine import unlock_secret
-                    log(f"docs._openEnlightenment: calling unlock_secret enlightened")
+                    logx(f"docs._openEnlightenment: calling unlock_secret enlightened", True)
                     unlock_secret("enlightened")
-                    log(f"docs._openEnlightenment: unlock_secret done")
+                    logx(f"docs._openEnlightenment: unlock_secret done", True)
                 except Exception as e:
-                    log(f"docs._openEnlightenment: unlock_secret failed: {e}")
+                    logx(f"docs._openEnlightenment: unlock_secret failed: {e}", False)
                 run_on_queue(lambda *_: Process.killProcess(Process.myPid()), GLOBAL_QUEUE, 1000)
         except Exception as e:
-            log(f"docs._openEnlightenment: error: {e}")
+            logx(f"docs._openEnlightenment: error: {e}", False)
 
     def _openSecretVideo(self, view, *_):
         self._openUrl("https://youtu.be/xMHJGd3wwZk?si=ZpXaKUV-bpq_Fcob")

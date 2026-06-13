@@ -1,10 +1,11 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 from ui.settings import Header, Text, Divider, Custom
 from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment
-from android_utils import log
+
 from ..ui.AchievementsActivity.fragment import show_achievements
 import threading
 import time
@@ -132,7 +133,7 @@ def _make_profile_header(context):
         container.addView(content, LayoutHelper.createFrame(-1, -2, Gravity.CENTER))
         return container
     except Exception as e:
-        log(f"profile._make_profile_header: error: {e}")
+        logx(f"profile._make_profile_header: error: {e}", False)
         return None
 
 
@@ -157,7 +158,7 @@ class ProfileSettings:
                 pass
             return item
         except Exception as e:
-            log(f"profile._make_header_item: error: {e}")
+            logx(f"profile._make_header_item: error: {e}", False)
             return None
 
     def _show_achievements(self, view):
@@ -174,7 +175,7 @@ class ProfileSettings:
             cat_names = list(categories.keys())
             show_achievements(categories, cat_names)
         except Exception as e:
-            log(f"profile._show_achievements: error: {e}")
+            logx(f"profile._show_achievements: error: {e}", False)
 
     def _do_export(self, include_local_config: bool, include_achievements: bool, include_saved_plugins: bool):
         try:
@@ -198,7 +199,7 @@ class ProfileSettings:
 
             os.makedirs(download_path, exist_ok=True)
             file_path = os.path.join(download_path, f"backup-{_rand_suffix(4)}.packit")
-            log(f"profile._do_export: writing to {file_path}")
+            logx(f"profile._do_export: writing to {file_path}", True)
             temp_file = File(file_path)
             if temp_file.exists():
                 temp_file.delete()
@@ -231,7 +232,7 @@ class ProfileSettings:
                                     rp = _fragment.getResourceProvider()
                                     BulletinFactory.of(container, rp).createSimpleBulletin(R_tg.raw.voip_invite, strings["export_db_done_share"]).show()
                                 except Exception as _be:
-                                    log(f"profile.ShareDelegate.didShare: {_be}")
+                                    logx(f"profile.ShareDelegate.didShare: {_be}", True)
                             run_on_ui_thread(_show_bulletin)
 
                         def didCopy(self):
@@ -247,16 +248,16 @@ class ProfileSettings:
                         None, None
                     )
                     share_alert.setDelegate(ShareDelegate())
-                    log("profile.open_share: delegate set, showing dialog")
+                    logx("profile.open_share: delegate set, showing dialog", True)
                     fragment.showDialog(share_alert)
-                    log("profile.open_share: showDialog returned")
+                    logx("profile.open_share: showDialog returned", True)
                 except Exception as e:
-                    log(f"profile._do_export.open_share: {e}")
+                    logx(f"profile._do_export.open_share: {e}", False)
                     BulletinHelper.show_error(strings["export_db_error"])
 
             run_on_ui_thread(open_share)
         except Exception as e:
-            log(f"profile._do_export: {e}")
+            logx(f"profile._do_export: {e}", False)
             from android_utils import run_on_ui_thread
             run_on_ui_thread(lambda: BulletinHelper.show_error(strings["export_db_error"]))
 
@@ -265,7 +266,7 @@ class ProfileSettings:
             from android_utils import run_on_ui_thread
             run_on_ui_thread(self._open_export_sheet)
         except Exception as e:
-            log(f"profile._show_export_db: error: {e}")
+            logx(f"profile._show_export_db: error: {e}", False)
 
     def _open_export_sheet(self):
         try:
@@ -479,10 +480,10 @@ class ProfileSettings:
             sheet.setCustomView(outer)
             sheet.show()
         except Exception as e:
-            log(f"profile._open_export_sheet: error: {e}")
+            logx(f"profile._open_export_sheet: error: {e}", False)
 
     def _make_stats_card(self, context):
-        log("profile: _make_stats_card start")
+        logx("profile: _make_stats_card start", True)
         try:
             import re as _re
             from android.widget import FrameLayout, LinearLayout, TextView
@@ -605,7 +606,7 @@ class ProfileSettings:
                 (str(strings("stat_reports_sent",       count=s["reports_sent"])),                    "msg_report",   strings["stat_hint_reports_sent"]),
             ]
 
-            log(f"profile: stats card built ok, counters={len(COUNTERS)}")
+            logx(f"profile: stats card built ok, counters={len(COUNTERS)}", True)
             _active_hint = [None]
 
             def makeCell(text, iconName, hintText):
@@ -707,11 +708,11 @@ class ProfileSettings:
                                     hint.setDuration(5500)
                                     hint.show()
                                 except Exception as e:
-                                    log(f"profile: stat hint position error: {e}")
+                                    logx(f"profile: stat hint position error: {e}", False)
 
                             run_on_ui_thread(_show)
                         except Exception as e:
-                            log(f"profile: stat hint error: {e}")
+                            logx(f"profile: stat hint error: {e}", False)
                     return onClick
 
                 cell.setOnClickListener(OnClickListener(makeClickHandler(cell, hintText)))
@@ -736,7 +737,7 @@ class ProfileSettings:
 
             return root
         except Exception as e:
-            log(f"profile._make_stats_card: error: {e}")
+            logx(f"profile._make_stats_card: error: {e}", False)
             return None
 
     def build(self):
@@ -754,7 +755,7 @@ class ProfileSettings:
                 if statsCard is not None:
                     items.append(Custom(view=statsCard))
         except Exception as e:
-            log(f"profile.build: stats card error: {e}")
+            logx(f"profile.build: stats card error: {e}", False)
 
         items += [
             Text(

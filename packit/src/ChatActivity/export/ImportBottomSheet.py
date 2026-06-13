@@ -1,8 +1,9 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import traceback
-from android_utils import log
+
 from android.view import Gravity, View, MotionEvent
 from android.widget import FrameLayout, LinearLayout, ScrollView, TextView
 from java import dynamic_proxy
@@ -103,7 +104,7 @@ def show_import_bottom_sheet(fragment, num_blocks: int, on_confirm, import_level
                 try:
                     on_confirm()
                 except Exception:
-                    log(f"importBottomSheet: on_confirm error: {traceback.format_exc()}")
+                    logx(f"importBottomSheet: on_confirm error: {traceback.format_exc()}", True)
 
         confirm_btn.setOnClickListener(_ConfirmClick())
         linear.addView(confirm_btn, LayoutHelper.createFrame(-1, 48.0, 0, 16.0, 15.0, 16.0, 16.0))
@@ -113,4 +114,4 @@ def show_import_bottom_sheet(fragment, num_blocks: int, on_confirm, import_level
         sheet.setCustomView(scroll)
         sheet.show()
     except Exception:
-        log(f"importBottomSheet: show error: {traceback.format_exc()}")
+        logx(f"importBottomSheet: show error: {traceback.format_exc()}", True)

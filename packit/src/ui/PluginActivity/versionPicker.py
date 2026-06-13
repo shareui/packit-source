@@ -1,8 +1,9 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import threading
-from android_utils import log, run_on_ui_thread, OnClickListener, OnLongClickListener
+from android_utils import run_on_ui_thread, OnClickListener, OnLongClickListener
 from client_utils import get_last_fragment
 try:
     from elyx import strings
@@ -33,7 +34,7 @@ def _register_back_cb(act, on_back):
         act.getOnBackPressedDispatcher().addCallback(act, cb.java)
         return cb
     except Exception as e:
-        log(f"versionPicker: _register_back_cb error: {e}")
+        logx(f"versionPicker: _register_back_cb error: {e}", False)
         return None
 
 def _unregister_back_cb(cb):
@@ -41,7 +42,7 @@ def _unregister_back_cb(cb):
         if cb is not None:
             cb.remove()
     except Exception as e:
-        log(f"versionPicker: _unregister_back_cb error: {e}")
+        logx(f"versionPicker: _unregister_back_cb error: {e}", False)
 
 
 def _build_version_entries(plugin):
@@ -210,7 +211,7 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
                 s.playTogether(fade_overlay, fade_card, scale_x, scale_y)
                 s.start()
             except Exception as e:
-                log(f"version_picker: animate_in error: {e}")
+                logx(f"version_picker: animate_in error: {e}", False)
 
         install_started = [False]
 
@@ -244,7 +245,7 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
                 s.addListener(_EndListener())
                 s.start()
             except Exception as e:
-                log(f"version_picker: animate_out error: {e}")
+                logx(f"version_picker: animate_out error: {e}", False)
                 try:
                     decor.removeView(overlay_ref[0])
                 except Exception:
@@ -428,7 +429,7 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
                 top_fade.setAlpha(top_alpha)
                 bottom_fade.setAlpha(bottom_alpha)
             except Exception as e:
-                log(f"version_picker: fade update error: {e}")
+                logx(f"version_picker: fade update error: {e}", False)
 
         class _ScrollListener(dynamic_proxy(View.OnScrollChangeListener)):
             def onScrollChange(self, v, scrollX, scrollY, oldScrollX, oldScrollY):
@@ -485,7 +486,7 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
                 except Exception:
                     arrow_iv_ref[0].setRotation(180.0)
             except Exception as e:
-                log(f"version_picker: expand error: {e}")
+                logx(f"version_picker: expand error: {e}", False)
                 list_wrap.setVisibility(View.VISIBLE)
 
         def _collapse_list():
@@ -517,7 +518,7 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
                 except Exception:
                     arrow_iv_ref[0].setRotation(0.0)
             except Exception as e:
-                log(f"version_picker: collapse error: {e}")
+                logx(f"version_picker: collapse error: {e}", False)
                 list_wrap.setVisibility(View.GONE)
 
         def _toggle_list(v=None):
@@ -629,10 +630,10 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
                                     hint.setDuration(3500)
                                     hint.show()
                                 except Exception as he:
-                                    log(f"version_picker: hint show error: {he}")
+                                    logx(f"version_picker: hint show error: {he}", True)
                             run_on_ui_thread(_show)
                         except Exception as e:
-                            log(f"version_picker: unavail hint error: {e}")
+                            logx(f"version_picker: unavail hint error: {e}", False)
                     return _on_unavail_click
                 row.setOnClickListener(OnClickListener(_make_hint()))
 
@@ -663,10 +664,10 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
                                 str(strings["pp_version_link_copied"])
                             ).show()
                         except Exception as be:
-                            log(f"version_picker: bulletin error: {be}")
+                            logx(f"version_picker: bulletin error: {be}", True)
                         return True
                     except Exception as e:
-                        log(f"version_picker: long click error: {e}")
+                        logx(f"version_picker: long click error: {e}", False)
                         return False
                 return _on_long_click
 
@@ -763,10 +764,10 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
                             hint.setDuration(3500)
                             hint.show()
                         except Exception as e:
-                            log(f"version_picker: dl_hint show error: {e}")
+                            logx(f"version_picker: dl_hint show error: {e}", False)
                     run_on_ui_thread(_show_dl_hint)
                 except Exception as e:
-                    log(f"version_picker: dl_hint error: {e}")
+                    logx(f"version_picker: dl_hint error: {e}", False)
                 return
             versioned = dict(plugin)
             versioned["link"] = entry["link"]
@@ -805,8 +806,7 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
                 _dismiss()
 
             def _on_downloaded():
-                from android_utils import log as _log
-                _log("versionPicker: succ_download received, restoring button in 1s")
+                logx("versionPicker: succ_download received, restoring button in 1s", True)
                 import threading as _t
                 def _restore():
                     try:
@@ -856,5 +856,5 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
 
         run_on_ui_thread(_post_show)
     except Exception as e:
-        log(f"pluginProfile: _show_version_picker error: {e}")
+        logx(f"pluginProfile: _show_version_picker error: {e}", False)
         do_install(plugin, install_ui, all_plugins, btn, label, btn_text_color, act)

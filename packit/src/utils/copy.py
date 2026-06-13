@@ -1,7 +1,8 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from android_utils import log
+
+from packutil import logx
 try:
     from org.telegram.messenger import AndroidUtilities, R as R_tg
 except Exception as e:
@@ -34,4 +35,4 @@ def copy_share_link(plugin_info: dict, repo_title: str):
         plugin_name = plugin_info.get("name") or plugin_info.get("id") or "Unknown"
         BulletinFactory.of(container, resource_provider).createSimpleBulletin(R_tg.raw.voip_invite, strings("plugin_link_copied", plugin_name)).show()
     except Exception as e:
-        log(f"copy: failed to copy link: {e}")
+        logx(f"copy: failed to copy link: {e}", False)

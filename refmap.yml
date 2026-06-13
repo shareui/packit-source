@@ -3,3 +3,4 @@ main: packit/src/main.py
 strings: packit/locales
 assets: packit/res
 elyxbuilder: packit/.elyxbuilder
+wheels: packit/wheels

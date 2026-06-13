@@ -1,7 +1,8 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from android_utils import log, run_on_ui_thread
+from packutil import logx
+from android_utils import run_on_ui_thread
 from hook_utils import find_class, get_private_field
 from base_plugin import MethodHook
 from client_utils import get_last_fragment
@@ -33,10 +34,10 @@ def setup_fast_expandable_hook(plugin, other_settings):
     try:
         PythonEngineClass = find_class("com.exteragram.messenger.plugins.PythonPluginsEngine")
         if PythonEngineClass is None:
-            log("fastExpandableHook: PythonPluginsEngine not found")
+            logx("fastExpandableHook: PythonPluginsEngine not found", True)
             return None
 
-        log(f"fastExpandableHook: PythonPluginsEngine found: {PythonEngineClass}")
+        logx(f"fastExpandableHook: PythonPluginsEngine found: {PythonEngineClass}", True)
 
         plugin_id = plugin.id
 
@@ -50,13 +51,13 @@ def setup_fast_expandable_hook(plugin, other_settings):
                     if result is not None:
                         param.setResult(result)
                 except Exception as e:
-                    log(f"fastExpandableHook: hook error: {e}")
+                    logx(f"fastExpandableHook: hook error: {e}", False)
 
         refs = plugin.hook_all_methods(PythonEngineClass, "loadPluginSettings", LoadPluginSettingsHook())
         return refs[0] if refs else None
 
     except Exception as e:
-        log(f"fastExpandableHook: setup error: {e}")
+        logx(f"fastExpandableHook: setup error: {e}", False)
         return None
 
 
@@ -70,20 +71,20 @@ def _fast_reload(param, plugin_id, other_settings):
         # get settingItems from the open PluginSettingsActivity
         frag = get_last_fragment()
         if frag is None:
-            log("fastExpandableHook: frag is None -> fallback full reload")
+            logx("fastExpandableHook: frag is None -> fallback full reload", True)
             return _original_call(param)
 
         frag_class = frag.getClass().getName()
         if "PluginSettingsActivity" not in frag_class:
-            log(f"fastExpandableHook: frag is {frag_class} -> fallback full reload")
+            logx(f"fastExpandableHook: frag is {frag_class} -> fallback full reload", True)
             return _original_call(param)
 
         setting_items = get_private_field(frag, "settingItems")
         if setting_items is None:
-            log("fastExpandableHook: settingItems is None -> fallback full reload")
+            logx("fastExpandableHook: settingItems is None -> fallback full reload", True)
             return _original_call(param)
 
-        log(f"fastExpandableHook: fast path, patching {setting_items.size()} items in-place")
+        logx(f"fastExpandableHook: fast path, patching {setting_items.size()} items in-place", True)
 
         # patch expandable CustomSetting items in-place
         size = setting_items.size()
@@ -118,9 +119,9 @@ def _fast_reload(param, plugin_id, other_settings):
                 frag2 = get_last_fragment()
                 if frag2 is not None:
                     frag2.listView.adapter.update(True)
-                    log("fastExpandableHook: adapter.update(True) done")
+                    logx("fastExpandableHook: adapter.update(True) done", True)
             except Exception as e:
-                log(f"fastExpandableHook: adapter update error: {e}")
+                logx(f"fastExpandableHook: adapter update error: {e}", False)
 
         run_on_ui_thread(_update)
 
@@ -128,7 +129,7 @@ def _fast_reload(param, plugin_id, other_settings):
         return setting_items
 
     except Exception as e:
-        log(f"fastExpandableHook: _fast_reload error: {e}")
+        logx(f"fastExpandableHook: _fast_reload error: {e}", False)
         return _original_call(param)
 
 
@@ -150,12 +151,12 @@ def _patch_expandable(si, uitem, key, children, other_settings, _s, _OCL):
 
         uitem.clickCallback = _OCL(switch_click)
     except Exception as e:
-        log(f"fastExpandableHook: _patch_expandable error: {e}")
+        logx(f"fastExpandableHook: _patch_expandable error: {e}", False)
 
 
 def _original_call(param):
     try:
         return param.method.invoke(param.thisObject, param.args)
     except Exception as e:
-        log(f"fastExpandableHook: _original_call error: {e}")
+        logx(f"fastExpandableHook: _original_call error: {e}", False)
         return None

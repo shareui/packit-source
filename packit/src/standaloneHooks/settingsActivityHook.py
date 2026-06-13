@@ -1,25 +1,26 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import ctypes
-from android_utils import log, run_on_ui_thread
+from android_utils import run_on_ui_thread
 from hook_utils import find_class
 from base_plugin import MethodHook
 from client_utils import get_last_fragment
 try:
     from elyx import strings
 except Exception as e:
-    log(f"settingsActivityHook: import strings failed: {e}")
+    logx(f"settingsActivityHook: import strings failed: {e}", False)
 try:
     from com.exteragram.messenger.plugins import PluginsController
     from com.exteragram.messenger.plugins.ui import PluginSettingsActivity
 except Exception as e:
-    log(f"settingsActivityHook: import PluginsController/PSA failed: {e}")
+    logx(f"settingsActivityHook: import PluginsController/PSA failed: {e}", False)
 try:
     from org.telegram.messenger import R as R_tg
     from org.telegram.ui.Components import UItem
 except Exception as e:
-    log(f"settingsActivityHook: import tg classes failed: {e}")
+    logx(f"settingsActivityHook: import tg classes failed: {e}", False)
 
 # must not collide with existing ids (-1..19 used by SettingsActivity)
 _PACKIT_SETTINGS_ID = 880099
@@ -35,14 +36,14 @@ def setup_settings_activity_hook(plugin):
     try:
         SA = find_class("org.telegram.ui.SettingsActivity")
         if SA is None:
-            log("settingsActivityHook: SettingsActivity not found")
+            logx("settingsActivityHook: SettingsActivity not found", True)
             return hooks
 
         ArrayList = find_class("java.util.ArrayList")
         UniversalAdapter = find_class("org.telegram.ui.Components.UniversalAdapter")
 
         if ArrayList is None or UniversalAdapter is None:
-            log("settingsActivityHook: ArrayList or UniversalAdapter not found")
+            logx("settingsActivityHook: ArrayList or UniversalAdapter not found", True)
             return hooks
 
         class FillItemsHook(MethodHook):
@@ -77,19 +78,19 @@ def setup_settings_activity_hook(plugin):
                             pass
 
                     if extera_idx < 0:
-                        log("settingsActivityHook: extera item (id=-1) not found")
+                        logx("settingsActivityHook: extera item (id=-1) not found", True)
                         return
 
                     SettingCellFactory = find_class("org.telegram.ui.SettingsActivity$SettingCell$Factory")
                     if SettingCellFactory is None:
-                        log("settingsActivityHook: SettingCell$Factory not found")
+                        logx("settingsActivityHook: SettingCell$Factory not found", True)
                         return
 
                     icon_id = 0
                     try:
                         icon_id = int(R_tg.drawable.msg_download_remix)
                     except Exception as e:
-                        log(f"settingsActivityHook: icon resolve error: {e}")
+                        logx(f"settingsActivityHook: icon resolve error: {e}", False)
 
                     label = str(strings.packit_settings) if hasattr(strings, "packit_settings") else "PackIt Settings"
 
@@ -104,7 +105,7 @@ def setup_settings_activity_hook(plugin):
                             pass
 
                     if of_method is None:
-                        log("settingsActivityHook: SettingCell.Factory.of(5) not found")
+                        logx("settingsActivityHook: SettingCell.Factory.of(5) not found", True)
                         return
 
                     of_method.setAccessible(True)
@@ -114,7 +115,7 @@ def setup_settings_activity_hook(plugin):
                         [jint(_PACKIT_SETTINGS_ID), jint(_ICON_BG_COLOR), jint(_ICON_BG_COLOR), jint(icon_id), label]
                     )
                     if packit_item is None:
-                        log("settingsActivityHook: packit_item is None")
+                        logx("settingsActivityHook: packit_item is None", True)
                         return
 
                     insert_offset = 1
@@ -124,11 +125,11 @@ def setup_settings_activity_hook(plugin):
                         if pkg == "com.radolyn.ayugram":
                             insert_offset = 2
                     except Exception as e:
-                        log(f"settingsActivityHook: package check error: {e}")
+                        logx(f"settingsActivityHook: package check error: {e}", False)
 
                     items.add(extera_idx + insert_offset, packit_item)
                 except Exception as e:
-                    log(f"settingsActivityHook: FillItemsHook error: {e}")
+                    logx(f"settingsActivityHook: FillItemsHook error: {e}", False)
 
         class OnClickHook(MethodHook):
             def before_hooked_method(self, param):
@@ -148,13 +149,13 @@ def setup_settings_activity_hook(plugin):
                             if plugin_obj and frag:
                                 frag.presentFragment(PluginSettingsActivity(plugin_obj))
                             else:
-                                log(f"settingsActivityHook: plugin_obj={plugin_obj} frag={frag}")
+                                logx(f"settingsActivityHook: plugin_obj={plugin_obj} frag={frag}", True)
                         except Exception as e:
-                            log(f"settingsActivityHook: open settings error: {e}")
+                            logx(f"settingsActivityHook: open settings error: {e}", False)
 
                     run_on_ui_thread(open)
                 except Exception as e:
-                    log(f"settingsActivityHook: OnClickHook error: {e}")
+                    logx(f"settingsActivityHook: OnClickHook error: {e}", False)
 
         class BindViewHook(MethodHook):
             def after_hooked_method(self, param):
@@ -171,14 +172,14 @@ def setup_settings_activity_hook(plugin):
                     if not Theme.isCurrentThemeMonet():
                         icon_view.setColorFilter(_ICON_FG_COLOR, PorterDuff.Mode.SRC_IN)
                 except Exception as e:
-                    log(f"settingsActivityHook: BindViewHook error: {e}")
+                    logx(f"settingsActivityHook: BindViewHook error: {e}", False)
 
         try:
             fill_method = SA.getClass().getDeclaredMethod("fillItems", ArrayList, UniversalAdapter)
             fill_method.setAccessible(True)
             hooks.append(plugin.hook_method(fill_method, FillItemsHook()))
         except Exception as e:
-            log(f"settingsActivityHook: fillItems hook error: {e}")
+            logx(f"settingsActivityHook: fillItems hook error: {e}", False)
 
         try:
             SettingCellFactoryClass = find_class("org.telegram.ui.SettingsActivity$SettingCell$Factory")
@@ -195,7 +196,7 @@ def setup_settings_activity_hook(plugin):
                 bind_method.setAccessible(True)
                 hooks.append(plugin.hook_method(bind_method, BindViewHook()))
         except Exception as e:
-            log(f"settingsActivityHook: bindView hook error: {e}")
+            logx(f"settingsActivityHook: bindView hook error: {e}", False)
 
         try:
             click_method = None
@@ -210,9 +211,9 @@ def setup_settings_activity_hook(plugin):
                 click_method.setAccessible(True)
                 hooks.append(plugin.hook_method(click_method, OnClickHook()))
         except Exception as e:
-            log(f"settingsActivityHook: onClick hook error: {e}")
+            logx(f"settingsActivityHook: onClick hook error: {e}", False)
 
     except Exception as e:
-        log(f"settingsActivityHook: setup error: {e}")
+        logx(f"settingsActivityHook: setup error: {e}", False)
 
     return hooks

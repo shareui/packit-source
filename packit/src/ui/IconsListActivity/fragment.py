@@ -1,6 +1,7 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import json
 import threading
 import re
@@ -15,7 +16,7 @@ from android.graphics.drawable import GradientDrawable
 from java import dynamic_proxy
 from hook_utils import find_class
 import requests
-from android_utils import log, run_on_ui_thread
+from android_utils import run_on_ui_thread
 from client_utils import get_last_fragment, run_on_queue
 from ui.bulletin import BulletinHelper
 try:
@@ -214,76 +215,76 @@ class InstallIconsUI:
         }
 
     def open(self):
-        log("IconList.open: called")
+        logx("IconList.open: called", True)
         fragment = get_last_fragment()
         if not fragment:
-            log("IconList.open: no fragment, aborting")
+            logx("IconList.open: no fragment, aborting", True)
             return
         repos = []
         try:
             raw = self.repoManager.getRepositories() or []
-            log(f"IconList.open: raw repos count={len(raw)}")
+            logx(f"IconList.open: raw repos count={len(raw)}", True)
             for r in raw:
                 try:
                     if not r:
-                        log("IconList.open: skipping null repo")
+                        logx("IconList.open: skipping null repo", True)
                         continue
                     enabled = r.get("enabled")
                     name = str(r.get("name") or "").strip()
                     url = str(r.get("url") or "").strip()
-                    log(f"IconList.open: repo name='{name}' url='{url}' enabled={enabled}")
+                    logx(f"IconList.open: repo name='{name}' url='{url}' enabled={enabled}", True)
                     if not r.get("enabled"):
-                        log(f"IconList.open: skipping disabled repo '{name}'")
+                        logx(f"IconList.open: skipping disabled repo '{name}'", True)
                         continue
                     if name and url:
                         repos.append(r)
                     else:
-                        log(f"IconList.open: skipping repo with empty name or url: name='{name}' url='{url}'")
+                        logx(f"IconList.open: skipping repo with empty name or url: name='{name}' url='{url}'", True)
                 except Exception as e:
-                    log(f"IconList.open: error processing repo: {e}")
+                    logx(f"IconList.open: error processing repo: {e}", False)
                     continue
         except Exception as e:
-            log(f"IconList.open: getRepositories failed: {e}")
-        log(f"IconList.open: usable repos count={len(repos)}")
+            logx(f"IconList.open: getRepositories failed: {e}", False)
+        logx(f"IconList.open: usable repos count={len(repos)}", True)
         if not repos:
-            log("IconList.open: no usable repos, showing error bulletin")
+            logx("IconList.open: no usable repos, showing error bulletin", True)
             BulletinHelper.show_error(str(strings["il_no_repos"]))
             return
         skip_sel = settings.get("skip_repository_selection", False)
-        log(f"IconList.open: skip_repository_selection={skip_sel}")
+        logx(f"IconList.open: skip_repository_selection={skip_sel}", True)
         if skip_sel:
             self._open_all_repos_icons()
             return
         if len(repos) == 1:
-            log(f"IconList.open: single repo, opening directly: {repos[0].get('name')}")
+            logx(f"IconList.open: single repo, opening directly: {repos[0].get('name')}", True)
             self._open_repo_icons(repos[0])
             return
-        log("IconList.open: multiple repos, showing repo sheet")
+        logx("IconList.open: multiple repos, showing repo sheet", True)
         show_icon_repo_sheet(self, repos)
 
     def _open_all_repos_icons(self):
-        log("IconList._open_all_repos_icons: called")
+        logx("IconList._open_all_repos_icons: called", True)
         fragment = get_last_fragment()
         if not fragment:
-            log("IconList._open_all_repos_icons: no fragment, aborting")
+            logx("IconList._open_all_repos_icons: no fragment, aborting", True)
             return
         self._show_icons_universal(strings["all_repositories"], [])
 
         def load_task():
             try:
                 repos = self.repoManager.getRepositories()
-                log(f"IconList._open_all_repos_icons: total repos={len(repos) if repos else 0}")
+                logx(f"IconList._open_all_repos_icons: total repos={len(repos) if repos else 0}", True)
                 all_icons = []
                 for repo in repos:
                     if not repo.get("enabled"):
-                        log(f"IconList._open_all_repos_icons: skipping disabled repo '{repo.get('name')}'")
+                        logx(f"IconList._open_all_repos_icons: skipping disabled repo '{repo.get('name')}'", True)
                         continue
                     repo_id = (repo.get("id") or "").strip()
                     repo_url = (repo.get("url") or "").strip()
                     if not repo_url:
-                        log(f"IconList._open_all_repos_icons: skipping repo '{repo.get('name')}' - empty url")
+                        logx(f"IconList._open_all_repos_icons: skipping repo '{repo.get('name')}' - empty url", True)
                         continue
-                    log(f"IconList._open_all_repos_icons: loading repo '{repo.get('name')}' id='{repo_id}' url='{repo_url}'")
+                    logx(f"IconList._open_all_repos_icons: loading repo '{repo.get('name')}' id='{repo_id}' url='{repo_url}'", True)
                     try:
                         icons_url = repo_url
                         if repo_id:
@@ -295,22 +296,22 @@ class InstallIconsUI:
                             import os
                             from ...utils.paths import getRepoCachePath
                             cache_path = getRepoCachePath(repo_id)
-                            log(f"IconList._open_all_repos_icons: cache_path='{cache_path}' exists={os.path.exists(cache_path)}")
+                            logx(f"IconList._open_all_repos_icons: cache_path='{cache_path}' exists={os.path.exists(cache_path)}", True)
                             if os.path.exists(cache_path):
                                 with open(cache_path, "r", encoding="utf-8") as f:
                                     cached = json.load(f)
                                 icons_url = cached.get("repomap", {}).get("icons") or repo_url
-                                log(f"IconList._open_all_repos_icons: resolved icons_url from cache='{icons_url}'")
+                                logx(f"IconList._open_all_repos_icons: resolved icons_url from cache='{icons_url}'", True)
 
-                        log(f"IconList._open_all_repos_icons: fetching icons from '{icons_url}'")
+                        logx(f"IconList._open_all_repos_icons: fetching icons from '{icons_url}'", True)
                         response = requests.get(icons_url, timeout=10)
-                        log(f"IconList._open_all_repos_icons: repo '{repo.get('name')}' HTTP {response.status_code}")
+                        logx(f"IconList._open_all_repos_icons: repo '{repo.get('name')}' HTTP {response.status_code}", True)
                         if response.status_code != 200:
-                            log(f"IconList._open_all_repos_icons: repo '{repo.get('name')}': HTTP {response.status_code}, skipping")
+                            logx(f"IconList._open_all_repos_icons: repo '{repo.get('name')}': HTTP {response.status_code}, skipping", True)
                             continue
                         config = response.json()
                         icons = config.get("icons", {})
-                        log(f"IconList._open_all_repos_icons: repo '{repo.get('name')}' icons type={type(icons).__name__} len={len(icons) if icons else 0}")
+                        logx(f"IconList._open_all_repos_icons: repo '{repo.get('name')}' icons type={type(icons).__name__} len={len(icons) if icons else 0}", True)
                         if isinstance(icons, dict):
                             for iconId, info in icons.items():
                                 if isinstance(info, dict):
@@ -320,30 +321,30 @@ class InstallIconsUI:
                                 if isinstance(item, dict) and item.get("id"):
                                     all_icons.append({"id": item.get("id"), "repo_name": repo.get("name", "Unknown"), **item})
                     except Exception as e:
-                        log(f"IconList._open_all_repos_icons: failed to load repo '{repo.get('name')}': {e}")
+                        logx(f"IconList._open_all_repos_icons: failed to load repo '{repo.get('name')}': {e}", False)
 
-                log(f"IconList._open_all_repos_icons: total icons collected={len(all_icons)}")
+                logx(f"IconList._open_all_repos_icons: total icons collected={len(all_icons)}", True)
                 run_on_ui_thread(lambda: self._update_current_fragment_icons(all_icons))
             except Exception as e:
                 BulletinHelper.show_error(str(strings["il_load_failed"]))
-                log(f"IconList._open_all_repos_icons: fatal error: {e}")
+                logx(f"IconList._open_all_repos_icons: fatal error: {e}", False)
                 run_on_ui_thread(lambda: self._update_current_fragment_icons([]))
         run_on_queue(load_task)
 
     def _open_repo_icons(self, repo):
         repo_name = repo.get("name") or strings["unnamed"]
         repo_url = (repo.get("url") or "").strip()
-        log(f"IconList._open_repo_icons: repo='{repo_name}' url='{repo_url}'")
+        logx(f"IconList._open_repo_icons: repo='{repo_name}' url='{repo_url}'", True)
         if not repo_url:
-            log("IconList._open_repo_icons: empty url, aborting")
+            logx("IconList._open_repo_icons: empty url, aborting", True)
             BulletinHelper.show_error(str(strings["il_repo_url_empty"]))
             return
         fragment = get_last_fragment()
         if not fragment:
-            log("IconList._open_repo_icons: no fragment, aborting")
+            logx("IconList._open_repo_icons: no fragment, aborting", True)
             return
         repo_id = (repo.get("id") or "").strip()
-        log(f"IconList._open_repo_icons: repo_id='{repo_id}'")
+        logx(f"IconList._open_repo_icons: repo_id='{repo_id}'", True)
         self._show_icons_universal(repo_name, [], repo_id=repo_id)
 
         def load_task():
@@ -358,21 +359,21 @@ class InstallIconsUI:
                     import os
                     from ...utils.paths import getRepoCachePath
                     cache_path = getRepoCachePath(repo_id)
-                    log(f"IconList._open_repo_icons: cache_path='{cache_path}' exists={os.path.exists(cache_path)}")
+                    logx(f"IconList._open_repo_icons: cache_path='{cache_path}' exists={os.path.exists(cache_path)}", True)
                     if os.path.exists(cache_path):
                         with open(cache_path, "r", encoding="utf-8") as f:
                             cached = json.load(f)
                         icons_url = cached.get("repomap", {}).get("icons") or repo_url
-                        log(f"IconList._open_repo_icons: resolved icons_url from cache='{icons_url}'")
+                        logx(f"IconList._open_repo_icons: resolved icons_url from cache='{icons_url}'", True)
 
-                log(f"IconList._open_repo_icons: fetching '{icons_url}'")
+                logx(f"IconList._open_repo_icons: fetching '{icons_url}'", True)
                 r = requests.get(icons_url, timeout=20)
-                log(f"IconList._open_repo_icons: HTTP {r.status_code}")
+                logx(f"IconList._open_repo_icons: HTTP {r.status_code}", True)
                 if r.status_code != 200:
                     raise Exception(f"HTTP {r.status_code}")
                 config = r.json()
                 icons_raw = config.get("icons", [])
-                log(f"IconList._open_repo_icons: icons_raw type={type(icons_raw).__name__} len={len(icons_raw) if icons_raw else 0}")
+                logx(f"IconList._open_repo_icons: icons_raw type={type(icons_raw).__name__} len={len(icons_raw) if icons_raw else 0}", True)
                 icons = []
                 if isinstance(icons_raw, dict):
                     for iid, info in icons_raw.items():
@@ -383,51 +384,51 @@ class InstallIconsUI:
                         if isinstance(item, dict) and item.get("id"):
                             icons.append(item)
                         else:
-                            log(f"IconList._open_repo_icons: skipping list item (no id or not dict): {item}")
+                            logx(f"IconList._open_repo_icons: skipping list item (no id or not dict): {item}", True)
 
-                log(f"IconList._open_repo_icons: parsed icons count={len(icons)}")
+                logx(f"IconList._open_repo_icons: parsed icons count={len(icons)}", True)
                 run_on_ui_thread(lambda: self._update_current_fragment_icons(icons))
             except Exception as e:
                 BulletinHelper.show_error(str(strings["il_download_error"]))
-                log(f"IconList._open_repo_icons: error for url='{repo_url}': {e}")
+                logx(f"IconList._open_repo_icons: error for url='{repo_url}': {e}", False)
                 run_on_ui_thread(lambda: self._update_current_fragment_icons([]))
         run_on_queue(load_task)
 
     def _update_current_fragment_icons(self, icons):
-        log(f"IconList._update_current_fragment_icons: called with icons count={len(icons) if icons else 0}")
+        logx(f"IconList._update_current_fragment_icons: called with icons count={len(icons) if icons else 0}", True)
         try:
             fragment = get_last_fragment()
             if not fragment:
-                log("IconList._update_current_fragment_icons: no fragment")
+                logx("IconList._update_current_fragment_icons: no fragment", True)
                 return
             has_delegate = hasattr(fragment, 'getDelegate')
-            log(f"IconList._update_current_fragment_icons: hasDelegate={has_delegate}")
+            logx(f"IconList._update_current_fragment_icons: hasDelegate={has_delegate}", True)
             if has_delegate and fragment.getDelegate():
                 delegate = fragment.getDelegate()
                 has_icons_attr = hasattr(delegate, 'icons')
-                log(f"IconList._update_current_fragment_icons: delegate={delegate} hasIcons={has_icons_attr}")
+                logx(f"IconList._update_current_fragment_icons: delegate={delegate} hasIcons={has_icons_attr}", True)
                 if has_icons_attr:
                     delegate.icons = icons
                     delegate.search_index = search_mod.build_index(icons)
-                    log(f"IconList._update_current_fragment_icons: search index built for {len(icons)} icons")
+                    logx(f"IconList._update_current_fragment_icons: search index built for {len(icons)} icons", True)
                     delegate.filtered_icons = []
                     delegate.visible_icons = []
                     loading_started = getattr(delegate, '_loading_started', False)
                     has_finish = callable(getattr(delegate, '_finish_loading', None))
-                    log(f"IconList._update_current_fragment_icons: _loading_started={loading_started} _finish_loading callable={has_finish}")
+                    logx(f"IconList._update_current_fragment_icons: _loading_started={loading_started} _finish_loading callable={has_finish}", True)
                     if loading_started and has_finish:
                         delegate._loading_started = False
-                        log("IconList._update_current_fragment_icons: calling _finish_loading via run_on_ui_thread")
+                        logx("IconList._update_current_fragment_icons: calling _finish_loading via run_on_ui_thread", True)
                         run_on_ui_thread(delegate._finish_loading)
                     elif hasattr(delegate, 'results_container') and delegate.results_container:
-                        log(f"IconList._update_current_fragment_icons: calling build_list_with_sort('{delegate.current_sort_type}')")
+                        logx(f"IconList._update_current_fragment_icons: calling build_list_with_sort('{delegate.current_sort_type}')", True)
                         delegate.build_list_with_sort(delegate.current_sort_type)
                     else:
-                        log("IconList._update_current_fragment_icons: no results_container and loading not started, icons not shown")
+                        logx("IconList._update_current_fragment_icons: no results_container and loading not started, icons not shown", True)
             else:
-                log("IconList._update_current_fragment_icons: fragment has no usable delegate")
+                logx("IconList._update_current_fragment_icons: fragment has no usable delegate", True)
         except Exception as e:
-            log(f"IconList._update_current_fragment_icons: error: {e}")
+            logx(f"IconList._update_current_fragment_icons: error: {e}", False)
 
     def _show_icons_universal(self, repo_name: str, icons: list, repo_id: str = ""):
         fragment = get_last_fragment()
@@ -457,9 +458,9 @@ class InstallIconsUI:
                         except Exception:
                             pass
             except Exception as e:
-                log(f"icons: failed to setup action bar: {e}")
+                logx(f"icons: failed to setup action bar: {e}", False)
         except Exception as e:
-            log(f"icons: failed to show universal: {e}")
+            logx(f"icons: failed to show universal: {e}", False)
 
     class IconListFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
         def __init__(self, install_ui, title, icons, show_loading_initial=False, repo_id=""):
@@ -492,7 +493,7 @@ class InstallIconsUI:
 
                 def _on_restore():
                     try:
-                        log("IconList: network restored, reloading icons")
+                        logx("IconList: network restored, reloading icons", True)
                         if self.repo_id:
                             repos = self.install_ui.repoManager.getRepositories() or []
                             for r in repos:
@@ -502,12 +503,12 @@ class InstallIconsUI:
                         else:
                             self.install_ui._open_all_repos_icons()
                     except Exception as e:
-                        log(f"IconList: _on_restore error: {e}")
+                        logx(f"IconList: _on_restore error: {e}", False)
 
                 self._no_internet_banner._on_network_restored_callback = _on_restore
                 self._no_internet_banner.register()
             except Exception as e:
-                log(f"IconList: NoInternetBanner register error: {e}")
+                logx(f"IconList: NoInternetBanner register error: {e}", False)
 
         def onFragmentDestroy(self, *_):
             try:
@@ -516,7 +517,7 @@ class InstallIconsUI:
                     banner.unregister()
                     self._no_internet_banner = None
             except Exception as e:
-                log(f"IconList: NoInternetBanner unregister error: {e}")
+                logx(f"IconList: NoInternetBanner unregister error: {e}", False)
             try:
                 if hasattr(self, 'content_view') and self.content_view is not None:
                     parent = self.content_view.getParent()
@@ -616,7 +617,7 @@ class InstallIconsUI:
                         return False
                 self.search.setOnEditorActionListener(SearchEditorActionListener(self))
             except Exception as ex:
-                log(f"icons: setOnEditorActionListener failed: {ex}")
+                logx(f"icons: setOnEditorActionListener failed: {ex}", True)
 
             class SearchTextWatcher(dynamic_proxy(TextWatcher)):
                 def __init__(self, outer, clear_btn_ref):
@@ -1012,21 +1013,21 @@ class InstallIconsUI:
                     loading_container.addView(_spinner, _lp)
                     self.content_view.addView(loading_container, FrameLayout.LayoutParams(-1, -1))
                 except Exception as e:
-                    log(f"icons: loading spinner error: {e}")
+                    logx(f"icons: loading spinner error: {e}", False)
 
                 # store callback so _update_current_fragment_icons can call it after data arrives
                 _loading_container_ref = loading_container
                 def finish_loading():
                     try:
-                        log(f"IconList.finish_loading: called, icons count={len(self.icons) if self.icons else 0}")
+                        logx(f"IconList.finish_loading: called, icons count={len(self.icons) if self.icons else 0}", True)
                         def _on_spinner_removed():
                             try:
                                 content_wrapper.addView(self.results_container, FrameLayout.LayoutParams(-1, -2))
                                 if self.icons:
-                                    log(f"IconList.finish_loading: building list, icons={len(self.icons)}")
+                                    logx(f"IconList.finish_loading: building list, icons={len(self.icons)}", True)
                                     self.build_list_with_sort("alpha_az")
                                 else:
-                                    log("IconList.finish_loading: icons is empty, showing empty state")
+                                    logx("IconList.finish_loading: icons is empty, showing empty state", True)
                                     self._show_empty_state()
                                 if hasattr(self, 'subtitle'):
                                     self.subtitle.setText(strings["icons_count"].format(len(self.icons)))
@@ -1036,9 +1037,9 @@ class InstallIconsUI:
                                     if banner:
                                         banner.on_config_loaded()
                                 except Exception as e:
-                                    log(f"IconList: NoInternetBanner on_config_loaded error: {e}")
+                                    logx(f"IconList: NoInternetBanner on_config_loaded error: {e}", False)
                             except Exception as e:
-                                log(f"IconList.finish_loading inner error: {e}")
+                                logx(f"IconList.finish_loading inner error: {e}", False)
 
                         if _loading_container_ref is not None:
                             try:
@@ -1058,7 +1059,7 @@ class InstallIconsUI:
                                     _RemoveRunnable(self.content_view, _loading_container_ref)
                                 ).start()
                             except Exception as e:
-                                log(f"IconList.finish_loading: animate failed: {e}")
+                                logx(f"IconList.finish_loading: animate failed: {e}", False)
                                 try:
                                     self.content_view.removeView(_loading_container_ref)
                                 except Exception:
@@ -1067,7 +1068,7 @@ class InstallIconsUI:
                         else:
                             _on_spinner_removed()
                     except Exception as e:
-                        log(f"IconList.finish_loading: error: {e}")
+                        logx(f"IconList.finish_loading: error: {e}", False)
 
                 self._finish_loading = finish_loading
                 self._loading_started = True
@@ -1115,7 +1116,7 @@ class InstallIconsUI:
                     if not self.show_loading_initial:
                         banner.on_config_loaded()
             except Exception as e:
-                log(f"IconList: NoInternetBanner attach error: {e}")
+                logx(f"IconList: NoInternetBanner attach error: {e}", False)
 
             return self.content_view
 
@@ -1143,12 +1144,12 @@ class InstallIconsUI:
                     f = get_last_fragment()
                     if f: f.finishFragment()
                 except Exception as e:
-                    log(f"icons: failed to finish fragment: {e}")
+                    logx(f"icons: failed to finish fragment: {e}", False)
                 return True
             return False
 
         def build_list_with_sort(self, sort_type: str, q=None):
-            log(f"IconList.build_list_with_sort: sort_type='{sort_type}' q='{q}' total_icons={len(self.icons) if self.icons else 0}")
+            logx(f"IconList.build_list_with_sort: sort_type='{sort_type}' q='{q}' total_icons={len(self.icons) if self.icons else 0}", True)
             self.current_sort_type = sort_type
             q = (q or "").strip()
             if q != self.last_search_query:
@@ -1187,7 +1188,7 @@ class InstallIconsUI:
                     filtered.sort(key=lambda i: str(i.get("author") or "").lower())
 
             self.filtered_icons = filtered
-            log(f"IconList.build_list_with_sort: filtered count={len(filtered)}")
+            logx(f"IconList.build_list_with_sort: filtered count={len(filtered)}", True)
 
             if hasattr(self, 'subtitle'):
                 self.subtitle.setText(strings["icons_count"].format(len(self.icons)))
@@ -1198,17 +1199,17 @@ class InstallIconsUI:
                 act = fragment.getContext() if fragment else None
 
             if not filtered:
-                log("IconList.build_list_with_sort: filtered is empty, calling _show_empty_state")
+                logx("IconList.build_list_with_sort: filtered is empty, calling _show_empty_state", True)
                 self._show_empty_state()
             else:
-                log(f"IconList.build_list_with_sort: loading initial batch of {min(self.batch_size, len(filtered))}")
+                logx(f"IconList.build_list_with_sort: loading initial batch of {min(self.batch_size, len(filtered))}", True)
                 self._load_initial_batch()
 
         def build_list(self, q):
             self.build_list_with_sort(self.current_sort_type, q)
 
         def _show_empty_state(self):
-            log(f"IconList._show_empty_state: called, icons={len(self.icons) if self.icons else 0} filtered={len(self.filtered_icons) if self.filtered_icons else 0} last_query='{self.last_search_query}'")
+            logx(f"IconList._show_empty_state: called, icons={len(self.icons) if self.icons else 0} filtered={len(self.filtered_icons) if self.filtered_icons else 0} last_query='{self.last_search_query}'", True)
             try:
                 fragment = get_last_fragment()
                 act = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
@@ -1234,7 +1235,7 @@ class InstallIconsUI:
                 self.results_container.addView(empty_container, LayoutHelper.createLinear(-1, -2))
                 self.is_loading = False
             except Exception as e:
-                log(f"icons: empty state error: {e}")
+                logx(f"icons: empty state error: {e}", False)
 
         def _add_items_with_animation(self, items_to_add):
             try:
@@ -1278,7 +1279,7 @@ class InstallIconsUI:
                         pass
                 self.is_loading = False
             except Exception as e:
-                log(f"icons: add items error: {e}")
+                logx(f"icons: add items error: {e}", False)
                 self.is_loading = False
 
         def _load_initial_batch(self):
@@ -1295,7 +1296,7 @@ class InstallIconsUI:
                             items_to_add.append(self.make_item(icon))
                     run_on_ui_thread(lambda: self._add_items_with_animation(items_to_add))
                 except Exception as e:
-                    log(f"icons: initial batch error: {e}")
+                    logx(f"icons: initial batch error: {e}", False)
                     self.is_loading = False
             threading.Thread(target=load_batch, daemon=True).start()
 
@@ -1317,7 +1318,7 @@ class InstallIconsUI:
                             items_to_add.append(self.make_item(icon))
                     run_on_ui_thread(lambda: self._add_items_with_animation(items_to_add))
                 except Exception as e:
-                    log(f"icons: batch load error: {e}")
+                    logx(f"icons: batch load error: {e}", False)
                     self.is_loading = False
             threading.Thread(target=load_batch, daemon=True).start()
 
@@ -1366,7 +1367,7 @@ class InstallIconsUI:
                     except Exception:
                         pass
                 except Exception as ex:
-                    log(f"icons ticker: tick error: {ex}")
+                    logx(f"icons ticker: tick error: {ex}", True)
 
             class _TickerRunnable(dynamic_proxy(Runnable)):
                 def __init__(self):
@@ -1390,7 +1391,7 @@ class InstallIconsUI:
                     if registry:
                         registry[0][0].postDelayed(ticker_runnable[0], 2000)
                 except Exception as ex:
-                    log(f"icons ticker: post_start error: {ex}")
+                    logx(f"icons ticker: post_start error: {ex}", True)
             run_on_ui_thread(post_start)
 
         def make_item(self, icon):
@@ -1504,7 +1505,7 @@ class InstallIconsUI:
                                     canvas = Canvas(bmp)
                                     svg.renderToCanvas(canvas)
                                 except Exception as e:
-                                    log(f"icons svg render error: {e}")
+                                    logx(f"icons svg render error: {e}", False)
                                     continue
                             else:
                                 BitmapFactory = find_class("android.graphics.BitmapFactory")
@@ -1521,7 +1522,7 @@ class InstallIconsUI:
                                 cache[url] = bmp
                         loaded.append(bmp)
                     except Exception as e:
-                        log(f"icons preview load error: {e}")
+                        logx(f"icons preview load error: {e}", False)
                 # show a random bitmap from all loaded ones
                 if loaded:
                     import random
@@ -1537,7 +1538,7 @@ class InstallIconsUI:
                     from ...core import install_icon_pack
                     install_icon_pack(_icon)
                 except Exception as ex:
-                    log(f"icons: card click error: {ex}")
+                    logx(f"icons: card click error: {ex}", True)
             card.setOnClickListener(OnClickListener(_on_click))
 
             def _on_long_click(v, _icon=icon, _repo_id=self.repo_id):
@@ -1563,14 +1564,14 @@ class InstallIconsUI:
                             str(strings["link_copied"])
                         ).show()
                     except Exception as _be:
-                        log(f"icons: copy bulletin error: {_be}")
+                        logx(f"icons: copy bulletin error: {_be}", True)
                     try:
                         from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
                         increment_category("Copying links")
                     except Exception:
                         pass
                 except Exception as ex:
-                    log(f"icons: card long click error: {ex}")
+                    logx(f"icons: card long click error: {ex}", True)
                 return True
             card.setOnLongClickListener(OnLongClickListener(_on_long_click))
             self.install_ui._apply_press_scale(card)

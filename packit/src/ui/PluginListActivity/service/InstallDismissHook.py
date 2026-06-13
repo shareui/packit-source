@@ -1,9 +1,10 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 from base_plugin import MethodHook
 from hook_utils import find_class
-from android_utils import log
+
 
 
 class _InstallSuccessHook(MethodHook):
@@ -16,11 +17,11 @@ class _InstallSuccessHook(MethodHook):
                 from ....ui.AchievementsActivity.service.AchivementsEngine import increment_category
                 increment_category("Installing plugins")
             except Exception as e:
-                log(f"installSuccessHook: achievements increment error: {e}")
+                logx(f"installSuccessHook: achievements increment error: {e}", False)
             from ....utils.installIndex import commit_pending
             commit_pending()
         except Exception as e:
-            log(f"installSuccessHook: error: {e}")
+            logx(f"installSuccessHook: error: {e}", False)
 
 
 def setup_install_dismiss_hook(plugin) -> list:
@@ -30,7 +31,7 @@ def setup_install_dismiss_hook(plugin) -> list:
             "com.exteragram.messenger.plugins.ui.components.InstallPluginBottomSheet"
         )
         if not InstallSheet:
-            log("installDismissHook: InstallPluginBottomSheet not found")
+            logx("installDismissHook: InstallPluginBottomSheet not found", True)
             return hooks
 
         target = None
@@ -45,13 +46,13 @@ def setup_install_dismiss_hook(plugin) -> list:
                 break
 
         if target is None:
-            log("installDismissHook: load callback lambda not found")
+            logx("installDismissHook: load callback lambda not found", True)
             return hooks
 
         target.setAccessible(True)
         hooks.append(plugin.hook_method(target, _InstallSuccessHook()))
-        log(f"installDismissHook: install success hook registered ({target.getName()})")
+        logx(f"installDismissHook: install success hook registered ({target.getName()})", True)
     except Exception as e:
-        log(f"installDismissHook: setup error: {e}")
+        logx(f"installDismissHook: setup error: {e}", False)
 
     return hooks

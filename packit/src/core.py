@@ -1,10 +1,11 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import os
 import threading
 import requests
-from android_utils import log, run_on_ui_thread
+from android_utils import run_on_ui_thread
 from client_utils import get_last_fragment
 from hook_utils import find_class
 from ui.bulletin import BulletinHelper
@@ -71,7 +72,7 @@ def _fire_install_listeners(plugin_id: str):
         try:
             fn(plugin_id)
         except Exception as e:
-            log(f"core: install listener error: {e}")
+            logx(f"core: install listener error: {e}", False)
 
 
 def _get_real_dialog(dlg):
@@ -164,7 +165,7 @@ def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button,
                     )
                     observer_ref[0] = None
             except Exception as e:
-                log(f"core: removeObserver error: {e}")
+                logx(f"core: removeObserver error: {e}", False)
             # fire callbacks
             try:
                 if on_finish:
@@ -176,18 +177,18 @@ def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button,
                     from .utils.installIndex import commit_elyx_pending
                     commit_elyx_pending(plugin_info, rm_rid, original_path=temp_path)
                 except Exception as e:
-                    log(f"core: elyx index commit error: {e}")
+                    logx(f"core: elyx index commit error: {e}", False)
             _fire_install_listeners(plugin_id)
 
             try:
                 restart = plugin_info.get("restart")
-                log(f"core: check restart={restart}")
+                logx(f"core: check restart={restart}", True)
                 if restart in ("required", "optional"):
-                    log("core: calling show_restart_dialog")
+                    logx("core: calling show_restart_dialog", True)
                     from .ui.restartDialog import show_restart_dialog
                     show_restart_dialog(restart, fragment)
             except Exception as e:
-                log(f"core: restart dialog error: {e}")
+                logx(f"core: restart dialog error: {e}", False)
 
         try:
             NotificationCenterDelegate = find_class(
@@ -202,7 +203,7 @@ def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button,
             NotificationCenter.getGlobalInstance().addObserver(obs, NotificationCenter.pluginsUpdated)
             observer_ref[0] = obs
         except Exception as e:
-            log(f"core: addObserver error: {e}")
+            logx(f"core: addObserver error: {e}", False)
             # fallback: fire on_finish with False so caller isn't stuck
             try:
                 if on_finish:
@@ -320,7 +321,7 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
                         bithash=str(plugin_info.get("bithash") or ""),
                         label=str(plugin_info.get("id") or cache_path),
                     ):
-                        log(f"core: cache hit for '{plugin_id}', using local file")
+                        logx(f"core: cache hit for '{plugin_id}', using local file", True)
                         try:
                             os.remove(temp_path)
                         except Exception:
@@ -334,7 +335,7 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
                         os.chmod(temp_path, 0o644)
                         _set_progress(dlg, 100)
                         _dismiss_dialog(dlg)
-                        log(f"core: succ_download (cache) for '{plugin_id}'")
+                        logx(f"core: succ_download (cache) for '{plugin_id}'", True)
                         if succ_download:
                             run_on_ui_thread(succ_download)
                         run_on_ui_thread(lambda: _open_install_dialog(
@@ -343,13 +344,13 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
                         ))
                         return
                     else:
-                        log(f"core: cache miss for '{plugin_id}': hash mismatch, re-downloading")
+                        logx(f"core: cache miss for '{plugin_id}': hash mismatch, re-downloading", True)
                 except Exception as e:
-                    log(f"core: cache check error for '{plugin_id}': {e}")
+                    logx(f"core: cache check error for '{plugin_id}': {e}", False)
 
             r = requests.get(url, stream=True, timeout=30, headers={"User-Agent": "PackIt/1.0 (Android; github.com/shareui/packit)"})
             if r.status_code != 200:
-                log(f"core.install_plugin: failed to download '{plugin_id}' from '{url}': HTTP {r.status_code}")
+                logx(f"core.install_plugin: failed to download '{plugin_id}' from '{url}': HTTP {r.status_code}", True)
                 _dismiss_dialog(dlg)
                 if r.status_code == 404:
                     try:
@@ -412,14 +413,14 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
                         os.remove(cache_path)
                     shutil.copy2(temp_path, cache_path)
                     os.chmod(cache_path, 0o644)
-                    log(f"core: cached '{plugin_id}' to {cache_path}")
+                    logx(f"core: cached '{plugin_id}' to {cache_path}", True)
                 except Exception as e:
                     # cache is best-effort; permission errors on some devices are expected
-                    log(f"core: skipping cache for '{plugin_id}': {e}")
+                    logx(f"core: skipping cache for '{plugin_id}': {e}", False)
 
             _dismiss_dialog(dlg)
 
-            log(f"core: succ_download (network) for '{plugin_id}'")
+            logx(f"core: succ_download (network) for '{plugin_id}'", True)
             if succ_download:
                 run_on_ui_thread(succ_download)
 
@@ -428,7 +429,7 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
                 loading_view, button, icon_view, original_icon_id, on_finish, rm_rid
             ))
         except Exception as e:
-            log(f"core.install_plugin: error downloading '{plugin_id}' from '{url}': {e}")
+            logx(f"core.install_plugin: error downloading '{plugin_id}' from '{url}': {e}", False)
             _dismiss_dialog(dlg)
             run_on_ui_thread(lambda: BulletinHelper.show_error(_s("core_download_error")))
             try:
@@ -467,7 +468,7 @@ def install_icon_pack(icon_info: dict):
         try:
             r = requests.get(url, stream=True, timeout=30, headers={"User-Agent": "PackIt/1.0 (Android; github.com/shareui/packit)"})
             if r.status_code != 200:
-                log(f"core.install_icon_pack: HTTP {r.status_code} for '{pack_id}'")
+                logx(f"core.install_icon_pack: HTTP {r.status_code} for '{pack_id}'", True)
                 _dismiss_dialog(dlg)
                 run_on_ui_thread(lambda: BulletinHelper.show_error(_s("core_iconpack_http_error", code=r.status_code)))
                 return
@@ -524,10 +525,10 @@ def install_icon_pack(icon_info: dict):
                     InstallIconPackBottomSheet = jclass(s)
                     if ip:
                         _cached_icon_pack_cls_name = ip
-                    log(f"core.install_icon_pack: classes loaded from cache: delegate={d} sheet={s} icon_pack={ip}")
+                    logx(f"core.install_icon_pack: classes loaded from cache: delegate={d} sheet={s} icon_pack={ip}", True)
                     return True
                 except Exception as e:
-                    log(f"core.install_icon_pack: cache load error: {e}")
+                    logx(f"core.install_icon_pack: cache load error: {e}", False)
                     return False
 
             def _save_classes_to_cache(delegate: str, sheet: str, icon_pack: str = ""):
@@ -538,9 +539,9 @@ def install_icon_pack(icon_info: dict):
                     os.makedirs(os.path.dirname(p), exist_ok=True)
                     with open(p, "w") as f:
                         _j.dump({"delegate": delegate, "sheet": sheet, "icon_pack": icon_pack}, f)
-                    log(f"core.install_icon_pack: classes cached: delegate={delegate} sheet={sheet} icon_pack={icon_pack}")
+                    logx(f"core.install_icon_pack: classes cached: delegate={delegate} sheet={sheet} icon_pack={icon_pack}", True)
                 except Exception as e:
-                    log(f"core.install_icon_pack: cache save error: {e}")
+                    logx(f"core.install_icon_pack: cache save error: {e}", False)
 
             if not _load_classes_from_cache():
                 try:
@@ -564,7 +565,7 @@ def install_icon_pack(icon_info: dict):
                             pts = [p.getName() for p in methods[0].getParameterTypes()]
                             if pts == ["boolean", "boolean"]:
                                 _install_delegate_name = cname
-                                log(f"core.install_icon_pack: InstallDelegate found via DexFile: {cname}")
+                                logx(f"core.install_icon_pack: InstallDelegate found via DexFile: {cname}", True)
                                 break
                         except Exception:
                             continue
@@ -572,7 +573,7 @@ def install_icon_pack(icon_info: dict):
                     if _install_delegate_name:
                         InstallDelegate = jclass(_install_delegate_name)
                 except Exception as e:
-                    log(f"core.install_icon_pack: InstallDelegate DexFile scan error: {e}")
+                    logx(f"core.install_icon_pack: InstallDelegate DexFile scan error: {e}", False)
 
                 try:
                     cl_s = IconPackStorageCls.getClass().getClassLoader()
@@ -597,7 +598,7 @@ def install_icon_pack(icon_info: dict):
                                         and _install_delegate_name
                                         and pts_s[2] == _install_delegate_name):
                                     _sheet_class_name = cname_s
-                                    log(f"core.install_icon_pack: InstallIconPackBottomSheet found via DexFile: {cname_s}")
+                                    logx(f"core.install_icon_pack: InstallIconPackBottomSheet found via DexFile: {cname_s}", True)
                                     break
                         except Exception:
                             pass
@@ -607,17 +608,17 @@ def install_icon_pack(icon_info: dict):
                     if _sheet_class_name:
                         InstallIconPackBottomSheet = jclass(_sheet_class_name)
                 except Exception as e:
-                    log(f"core.install_icon_pack: InstallIconPackBottomSheet DexFile scan error: {e}")
+                    logx(f"core.install_icon_pack: InstallIconPackBottomSheet DexFile scan error: {e}", False)
 
                 if _install_delegate_name and _sheet_class_name:
                     _save_classes_to_cache(_install_delegate_name, _sheet_class_name)
 
             if InstallIconPackBottomSheet is None:
-                log(f"core.install_icon_pack: InstallIconPackBottomSheet not found, falling back to OBF name")
+                logx(f"core.install_icon_pack: InstallIconPackBottomSheet not found, falling back to OBF name", True)
                 try:
                     InstallIconPackBottomSheet = jclass(OBF_InstallIconPackBottomSheet_EXTERAGRAM)
                 except Exception as e:
-                    log(f"core.install_icon_pack: InstallIconPackBottomSheet fallback load failed: {e}")
+                    logx(f"core.install_icon_pack: InstallIconPackBottomSheet fallback load failed: {e}", False)
 
             # R8 removed INSTANCE field but methods are instance methods on the singleton.
             # Get the singleton via static field that holds self-reference (Kotlin object companion pattern).
@@ -629,14 +630,14 @@ def install_icon_pack(icon_info: dict):
                     val = f.get(None)
                     if val is not None and val.getClass().getName() == OBF_IconPackStorage_EXTERAGRAM:
                         IconPackStorageInst = val
-                        log(f"core.install_icon_pack: IconPackStorage instance via field '{f.getName()}'")
+                        logx(f"core.install_icon_pack: IconPackStorage instance via field '{f.getName()}'", True)
                         break
                 if IconPackStorageInst is None:
                     # fallback: use the jclass wrapper itself as receiver
                     IconPackStorageInst = IconPackStorageCls
-                    log(f"core.install_icon_pack: IconPackStorage instance fallback to jclass")
+                    logx(f"core.install_icon_pack: IconPackStorage instance fallback to jclass", True)
             except Exception as e:
-                log(f"core.install_icon_pack: IconPackStorage instance error: {e}")
+                logx(f"core.install_icon_pack: IconPackStorage instance error: {e}", False)
                 IconPackStorageInst = IconPackStorageCls
 
             # find installPack (q) by name — used later in open_sheet
@@ -652,14 +653,14 @@ def install_icon_pack(icon_info: dict):
                         installPackMethod = m
                         break
             except Exception as e:
-                log(f"core.install_icon_pack: installPack method resolve error: {e}")
+                logx(f"core.install_icon_pack: installPack method resolve error: {e}", False)
 
             try:
                 RunBlocking = jclass("kotlinx.coroutines.BuildersKt")
                 EmptyCoroutineContext = jclass("kotlin.coroutines.EmptyCoroutineContext")
                 Function2 = jclass("kotlin.jvm.functions.Function2")
             except Exception as e:
-                log(f"core.install_icon_pack: coroutine classes load error: {e}")
+                logx(f"core.install_icon_pack: coroutine classes load error: {e}", False)
 
             # IconManager is lazy-loaded and obfuscated — skip for now, setActiveCustomPack is non-critical
             IconManager = None
@@ -672,11 +673,11 @@ def install_icon_pack(icon_info: dict):
                         f.setAccessible(True)
                         val = f.get(None)
                         if val is not None and val.getClass().getName() == cls_obj.getName():
-                            log(f"core.install_icon_pack: {label} instance via field '{f.getName()}'")
+                            logx(f"core.install_icon_pack: {label} instance via field '{f.getName()}'", True)
                             return val
                     return None
                 except Exception as e:
-                    log(f"core.install_icon_pack: {label} instance failed: {e}")
+                    logx(f"core.install_icon_pack: {label} instance failed: {e}", False)
                     return None
 
             # parse zip on Python side to avoid Chaquopy converting IconPack->bool via suspend reflection
@@ -686,7 +687,7 @@ def install_icon_pack(icon_info: dict):
             try:
                 with zipfile.ZipFile(tmp_path, "r") as zf:
                     if "metadata.json" not in zf.namelist():
-                        log(f"core.install_icon_pack: metadata.json not found in zip")
+                        logx(f"core.install_icon_pack: metadata.json not found in zip", True)
                     else:
                         meta = _json.loads(zf.read("metadata.json").decode("utf-8"))
                         pack_id_meta = meta.get("packId") or meta.get("id") or ""
@@ -709,9 +710,9 @@ def install_icon_pack(icon_info: dict):
                         if _cached_icon_pack_cls_name:
                             try:
                                 IconPackCls = cl.loadClass(_cached_icon_pack_cls_name)
-                                log(f"core.install_icon_pack: IconPack class loaded from cache: {_cached_icon_pack_cls_name}")
+                                logx(f"core.install_icon_pack: IconPack class loaded from cache: {_cached_icon_pack_cls_name}", True)
                             except Exception as e:
-                                log(f"core.install_icon_pack: IconPack cache load failed: {e}")
+                                logx(f"core.install_icon_pack: IconPack cache load failed: {e}", False)
                                 IconPackCls = None
                         if IconPackCls is None:
                             try:
@@ -728,7 +729,7 @@ def install_icon_pack(icon_info: dict):
                                             p2 = [p.getName() for p in ctor2.getParameterTypes()]
                                             if p2[:4] == ["java.lang.String"] * 4 and "java.io.File" in p2 and "java.util.Map" in p2:
                                                 IconPackCls = c2
-                                                log(f"core.install_icon_pack: IconPack class found: {cname2}")
+                                                logx(f"core.install_icon_pack: IconPack class found: {cname2}", True)
                                                 break
                                     except Exception:
                                         pass
@@ -736,7 +737,7 @@ def install_icon_pack(icon_info: dict):
                                         break
                                 dex2.close()
                             except Exception as dex_e:
-                                log(f"core.install_icon_pack: IconPack DexFile scan error: {dex_e}")
+                                logx(f"core.install_icon_pack: IconPack DexFile scan error: {dex_e}", True)
 
                         if IconPackCls is not None:
                             _save_classes_to_cache(
@@ -746,10 +747,10 @@ def install_icon_pack(icon_info: dict):
                             )
 
                         if IconPackCls is None:
-                            log(f"core.install_icon_pack: IconPack class not found")
+                            logx(f"core.install_icon_pack: IconPack class not found", True)
                         else:
                             ctors = IconPackCls.getDeclaredConstructors()
-                            log(f"core.install_icon_pack: IconPack ctors: {[(c.getName(), [p.getName() for p in c.getParameterTypes()]) for c in ctors]}")
+                            logx(f"core.install_icon_pack: IconPack ctors: {[(c.getName(), [p.getName() for p in c.getParameterTypes()]) for c in ctors]}", True)
                             for ctor in ctors:
                                 ptypes = [p.getName() for p in ctor.getParameterTypes()]
                                 if any("DefaultConstructorMarker" in p for p in ptypes):
@@ -767,21 +768,21 @@ def install_icon_pack(icon_info: dict):
                                         parsed_pack = ctor.newInstance(pack_id_meta, pack_name, pack_author, pack_version, icons_map)
                                     else:
                                         continue
-                                    log(f"core.install_icon_pack: IconPack created ctor({n} args): id={pack_id_meta} name={pack_name}")
+                                    logx(f"core.install_icon_pack: IconPack created ctor({n} args): id={pack_id_meta} name={pack_name}", True)
                                     break
                                 except Exception as ce:
-                                    log(f"core.install_icon_pack: ctor({n} args) failed: {ce}")
+                                    logx(f"core.install_icon_pack: ctor({n} args) failed: {ce}", True)
                 if parsed_pack is None:
-                    log(f"core.install_icon_pack: IconPack construction failed for '{pack_id}'")
+                    logx(f"core.install_icon_pack: IconPack construction failed for '{pack_id}'", True)
             except Exception as e:
-                log(f"core.install_icon_pack: zip parse error: {e}")
+                logx(f"core.install_icon_pack: zip parse error: {e}", False)
 
 
 
             _dismiss_dialog(dlg)
 
             if parsed_pack is None:
-                log(f"core.install_icon_pack: parsePackFromZip returned None for '{pack_id}'")
+                logx(f"core.install_icon_pack: parsePackFromZip returned None for '{pack_id}'", True)
                 run_on_ui_thread(lambda: BulletinHelper.show_error(_s("core_iconpack_read_failed")))
                 return
 
@@ -792,7 +793,7 @@ def install_icon_pack(icon_info: dict):
                         return
 
                     if InstallIconPackBottomSheet is None or InstallDelegate is None:
-                        log(f"core.install_icon_pack: InstallIconPackBottomSheet or InstallDelegate not loaded")
+                        logx(f"core.install_icon_pack: InstallIconPackBottomSheet or InstallDelegate not loaded", True)
                         return
 
                     class _Delegate(dynamic_proxy(InstallDelegate)):
@@ -802,7 +803,7 @@ def install_icon_pack(icon_info: dict):
                             def do_install():
                                 try:
                                     if installPackMethod is None:
-                                            log(f"core.install_icon_pack: installPack method not found")
+                                            logx(f"core.install_icon_pack: installPack method not found", True)
                                             return
 
                                     class _InstallBlock(dynamic_proxy(Function2)):
@@ -811,9 +812,9 @@ def install_icon_pack(icon_info: dict):
 
                                     try:
                                         install_result = RunBlocking.runBlocking(EmptyCoroutineContext.INSTANCE, _InstallBlock())
-                                        log(f"core.install_icon_pack: installPack result={install_result}")
+                                        logx(f"core.install_icon_pack: installPack result={install_result}", True)
                                     except Exception as e:
-                                        log(f"core.install_icon_pack: installPack runBlocking error: {e}")
+                                        logx(f"core.install_icon_pack: installPack runBlocking error: {e}", False)
                                         install_result = None
 
                                     result = install_result is not None and bool(install_result)
@@ -827,14 +828,14 @@ def install_icon_pack(icon_info: dict):
                                                 IconManagerSetActivePack.setAccessible(True)
                                                 run_on_ui_thread(lambda: IconManagerSetActivePack.invoke(im_inst, pack_id))
                                             except Exception as e:
-                                                log(f"core.install_icon_pack: setActiveCustomPack error: {e}")
+                                                logx(f"core.install_icon_pack: setActiveCustomPack error: {e}", False)
                                         elif enableAfterInstall:
-                                            log(f"core.install_icon_pack: IconManager not found, skipping setActiveCustomPack")
+                                            logx(f"core.install_icon_pack: IconManager not found, skipping setActiveCustomPack", True)
                                         run_on_ui_thread(lambda: BulletinHelper.show_success(_s("core_iconpack_installed", name=name)))
                                     else:
                                         run_on_ui_thread(lambda: BulletinHelper.show_error(_s("core_installation_failed")))
                                 except Exception as ex:
-                                    log(f"core.install_icon_pack: installPack error: {ex}")
+                                    logx(f"core.install_icon_pack: installPack error: {ex}", True)
                                     run_on_ui_thread(lambda: BulletinHelper.show_error(_s("core_error_generic", error=ex)))
                                 finally:
                                     try:
@@ -850,7 +851,7 @@ def install_icon_pack(icon_info: dict):
                     try:
                         realSheetCls = InstallIconPackBottomSheet.getClass() if InstallIconPackBottomSheet is not None else None
                         if realSheetCls is None:
-                            log(f"core.install_icon_pack: realSheetCls is None, cannot create sheet")
+                            logx(f"core.install_icon_pack: realSheetCls is None, cannot create sheet", True)
                         else:
                             for ctor in realSheetCls.getDeclaredConstructors():
                                 ptypes = [p.getName() for p in ctor.getParameterTypes()]
@@ -860,24 +861,24 @@ def install_icon_pack(icon_info: dict):
                                         and ptypes[2] == _install_delegate_name):
                                     ctor.setAccessible(True)
                                     sheet = ctor.newInstance(ctx, pp, delegate_inst)
-                                    log(f"core.install_icon_pack: sheet created via ctor {ptypes}")
+                                    logx(f"core.install_icon_pack: sheet created via ctor {ptypes}", True)
                                     break
                             if sheet is None:
                                 all_ctors = [(c.getName(), [p.getName() for p in c.getParameterTypes()]) for c in realSheetCls.getDeclaredConstructors()]
-                                log(f"core.install_icon_pack: sheet ctor not found, ctors={all_ctors}")
+                                logx(f"core.install_icon_pack: sheet ctor not found, ctors={all_ctors}", True)
                     except Exception as se:
-                        log(f"core.install_icon_pack: sheet ctor error: {se}")
+                        logx(f"core.install_icon_pack: sheet ctor error: {se}", True)
                     if sheet is None:
                         BulletinHelper.show_error(_s("core_install_sheet_failed", error="sheet ctor failed"))
                         return
                     frag.showDialog(sheet)
                 except Exception as ex:
-                    log(f"core.install_icon_pack: open_sheet error: {ex}")
+                    logx(f"core.install_icon_pack: open_sheet error: {ex}", True)
                     BulletinHelper.show_error(_s("core_install_sheet_failed", error=ex))
 
             run_on_ui_thread(open_sheet)
         except Exception as e:
-            log(f"core.install_icon_pack: error: {e}")
+            logx(f"core.install_icon_pack: error: {e}", False)
             _dismiss_dialog(dlg)
             run_on_ui_thread(lambda: BulletinHelper.show_error(_s("core_iconpack_download_error")))
 
@@ -899,9 +900,9 @@ def install_plugin_silent(file_path: str, plugin_data: dict, repo_id: str, on_co
             for t in tags
         )
     except Exception as e:
-        log(f"core.install_plugin_silent: tag check error for '{pid}': {e}")
+        logx(f"core.install_plugin_silent: tag check error for '{pid}': {e}", False)
 
-    log(f"core.install_plugin_silent: is_elyx={is_elyx} for '{pid}'")
+    logx(f"core.install_plugin_silent: is_elyx={is_elyx} for '{pid}'", True)
 
     if is_elyx:
         try:
@@ -912,28 +913,28 @@ def install_plugin_silent(file_path: str, plugin_data: dict, repo_id: str, on_co
             elyx_plugin = ElyxPlugin(plzip=ZipFile(file_path, "r"), raise_errors=False)
 
             def _elyx_complete():
-                log(f"core.install_plugin_silent: elyx install complete for '{pid}'")
+                logx(f"core.install_plugin_silent: elyx install complete for '{pid}'", True)
                 try:
                     commit_elyx_pending(plugin_data, repo_id, original_path=file_path)
                 except Exception as e:
-                    log(f"core.install_plugin_silent: commit_elyx_pending error for '{pid}': {e}")
+                    logx(f"core.install_plugin_silent: commit_elyx_pending error for '{pid}': {e}", False)
                 if on_complete:
                     try:
                         on_complete()
                     except Exception as e:
-                        log(f"core.install_plugin_silent: on_complete error for '{pid}': {e}")
+                        logx(f"core.install_plugin_silent: on_complete error for '{pid}': {e}", False)
 
             def _elyx_error(error):
-                log(f"core.install_plugin_silent: elyx install error for '{pid}': {error}")
+                logx(f"core.install_plugin_silent: elyx install error for '{pid}': {error}", True)
                 if on_error:
                     try:
                         on_error(error)
                     except Exception as e:
-                        log(f"core.install_plugin_silent: on_error error for '{pid}': {e}")
+                        logx(f"core.install_plugin_silent: on_error error for '{pid}': {e}", False)
 
             ElyxEngine.instance.load_from_archive(elyx_plugin, True, _elyx_complete, _elyx_error)
         except Exception as e:
-            log(f"core.install_plugin_silent: elyx path error for '{pid}': {e}")
+            logx(f"core.install_plugin_silent: elyx path error for '{pid}': {e}", False)
             if on_error:
                 try:
                     on_error(e)
@@ -952,11 +953,11 @@ def install_plugin_silent(file_path: str, plugin_data: dict, repo_id: str, on_co
         try:
             set_pending(plugin_data, repo_id)
         except Exception as e:
-            log(f"core.install_plugin_silent: set_pending error for '{pid}': {e}")
+            logx(f"core.install_plugin_silent: set_pending error for '{pid}': {e}", False)
 
         def _on_enabled(error):
             if error:
-                log(f"core.install_plugin_silent: setPluginEnabled error for '{pid}': {error}")
+                logx(f"core.install_plugin_silent: setPluginEnabled error for '{pid}': {error}", True)
                 if on_error:
                     try:
                         on_error(error)
@@ -966,17 +967,17 @@ def install_plugin_silent(file_path: str, plugin_data: dict, repo_id: str, on_co
             try:
                 commit_pending()
             except Exception as e:
-                log(f"core.install_plugin_silent: commit_pending error for '{pid}': {e}")
+                logx(f"core.install_plugin_silent: commit_pending error for '{pid}': {e}", False)
             if on_complete:
                 try:
                     on_complete()
                 except Exception as e:
-                    log(f"core.install_plugin_silent: on_complete error for '{pid}': {e}")
+                    logx(f"core.install_plugin_silent: on_complete error for '{pid}': {e}", False)
 
         def _on_installed(error):
             if not error:
                 return python_engine.setPluginEnabled(pid, True, Callback(_on_enabled))
-            log(f"core.install_plugin_silent: loadPluginFromFile error for '{pid}': {error}")
+            logx(f"core.install_plugin_silent: loadPluginFromFile error for '{pid}': {error}", True)
             if on_error:
                 try:
                     on_error(error)
@@ -985,7 +986,7 @@ def install_plugin_silent(file_path: str, plugin_data: dict, repo_id: str, on_co
 
         run_on_ui_thread(lambda: python_engine.loadPluginFromFile(file_path, None, Callback(_on_installed)))
     except Exception as e:
-        log(f"core.install_plugin_silent: error for '{pid}': {e}")
+        logx(f"core.install_plugin_silent: error for '{pid}': {e}", False)
         if on_error:
             try:
                 on_error(e)
@@ -1005,18 +1006,18 @@ def onlyLocalInstallNoUi(file_path: str, plugin_id: str, on_done):
 
         def on_enabled(error):
             if error:
-                log(f"core.onlyLocalInstallNoUi: setPluginEnabled error for '{plugin_id}': {error}")
+                logx(f"core.onlyLocalInstallNoUi: setPluginEnabled error for '{plugin_id}': {error}", True)
             run_on_ui_thread(lambda: on_done(error))
 
         def on_installed(error):
             if not error:
                 return python_engine.setPluginEnabled(plugin_id, True, Callback(on_enabled))
-            log(f"core.onlyLocalInstallNoUi: loadPluginFromFile error for '{plugin_id}': {error}")
+            logx(f"core.onlyLocalInstallNoUi: loadPluginFromFile error for '{plugin_id}': {error}", True)
             run_on_ui_thread(lambda: on_done(error))
 
         run_on_ui_thread(lambda: python_engine.loadPluginFromFile(file_path, None, Callback(on_installed)))
     except Exception as err:
-        log(f"core.onlyLocalInstallNoUi: error for '{plugin_id}': {err}")
+        logx(f"core.onlyLocalInstallNoUi: error for '{plugin_id}': {err}", True)
         run_on_ui_thread(lambda: on_done(err))
 
 

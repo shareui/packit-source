@@ -1,7 +1,8 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from android_utils import log
+
+from packutil import logx
 from hook_utils import find_class, get_private_field
 from android.text import SpannableStringBuilder
 from android.text import Spanned
@@ -75,21 +76,21 @@ class _TopPanelHook(MethodHook):
             sb.append(entry["text"])
             hint.setText(sb)
         except Exception as e:
-            log(f"[Packit Badges] ChatHook error: {e}")
+            logx(f"[Packit Badges] ChatHook error: {e}", False)
 
 
 def setup_chat_badge_hook(plugin, cache_lookup):
     try:
         chat_cls = find_class("org.telegram.ui.ChatActivity")
         if not chat_cls:
-            log("[Packit Badges] ChatActivity class not found")
+            logx("[Packit Badges] ChatActivity class not found", True)
             return []
         refs = plugin.hook_all_methods(chat_cls, "updateTopPanel", _TopPanelHook(cache_lookup))
         if refs:
-            log(f"[Packit Badges] hooked updateTopPanel ({len(refs)} overload(s))")
+            logx(f"[Packit Badges] hooked updateTopPanel ({len(refs)} overload(s))", True)
         else:
-            log("[Packit Badges] updateTopPanel hook failed")
+            logx("[Packit Badges] updateTopPanel hook failed", True)
         return refs or []
     except Exception as e:
-        log(f"[Packit Badges] chat hook setup error: {e}")
+        logx(f"[Packit Badges] chat hook setup error: {e}", False)
         return []

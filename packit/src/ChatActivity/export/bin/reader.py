@@ -1,22 +1,23 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import json
 import os
 import ctypes
-from android_utils import log
+
 from .writer import _get_configs_dir, _get_lib, _FILE_NAMES
 
 
 def _write_blocks(blocks: dict, account_id: str):
     configs_dir = _get_configs_dir()
     os.makedirs(configs_dir, exist_ok=True)
-    log(f"exportBin: restoring {len(blocks)} blocks for account {account_id[:8]}...")
+    logx(f"exportBin: restoring {len(blocks)} blocks for account {account_id[:8]}...", True)
 
     for key, payload in blocks.items():
         filename = _FILE_NAMES.get(key)
         if not filename:
-            log(f"exportBin: unknown block key '{key}', skipping")
+            logx(f"exportBin: unknown block key '{key}', skipping", True)
             continue
 
         if key == "achievements":
@@ -25,14 +26,14 @@ def _write_blocks(blocks: dict, account_id: str):
             out_path = os.path.join(configs_dir, filename)
             with open(out_path, "w", encoding="utf-8") as f:
                 f.write(payload)
-            log(f"exportBin: restored '{key}' ({len(payload)} bytes)")
+            logx(f"exportBin: restored '{key}' ({len(payload)} bytes)", True)
 
 
 def _merge_achievements(payload: str, account_id: str):
     try:
         incoming = json.loads(payload)
     except Exception as e:
-        log(f"exportBin: achievements parse error: {e}")
+        logx(f"exportBin: achievements parse error: {e}", False)
         return
 
     def _is_hashed_id(k: str) -> bool:
@@ -40,10 +41,10 @@ def _merge_achievements(payload: str, account_id: str):
 
     if incoming and all(_is_hashed_id(k) for k in incoming):
         account_data = incoming.get(account_id, {})
-        log(f"exportBin: achievements per-account format, keys={list(incoming.keys())[:3]}")
+        logx(f"exportBin: achievements per-account format, keys={list(incoming.keys())[:3]}", True)
     else:
         account_data = incoming
-        log("exportBin: achievements flat format")
+        logx("exportBin: achievements flat format", True)
 
     # strip sig wrappers from legacy exports
     depth = 0
@@ -53,11 +54,11 @@ def _merge_achievements(payload: str, account_id: str):
 
     from ....ui.AchievementsActivity.service.AchivementsEngine import load_account_data_for_import
     load_account_data_for_import(account_id, account_data)
-    log(f"exportBin: merged achievements for account {account_id}")
+    logx(f"exportBin: merged achievements for account {account_id}", True)
 
 
 def read_file(file_path: str, user_id: int, install_ts: int) -> tuple:
-    log(f"exportBin: read file={os.path.basename(file_path)} user_id={user_id}")
+    logx(f"exportBin: read file={os.path.basename(file_path)} user_id={user_id}", True)
     lib = _get_lib()
 
     keys_buf     = ctypes.c_char_p()
@@ -78,7 +79,7 @@ def read_file(file_path: str, user_id: int, install_ts: int) -> tuple:
 
     if n < 0:
         err = lib.packit_last_error().decode("utf-8", errors="replace")
-        log(f"exportBin: read failed: {err}")
+        logx(f"exportBin: read failed: {err}", True)
         raise RuntimeError(f"packit_read_file failed: {err}")
 
     def _split_buf(buf, length):
@@ -93,5 +94,5 @@ def read_file(file_path: str, user_id: int, install_ts: int) -> tuple:
         lib.packit_free_buf(payloads_buf)
 
     blocks = dict(zip(keys, payloads))
-    log(f"exportBin: read ok, {n} blocks={list(blocks.keys())} export_user_id={out_uid.value}")
+    logx(f"exportBin: read ok, {n} blocks={list(blocks.keys())} export_user_id={out_uid.value}", True)
     return blocks, int(out_uid.value)

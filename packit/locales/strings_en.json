@@ -1099,6 +1099,13 @@
   "suggest_save_message": "You have saved your previous input.",
   "suggest_save_reset": "Reset",
   "suggest_save_restore": "Restore",
+  "suggest_source_code_label": "Source code",
+  "suggest_source_code_hint": "If your project is in .py, you can leave this option.",
+  "suggest_source_for_moderation": "For moderation",
+  "suggest_source_for_moderation_sub": "Attach the file above as an additional file.",
+  "suggest_source_for_everyone": "For everyone",
+  "suggest_source_link_hint": "Paste the link to the Git/file",
+  "suggest_paid_label": "Paid",
   "sec_packitkey_warning_title": "⚠ WARNING",
   "sec_packitkey_warning_text": "This plugin is likely trying to obtain your API key stored in the PackIt. Installation is strongly discouraged.",
   "contributor_translator": "Translator",
@@ -1133,5 +1140,9 @@
   "pp_closed_source_moderated": "Closed source, but moderated, so you are safe.",
   "beta_build_title": "Beta build",
   "beta_build_msg": "You are not a tester, you shouldn't have installed the PackIt.",
-  "delete_packit": "Delete PackIt"
+  "delete_packit": "Delete PackIt",
+  "debug_menu": "Debug menu",
+  "debug_menu_desc": "Menu for developers",
+  "debug_logs": "Debug logs",
+  "debug_logs_desc": "Enables debug logs for diagnostics"
 }

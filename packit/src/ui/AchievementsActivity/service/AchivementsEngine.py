@@ -1,11 +1,12 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import os
 import json
 import zlib
 import ctypes
-from android_utils import log
+
 try:
     from org.telegram.messenger import ApplicationLoader, UserConfig
 except Exception as e:
@@ -69,14 +70,14 @@ def _get_current_account_id() -> str:
         user_id = UserConfig.getInstance(account).getClientUserId()
         return _hash_account_id(user_id)
     except Exception as e:
-        log(f"achievements._get_current_account_id: {e}")
+        logx(f"achievements._get_current_account_id: {e}", False)
         return "0"
 
 def _load_lib():
     from ....nativeLoader import loadPackitDb
     lib = loadPackitDb()
     if lib is not None:
-        log("packitdb: libpackitdb loaded ok")
+        logx("packitdb: libpackitdb loaded ok", True)
     return lib
 
 _lib = _load_lib()
@@ -86,7 +87,7 @@ _BUF_SIZE = 65536
 
 def _open_db_from_file(path: str, account_id: str):
     if _lib is None:
-        log("packitdb: _lib is None, cannot open db")
+        logx("packitdb: _lib is None, cannot open db", True)
         return None
     if not os.path.exists(path):
         return _lib.packdb_open_from_payload(
@@ -96,16 +97,16 @@ def _open_db_from_file(path: str, account_id: str):
     out_len = ctypes.c_uint32(_BUF_SIZE)
     rc = _lib.packdb_read_raw(path.encode(), account_id.encode(), buf, ctypes.byref(out_len))
     if rc == -3:
-        log(f"packitdb: INVALID sig in {os.path.basename(path)} for {account_id} (file exists, sig mismatch)")
+        logx(f"packitdb: INVALID sig in {os.path.basename(path)} for {account_id} (file exists, sig mismatch)", True)
         return None
     if rc != 0:
-        log(f"packitdb: read_raw error {rc} for {os.path.basename(path)}")
+        logx(f"packitdb: read_raw error {rc} for {os.path.basename(path)}", True)
         return None
     compressed = bytes(buf[:out_len.value])
     try:
         raw = zlib.decompress(compressed)
     except Exception as e:
-        log(f"packitdb: decompress error: {e}")
+        logx(f"packitdb: decompress error: {e}", False)
         return None
     raw_buf = (ctypes.c_uint8 * len(raw))(*raw)
     return _lib.packdb_open_from_payload(
@@ -115,21 +116,21 @@ def _open_db_from_file(path: str, account_id: str):
 
 def _close_and_write(db, path: str, account_id: str):
     if _lib is None:
-        log("packitdb: _lib is None, cannot write db")
+        logx("packitdb: _lib is None, cannot write db", True)
         return
     raw_buf = (ctypes.c_uint8 * _BUF_SIZE)()
     out_len = ctypes.c_uint32(_BUF_SIZE)
     rc = _lib.packdb_serialize_to(db, raw_buf, ctypes.byref(out_len))
     _lib.packdb_close(db)
     if rc != 0:
-        log(f"packitdb: serialize_to error {rc}")
+        logx(f"packitdb: serialize_to error {rc}", True)
         return
     raw = bytes(raw_buf[:out_len.value])
     compressed = zlib.compress(raw, 6)
     cbuf = (ctypes.c_uint8 * len(compressed))(*compressed)
     rc2 = _lib.packdb_write_raw(path.encode(), account_id.encode(), cbuf, len(compressed))
     if rc2 != 0:
-        log(f"packitdb: write_raw error {rc2}")
+        logx(f"packitdb: write_raw error {rc2}", True)
 
 
 def _db_to_dict(db) -> dict:
@@ -167,7 +168,7 @@ def _load_account(account_id: str = None) -> tuple:
     os.makedirs(_get_configs_dir(), exist_ok=True)
     db = _open_db_from_file(_get_db_path(account_id), account_id)
     if not db:
-        log(f"packitdb: load failed for {account_id}, trying snapshot")
+        logx(f"packitdb: load failed for {account_id}, trying snapshot", True)
         db = _open_db_from_file(_get_snap_path(account_id), account_id)
         if not db:
             return {}, False
@@ -192,11 +193,11 @@ def _save_account(data: dict, account_id: str = None):
 
     db = _lib.packdb_open(db_path.encode(), account_id.encode())
     if not db:
-        log("packitdb: packdb_open returned NULL on save")
+        logx("packitdb: packdb_open returned NULL on save", True)
         return
     _dict_to_db(db, data)
     _close_and_write(db, db_path, account_id)
-    log(f"packitdb: saved account {account_id}")
+    logx(f"packitdb: saved account {account_id}", True)
 
 
 def load_account_data_for_import(account_id: str, account_data: dict):
@@ -334,7 +335,7 @@ def sync_completed(data: dict) -> tuple:
 
     new_level = _level_from_xp(total_xp)
     if new_level != current_level:
-        log(f"achievements.sync_completed: level changed {current_level} -> {new_level}, re-checking level achievements")
+        logx(f"achievements.sync_completed: level changed {current_level} -> {new_level}, re-checking level achievements", True)
         for aid in _LEVEL_ACHIEVEMENTS:
             data[aid] = new_level
         for a in ACHIEVEMENTS:
@@ -373,7 +374,7 @@ def _show_achievement_bulletin(achievement: dict, on_hide=None):
                 try:
                     self._fn()
                 except Exception as _e:
-                    log(f"achievements: bulletin runnable error: {_e}")
+                    logx(f"achievements: bulletin runnable error: {_e}", True)
 
         def show():
             fragment = get_last_fragment()
@@ -392,7 +393,7 @@ def _show_achievement_bulletin(achievement: dict, on_hide=None):
                 icon_res = getattr(R_tg.drawable, icon_name)
                 drawable = ContextCompat.getDrawable(ctx, icon_res)
             except Exception as _e:
-                log(f"achievements: bulletin icon error: {_e}")
+                logx(f"achievements: bulletin icon error: {_e}", True)
                 drawable = None
 
             title = str(strings[title_key]) if title_key and title_key in strings else title_fallback
@@ -414,7 +415,7 @@ def _show_achievement_bulletin(achievement: dict, on_hide=None):
 
         run_on_ui_thread(show)
     except Exception as e:
-        log(f"achievements._show_achievement_bulletin: error: {e}")
+        logx(f"achievements._show_achievement_bulletin: error: {e}", False)
 
 
 def _play_achievement_sound():
@@ -423,11 +424,11 @@ def _play_achievement_sound():
         sound_path = os.path.join(os.path.dirname(__file__), "../../../../res/sounds/received-achievement.opus")
         playSound(sound_path, "sfx_achievement", check_pending=False, default=True)
     except Exception as e:
-        log(f"achievements._play_achievement_sound: error: {e}")
+        logx(f"achievements._play_achievement_sound: error: {e}", False)
 
 
 def _notify_newly_completed(newly_completed: list):
-    log(f"achievements._notify_newly_completed: count={len(newly_completed)}")
+    logx(f"achievements._notify_newly_completed: count={len(newly_completed)}", True)
     if not newly_completed:
         return
     _show_achievement_queue(list(newly_completed))
@@ -441,10 +442,10 @@ def _show_achievement_queue(queue: list):
         if settings.get("disable_achievements_notify", False):
             return
     except Exception as e:
-        log(f"achievements._show_achievement_queue: settings check error: {e}")
+        logx(f"achievements._show_achievement_queue: settings check error: {e}", False)
     a = queue[0]
     rest = queue[1:]
-    log(f"achievements._show_achievement_queue: id={a['id']}, remaining={len(rest)}")
+    logx(f"achievements._show_achievement_queue: id={a['id']}, remaining={len(rest)}", True)
     if a.get("playSound", True):
         _play_achievement_sound()
     _show_achievement_bulletin(a, on_hide=lambda: _show_achievement_queue(rest))
@@ -491,14 +492,14 @@ def increment_category(category: str, by: int = 1):
 
 def unlock_secret(achievement_id: str):
     full_id = f"secret_{achievement_id}"
-    log(f"achievements.unlock_secret: id={full_id}")
+    logx(f"achievements.unlock_secret: id={full_id}", True)
     data, ok = _load_account()
     if not ok:
         return
-    log(f"achievements.unlock_secret: current value={data.get(full_id)}, awarded={full_id in data.get('_awarded', [])}")
+    logx(f"achievements.unlock_secret: current value={data.get(full_id)}, awarded={full_id in data.get('_awarded', [])}", True)
     data[full_id] = 1
     data, newly_completed = sync_completed(data)
-    log(f"achievements.unlock_secret: newly_completed={[a['id'] for a in newly_completed]}")
+    logx(f"achievements.unlock_secret: newly_completed={[a['id'] for a in newly_completed]}", True)
     _save_account(data)
     _notify_newly_completed(newly_completed)
 
@@ -549,6 +550,6 @@ def sync_accounts():
             instance = _UC.getInstance(i)
             if instance.isClientActivated():
                 active_ids.add(_hash_account_id(instance.getClientUserId()))
-        log(f"achievements.sync_accounts: active accounts={len(active_ids)}")
+        logx(f"achievements.sync_accounts: active accounts={len(active_ids)}", True)
     except Exception as e:
-        log(f"achievements.sync_accounts: {e}")
+        logx(f"achievements.sync_accounts: {e}", False)

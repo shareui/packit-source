@@ -1,9 +1,10 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 from android.widget import TextView
 from android.util import TypedValue
-from android_utils import log
+
 
 
 def makeTv(ctx, text="", size_dp=16, color=None, bold=False):
@@ -34,7 +35,7 @@ def applyFont(view):
         if isinstance(view, TextView):
             view.setTypeface(tf)
     except Exception as e:
-        log(f"viewUtils: applyFont error: {e}")
+        logx(f"viewUtils: applyFont error: {e}", False)
 
 
 def applyFontToTree(view_group):
@@ -47,7 +48,7 @@ def applyFontToTree(view_group):
             return
         _applyRecursive(view_group, tf)
     except Exception as e:
-        log(f"viewUtils: applyFontToTree error: {e}")
+        logx(f"viewUtils: applyFontToTree error: {e}", False)
 
 
 def _applyRecursive(view, tf):

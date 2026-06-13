@@ -1,4 +1,5 @@
-from android_utils import log
+
+from packutil import logx
 import time
 
 CHECK_PATHS = False
@@ -14,9 +15,9 @@ def _migrate_packitcache():
         new = base + "/packit"
         if os.path.exists(old) and not os.path.exists(new):
             os.rename(old, new)
-            log("PackIt: renamed packitCache -> packit")
+            logx("PackIt: renamed packitCache -> packit", True)
     except Exception as e:
-        log(f"PackIt: rename packitCache error: {e}")
+        logx(f"PackIt: rename packitCache error: {e}", False)
 
 
 def _check_paths():
@@ -37,16 +38,16 @@ def _check_paths():
         }
         for name, path in paths.items():
             exists = os.path.exists(path)
-            log(f"PackIt paths: {name} {'OK' if exists else 'NOT FOUND'} -> {path}")
+            logx(f"PackIt paths: {name} {'OK' if exists else 'NOT FOUND'} -> {path}", True)
     except Exception as e:
-        log(f"PackIt paths: check failed: {e}")
+        logx(f"PackIt paths: check failed: {e}", False)
 
 
 def loadPlugin(plugin):
     try:
         from elyx import settings
     except Exception as e:
-        log(f"PackIt: import settings failed: {e}")
+        logx(f"PackIt: import settings failed: {e}", False)
         return
 
     from ..ui.PluginActivity.fragment import process_start
@@ -67,7 +68,7 @@ def loadPlugin(plugin):
         from ..utils.installIndex import purge_missing
         purge_missing()
     except Exception as e:
-        log(f"PackIt: installIndex purge error: {e}")
+        logx(f"PackIt: installIndex purge error: {e}", False)
     from ..other import isBeta
     from ..other import everyone as _everyone
     isBeta.init()
@@ -80,11 +81,11 @@ def loadPlugin(plugin):
         if load_ok:
             _save_account(data)
     except Exception as e:
-        log(f"PackIt: achievements sync error: {e}")
+        logx(f"PackIt: achievements sync error: {e}", False)
     try:
         plugin._check_identity_achievement()
     except Exception as e:
-        log(f"PackIt: identity achievement check error: {e}")
+        logx(f"PackIt: identity achievement check error: {e}", False)
     plugin.repoManager.updateAllCaches()
     if settings.get("show_startup_status", False):
         plugin._show_startup_bulletin()
@@ -130,4 +131,4 @@ def loadPlugin(plugin):
     if settings.get("update_notifications_bulletin", False):
         plugin._check_update_notifications_bulletin()
     launchTime = time.time() - plugin._launch_start
-    log(f"PackIt was launched in {launchTime:.3f}s, launch time: {launchTime - plugin._init_time:.3f}s, initialization time: {plugin._init_time:.3f}s")
+    logx(f"PackIt was launched in {launchTime:.3f}s, launch time: {launchTime - plugin._init_time:.3f}s, initialization time: {plugin._init_time:.3f}s", True)

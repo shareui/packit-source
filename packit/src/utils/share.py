@@ -1,10 +1,11 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import os
 import requests
 import threading
-from android_utils import log
+
 from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment
 from java.io import File, FileOutputStream
@@ -55,14 +56,14 @@ def _do_share(plugin_info: dict, display_name: str):
                 dlg_ref[0] = loading.create()
                 dlg_ref[0].show()
             except Exception as e:
-                log(f"share: show_spinner error: {e}")
+                logx(f"share: show_spinner error: {e}", False)
 
         def dismiss_spinner():
             try:
                 if dlg_ref[0]:
                     dlg_ref[0].dismiss()
             except Exception as e:
-                log(f"share: dismiss_spinner error: {e}")
+                logx(f"share: dismiss_spinner error: {e}", False)
 
         run_on_ui_thread(show_spinner)
 
@@ -79,7 +80,7 @@ def _do_share(plugin_info: dict, display_name: str):
 
         os.makedirs(download_path, exist_ok=True)
         file_path = os.path.join(download_path, filename)
-        log(f"share: downloading {link} -> {file_path}")
+        logx(f"share: downloading {link} -> {file_path}", True)
 
         r = requests.get(link, timeout=30)
         if r.status_code != 200:
@@ -92,7 +93,7 @@ def _do_share(plugin_info: dict, display_name: str):
         fos = FileOutputStream(temp_file)
         fos.write(r.content)
         fos.close()
-        log(f"share: written {temp_file.length()} bytes")
+        logx(f"share: written {temp_file.length()} bytes", True)
 
         def open_share():
             try:
@@ -123,7 +124,7 @@ def _do_share(plugin_info: dict, display_name: str):
                                 rp = _frag.getResourceProvider()
                                 BulletinFactory.of(container, rp).createSimpleBulletin(R_tg.raw.voip_invite, _strings["plugin_install_success"]).show()
                             except Exception as _be:
-                                log(f"share.ShareDelegate.didShare: {_be}")
+                                logx(f"share.ShareDelegate.didShare: {_be}", True)
                         from android_utils import run_on_ui_thread as _run_ui
                         _run_ui(_show_bulletin)
 
@@ -142,11 +143,11 @@ def _do_share(plugin_info: dict, display_name: str):
                 share_alert.setDelegate(ShareDelegate())
                 frag.showDialog(share_alert)
             except Exception as e:
-                log(f"share: open_share error: {e}")
+                logx(f"share: open_share error: {e}", False)
                 BulletinHelper.show_error(_ss("share_failed"))
 
         run_on_ui_thread(open_share)
     except Exception as e:
-        log(f"share: _do_share error: {e}")
+        logx(f"share: _do_share error: {e}", False)
         from android_utils import run_on_ui_thread
         run_on_ui_thread(lambda: BulletinHelper.show_error(_ss("share_failed")))

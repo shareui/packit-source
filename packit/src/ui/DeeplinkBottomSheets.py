@@ -1,12 +1,13 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 from android.view import View, MotionEvent
 from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView
 from android.view import Gravity
 from android.util import TypedValue
 from android.graphics import Color
-from android_utils import log, run_on_ui_thread
+from android_utils import run_on_ui_thread
 from android_utils import OnClickListener
 from client_utils import get_last_fragment
 from hook_utils import find_class
@@ -323,9 +324,9 @@ def show_deeplink_sheet(link_alias):
                             strings.link_copied
                         ).show()
                     except Exception as e:
-                        log(f"Failed to show bulletin: {e}")
+                        logx(f"Failed to show bulletin: {e}", False)
                 except Exception as e:
-                    log(f"Failed to copy link: {e}")
+                    logx(f"Failed to copy link: {e}", False)
             
             copy_icon.setOnClickListener(OnClickListener(copy_link))
             copy_icon.setClickable(True)
@@ -479,6 +480,6 @@ def show_deeplink_sheet(link_alias):
             sheet.show()
             
         except Exception as e:
-            log(f"Error showing deeplink sheet: {e}")
+            logx(f"Error showing deeplink sheet: {e}", False)
 
     run_on_ui_thread(_show)

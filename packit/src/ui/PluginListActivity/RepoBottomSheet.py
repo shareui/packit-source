@@ -1,12 +1,13 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 from android.view import View
 from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView
 from android.view import Gravity
 from android.util import TypedValue
 from android.graphics import Color
-from android_utils import log, run_on_ui_thread
+from android_utils import run_on_ui_thread
 from android_utils import OnClickListener
 from client_utils import get_last_fragment
 from hook_utils import find_class
@@ -252,6 +253,6 @@ def show_repo_sheet(install_ui, repos, on_select=None):
                 pass
             sheet.show()
         except Exception as e:
-            log(f"repo: repo sheet error: {e}")
+            logx(f"repo: repo sheet error: {e}", False)
 
     run_on_ui_thread(_show)

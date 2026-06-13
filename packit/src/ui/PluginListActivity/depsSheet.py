@@ -1,11 +1,12 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 from android.view import View, Gravity
 from android.widget import LinearLayout, TextView, FrameLayout, ImageView
 from android.util import TypedValue
 from android.graphics.drawable import GradientDrawable
-from android_utils import log, run_on_ui_thread, OnClickListener
+from android_utils import run_on_ui_thread, OnClickListener
 from client_utils import get_last_fragment
 from hook_utils import find_class
 from elyx import strings
@@ -48,7 +49,7 @@ def _check_deps_status(deps: list) -> dict:
                 continue
             result[dep_id] = controller.getPluginEngine(dep_id) is not None
     except Exception as e:
-        log(f"deps_sheet: _check_deps_status error: {e}")
+        logx(f"deps_sheet: _check_deps_status error: {e}", False)
     return result
 
 
@@ -95,7 +96,7 @@ def show_deps_sheet(install_ui, plugin_info: dict, on_confirm, all_plugins: list
             status = _check_deps_status(deps)
             plugin_id = plugin_info.get("id") or "?"
             for dep_id, dep_installed in status.items():
-                log(f"deps_sheet: plugin='{plugin_id}' dep='{dep_id}' installed={dep_installed}")
+                logx(f"deps_sheet: plugin='{plugin_id}' dep='{dep_id}' installed={dep_installed}", True)
 
             header_text = _resolve_header_text(status)
             button_text = _resolve_button_text(status)
@@ -192,7 +193,7 @@ def show_deps_sheet(install_ui, plugin_info: dict, on_confirm, all_plugins: list
                 try:
                     sheet.dismiss()
                 except Exception as e:
-                    log(f"depsSheet: sheet.dismiss error: {e}")
+                    logx(f"depsSheet: sheet.dismiss error: {e}", False)
                 fresh = _check_deps_status(deps)
                 if all(fresh.values()):
                     on_confirm()
@@ -208,7 +209,7 @@ def show_deps_sheet(install_ui, plugin_info: dict, on_confirm, all_plugins: list
                             strings["deps_sheet_need_install"]
                         ).show()
                     except Exception as e:
-                        log(f"depsSheet: bulletin error: {e}")
+                        logx(f"depsSheet: bulletin error: {e}", False)
 
             action_btn.setOnClickListener(OnClickListener(on_action))
             try:
@@ -271,11 +272,11 @@ def show_deps_sheet(install_ui, plugin_info: dict, on_confirm, all_plugins: list
 
                 sheet.setOnDismissListener(_OnDismiss())
             except Exception as e:
-                log(f"depsSheet: setOnDismissListener error: {e}")
+                logx(f"depsSheet: setOnDismissListener error: {e}", False)
 
             sheet.show()
         except Exception as e:
-            log(f"deps_sheet: show error: {e}")
+            logx(f"deps_sheet: show error: {e}", False)
             on_confirm()
 
     run_on_ui_thread(_show)
@@ -350,7 +351,7 @@ def _make_dep_card(act, dep_id, dep_name, dep_version, dep_author, dep_min_versi
                         return True
                     return False
                 except Exception as e:
-                    log(f"depsSheet: icon load error for '{dep_id}': {e}")
+                    logx(f"depsSheet: icon load error for '{dep_id}': {e}", False)
                     return False
 
             if not _try_load():
@@ -360,7 +361,7 @@ def _make_dep_card(act, dep_id, dep_name, dep_version, dep_author, dep_min_versi
                 except Exception:
                     pass
         except Exception as e:
-            log(f"depsSheet: icon init error for '{dep_id}': {e}")
+            logx(f"depsSheet: icon init error for '{dep_id}': {e}", False)
 
     # status icon
     status_icon = ImageView(act)
@@ -509,9 +510,9 @@ def _make_dep_card(act, dep_id, dep_name, dep_version, dep_author, dep_min_versi
                         )
                         observer_registered[0] = None
                     except Exception as e:
-                        log(f"depsSheet: removeObserver error: {e}")
+                        logx(f"depsSheet: removeObserver error: {e}", False)
             except Exception as e:
-                log(f"depsSheet: _do_refresh error for '{dep_id}': {e}")
+                logx(f"depsSheet: _do_refresh error for '{dep_id}': {e}", False)
 
         def on_install(v):
             from ...core import install_plugin
@@ -532,7 +533,7 @@ def _make_dep_card(act, dep_id, dep_name, dep_version, dep_author, dep_min_versi
                     )
                     observer_registered[0] = obs
                 except Exception as e:
-                    log(f"depsSheet: addObserver error: {e}")
+                    logx(f"depsSheet: addObserver error: {e}", False)
             install_plugin(dep_meta, install_ui=install_ui)
 
         install_btn.setOnClickListener(OnClickListener(on_install))

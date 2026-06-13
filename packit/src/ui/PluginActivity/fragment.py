@@ -1,13 +1,14 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import ctypes
 import threading
 from android.view import Gravity, View
 from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView, ProgressBar, HorizontalScrollView
 from android.util import TypedValue
 from android.graphics.drawable import GradientDrawable
-from android_utils import log, run_on_ui_thread, OnClickListener
+from android_utils import run_on_ui_thread, OnClickListener
 from client_utils import get_last_fragment
 from hook_utils import find_class
 from java import dynamic_proxy
@@ -51,7 +52,7 @@ def _read_saved_plugins() -> list:
             data = json.load(f)
         return data if isinstance(data, list) else []
     except Exception as e:
-        log(f"pluginProfile: _read_saved_plugins: {e}")
+        logx(f"pluginProfile: _read_saved_plugins: {e}", False)
         return []
 
 
@@ -61,7 +62,7 @@ def _write_saved_plugins(ids: list):
         with open(_get_saved_plugins_path(), "w", encoding="utf-8") as f:
             json.dump(ids, f, ensure_ascii=False)
     except Exception as e:
-        log(f"pluginProfile: _write_saved_plugins: {e}")
+        logx(f"pluginProfile: _write_saved_plugins: {e}", False)
 
 
 def _add_actionbar_glow(fv):
@@ -76,7 +77,7 @@ def _add_actionbar_glow(fv):
         overlay.setClickable(False)
         fv.addView(overlay, LayoutHelper.createFrame(-1, 24, 0x30, 0, 0, 0, 0))
     except Exception as e:
-        log(f"pluginProfile: _add_actionbar_glow: {e}")
+        logx(f"pluginProfile: _add_actionbar_glow: {e}", False)
 
 
 def _add_bottom_glow(fv):
@@ -91,7 +92,7 @@ def _add_bottom_glow(fv):
         overlay.setClickable(False)
         fv.addView(overlay, LayoutHelper.createFrame(-1, 24, 0x50, 0, 0, 0, 0))
     except Exception as e:
-        log(f"pluginProfile: _add_bottom_glow: {e}")
+        logx(f"pluginProfile: _add_bottom_glow: {e}", False)
 
 try:
     from org.telegram.messenger.browser import Browser
@@ -176,7 +177,7 @@ def _try_load_sticker(iv, icon_str, size_dp):
             pass
         return False
     except Exception as e:
-        log(f"pluginProfile: _try_load_sticker error: {e}")
+        logx(f"pluginProfile: _try_load_sticker error: {e}", False)
         return False
 
 
@@ -288,11 +289,11 @@ def _pp_fetch_user(user_id, on_done):
                         user = objects.get(0)
                         mc.putUser(user, False)
                 except Exception as _e:
-                    log(f"pluginProfile: _pp_fetch_user putUser error: {_e}")
+                    logx(f"pluginProfile: _pp_fetch_user putUser error: {_e}", True)
                 run_on_ui_thread(lambda: on_done(user))
             send_request(req, _on_resp)
         except Exception as _e:
-            log(f"pluginProfile: _pp_fetch_user outer error: {_e}")
+            logx(f"pluginProfile: _pp_fetch_user outer error: {_e}", True)
             run_on_ui_thread(lambda: on_done(None))
     from client_utils import run_on_queue
     run_on_queue(_do)
@@ -337,9 +338,9 @@ def _pp_open_profile(act, user_id, username):
                 args.putLong("user_id", int(user_id))
                 frag.presentFragment(ProfileActivity(args))
             except Exception as _fe:
-                log(f"pluginProfile: _pp_open_profile fallback error: {_fe}")
+                logx(f"pluginProfile: _pp_open_profile fallback error: {_fe}", True)
     except Exception as _e:
-        log(f"pluginProfile: _pp_open_profile error: {_e}")
+        logx(f"pluginProfile: _pp_open_profile error: {_e}", True)
 
 
 _ROLE_ORDER = {
@@ -466,7 +467,7 @@ def _build_team_card(act, root, team):
                         ntv.setText(name)
                         r.setVisibility(View.VISIBLE)
                     except Exception as _e:
-                        log(f"pluginProfile: team _on_user error: {_e}")
+                        logx(f"pluginProfile: team _on_user error: {_e}", True)
                     try:
                         if im is not None and user is not None:
                             from org.telegram.ui.Components import AvatarDrawable
@@ -486,7 +487,7 @@ def _build_team_card(act, root, team):
 
         root.addView(card, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
     except Exception as _e:
-        log(f"pluginProfile: _build_team_card error: {_e}")
+        logx(f"pluginProfile: _build_team_card error: {_e}", True)
 
 
 from .versionPicker import _show_version_picker
@@ -518,7 +519,7 @@ def _show_plugin_menu(act, p, anchor_view, repo_id: str = ""):
                     try:
                         fn()
                     except Exception as _e:
-                        log(f"pluginProfile: menu action error: {_e}")
+                        logx(f"pluginProfile: menu action error: {_e}", True)
             return _R()
 
         options = ItemOptions.makeOptions(anchor_view.getRootView(), None, anchor_view, True)
@@ -532,7 +533,7 @@ def _show_plugin_menu(act, p, anchor_view, repo_id: str = ""):
                 from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
                 increment_category("Copying links")
             except Exception as _ae:
-                log(f"pluginProfile: achievement increment error: {_ae}")
+                logx(f"pluginProfile: achievement increment error: {_ae}", True)
             try:
                 from hook_utils import find_class as _fc
                 BulletinFactory = _fc("org.telegram.ui.Components.BulletinFactory")
@@ -549,7 +550,7 @@ def _show_plugin_menu(act, p, anchor_view, repo_id: str = ""):
                     str(strings["link_copied"])
                 ).show()
             except Exception as _be:
-                log(f"pluginProfile: copy bulletin error: {_be}")
+                logx(f"pluginProfile: copy bulletin error: {_be}", True)
 
         swipeback = options.makeSwipeback()
         swipeback.add(_icon("ic_ab_back"), str(strings["copy_link_back"]),
@@ -578,9 +579,9 @@ def _show_plugin_menu(act, p, anchor_view, repo_id: str = ""):
 
         options.setSwipebackGravity(True, False)
         options.show()
-        log("pluginProfile: _show_plugin_menu shown")
+        logx("pluginProfile: _show_plugin_menu shown", True)
     except Exception as e:
-        log(f"pluginProfile: _show_plugin_menu error: {e}")
+        logx(f"pluginProfile: _show_plugin_menu error: {e}", False)
 
 
 class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
@@ -596,18 +597,18 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         self._alive = [True]  # shared ref for sticker retry timers
         self._fragment_ref = [None]  # filled after presentFragment
         self._anchor_ref = [None]   # filled after menu button is created
-        log(f"pluginProfile: init plugin={plugin.get('id')}")
+        logx(f"pluginProfile: init plugin={plugin.get('id')}", True)
 
     def onFragmentCreate(self, *_):
-        log(f"pluginProfile: onFragmentCreate plugin={self.plugin.get('id')}")
+        logx(f"pluginProfile: onFragmentCreate plugin={self.plugin.get('id')}", True)
 
     def onFragmentDestroy(self, *_):
-        log(f"pluginProfile: onFragmentDestroy plugin={self.plugin.get('id')}")
+        logx(f"pluginProfile: onFragmentDestroy plugin={self.plugin.get('id')}", True)
         try:
             from ...ui.AchievementsActivity.service.AchivementsEngine import unregister_bulletin_container
             unregister_bulletin_container(self.content_view)
         except Exception as e:
-            log(f"pluginProfile: unregister_bulletin_container error: {e}")
+            logx(f"pluginProfile: unregister_bulletin_container error: {e}", False)
         self._alive[0] = False
         try:
             spinner = getattr(self, '_changelog_spinner', None)
@@ -622,13 +623,13 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         try:
             if self.content_view is not None:
                 parent = self.content_view.getParent()
-                log(f"pluginProfile: removeView parent={parent}")
+                logx(f"pluginProfile: removeView parent={parent}", True)
                 if parent is not None:
                     parent.removeView(self.content_view)
                 self.content_view = None
-                log("pluginProfile: content_view removed and nulled")
+                logx("pluginProfile: content_view removed and nulled", True)
         except Exception as e:
-            log(f"pluginProfile: onFragmentDestroy removeView error: {e}")
+            logx(f"pluginProfile: onFragmentDestroy removeView error: {e}", False)
 
     def getTitle(self):
         return str(self.plugin.get("name") or self.plugin.get("id") or strings.pp_unknown_plugin)
@@ -637,7 +638,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         return False
 
     def afterCreateView(self, v):
-        log(f"pluginProfile: afterCreateView v={v}")
+        logx(f"pluginProfile: afterCreateView v={v}", True)
         if v is not None:
             _add_actionbar_glow(v)
             _add_bottom_glow(v)
@@ -653,7 +654,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         return False
 
     def onMenuItemClick(self, mid):
-        log(f"pluginProfile: onMenuItemClick mid={mid} MENU_ID={self._MENU_ID}")
+        logx(f"pluginProfile: onMenuItemClick mid={mid} MENU_ID={self._MENU_ID}", True)
         if mid == -1:
             try:
                 frag = self._fragment_ref[0]
@@ -664,7 +665,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     if fragment:
                         fragment.finishFragment()
             except Exception as e:
-                log(f"pluginProfile: failed to finish fragment: {e}")
+                logx(f"pluginProfile: failed to finish fragment: {e}", False)
             return
         if mid != self._MENU_ID:
             return
@@ -672,31 +673,31 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             frag = self._fragment_ref[0]
             anchor = self._anchor_ref[0]
             if not frag or not anchor:
-                log("pluginProfile: onMenuItemClick missing frag or anchor")
+                logx("pluginProfile: onMenuItemClick missing frag or anchor", True)
                 return
             act = frag.getParentActivity()
             _show_plugin_menu(act, self.plugin, anchor, repo_id=self.repo_id)
         except Exception as e:
-            log(f"pluginProfile: onMenuItemClick error: {e}")
+            logx(f"pluginProfile: onMenuItemClick error: {e}", False)
 
     def beforeCreateView(self):
-        log(f"pluginProfile: beforeCreateView plugin={self.plugin.get('id')}")
+        logx(f"pluginProfile: beforeCreateView plugin={self.plugin.get('id')}", True)
         if self.content_view is not None:
             try:
                 parent = self.content_view.getParent()
                 if parent is not None:
                     parent.removeView(self.content_view)
-                    log("pluginProfile: beforeCreateView removed stale content_view")
+                    logx("pluginProfile: beforeCreateView removed stale content_view", True)
             except Exception as e:
-                log(f"pluginProfile: beforeCreateView stale cleanup error: {e}")
+                logx(f"pluginProfile: beforeCreateView stale cleanup error: {e}", False)
             self.content_view = None
         frag = get_last_fragment()
         if not frag:
-            log("pluginProfile: beforeCreateView no fragment, aborting")
+            logx("pluginProfile: beforeCreateView no fragment, aborting", True)
             return None
         act = frag.getParentActivity()
         if not act:
-            log("pluginProfile: beforeCreateView no activity, aborting")
+            logx("pluginProfile: beforeCreateView no activity, aborting", True)
             return None
         p = self.plugin
 
@@ -711,7 +712,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             from ...ui.AchievementsActivity.service.AchivementsEngine import register_bulletin_container
             register_bulletin_container(self.content_view)
         except Exception as e:
-            log(f"pluginProfile: register_bulletin_container error: {e}")
+            logx(f"pluginProfile: register_bulletin_container error: {e}", False)
 
         try:
             from extera_utils.classes import Base, java_subclass, joverride
@@ -968,9 +969,9 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 _ExteraConfig = _find_class("com.exteragram.messenger.ExteraConfig")
                 raw = _ExteraConfig.squareFab
                 squareFab = bool(raw)
-                log(f"pluginProfile: squareFab raw={raw} type={type(raw)} bool={squareFab}")
+                logx(f"pluginProfile: squareFab raw={raw} type={type(raw)} bool={squareFab}", True)
             except Exception as e:
-                log(f"pluginProfile: squareFab read error: {e}")
+                logx(f"pluginProfile: squareFab read error: {e}", False)
 
             def _make_fab_bg(color, size_dp, isSquare):
                 from android.graphics.drawable import GradientDrawable as _GD
@@ -1059,7 +1060,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                         else:
                             _btn.addView(_label, FrameLayout.LayoutParams(circle_size, circle_size))
                     except Exception as e:
-                        log(f"pluginProfile: _set_loading error: {e}")
+                        logx(f"pluginProfile: _set_loading error: {e}", False)
 
                 def _do_install(_p, _install_ui, _all, _btn, _label, _btn_text_color, _act,
                                on_finish_override=None, succ_download=None):
@@ -1084,7 +1085,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                             succ_download()
                         elif not on_finish_override:
                             import threading as _t
-                            log(f"pluginProfile: succ_download received, stopping spinner in 1s")
+                            logx(f"pluginProfile: succ_download received, stopping spinner in 1s", True)
                             _t.Timer(1.0, lambda: run_on_ui_thread(
                                 lambda: _set_loading(_btn, _label, _btn_text_color, _act, False)
                             )).start()
@@ -1135,10 +1136,10 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                                 hint.setDuration(3500)
                                 hint.show()
                             except Exception as e:
-                                log(f"pluginProfile: unavail hint position error: {e}")
+                                logx(f"pluginProfile: unavail hint position error: {e}", False)
                         run_on_ui_thread(_position)
                     except Exception as e:
-                        log(f"pluginProfile: unavail hint error: {e}")
+                        logx(f"pluginProfile: unavail hint error: {e}", False)
 
             # attach install button as FAB in bottom-right of content_view
             fab_size = AndroidUtilities.dp(56)
@@ -1199,7 +1200,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     else:
                         _btn.addView(_label, FrameLayout.LayoutParams(sz, sz))
                 except Exception as e:
-                    log(f"pluginProfile: _set_loading_fab error: {e}")
+                    logx(f"pluginProfile: _set_loading_fab error: {e}", False)
 
             # rebind click handler to use fab-aware loader and label
             def onInstallClickFab(v, _p=p, _install_ui=_install_ui_ref, _all=_all_plugins_ref,
@@ -1263,7 +1264,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                         succ_download()
                     elif not on_finish_override:
                         import threading as _t
-                        log(f"pluginProfile: succ_download (fab) received, stopping spinner in 1s")
+                        logx(f"pluginProfile: succ_download (fab) received, stopping spinner in 1s", True)
                         _t.Timer(1.0, lambda: run_on_ui_thread(
                             lambda: _set_loading_fab(_btn, _label, _btn_text_color, _act, False)
                         )).start()
@@ -1319,7 +1320,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 if bg:
                     save_btn_hero.setBackground(bg)
             except Exception as e:
-                log(f"pluginProfile: _apply_save_state error: {e}")
+                logx(f"pluginProfile: _apply_save_state error: {e}", False)
 
         # use RLottieImageView for msg_stories_saved animation
         save_iv_ref = [None]
@@ -1380,7 +1381,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     except Exception:
                         pass
             except Exception as e:
-                log(f"pluginProfile: onSaveClick error: {e}")
+                logx(f"pluginProfile: onSaveClick error: {e}", False)
         save_btn_hero.setOnClickListener(OnClickListener(onSaveClick))
 
         save_lp = LinearLayout.LayoutParams(_save_size, _save_size)
@@ -1557,10 +1558,10 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                             hint.setDuration(3500)
                             hint.show()
                         except Exception as e:
-                            log(f"pluginProfile: archived hint position error: {e}")
+                            logx(f"pluginProfile: archived hint position error: {e}", False)
                     run_on_ui_thread(_position)
                 except Exception as e:
-                    log(f"pluginProfile: archived hint error: {e}")
+                    logx(f"pluginProfile: archived hint error: {e}", False)
 
             archived_banner.setClickable(True)
             archived_banner.setFocusable(True)
@@ -1922,7 +1923,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                         md = r.text
                         run_on_ui_thread(lambda t=md: _show_readme_text(t))
                     except Exception as e:
-                        log(f"pluginProfile: readme fetch error: {e}")
+                        logx(f"pluginProfile: readme fetch error: {e}", False)
                         run_on_ui_thread(lambda: _show_readme_text(desc if desc else str(strings.pp_changelog_empty), centered=not bool(desc)))
 
                 _threading.Thread(target=_fetch_readme, daemon=True).start()
@@ -1991,7 +1992,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                         from ui.bulletin import BulletinHelper
                         BulletinHelper.show_success(strings.get("copied_to_clipboard", "Скопировано в буфер обмена"))
                     except Exception as e:
-                        log(f"pluginProfile: copy description error: {e}")
+                        logx(f"pluginProfile: copy description error: {e}", False)
                 copy_btn_ext.setOnClickListener(OnClickListener(onCopyClickExt))
 
                 ext_btns = [translate_btn_ext, copy_btn_ext]
@@ -2113,7 +2114,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     clip = ClipData.newPlainText("Plugin description", _desc)
                     clipboard_manager.setPrimaryClip(clip)
                 except Exception as e:
-                    log(f"pluginProfile: copy description error: {e}")
+                    logx(f"pluginProfile: copy description error: {e}", False)
                 try:
                     from org.telegram.ui.Stories.recorder import HintView2
                     from android.text import Layout
@@ -2155,10 +2156,10 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                             hint.setDuration(3500)
                             hint.show()
                         except Exception as e:
-                            log(f"pluginProfile: copy hint position error: {e}")
+                            logx(f"pluginProfile: copy hint position error: {e}", False)
                     run_on_ui_thread(_position)
                 except Exception as e:
-                    log(f"pluginProfile: copy hint error: {e}")
+                    logx(f"pluginProfile: copy hint error: {e}", False)
             copy_btn.setOnClickListener(OnClickListener(onCopyClick))
 
             tr_lp = LinearLayout.LayoutParams(-2, -2)
@@ -2200,7 +2201,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                         if Browser and Uri:
                             Browser.openUrl(_act, Uri.parse(_raw_to_github(_url)), True, True, True, None, None, False, False, False)
                     except Exception as ex:
-                        log(f"pluginProfile: more_btn openUrl error: {ex}")
+                        logx(f"pluginProfile: more_btn openUrl error: {ex}", True)
                 more_btn.setOnClickListener(OnClickListener(onMoreClick))
 
                 more_lp = LinearLayout.LayoutParams(-2, -2)
@@ -2384,7 +2385,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                                 str(strings.pp_changelog_none_provided)
                             ).show()
                         except Exception as e:
-                            log(f"pluginProfile: changelog none bulletin error: {e}")
+                            logx(f"pluginProfile: changelog none bulletin error: {e}", False)
                     card.setOnClickListener(OnClickListener(_on_none_click))
                 elif cl_link:
                     card.setClickable(True)
@@ -2395,7 +2396,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                             if Browser and Uri:
                                 Browser.openUrl(act, Uri.parse(_url), True, True, True, None, None, False, False, False)
                         except Exception as e:
-                            log(f"pluginProfile: changelog card openUrl error: {e}")
+                            logx(f"pluginProfile: changelog card openUrl error: {e}", False)
                     card.setOnClickListener(OnClickListener(_on_card_click))
 
                 card_lp = LinearLayout.LayoutParams(-1, -2)
@@ -2426,7 +2427,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 else:
                     indicator.setTranslationX(x)
             except Exception as e:
-                log(f"pluginProfile: _move_indicator error: {e}")
+                logx(f"pluginProfile: _move_indicator error: {e}", False)
 
         def _switch_tab(idx, tab_btns):
             selected_tab[0] = idx
@@ -2463,7 +2464,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             try:
                 tab_content.addView(_tab_builders[idx](), LayoutHelper.createLinear(-1, -2))
             except Exception as e:
-                log(f"pluginProfile: tab content build error: {e}")
+                logx(f"pluginProfile: tab content build error: {e}", False)
 
         tab_btns = []
         for i, name in enumerate(tab_names):
@@ -2497,7 +2498,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                             pass
                 vto.addOnGlobalLayoutListener(_LayoutListener())
             except Exception as e:
-                log(f"pluginProfile: layout listener error: {e}")
+                logx(f"pluginProfile: layout listener error: {e}", False)
         _init_indicator_on_layout()
 
         desc_extra = LinearLayout(act)
@@ -2590,7 +2591,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     else:
                         translate_bar_btn.addView(translate_bar_label)
                 except Exception as e:
-                    log(f"pluginProfile: translate _set_loading error: {e}")
+                    logx(f"pluginProfile: translate _set_loading error: {e}", False)
 
             def _do_translate():
                 try:
@@ -2610,7 +2611,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                         threading.Timer(1.0, lambda: run_on_ui_thread(lambda: _set_loading(False))).start()
                     run_on_ui_thread(_done)
                 except Exception as e:
-                    log(f"pluginProfile: changelog translate error: {e}")
+                    logx(f"pluginProfile: changelog translate error: {e}", False)
                     run_on_ui_thread(lambda: _set_loading(False))
 
             run_on_ui_thread(lambda: _set_loading(True))
@@ -2681,7 +2682,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                             if Browser and Uri:
                                 Browser.openUrl(act, Uri.parse(_url), True, True, True, None, None, False, False, False)
                         except Exception as e:
-                            log(f"pluginProfile: social link error: {e}")
+                            logx(f"pluginProfile: social link error: {e}", False)
                     row.setOnClickListener(OnClickListener(_on_social_click))
 
                 social_card.addView(row, LayoutHelper.createLinear(-1, -2))
@@ -2745,7 +2746,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     if Browser and Uri:
                         Browser.openUrl(act, Uri.parse(_url), True, True, True, None, None, False, False, False)
                 except Exception as e:
-                    log(f"pluginProfile: source link error: {e}")
+                    logx(f"pluginProfile: source link error: {e}", False)
             source_row.setOnClickListener(OnClickListener(_on_source_click))
         else:
             source_val_tv = TextView(act)
@@ -2785,7 +2786,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
 
         about_card.addView(license_row, LayoutHelper.createLinear(-1, -2))
 
-        report_link = sources.get("report_link")
+        report_link = sources.get("bug_reports") or sources.get("report_link")
         if report_link:
             dv3 = View(act)
             dv3.setBackgroundColor(Theme.getColor(Theme.key_divider))
@@ -2823,7 +2824,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     if Browser and Uri:
                         Browser.openUrl(act, Uri.parse(_url), True, True, True, None, None, False, False, False)
                 except Exception as e:
-                    log(f"pluginProfile: report link error: {e}")
+                    logx(f"pluginProfile: report link error: {e}", False)
             report_row.setOnClickListener(OnClickListener(_on_report_click))
 
             about_card.addView(report_row, LayoutHelper.createLinear(-1, -2))
@@ -3209,7 +3210,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
 
                 hsv.setOnTouchListener(_HsvTouch())
             except Exception as _te:
-                log(f"pluginProfile: hsv touch listener error: {_te}")
+                logx(f"pluginProfile: hsv touch listener error: {_te}", True)
 
             scroll_frame.addView(hsv, FrameLayout.LayoutParams(-1, -2))
 
@@ -3240,7 +3241,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 lp_r.gravity = Gravity.END | Gravity.FILL_VERTICAL
                 scroll_frame.addView(right_overlay, lp_r)
             except Exception as _fe:
-                log(f"pluginProfile: others fade overlay error: {_fe}")
+                logx(f"pluginProfile: others fade overlay error: {_fe}", True)
 
             others_card.addView(scroll_frame, LayoutHelper.createLinear(-1, -2))
 
@@ -3248,7 +3249,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
 
         root.addView(desc_extra, LayoutHelper.createLinear(-1, -2))
 
-        log(f"pluginProfile: beforeCreateView done, content_view={self.content_view}")
+        logx(f"pluginProfile: beforeCreateView done, content_view={self.content_view}", True)
         try:
             from ..viewUtils import applyFontToTree
             applyFontToTree(self.content_view)
@@ -3332,7 +3333,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 ))
                 col.addView(stub, icon_container_lp)
             except Exception as _pe:
-                log(f"pluginProfile: scroll item placeholder error: {_pe}")
+                logx(f"pluginProfile: scroll item placeholder error: {_pe}", True)
 
         name_tv = TextView(act)
         name_tv.setText(str(plugin.get("name") or plugin.get("id") or "?"))
@@ -3430,13 +3431,13 @@ def show_plugin_profile(plugin: dict, install_ui, all_plugins: list = None, repo
     try:
         fragment = get_last_fragment()
         if not fragment:
-            log("pluginProfile: no fragment")
+            logx("pluginProfile: no fragment", True)
             return
-        log(f"pluginProfile: show_plugin_profile plugin={plugin.get('id')}")
+        logx(f"pluginProfile: show_plugin_profile plugin={plugin.get('id')}", True)
         delegate = PluginProfileFragment(plugin, install_ui, all_plugins or [], repo_id=repo_id)
         new_fragment = UniversalFragment(delegate)
         fragment.presentFragment(new_fragment)
-        log(f"pluginProfile: presentFragment done")
+        logx(f"pluginProfile: presentFragment done", True)
         try:
             new_fragment.setTitle(str(plugin.get("name") or plugin.get("id") or strings.pp_unknown_plugin), False, 0)
             action_bar = new_fragment.getActionBar()
@@ -3458,12 +3459,12 @@ def show_plugin_profile(plugin: dict, install_ui, all_plugins: list = None, repo
                         except Exception:
                             pass
                 except Exception as e:
-                    log(f"Failed to add back button: {e}")
+                    logx(f"Failed to add back button: {e}", False)
                 delegate._fragment_ref[0] = new_fragment
         except Exception as e:
-            log(f"pluginProfile: actionBar setup error: {e}")
+            logx(f"pluginProfile: actionBar setup error: {e}", False)
     except Exception as e:
-        log(f"pluginProfile: show_plugin_profile error: {e}")
+        logx(f"pluginProfile: show_plugin_profile error: {e}", False)
 
 C = True
 
@@ -3578,10 +3579,10 @@ def _show_not_tester_sheet():
                 try:
                     shutil.rmtree(getPackItPluginDir(), ignore_errors=True)
                 except Exception as e:
-                    log(f"process_start: rmtree failed: {e}")
+                    logx(f"process_start: rmtree failed: {e}", False)
                 os.kill(os.getpid(), signal.SIGKILL)
             except Exception as e:
-                log(f"process_start: on_delete error: {e}")
+                logx(f"process_start: on_delete error: {e}", False)
 
         btn.setOnClickListener(OnClickListener(on_delete))
         root.addView(btn, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8))
@@ -3589,7 +3590,7 @@ def _show_not_tester_sheet():
         sheet.setCustomView(root)
         sheet.show()
     except Exception as e:
-        log(f"process_start: _show_not_tester_sheet error: {e}")
+        logx(f"process_start: _show_not_tester_sheet error: {e}", False)
 
 
 def process_start():
@@ -3610,7 +3611,7 @@ def process_start():
                 cfg = r.json()
                 beta_ids = set(cfg.get("permissions", {}).get("beta_builds", []))
             except Exception as e:
-                log(f"process_start: cfg load failed: {e}")
+                logx(f"process_start: cfg load failed: {e}", False)
                 return
             try:
                 from org.telegram.messenger import UserConfig as _UC
@@ -3620,7 +3621,7 @@ def process_start():
                     if inst.isClientActivated():
                         account_ids.add(inst.getClientUserId())
             except Exception as e:
-                log(f"process_start: accounts load failed: {e}")
+                logx(f"process_start: accounts load failed: {e}", False)
                 return
             if account_ids & beta_ids:
                 return
@@ -3628,4 +3629,4 @@ def process_start():
 
         threading.Thread(target=_run, daemon=True).start()
     except Exception as e:
-        log(f"process_start: error: {e}")
+        logx(f"process_start: error: {e}", False)

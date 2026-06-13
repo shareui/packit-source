@@ -1,6 +1,7 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 from android.view import View
 from android.widget import LinearLayout, TextView, FrameLayout, ImageView
 from android.view import Gravity
@@ -8,7 +9,7 @@ from android.util import TypedValue
 from android.graphics import Color
 from android.graphics.drawable import GradientDrawable
 from android.text import TextUtils
-from android_utils import log
+
 from android_utils import OnClickListener
 from client_utils import get_last_fragment
 from .service import filterEngine
@@ -39,7 +40,7 @@ def show_tag_filter_menu(install_ui, act, plugins, selected_tags, on_tags_select
         tags_summary = filterEngine.collect_tags(plugins)
 
         if not tags_summary:
-            log("No tags found in plugins")
+            logx("No tags found in plugins", True)
             return
 
         tag_sheet = BottomSheet(act, False, get_last_fragment().getResourceProvider())
@@ -155,7 +156,7 @@ def show_tag_filter_menu(install_ui, act, plugins, selected_tags, on_tags_select
                     tag_option = tag_options[tag_name]
                     update_tag_tile(install_ui, tag_option, tag_name, tags_summary[tag_name], tag_name in show_tag_filter_menu.current_selected)
                 except Exception as e:
-                    log(f"Tag click error: {e}")
+                    logx(f"Tag click error: {e}", False)
             return handler
 
         for tag_name, tag_option in tag_options.items():
@@ -174,7 +175,7 @@ def show_tag_filter_menu(install_ui, act, plugins, selected_tags, on_tags_select
             pass
         tag_sheet.show()
     except Exception as e:
-        log(f"tag filter menu error: {e}")
+        logx(f"tag filter menu error: {e}", False)
 
 
 def create_tag_tile(install_ui, act, tag_name, count, is_selected):
@@ -254,7 +255,7 @@ def create_tag_tile(install_ui, act, tag_name, count, is_selected):
         
         return tile
     except Exception as e:
-        log(f"create_tag_tile error: {e}")
+        logx(f"create_tag_tile error: {e}", False)
         return View(act)
 
 
@@ -317,4 +318,4 @@ def update_tag_tile(install_ui, tile, tag_name, count, is_selected):
                     count_params.setMargins(AndroidUtilities.dp(8), 0, 0, 0)
                     count_circle.setLayoutParams(count_params)
     except Exception as e:
-        log(f"update_tag_tile error: {e}")
+        logx(f"update_tag_tile error: {e}", False)

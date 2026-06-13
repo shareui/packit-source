@@ -1,13 +1,14 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import os
-from android_utils import log
+
 
 try:
     from elyx import settings, assets
 except Exception as e:
-    log(f"FontManager: import elyx failed: {e}")
+    logx(f"FontManager: import elyx failed: {e}", False)
     settings = None
     assets = None
 
@@ -34,7 +35,7 @@ def _getFontsDir():
             res_dir = _os.path.dirname(sample.path_str)
             return _os.path.join(res_dir, _FONTS_DIR_NAME)
     except Exception as e:
-        log(f"FontManager: _getFontsDir error: {e}")
+        logx(f"FontManager: _getFontsDir error: {e}", False)
     return None
 
 
@@ -48,7 +49,7 @@ def listFontFiles():
         files.sort()
         return files
     except Exception as e:
-        log(f"FontManager: listFontFiles error: {e}")
+        logx(f"FontManager: listFontFiles error: {e}", False)
         return []
 
 
@@ -61,7 +62,7 @@ def getFontPath(filename):
         path = os.path.join(fonts_dir, filename)
         return path if os.path.isfile(path) else None
     except Exception as e:
-        log(f"FontManager: getFontPath error: {e}")
+        logx(f"FontManager: getFontPath error: {e}", False)
         return None
 
 
@@ -74,7 +75,7 @@ def _loadTypeface(filename):
             return None
         return Typeface.createFromFile(path)
     except Exception as e:
-        log(f"FontManager: _loadTypeface error: {e}")
+        logx(f"FontManager: _loadTypeface error: {e}", False)
         return None
 
 
@@ -94,17 +95,17 @@ def getCurrentTypeface():
         path = getFontPath(filename)
         if not path:
             # font file missing (e.g. no-assets build) — reset to default
-            log(f"FontManager: font file missing for '{filename}', resetting to default")
+            logx(f"FontManager: font file missing for '{filename}', resetting to default", True)
             settings.set(_SETTING_KEY, "")
             _current_typeface = None
             return None
         _current_typeface = _loadTypeface(filename)
         if _current_typeface is None:
             # file exists but failed to load — reset
-            log(f"FontManager: failed to load '{filename}', resetting to default")
+            logx(f"FontManager: failed to load '{filename}', resetting to default", True)
             settings.set(_SETTING_KEY, "")
     except Exception as e:
-        log(f"FontManager: getCurrentTypeface error: {e}")
+        logx(f"FontManager: getCurrentTypeface error: {e}", False)
     return _current_typeface
 
 
@@ -118,11 +119,11 @@ def setFont(filename):
         if filename:
             path = getFontPath(filename)
             if not path:
-                log(f"FontManager: setFont — file missing for '{filename}', ignoring")
+                logx(f"FontManager: setFont — file missing for '{filename}', ignoring", True)
                 return
             tf = _loadTypeface(filename)
             if tf is None:
-                log(f"FontManager: setFont — failed to load '{filename}', ignoring")
+                logx(f"FontManager: setFont — failed to load '{filename}', ignoring", True)
                 return
             settings.set(_SETTING_KEY, filename)
             _current_typeface = tf
@@ -130,7 +131,7 @@ def setFont(filename):
             settings.set(_SETTING_KEY, "")
             _current_typeface = None
     except Exception as e:
-        log(f"FontManager: setFont error: {e}")
+        logx(f"FontManager: setFont error: {e}", False)
 
 
 def applyToView(view):
@@ -143,7 +144,7 @@ def applyToView(view):
         if isinstance(view, TextView):
             view.setTypeface(tf)
     except Exception as e:
-        log(f"FontManager: applyToView error: {e}")
+        logx(f"FontManager: applyToView error: {e}", False)
 
 
 def getSelectedFilename():

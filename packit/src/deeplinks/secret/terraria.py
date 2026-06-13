@@ -1,8 +1,9 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import os
-from android_utils import log
+
 from android.media import MediaPlayer, AudioManager
 from java import dynamic_proxy
 try:
@@ -17,13 +18,13 @@ def handle(url):
         return
     try:
         _playMaxVolume()
-        log(f"deeplinks.terraria: calling unlock_secret")
+        logx(f"deeplinks.terraria: calling unlock_secret", True)
         from ...ui.AchievementsActivity.service.AchivementsEngine import unlock_secret
         unlock_secret("terraria")
-        log(f"deeplinks.terraria: unlock_secret returned")
+        logx(f"deeplinks.terraria: unlock_secret returned", True)
     except Exception as e:
         import traceback
-        log(f"deeplinks.terraria: error: {e}\n{traceback.format_exc()}")
+        logx(f"deeplinks.terraria: error: {e}\n{traceback.format_exc()}", False)
 
 
 def _playMaxVolume():
@@ -42,7 +43,7 @@ def _playMaxVolume():
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
         player.start()
     except Exception as e:
-        log(f"deeplinks.terraria: player error: {e}")
+        logx(f"deeplinks.terraria: player error: {e}", False)
         try:
             player.reset()
             player.release()
@@ -61,4 +62,4 @@ def _playMaxVolume():
     try:
         player.setOnCompletionListener(_Listener())
     except Exception as e:
-        log(f"deeplinks.terraria: completion listener error: {e}")
+        logx(f"deeplinks.terraria: completion listener error: {e}", False)

@@ -1,10 +1,11 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import ctypes
 import json
 import os
-from android_utils import log
+
 
 # native loader
 
@@ -21,7 +22,7 @@ def _load_native() -> bool:
     try:
         from elyx import settings
         if settings.get("search_engine", 0) == 1:
-            log("search: python engine selected in settings, skipping native load")
+            logx("search: python engine selected in settings, skipping native load", True)
             return False
     except Exception:
         pass
@@ -29,10 +30,10 @@ def _load_native() -> bool:
     from ....nativeLoader import loadSearch
     lib = loadSearch()
     if lib is None:
-        log("search: failed to load libsearch.so, using python fallback")
+        logx("search: failed to load libsearch.so, using python fallback", True)
         return False
     _lib = lib
-    log("search: native libsearch.so loaded successfully")
+    logx("search: native libsearch.so loaded successfully", True)
     return True
 
 # native index wrapper
@@ -118,7 +119,7 @@ def _py_build_index(plugins: list) -> dict:
             "id_words": _words(pid.lower()),
         }
     if skipped:
-        log(f"search: build_index skipped {skipped} plugins with no id")
+        logx(f"search: build_index skipped {skipped} plugins with no id", True)
     return index
 
 def _trigram_similarity(queryTrigrams: set, fieldTrigrams: set) -> float:
@@ -149,7 +150,7 @@ def _py_score(plugin: dict, query: str, index: dict, isRussian: bool, fuzzy: boo
     pid = str(plugin.get("id") or "")
     entry = index.get(pid)
     if not entry:
-        log(f"search: score() called for '{pid}' not in index — index may be stale")
+        logx(f"search: score() called for '{pid}' not in index — index may be stale", True)
         return (6, 0, 0.0)
 
     nameRaw = entry["name_raw"]
@@ -231,13 +232,13 @@ def build_index(plugins: list):
             raw = json.dumps(plugins, ensure_ascii=False)
             handle = _lib.search_build_index(raw.encode('utf-8'))
             if handle >= 0:
-                log(f"search: native index built for {len(plugins)} plugins (handle={handle})")
+                logx(f"search: native index built for {len(plugins)} plugins (handle={handle})", True)
                 return _NativeIndex(handle)
-            log("search: native build_index returned invalid handle, falling back to python")
+            logx("search: native build_index returned invalid handle, falling back to python", True)
         except Exception as e:
-            log(f"search: native build_index failed, falling back to python: {e}")
+            logx(f"search: native build_index failed, falling back to python: {e}", False)
 
-    log(f"search: python index built for {len(plugins)} plugins")
+    logx(f"search: python index built for {len(plugins)} plugins", True)
     return _py_build_index(plugins)
 
 
@@ -259,9 +260,9 @@ def score(plugin: dict, query: str, index, isRussian: bool, fuzzy: bool = False)
                     return (parsed[0], parsed[1], parsed[2])
                 finally:
                     _lib.search_free_str(ptr)
-            log("search: native score returned null, falling back to python")
+            logx("search: native score returned null, falling back to python", True)
         except Exception as e:
-            log(f"search: native score failed, falling back to python: {e}")
+            logx(f"search: native score failed, falling back to python: {e}", False)
         return (6, 0, 0.0)
 
     return _py_score(plugin, query, index, isRussian, fuzzy)

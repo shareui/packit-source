@@ -1,6 +1,7 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 from ui.settings import Header, Input, Divider, Switch, Text
 try:
     from elyx import strings, settings
@@ -11,7 +12,7 @@ from client_utils import get_last_fragment
 from ui.bulletin import BulletinHelper
 from ui.alert import AlertDialogBuilder
 from .icons import IconSelector
-from android_utils import log
+
 from hook_utils import find_class
 try:
     from org.telegram.messenger import R as R_tg
@@ -59,7 +60,7 @@ def _showAddRepoDialog(context, repoManager):
             anim.playAnimation()
             linear.addView(anim, LayoutHelper.createLinear(100, 100, Gravity.CENTER_HORIZONTAL, 0, 16, 0, 0))
         except Exception as e:
-            log(f"repos: add repo dialog anim error: {e}")
+            logx(f"repos: add repo dialog anim error: {e}", False)
 
         titleView = TextView(context)
         titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
@@ -136,7 +137,7 @@ def _showAddRepoDialog(context, repoManager):
                 else:
                     doneBtn.addView(btnLabel, LayoutHelper.createLinear(-2, -2, Gravity.CENTER))
             except Exception as e:
-                log(f"repos: _setLoading error: {e}")
+                logx(f"repos: _setLoading error: {e}", False)
 
         def onAdd():
             url = str(inputField.getText()).strip()
@@ -154,7 +155,7 @@ def _showAddRepoDialog(context, repoManager):
                         try:
                             BulletinHelper.show_error(f"{strings.invalid_repository}: {reason}")
                         except Exception as e:
-                            log(f"repos: add repo error bulletin error: {e}")
+                            logx(f"repos: add repo error bulletin error: {e}", False)
                     else:
                         try:
                             frag = get_last_fragment()
@@ -167,7 +168,7 @@ def _showAddRepoDialog(context, repoManager):
                             if frag and hasattr(frag, "rebuildAllItems"):
                                 frag.rebuildAllItems()
                         except Exception as e:
-                            log(f"repos: add repo success bulletin error: {e}")
+                            logx(f"repos: add repo success bulletin error: {e}", False)
 
                 run_on_ui_thread(onDone)
 
@@ -188,7 +189,7 @@ def _showAddRepoDialog(context, repoManager):
         dialog.setOnShowListener(_ShowListener())
         dialog.show()
     except Exception as e:
-        log(f"repos: _showAddRepoDialog error: {e}")
+        logx(f"repos: _showAddRepoDialog error: {e}", False)
 
 
 class RepositoriesSettings:
@@ -206,7 +207,7 @@ class RepositoriesSettings:
                 if fragment and hasattr(fragment, "rebuildAllItems"):
                     fragment.rebuildAllItems()
             except Exception as e:
-                log(f"{e}")
+                logx(f"{e}", False)
         
         def add_new_repository(view):
             repos = self.repoManager.getRepositories()
@@ -214,7 +215,7 @@ class RepositoriesSettings:
                 try:
                     BulletinHelper.show_error(strings.max_repositories_allowed)
                 except Exception as e:
-                    log(f"{e}")
+                    logx(f"{e}", False)
                 return
 
             try:
@@ -224,23 +225,23 @@ class RepositoriesSettings:
                     return
                 _showAddRepoDialog(ctx, self.repoManager)
             except Exception as e:
-                log(f"repos: add_new_repository error: {e}")
+                logx(f"repos: add_new_repository error: {e}", False)
         
         def restore_default_repository(view):
             repos = self.repoManager.getRepositories()
             if len(repos) >= 10:
                 try:
-                    log("Default repository restore failed: max limit reached (10)")
+                    logx("Default repository restore failed: max limit reached (10)", True)
                     BulletinHelper.show_error(strings.max_repositories_allowed)
                 except Exception as e:
-                    log(f"{e}")
+                    logx(f"{e}", False)
                 return
             
             self.repoManager.restoreDefaultRepository()
             try:
                 BulletinHelper.show_success(strings.default_repo_restored)
             except Exception as e:
-                log(f"{e}")
+                logx(f"{e}", False)
         
         def reset_repositories(view):
             repos = self.repoManager.getRepositories()
@@ -257,7 +258,7 @@ class RepositoriesSettings:
                     builder.set_positive_button(strings.close_button, lambda b, w: b.dismiss())
                     builder.show()
                 except Exception as e:
-                    log(f"{e}")
+                    logx(f"{e}", False)
                 return
             
             try:
@@ -278,17 +279,17 @@ class RepositoriesSettings:
                         resourceProvider = frag.getResourceProvider()
                         BulletinFactory.of(container, resourceProvider).createSimpleBulletin(R_tg.raw.group_pip_delete_icon, strings.repositories_reset).show()
                     except Exception as e:
-                        log(f"{e}")
+                        logx(f"{e}", False)
                 
                 builder.set_positive_button(strings.reset_button, on_yes)
                 builder.set_negative_button(strings.close_button, lambda b, w: b.dismiss())
                 try:
                     builder.make_button_red(AlertDialogBuilder.BUTTON_POSITIVE)
                 except Exception as e:
-                    log(f"{e}")
+                    logx(f"{e}", False)
                 builder.show()
             except Exception as e:
-                log(f"{e}")
+                logx(f"{e}", False)
         
         def clear_all_except_first(view):
             repos = self.repoManager.getRepositories()
@@ -305,7 +306,7 @@ class RepositoriesSettings:
                     builder.set_positive_button(strings.close_button, lambda b, w: b.dismiss())
                     builder.show()
                 except Exception as e:
-                    log(f"{e}")
+                    logx(f"{e}", False)
                 return
             
             try:
@@ -326,17 +327,17 @@ class RepositoriesSettings:
                         resourceProvider = frag.getResourceProvider()
                         BulletinFactory.of(container, resourceProvider).createSimpleBulletin(R_tg.raw.utyan_cache, strings.repositories_cleared).show()
                     except Exception as e:
-                        log(f"{e}")
+                        logx(f"{e}", False)
                 
                 builder.set_positive_button(strings.clear_button, on_yes)
                 builder.set_negative_button(strings.close_button, lambda b, w: b.dismiss())
                 try:
                     builder.make_button_red(AlertDialogBuilder.BUTTON_POSITIVE)
                 except Exception as e:
-                    log(f"{e}")
+                    logx(f"{e}", False)
                 builder.show()
             except Exception as e:
-                log(f"{e}")
+                logx(f"{e}", False)
         
         def update_repositories(view):
             from client_utils import run_on_queue
@@ -367,20 +368,20 @@ class RepositoriesSettings:
                         try:
                             r = requests.get(url, timeout=10)
                             if r.status_code != 200:
-                                log(f"update_repositories: HTTP {r.status_code} for {url}")
+                                logx(f"update_repositories: HTTP {r.status_code} for {url}", True)
                                 continue
                             data = r.json()
                             repometa = data.get("repometa")
                             rm_rid = repometa.get("rm_rid") if repometa else None
 
                             if not repometa or not rm_rid:
-                                log(f"update_repositories: no repometa for '{url}', removing repo")
+                                logx(f"update_repositories: no repometa for '{url}', removing repo", True)
                                 to_remove.append(i)
                                 changed = True
                                 continue
 
                             if rm_rid in seen_rids:
-                                log(f"update_repositories: duplicate rm_rid='{rm_rid}', removing repo")
+                                logx(f"update_repositories: duplicate rm_rid='{rm_rid}', removing repo", True)
                                 to_remove.append(i)
                                 changed = True
                                 continue
@@ -389,14 +390,14 @@ class RepositoriesSettings:
                             if repo.get("id") != rm_rid:
                                 repos[i]["id"] = rm_rid
                                 changed = True
-                                log(f"update_repositories: set id='{rm_rid}' for repo '{repo.get('name')}'")
+                                logx(f"update_repositories: set id='{rm_rid}' for repo '{repo.get('name')}'", True)
 
                             cache_path = os.path.join(cache_dir, f"{rm_rid}.json")
                             with open(cache_path, "w", encoding="utf-8") as f:
                                 json.dump(data, f, indent=2, ensure_ascii=False)
-                            log(f"update_repositories: updated cache for '{rm_rid}'")
+                            logx(f"update_repositories: updated cache for '{rm_rid}'", True)
                         except Exception as e:
-                            log(f"update_repositories: error for {url}: {e}")
+                            logx(f"update_repositories: error for {url}: {e}", False)
 
                     for i in sorted(to_remove, reverse=True):
                         repos.pop(i)
@@ -406,7 +407,7 @@ class RepositoriesSettings:
 
                     run_on_ui_thread(lambda: BulletinHelper.show_success(strings.update_repos_success))
                 except Exception as e:
-                    log(f"update_repositories: task error: {e}")
+                    logx(f"update_repositories: task error: {e}", False)
 
             run_on_queue(task)
 
@@ -463,7 +464,7 @@ class RepositoriesSettings:
                                 rp = _fragment.getResourceProvider()
                                 BulletinFactory.of(container, rp).createSimpleBulletin(R_tg.raw.voip_invite, strings.repositories_exported).show()
                             except Exception as _be:
-                                log(f"repos.export_repositories.ShareDelegate.didShare: {_be}")
+                                logx(f"repos.export_repositories.ShareDelegate.didShare: {_be}", True)
                         run_on_ui_thread(_show_bulletin)
 
                     def didCopy(self):
@@ -480,7 +481,7 @@ class RepositoriesSettings:
                 share_alert.setDelegate(ShareDelegate())
                 frag.showDialog(share_alert)
             except Exception as e:
-                log(f"Export failed: {e}")
+                logx(f"Export failed: {e}", False)
                 BulletinHelper.show_error(strings.failed_to_copy)
 
         def toggle_all_repositories(view):
@@ -576,10 +577,10 @@ class RepositoriesSettings:
                     try:
                         builder.make_button_red(AlertDialogBuilder.BUTTON_POSITIVE)
                     except Exception as e:
-                        log(f"{e}")
+                        logx(f"{e}", False)
                     builder.show()
                 except Exception as e:
-                    log(f"{e}")
+                    logx(f"{e}", False)
                     self.repoManager.removeRepository(i)
             
             return show_confirm_dialog
@@ -625,7 +626,7 @@ class RepositoriesSettings:
                                     rp = _fragment.getResourceProvider()
                                     BulletinFactory.of(container, rp).createSimpleBulletin(R_tg.raw.voip_invite, strings.repo_link_copied).show()
                                 except Exception as _be:
-                                    log(f"repos.ShareDelegate.didShare: {_be}")
+                                    logx(f"repos.ShareDelegate.didShare: {_be}", True)
                             run_on_ui_thread(_show_bulletin)
 
                         def didCopy(self):
@@ -642,7 +643,7 @@ class RepositoriesSettings:
                     share_alert.setDelegate(ShareDelegate())
                     frag.showDialog(share_alert)
                 except Exception as e:
-                    log(f"Share failed: {e}")
+                    logx(f"Share failed: {e}", False)
                     BulletinHelper.show_error(strings.failed_to_copy)
             
             return share_repository

@@ -1,22 +1,23 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import ctypes
-from android_utils import log, run_on_ui_thread, OnClickListener
+from android_utils import run_on_ui_thread, OnClickListener
 
 try:
     from elyx import strings
 except Exception as e:
-    log(f"infoDialog: import elyx.strings failed: {e}")
+    logx(f"infoDialog: import elyx.strings failed: {e}", False)
 try:
     from org.telegram.ui.ActionBar import Theme
 except Exception as e:
-    log(f"infoDialog: import Theme failed: {e}")
+    logx(f"infoDialog: import Theme failed: {e}", False)
 try:
     from org.telegram.ui.Components import LayoutHelper
     from org.telegram.messenger import AndroidUtilities
 except Exception as e:
-    log(f"infoDialog: import AndroidUtilities/LayoutHelper failed: {e}")
+    logx(f"infoDialog: import AndroidUtilities/LayoutHelper failed: {e}", False)
 
 _ANIM_DURATION = 220
 _SPRING_DURATION = 380
@@ -37,7 +38,7 @@ def _register_back_cb(act, on_back):
         act.getOnBackPressedDispatcher().addCallback(act, cb.java)
         return cb
     except Exception as e:
-        log(f"infoDialog: _register_back_cb error: {e}")
+        logx(f"infoDialog: _register_back_cb error: {e}", False)
         return None
 
 def _unregister_back_cb(cb):
@@ -45,7 +46,7 @@ def _unregister_back_cb(cb):
         if cb is not None:
             cb.remove()
     except Exception as e:
-        log(f"infoDialog: _unregister_back_cb error: {e}")
+        logx(f"infoDialog: _unregister_back_cb error: {e}", False)
 
 
 def _animate_in(overlay, card):
@@ -73,7 +74,7 @@ def _animate_in(overlay, card):
         s.playTogether(fade_overlay, fade_card, scale_x, scale_y)
         s.start()
     except Exception as e:
-        log(f"infoDialog: _animate_in error: {e}")
+        logx(f"infoDialog: _animate_in error: {e}", False)
 
 
 def _animate_out(overlay_ref, card, decor):
@@ -109,7 +110,7 @@ def _animate_out(overlay_ref, card, decor):
         s.addListener(_EndListener())
         s.start()
     except Exception as e:
-        log(f"infoDialog: _animate_out error: {e}")
+        logx(f"infoDialog: _animate_out error: {e}", False)
         try:
             decor.removeView(overlay_ref[0])
         except Exception:
@@ -126,7 +127,7 @@ def _copy_to_clipboard(decor, label: str, text: str):
             str(strings["info_copied"]).format(label=label)
         ).show()
     except Exception as e:
-        log(f"infoDialog: _copy_to_clipboard error: {e}")
+        logx(f"infoDialog: _copy_to_clipboard error: {e}", False)
 
 
 def _make_row_bg(act, corner_dp: int):
@@ -372,4 +373,4 @@ def show_info_dialog(act, name: str, info: dict):
         back_cb_ref[0] = _register_back_cb(act, _dismiss)
         run_on_ui_thread(lambda: _animate_in(overlay, card))
     except Exception as e:
-        log(f"infoDialog: show_info_dialog error: {e}")
+        logx(f"infoDialog: show_info_dialog error: {e}", False)

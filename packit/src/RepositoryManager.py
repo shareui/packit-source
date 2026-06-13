@@ -1,6 +1,7 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import os
 import json
 import requests
@@ -10,7 +11,7 @@ try:
 except Exception as e:
     import android_utils as _au; _au.log(f"import elyx import settings, strings failed: {e}")
     from .utils.importFailed import showImportFailedAlert as _sifa; _sifa()
-from android_utils import log
+
 try:
     from org.telegram.messenger import ApplicationLoader
 except Exception as e:
@@ -55,26 +56,26 @@ class RepositoryManager:
         try:
             r = requests.get(url, timeout=15, headers=_HEADERS)
             if r.status_code != 200:
-                log(f"repom: failed to fetch repomap from '{url}': HTTP {r.status_code}")
+                logx(f"repom: failed to fetch repomap from '{url}': HTTP {r.status_code}", True)
                 return None
             data = r.json()
             repometa = data.get("repometa")
             if not repometa:
-                log(f"repom: no 'repometa' key in response from '{url}'")
+                logx(f"repom: no 'repometa' key in response from '{url}'", True)
                 return None
             rm_rid = repometa.get("rm_rid")
             if not rm_rid:
-                log(f"repom: 'rm_rid' missing in repometa")
+                logx(f"repom: 'rm_rid' missing in repometa", True)
                 return None
             cache_dir = _get_cache_dir()
             os.makedirs(cache_dir, exist_ok=True)
             cache_path = os.path.join(cache_dir, f"{rm_rid}.json")
             with open(cache_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
-            log(f"repom: saved repomap to {cache_path}")
+            logx(f"repom: saved repomap to {cache_path}", True)
             return repometa
         except Exception as e:
-            log(f"repom: _fetch_and_save_repomap error: {e}")
+            logx(f"repom: _fetch_and_save_repomap error: {e}", False)
             return None
 
     def _get_temp_dir(self) -> str:
@@ -87,9 +88,9 @@ class RepositoryManager:
         try:
             if os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir)
-                log("repom: cleaned up packitTemp")
+                logx("repom: cleaned up packitTemp", True)
         except Exception as e:
-            log(f"repom: _cleanup_temp_dir error: {e}")
+            logx(f"repom: _cleanup_temp_dir error: {e}", False)
 
     def addRepositoryWithUrl(self, url: str):
         # download to packitTemp, validate, move to reposCache or discard
@@ -101,20 +102,20 @@ class RepositoryManager:
 
         try:
             os.makedirs(temp_dir, exist_ok=True)
-            log(f"repom: addRepositoryWithUrl: GET {url}")
-            log(f"repom: addRepositoryWithUrl: sending headers={_HEADERS}")
+            logx(f"repom: addRepositoryWithUrl: GET {url}", True)
+            logx(f"repom: addRepositoryWithUrl: sending headers={_HEADERS}", True)
             r = requests.get(url, timeout=15, headers=_HEADERS)
             status = r.status_code
-            log(f"repom: addRepositoryWithUrl: status={status}")
+            logx(f"repom: addRepositoryWithUrl: status={status}", True)
             try:
                 resp_headers = dict(r.headers)
-                log(f"repom: addRepositoryWithUrl: resp_headers={resp_headers}")
+                logx(f"repom: addRepositoryWithUrl: resp_headers={resp_headers}", True)
             except Exception as ex:
-                log(f"repom: addRepositoryWithUrl: could not read resp headers: {ex}")
+                logx(f"repom: addRepositoryWithUrl: could not read resp headers: {ex}", True)
             try:
-                log(f"repom: addRepositoryWithUrl: body[:500]={r.text[:500]}")
+                logx(f"repom: addRepositoryWithUrl: body[:500]={r.text[:500]}", True)
             except Exception as ex:
-                log(f"repom: addRepositoryWithUrl: could not read body: {ex}")
+                logx(f"repom: addRepositoryWithUrl: could not read body: {ex}", True)
             if status != 200:
                 reasons = {
                     301: "permanently redirected",
@@ -141,7 +142,7 @@ class RepositoryManager:
 
             with open(temp_path, "w", encoding="utf-8") as f:
                 f.write(r.text)
-            log(f"repom: downloaded to {temp_path}")
+            logx(f"repom: downloaded to {temp_path}", True)
         except Exception as e:
             self._cleanup_temp_dir()
             return None, str(e)
@@ -151,28 +152,28 @@ class RepositoryManager:
             with open(temp_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
         except Exception as e:
-            log(f"repom: addRepositoryWithUrl: json parse error: {e}")
+            logx(f"repom: addRepositoryWithUrl: json parse error: {e}", False)
             self._cleanup_temp_dir()
             return None, "invalid json"
 
-        log(f"repom: addRepositoryWithUrl: parsed ok, keys={list(data.keys())}")
+        logx(f"repom: addRepositoryWithUrl: parsed ok, keys={list(data.keys())}", True)
         repometa = data.get("repometa")
         if not repometa:
-            log("repom: addRepositoryWithUrl: missing repometa")
+            logx("repom: addRepositoryWithUrl: missing repometa", True)
             self._cleanup_temp_dir()
             return None, "missing repometa"
 
         rm_rid = repometa.get("rm_rid")
-        log(f"repom: addRepositoryWithUrl: rm_rid={repr(rm_rid)}")
+        logx(f"repom: addRepositoryWithUrl: rm_rid={repr(rm_rid)}", True)
         if not rm_rid:
-            log("repom: addRepositoryWithUrl: missing rm_rid")
+            logx("repom: addRepositoryWithUrl: missing rm_rid", True)
             self._cleanup_temp_dir()
             return None, "missing rm_rid"
 
         rm_name = repometa.get("rm_name")
-        log(f"repom: addRepositoryWithUrl: rm_name={repr(rm_name)}")
+        logx(f"repom: addRepositoryWithUrl: rm_name={repr(rm_name)}", True)
         if not rm_name:
-            log("repom: addRepositoryWithUrl: missing rm_name")
+            logx("repom: addRepositoryWithUrl: missing rm_name", True)
             self._cleanup_temp_dir()
             return None, "missing rm_name"
 
@@ -182,9 +183,9 @@ class RepositoryManager:
             os.makedirs(cache_dir, exist_ok=True)
             cache_path = os.path.join(cache_dir, f"{rm_rid}.json")
             shutil.move(temp_path, cache_path)
-            log(f"repom: moved repomap to {cache_path}")
+            logx(f"repom: moved repomap to {cache_path}", True)
         except Exception as e:
-            log(f"repom: addRepositoryWithUrl: move to cache error: {e}")
+            logx(f"repom: addRepositoryWithUrl: move to cache error: {e}", False)
             self._cleanup_temp_dir()
             return None, "cache write failed"
 
@@ -247,31 +248,31 @@ class RepositoryManager:
     def removeRepository(self, idx):
         repos = self.getRepositories()
         if idx < 0 or idx >= len(repos):
-            log(f"repom.removeRepository: invalid idx={idx}, repos count={len(repos)}")
+            logx(f"repom.removeRepository: invalid idx={idx}, repos count={len(repos)}", True)
             return
 
         repo = repos[idx]
         repo_id = repo.get("id")
-        log(f"repom.removeRepository: removing idx={idx}, id={repr(repo_id)}, name={repr(repo.get('name'))}")
+        logx(f"repom.removeRepository: removing idx={idx}, id={repr(repo_id)}, name={repr(repo.get('name'))}", True)
 
         try:
             if repo_id:
                 cache_dir = _get_cache_dir()
                 cache_path = os.path.join(cache_dir, f"{repo_id}.json")
-                log(f"repom.removeRepository: looking for cache at {cache_path}")
+                logx(f"repom.removeRepository: looking for cache at {cache_path}", True)
                 if os.path.exists(cache_path):
                     os.remove(cache_path)
-                    log(f"repom.removeRepository: deleted cache {cache_path}")
+                    logx(f"repom.removeRepository: deleted cache {cache_path}", True)
                 else:
-                    log(f"repom.removeRepository: cache not found at {cache_path}")
+                    logx(f"repom.removeRepository: cache not found at {cache_path}", True)
             else:
-                log("repom.removeRepository: repo has no id, skipping cache delete")
+                logx("repom.removeRepository: repo has no id, skipping cache delete", True)
         except Exception as e:
-            log(f"repom.removeRepository: failed to delete cache: {e}")
+            logx(f"repom.removeRepository: failed to delete cache: {e}", False)
 
         repos.pop(idx)
         self.setRepositories(repos)
-        log(f"repom.removeRepository: done, remaining repos={len(repos)}")
+        logx(f"repom.removeRepository: done, remaining repos={len(repos)}", True)
     
     def updateRepoField(self, idx, field, value):
         repos = self.getRepositories()
@@ -341,7 +342,7 @@ class RepositoryManager:
                     try:
                         r = requests.get(url, timeout=10, headers=_HEADERS)
                         if r.status_code != 200:
-                            log(f"updateAllCaches: HTTP {r.status_code} for {url}")
+                            logx(f"updateAllCaches: HTTP {r.status_code} for {url}", True)
                             continue
                         data = r.json()
                         repometa = data.get("repometa")
@@ -349,14 +350,14 @@ class RepositoryManager:
 
                         # No repometa — remove repo
                         if not repometa or not rm_rid:
-                            log(f"updateAllCaches: no repometa for '{url}', removing repo")
+                            logx(f"updateAllCaches: no repometa for '{url}', removing repo", True)
                             to_remove.append(i)
                             changed = True
                             continue
 
                         # Duplicate check
                         if rm_rid in seen_rids:
-                            log(f"updateAllCaches: duplicate rm_rid='{rm_rid}', removing repo")
+                            logx(f"updateAllCaches: duplicate rm_rid='{rm_rid}', removing repo", True)
                             to_remove.append(i)
                             changed = True
                             continue
@@ -365,14 +366,14 @@ class RepositoryManager:
                         if repo.get("id") != rm_rid:
                             repos[i]["id"] = rm_rid
                             changed = True
-                            log(f"updateAllCaches: set id='{rm_rid}' for repo '{repo.get('name')}'")
+                            logx(f"updateAllCaches: set id='{rm_rid}' for repo '{repo.get('name')}'", True)
 
                         cache_path = os.path.join(cache_dir, f"{rm_rid}.json")
                         with open(cache_path, "w", encoding="utf-8") as f:
                             json.dump(data, f, indent=2, ensure_ascii=False)
-                        log(f"updateAllCaches: updated cache for '{rm_rid}'")
+                        logx(f"updateAllCaches: updated cache for '{rm_rid}'", True)
                     except Exception as e:
-                        log(f"updateAllCaches: error for {url}: {e}")
+                        logx(f"updateAllCaches: error for {url}: {e}", False)
 
                 # Remove in reverse order to keep indices valid
                 for i in sorted(to_remove, reverse=True):
@@ -380,14 +381,14 @@ class RepositoryManager:
 
                 if changed:
                     self.setRepositories(repos)
-                log("updateAllCaches: done")
+                logx("updateAllCaches: done", True)
             except Exception as e:
-                log(f"updateAllCaches: task error: {e}")
+                logx(f"updateAllCaches: task error: {e}", False)
             finally:
                 if on_complete:
                     try:
                         on_complete()
                     except Exception as e:
-                        log(f"updateAllCaches: on_complete error: {e}")
+                        logx(f"updateAllCaches: on_complete error: {e}", False)
 
         run_on_queue(task)

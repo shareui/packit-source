@@ -1,20 +1,21 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import ctypes
 
-from android_utils import log, run_on_ui_thread, OnClickListener
+from android_utils import run_on_ui_thread, OnClickListener
 from java import dynamic_proxy
 
 try:
     from org.telegram.ui.ActionBar import Theme
 except Exception as e:
-    log(f"AddKeyDialog: import Theme failed: {e}")
+    logx(f"AddKeyDialog: import Theme failed: {e}", False)
 try:
     from org.telegram.ui.Components import LayoutHelper, EditTextBoldCursor, OutlineTextContainerView
     from org.telegram.messenger import AndroidUtilities
 except Exception as e:
-    log(f"AddKeyDialog: import AndroidUtilities/LayoutHelper failed: {e}")
+    logx(f"AddKeyDialog: import AndroidUtilities/LayoutHelper failed: {e}", False)
 
 _ANIM_DURATION = 220
 _SPRING_DURATION = 380
@@ -36,7 +37,7 @@ def _register_back_cb(act, on_back):
         act.getOnBackPressedDispatcher().addCallback(act, cb.java)
         return cb
     except Exception as e:
-        log(f"AddKeyDialog: _register_back_cb error: {e}")
+        logx(f"AddKeyDialog: _register_back_cb error: {e}", False)
         return None
 
 
@@ -45,7 +46,7 @@ def _unregister_back_cb(cb):
         if cb is not None:
             cb.remove()
     except Exception as e:
-        log(f"AddKeyDialog: _unregister_back_cb error: {e}")
+        logx(f"AddKeyDialog: _unregister_back_cb error: {e}", False)
 
 
 def _animate_in(overlay, card, on_end=None):
@@ -88,7 +89,7 @@ def _animate_in(overlay, card, on_end=None):
 
         s.start()
     except Exception as e:
-        log(f"AddKeyDialog: _animate_in error: {e}")
+        logx(f"AddKeyDialog: _animate_in error: {e}", False)
         if on_end is not None:
             on_end()
 
@@ -127,7 +128,7 @@ def _animate_out(overlay_ref, card, decor, on_end=None):
         s.addListener(_EndListener())
         s.start()
     except Exception as e:
-        log(f"AddKeyDialog: _animate_out error: {e}")
+        logx(f"AddKeyDialog: _animate_out error: {e}", False)
         try:
             decor.removeView(overlay_ref[0])
         except Exception:
@@ -149,7 +150,7 @@ def _attach_keyboard_listener(act, decor, card):
         window = act.getWindow()
         orig_soft_input_mode = window.getAttributes().softInputMode
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
-        log("AddKeyDialog: keyboard listener attached, SOFT_INPUT_ADJUST_RESIZE set")
+        logx("AddKeyDialog: keyboard listener attached, SOFT_INPUT_ADJUST_RESIZE set", True)
 
         visible_rect = Rect()
         kb_height_ref = [0]
@@ -182,17 +183,17 @@ def _attach_keyboard_listener(act, decor, card):
                     if kb_height < AndroidUtilities.dp(100):
                         kb_height = 0
                     if kb_height != kb_height_ref[0]:
-                        log(f"AddKeyDialog: keyboard height changed {kb_height_ref[0]} -> {kb_height}")
+                        logx(f"AddKeyDialog: keyboard height changed {kb_height_ref[0]} -> {kb_height}", True)
                         kb_height_ref[0] = kb_height
                         _update_translation(kb_height)
                 except Exception as e:
-                    log(f"AddKeyDialog: _LayoutListener error: {e}")
+                    logx(f"AddKeyDialog: _LayoutListener error: {e}", False)
 
         listener = _LayoutListener()
         decor.getViewTreeObserver().addOnGlobalLayoutListener(listener)
         return listener, orig_mode_ref
     except Exception as e:
-        log(f"AddKeyDialog: _attach_keyboard_listener error: {e}")
+        logx(f"AddKeyDialog: _attach_keyboard_listener error: {e}", False)
         return None, None
 
 
@@ -203,7 +204,7 @@ def _detach_keyboard_listener(act, decor, listener, orig_mode_ref):
         if orig_mode_ref is not None and orig_mode_ref[0] is not None:
             act.getWindow().setSoftInputMode(orig_mode_ref[0])
     except Exception as e:
-        log(f"AddKeyDialog: _detach_keyboard_listener error: {e}")
+        logx(f"AddKeyDialog: _detach_keyboard_listener error: {e}", False)
 
 
 def show_add_key_dialog(act, title: str, subtitle: str, hint: str, button_text: str, on_confirm=None, outline_label: str = None):
@@ -274,7 +275,7 @@ def show_add_key_dialog(act, title: str, subtitle: str, hint: str, button_text: 
         try:
             title_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
         except Exception as e:
-            log(f"AddKeyDialog: title typeface error: {e}")
+            logx(f"AddKeyDialog: title typeface error: {e}", False)
         card.addView(title_tv, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 6))
 
         # subtitle (gray)
@@ -307,13 +308,13 @@ def show_add_key_dialog(act, title: str, subtitle: str, hint: str, button_text: 
             edit_text.setCursorColor(accent_color)
             edit_text.setCursorWidth(1.5)
         except Exception as e:
-            log(f"AddKeyDialog: cursor color error: {e}")
+            logx(f"AddKeyDialog: cursor color error: {e}", False)
         edit_text.setPadding(dp(16), dp(14), dp(16), dp(14))
         try:
             from android.text import TextUtils
             edit_text.setEllipsize(TextUtils.TruncateAt.END)
         except Exception as e:
-            log(f"AddKeyDialog: ellipsize error: {e}")
+            logx(f"AddKeyDialog: ellipsize error: {e}", False)
 
         from android.view import View
 
@@ -341,7 +342,7 @@ def show_add_key_dialog(act, title: str, subtitle: str, hint: str, button_text: 
         try:
             confirm_btn.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
         except Exception as e:
-            log(f"AddKeyDialog: confirm typeface error: {e}")
+            logx(f"AddKeyDialog: confirm typeface error: {e}", False)
 
         def _on_confirm(v):
             try:
@@ -349,7 +350,7 @@ def show_add_key_dialog(act, title: str, subtitle: str, hint: str, button_text: 
                 AndroidUtilities.hideKeyboard(edit_text)
                 _dismiss(on_end=lambda: on_confirm(key_value) if on_confirm else None)
             except Exception as e:
-                log(f"AddKeyDialog: _on_confirm error: {e}")
+                logx(f"AddKeyDialog: _on_confirm error: {e}", False)
 
         confirm_btn.setOnClickListener(OnClickListener(_on_confirm))
         card.addView(confirm_btn, LayoutHelper.createLinear(-1, -2))
@@ -372,4 +373,4 @@ def show_add_key_dialog(act, title: str, subtitle: str, hint: str, button_text: 
 
         run_on_ui_thread(_open)
     except Exception as e:
-        log(f"AddKeyDialog: show_add_key_dialog error: {e}")
+        logx(f"AddKeyDialog: show_add_key_dialog error: {e}", False)

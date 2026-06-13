@@ -1,8 +1,9 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 from urllib.parse import urlparse, parse_qs
-from android_utils import log, run_on_ui_thread
+from android_utils import run_on_ui_thread
 from client_utils import get_last_fragment
 from ui.bulletin import BulletinHelper
 try:
@@ -26,7 +27,7 @@ def _load_repomap(rm_rid: str) -> dict | None:
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
-        log(f"suggestion deeplink: _load_repomap error: {e}")
+        logx(f"suggestion deeplink: _load_repomap error: {e}", False)
         return None
 
 
@@ -63,7 +64,7 @@ def handle(url: str, plugin=None):
 
         run_on_ui_thread(lambda: _open_fragment(data, plugin))
     except Exception as e:
-        log(f"suggestion deeplink: handle error: {e}")
+        logx(f"suggestion deeplink: handle error: {e}", False)
 
 
 def _open_fragment(data: dict, plugin=None):
@@ -71,4 +72,4 @@ def _open_fragment(data: dict, plugin=None):
         from ..ui.suggest.fragment import show_suggest_fragment
         show_suggest_fragment(data, plugin)
     except Exception as e:
-        log(f"suggestion deeplink: _open_fragment error: {e}")
+        logx(f"suggestion deeplink: _open_fragment error: {e}", False)

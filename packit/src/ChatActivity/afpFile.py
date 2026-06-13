@@ -1,13 +1,14 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 import threading
 import traceback
 import zipfile
 
 from base_plugin import MethodHook
 from hook_utils import find_class
-from android_utils import log
+
 from java.lang import Integer
 
 
@@ -25,7 +26,7 @@ class _AfpFileHandler(MethodHook):
             param.setResult(False)
             threading.Thread(target=self._read, args=(file_path, filename), daemon=True).start()
         except Exception as e:
-            log(f"afpFile: before_hooked_method error: {e}")
+            logx(f"afpFile: before_hooked_method error: {e}", False)
 
     def _read(self, file_path: str, filename: str):
         from ..scl.scl import parse
@@ -52,19 +53,19 @@ class _AfpFileHandler(MethodHook):
                         pass
             os.makedirs(tmp_dir, exist_ok=True)
         except Exception as e:
-            log(f"afpFile: tmp_dir setup error: {e}")
+            logx(f"afpFile: tmp_dir setup error: {e}", False)
             return
 
         try:
             with zipfile.ZipFile(file_path, "r") as zf:
                 zf.extractall(tmp_dir)
         except Exception as e:
-            log(f"afpFile: unzip error: {e}")
+            logx(f"afpFile: unzip error: {e}", False)
             return
 
         config_path = os.path.join(tmp_dir, "config.scl")
         if not os.path.isfile(config_path):
-            log("afpFile: config.scl not found in archive")
+            logx("afpFile: config.scl not found in archive", True)
             return
 
         try:
@@ -72,17 +73,17 @@ class _AfpFileHandler(MethodHook):
                 config_src = f.read()
             config_doc = parse(config_src, parseOpts)
         except Exception as e:
-            log(f"afpFile: config.scl parse error: {e}")
+            logx(f"afpFile: config.scl parse error: {e}", False)
             return
 
         try:
             type_val = config_doc["type"]
             if type_val is None:
-                log("afpFile: type field missing in config.scl")
+                logx("afpFile: type field missing in config.scl", True)
                 return
             afp_type = type_val.asString()
         except Exception as e:
-            log(f"afpFile: type read error: {e}")
+            logx(f"afpFile: type read error: {e}", False)
             return
 
         plugins = []
@@ -90,7 +91,7 @@ class _AfpFileHandler(MethodHook):
         if afp_type == "local":
             local_path = os.path.join(tmp_dir, "local.scl")
             if not os.path.isfile(local_path):
-                log("afpFile: local.scl not found")
+                logx("afpFile: local.scl not found", True)
             else:
                 try:
                     with open(local_path, "r", encoding="utf-8") as f:
@@ -125,7 +126,7 @@ class _AfpFileHandler(MethodHook):
                             plugins.append(info)
                             i += 1
                 except Exception as e:
-                    log(f"afpFile: local.scl parse error: {e}")
+                    logx(f"afpFile: local.scl parse error: {e}", False)
 
         if not plugins:
             plugins = [{"name": "", "version": "", "icon": ""}]
@@ -133,11 +134,11 @@ class _AfpFileHandler(MethodHook):
         try:
             count_val = config_doc["count"]
             if count_val is None:
-                log("afpFile: count field missing in config.scl")
+                logx("afpFile: count field missing in config.scl", True)
                 return
             count = count_val.asInt()
         except Exception as e:
-            log(f"afpFile: count read error: {e}")
+            logx(f"afpFile: count read error: {e}", False)
             return
 
         has_settings = False
@@ -152,7 +153,7 @@ class _AfpFileHandler(MethodHook):
             from .ImportBottomSheet import show as showImportSheet
             showImportSheet(plugins, count, file_path, total_count=count, settings=has_settings)
         except Exception as e:
-            log(f"afpFile: show ImportBottomSheet error: {e}")
+            logx(f"afpFile: show ImportBottomSheet error: {e}", False)
 
 
 def setup_afp_file_hook(plugin) -> list:
@@ -172,7 +173,7 @@ def setup_afp_file_hook(plugin) -> list:
         ][0]
 
         hooks.append(plugin.hook_method(method, _AfpFileHandler(plugin), Integer.MAX_VALUE))
-        log("afpFile: hook registered")
+        logx("afpFile: hook registered", True)
     except Exception as e:
-        log(f"afpFile: setup error: {e}")
+        logx(f"afpFile: setup error: {e}", False)
     return hooks

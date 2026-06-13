@@ -1,8 +1,9 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from packutil import logx
 from java import dynamic_proxy
-from android_utils import log, run_on_ui_thread, OnClickListener
+from android_utils import run_on_ui_thread, OnClickListener
 from client_utils import get_last_fragment, run_on_queue
 from hook_utils import find_class as _fc
 try:
@@ -138,16 +139,16 @@ def _open_profile_by_user(user_id, username):
                 profile = ProfileActivity(args)
                 frag.presentFragment(profile)
             except Exception as _fe:
-                log(f"contributors fragment: _open_profile_by_user ProfileActivity fallback error: {_fe}")
+                logx(f"contributors fragment: _open_profile_by_user ProfileActivity fallback error: {_fe}", True)
     except Exception as _e:
-        log(f"contributors fragment: _open_profile_by_user error: {_e}")
+        logx(f"contributors fragment: _open_profile_by_user error: {_e}", True)
 
 
 def _show_bulletin(icon_raw_name, text, is_error=False):
     try:
         frag = get_last_fragment()
         if not frag:
-            log("contributors fragment: _show_bulletin: no fragment")
+            logx("contributors fragment: _show_bulletin: no fragment", True)
             return
         BulletinFactory = _fc("org.telegram.ui.Components.BulletinFactory")
         from org.telegram.messenger import R as R_tg
@@ -160,7 +161,7 @@ def _show_bulletin(icon_raw_name, text, is_error=False):
             icon_raw = getattr(R_tg.raw, icon_raw_name, 0)
             factory.createSimpleBulletin(icon_raw, str(text)).show()
     except Exception as _e:
-        log(f"contributors fragment: _show_bulletin error: {_e}")
+        logx(f"contributors fragment: _show_bulletin error: {_e}", True)
 
 
 def _fetch_user(user_id, on_done):
@@ -186,7 +187,7 @@ def _fetch_user(user_id, on_done):
             from client_utils import send_request
             def _on_resp(resp, err):
                 if err or resp is None:
-                    log(f"contributors fragment: _fetch_user {user_id} error: {err}")
+                    logx(f"contributors fragment: _fetch_user {user_id} error: {err}", True)
                     run_on_ui_thread(lambda: on_done(None))
                     return
                 user = None
@@ -196,11 +197,11 @@ def _fetch_user(user_id, on_done):
                         user = objects.get(0)
                         mc.putUser(user, False)
                 except Exception as _e:
-                    log(f"contributors fragment: _fetch_user putUser error: {_e}")
+                    logx(f"contributors fragment: _fetch_user putUser error: {_e}", True)
                 run_on_ui_thread(lambda: on_done(user))
             send_request(req, _on_resp)
         except Exception as _e:
-            log(f"contributors fragment: _fetch_user outer error: {_e}")
+            logx(f"contributors fragment: _fetch_user outer error: {_e}", True)
             run_on_ui_thread(lambda: on_done(None))
     run_on_queue(_do)
 
@@ -274,10 +275,10 @@ def _make_avatar_view(context, user_id, title_text):
                     full_set.playSequentially(down_set, up_set)
                     full_set.start()
                 except Exception as _ae:
-                    log(f"contributors fragment: avatar scale anim error: {_ae}")
+                    logx(f"contributors fragment: avatar scale anim error: {_ae}", True)
                 _open_profile_by_user(user_id, _username_holder[0])
             except Exception as _e:
-                log(f"contributors fragment: _open_profile (avatar) error: {_e}")
+                logx(f"contributors fragment: _open_profile (avatar) error: {_e}", True)
 
         img.setOnClickListener(OnClickListener(_open_profile))
 
@@ -291,7 +292,7 @@ def _make_avatar_view(context, user_id, title_text):
                     avatar_drawable = AvatarDrawable(user)
                     img.setForUserOrChat(user, avatar_drawable)
                 except Exception as _e:
-                    log(f"contributors fragment: avatar set error: {_e}")
+                    logx(f"contributors fragment: avatar set error: {_e}", True)
                 # name: prefer first_name, fallback username (incl. NFT)
                 username = _get_username(user)
                 name = ""
@@ -306,13 +307,13 @@ def _make_avatar_view(context, user_id, title_text):
                 _username_holder[0] = username
                 nickname_tv.setText(name)
             except Exception as _e:
-                log(f"contributors fragment: _on_user error: {_e}")
+                logx(f"contributors fragment: _on_user error: {_e}", True)
 
         _fetch_user(user_id, _on_user)
 
         return container
     except Exception as _e:
-        log(f"contributors fragment: _make_avatar_view error: {_e}")
+        logx(f"contributors fragment: _make_avatar_view error: {_e}", True)
         return None
 
 
@@ -333,7 +334,7 @@ def _make_thanks_row(context, user_id):
             selector = Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 2)
             row.setBackground(selector)
         except Exception as _se:
-            log(f"contributors fragment: thanks row selector error: {_se}")
+            logx(f"contributors fragment: thanks row selector error: {_se}", True)
 
         img = BackupImageView(context)
         img.setRoundRadius(dp(50))
@@ -358,7 +359,7 @@ def _make_thanks_row(context, user_id):
             try:
                 _open_profile_by_user(user_id, _username_holder[0])
             except Exception as _e:
-                log(f"contributors fragment: _open_profile error: {_e}")
+                logx(f"contributors fragment: _open_profile error: {_e}", True)
 
         row.setOnClickListener(OnClickListener(_open_profile))
 
@@ -374,7 +375,7 @@ def _make_thanks_row(context, user_id):
                     avatar_drawable = AvatarDrawable(user)
                     img.setForUserOrChat(user, avatar_drawable)
                 except Exception as _e:
-                    log(f"contributors fragment: thanks avatar error: {_e}")
+                    logx(f"contributors fragment: thanks avatar error: {_e}", True)
                 username = _get_username(user)
                 name = ""
                 try:
@@ -388,12 +389,12 @@ def _make_thanks_row(context, user_id):
                 _username_holder[0] = username
                 name_tv.setText(name)
             except Exception as _e:
-                log(f"contributors fragment: _thanks on_user error: {_e}")
+                logx(f"contributors fragment: _thanks on_user error: {_e}", True)
 
         _fetch_user(user_id, _on_user)
         return row
     except Exception as _e:
-        log(f"contributors fragment: _make_thanks_row error: {_e}")
+        logx(f"contributors fragment: _make_thanks_row error: {_e}", True)
         return None
 
 
@@ -455,7 +456,7 @@ def _build_special_thanks_card(act, content, animate_idx=0):
         except Exception:
             pass
     except Exception as _e:
-        log(f"contributors fragment: _build_special_thanks_card error: {_e}")
+        logx(f"contributors fragment: _build_special_thanks_card error: {_e}", True)
 
 
 def _build_sponsors_card(act, content, animate_idx=0):
@@ -515,7 +516,7 @@ def _build_sponsors_card(act, content, animate_idx=0):
         except Exception:
             pass
     except Exception as _e:
-        log(f"contributors fragment: _build_sponsors_card error: {_e}")
+        logx(f"contributors fragment: _build_sponsors_card error: {_e}", True)
 
 
 def _make_link_row(context, icon_name, label_text, link_text, on_click):
@@ -573,7 +574,7 @@ def _make_link_row(context, icon_name, label_text, link_text, on_click):
 
         return row
     except Exception as e:
-        log(f"contributors fragment: _make_link_row error: {e}")
+        logx(f"contributors fragment: _make_link_row error: {e}", False)
         return None
 
 
@@ -593,7 +594,7 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     parent.removeView(self._root_view)
                 self._root_view = None
         except Exception as e:
-            log(f"contributors fragment: onFragmentDestroy error: {e}")
+            logx(f"contributors fragment: onFragmentDestroy error: {e}", False)
 
     def beforeCreateView(self):
         try:
@@ -603,7 +604,7 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     parent.removeView(self._root_view)
                 self._root_view = None
         except Exception as e:
-            log(f"contributors fragment: beforeCreateView cleanup error: {e}")
+            logx(f"contributors fragment: beforeCreateView cleanup error: {e}", False)
 
         frag = get_last_fragment()
         act = frag.getParentActivity() if frag else None
@@ -634,7 +635,7 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
 
             return root
         except Exception as e:
-            log(f"contributors fragment: beforeCreateView error: {e}")
+            logx(f"contributors fragment: beforeCreateView error: {e}", False)
             return None
 
     def _schedule_lazy_build(self, act, content):
@@ -724,7 +725,7 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 try:
                     builders[idx]()
                 except Exception as _e:
-                    log(f"contributors fragment: lazy builder {idx} error: {_e}")
+                    logx(f"contributors fragment: lazy builder {idx} error: {_e}", True)
                 # schedule next card
                 _post_builder(idx + 1)
             run_on_ui_thread(_run, idx * 60)
@@ -756,7 +757,7 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 if frag:
                     frag.finishFragment()
             except Exception as e:
-                log(f"contributors fragment: finishFragment error: {e}")
+                logx(f"contributors fragment: finishFragment error: {e}", False)
             return True
         return False
 
@@ -875,7 +876,7 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
 
             return row
         except Exception as e:
-            log(f"contributors fragment: _make_donation_row error: {e}")
+            logx(f"contributors fragment: _make_donation_row error: {e}", False)
             return None
 
     def _add_divider_line(self, content):
@@ -991,6 +992,6 @@ def show_contributors_fragment():
                 except Exception:
                     pass
         except Exception as e:
-            log(f"contributors fragment: actionbar setup error: {e}")
+            logx(f"contributors fragment: actionbar setup error: {e}", False)
     except Exception as e:
-        log(f"contributors fragment: show_contributors_fragment error: {e}")
+        logx(f"contributors fragment: show_contributors_fragment error: {e}", False)
