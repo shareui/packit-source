@@ -1,5 +1,5 @@
 metainfo: packit/meta.yml
-main: packit/src/main.py
+main: packit/src/BasePlugin.py
 strings: packit/locales
 assets: packit/res
 elyxbuilder: packit/.elyxbuilder
