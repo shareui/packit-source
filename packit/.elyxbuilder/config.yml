@@ -4,8 +4,9 @@ buildNameUncompiled: '{name}-{version}'
 buildNameCompiled: '{name}-{version}-3.11'
 ignoreAll:
 - packit/.elyxbuilder/cache/*
+- packit/docs/
 compilationIgnore:
-- packit/src/main.py
+- packit/src/BasePlugin.py
 obfuscationConfig:
   stripDocstrings: true
   removeLogs: false

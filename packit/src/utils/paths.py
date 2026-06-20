@@ -58,3 +58,11 @@ def getGeminiCachePath() -> str:
 
 def getPackItPluginDir() -> str:
     return _filesDir() + "/plugins/ElyxPlugins/shareui_packit"
+
+def _externalCacheDir() -> str:
+    from org.telegram.messenger import ApplicationLoader
+    d = ApplicationLoader.applicationContext.getExternalCacheDir()
+    return d.getAbsolutePath() if d else _cacheDir()
+
+def getLogShareCachePath() -> str:
+    return _externalCacheDir() + "/packit_latestlog.txt"

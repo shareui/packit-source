@@ -1144,5 +1144,18 @@
   "debug_menu": "Debug menu",
   "debug_menu_desc": "Menu for developers",
   "debug_logs": "Debug logs",
-  "debug_logs_desc": "Enables debug logs for diagnostics"
+  "debug_logs_desc": "Enables debug logs for diagnostics",
+  "write_logs": "Write logs to file",
+  "write_logs_desc": "Saves all logs to latestlog.txt in the PackIt cache directory",
+  "clean_logs": "Clean logs on launch",
+  "clean_logs_desc": "Clears logs on every new launch",
+  "send_latestlog": "Send latestlog as file",
+  "copy_latestlog_path": "Copy latestlog path",
+  "copy_latestlog_path_desc": "Copies the absolute path to the clipboard",
+  "copy_latestlog_path_done": "Path copied to clipboard",
+  "force_clean_log": "Forced cleaning",
+  "force_clean_log_desc": "Clears the latestlog.txt",
+  "force_clean_log_done": "Log file cleared",
+  "force_clean_log_error": "Failed to clear log file",
+  "debug_clearing_header": "Clearing logs"
 }
