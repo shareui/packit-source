@@ -48,7 +48,7 @@ except Exception as e:
 
 from .RepoBottomSheet import show_icon_repo_sheet
 from .SortBottomSheet import show_icon_sort_menu
-from ..PluginListActivity.service import SearchEngine as search_mod
+from ...utils import search as search_mod
 
 
 def _count_active_repos(repoManager) -> int:

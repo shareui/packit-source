@@ -167,7 +167,7 @@ def build_debug_page():
         ))
 
     items += [
-        Divider(),
+        Divider(text=strings.debug_perf_warning),
         Header(text=strings.debug_clearing_header),
         Switch(
             key="clean_logs",

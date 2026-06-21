@@ -49,7 +49,7 @@ def _build_version_entries(plugin):
     # returns list sorted newest first
     def _ver_key(v):
         try:
-            from ..PluginListActivity.fragment import _parse_version
+            from ..PluginListActivity.helpers.utils import _parse_version
             return _parse_version(v)
         except Exception:
             return []

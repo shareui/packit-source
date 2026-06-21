@@ -1157,5 +1157,6 @@
   "force_clean_log_desc": "Clears the latestlog.txt",
   "force_clean_log_done": "Log file cleared",
   "force_clean_log_error": "Failed to clear log file",
-  "debug_clearing_header": "Clearing logs"
+  "debug_clearing_header": "Clearing logs",
+  "debug_perf_warning": "Using this setting may reduce performance. Use only when necessary."
 }

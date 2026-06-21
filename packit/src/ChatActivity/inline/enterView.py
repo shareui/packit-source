@@ -108,7 +108,7 @@ def _flag_match(plugin, flags):
 
     # app_version: each expression must pass check_app_version
     if "app_version" in flags:
-        from ..utils.app_version import check_app_version
+        from ...utils.app_version import check_app_version
         for expr in flags["app_version"]:
             if not check_app_version(expr):
                 return False
@@ -117,11 +117,11 @@ def _flag_match(plugin, flags):
 
 
 def _get_cache_dir():
-    from ..utils.paths import getReposCacheDir
+    from ...utils.paths import getReposCacheDir
     return getReposCacheDir()
 
 def _get_repo_cache_path(repo_id):
-    from ..utils.paths import getRepoCachePath
+    from ...utils.paths import getRepoCachePath
     return getRepoCachePath(repo_id)
 
 class _PackitAutocompleteHook(MethodHook):
@@ -340,7 +340,7 @@ def _packit_search_in_background(self, search_key, token):
             run_on_ui_thread(lambda: self._packit_show_plugins_popup(result))
             return
 
-        from ..ui.PluginListActivity.service.SearchEngine import build_index, score as search_score
+        from ...utils.search import build_index, score as search_score
 
         index = build_index(candidates)
 
@@ -534,8 +534,8 @@ def _packit_show_plugins_popup(self, plugins):
 
                     def open_profile():
                         try:
-                            from ..ui.PluginListActivity.fragment import InstallUI
-                            from ..ui.PluginActivity.fragment import show_plugin_profile
+                            from ...ui.PluginListActivity.fragment import InstallUI
+                            from ...ui.PluginActivity.fragment import show_plugin_profile
 
                             class _FakePlugin:
                                 def __init__(self, rm):

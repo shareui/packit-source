@@ -3,7 +3,7 @@
 
 from ui.settings import Header, Switch, Divider, Input, Text
 from elyx import strings
-from ...ChatActivity import inlineState
+from ...ChatActivity.inline import inlineState
 
 
 def build_inline_page(other_settings, fmt_inline_str, reload_plugin_settings, open_url):

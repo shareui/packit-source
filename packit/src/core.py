@@ -122,7 +122,7 @@ def _is_elyx_plugin(plugin_info: dict) -> bool:
 def install_plugin(plugin_info: dict, icon_view=None, button=None, original_icon_id=None, loading_view=None, on_finish=None, install_ui=None, all_plugins: list = None, rm_rid: str = "", succ_download=None):
     deps = plugin_info.get("deps") or []
     if deps:
-        from .ui.PluginListActivity.depsSheet import show_deps_sheet
+        from .ui.PluginListActivity.sheets.depsSheet import show_deps_sheet
         def on_confirmed():
             _do_install(plugin_info, icon_view, button, original_icon_id, loading_view, on_finish, install_ui, rm_rid=rm_rid, succ_download=succ_download)
         show_deps_sheet(install_ui, plugin_info, on_confirmed, all_plugins=all_plugins, on_cancel=on_finish)

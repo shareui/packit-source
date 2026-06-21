@@ -206,7 +206,7 @@ def _do_translate_inline(message_object):
     # runs on background thread: translates only the description, rebuilds message with formatting
     try:
         from client_utils import edit_message
-        from ..ui.PluginListActivity.translation import _translate_text
+        from ...utils.translation import _translate_text
         from java.util import Locale
 
         owner = message_object.messageOwner
@@ -342,7 +342,7 @@ def _do_send_file_inline(message_object, plugin_ref):
         # resolve plugins url from repo cache
         link = None
         try:
-            from ..ui.pluginsUpdates.fragment import _get_repos, _get_repo_plugins_url, _fetch_repo_plugins
+            from ...ui.pluginsUpdates.fragment import _get_repos, _get_repo_plugins_url, _fetch_repo_plugins
             repos = _get_repos()
             repo_url = None
             for r in repos:

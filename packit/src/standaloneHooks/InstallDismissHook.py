@@ -14,11 +14,11 @@ class _InstallSuccessHook(MethodHook):
             if error_str is not None:
                 return
             try:
-                from ....ui.AchievementsActivity.service.AchivementsEngine import increment_category
+                from ..ui.AchievementsActivity.service.AchivementsEngine import increment_category
                 increment_category("Installing plugins")
             except Exception as e:
                 logx(f"installSuccessHook: achievements increment error: {e}", False)
-            from ....utils.installIndex import commit_pending
+            from ..utils.installIndex import commit_pending
             commit_pending()
         except Exception as e:
             logx(f"installSuccessHook: error: {e}", False)

@@ -495,8 +495,8 @@ from .versionPicker import _show_version_picker
 
 def _show_plugin_menu(act, p, anchor_view, repo_id: str = ""):
     try:
-        from ..PluginListActivity.service.PluginActions import share_plugin_file, view_plugin_code, download_plugin_file
-        from ..PluginListActivity.service.ReportService import report_plugin
+        from ..PluginListActivity.helpers.PluginActions import share_plugin_file, view_plugin_code, download_plugin_file
+        from ..PluginListActivity.helpers.ReportService import report_plugin
         from org.telegram.ui.Components import ItemOptions
         from org.telegram.ui.ActionBar import ActionBarMenuSubItem
         from org.telegram.messenger import R as R_tg, AndroidUtilities
@@ -1976,7 +1976,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 translate_btn_ext = _make_text_btn_ext("msg_replace", str(strings["translate"]))
 
                 def onTranslateClickExt(v, _p=p, _readme=fetched_readme):
-                    from ..PluginListActivity.translation import translate_plugin
+                    from ...utils.translation import translate_plugin
                     text = _readme[0] if _readme[0] else None
                     translate_plugin(_p, text_override=text)
                 translate_btn_ext.setOnClickListener(OnClickListener(onTranslateClickExt))
@@ -2100,7 +2100,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             translate_btn = _make_icon_only_btn("msg_replace")
 
             def onTranslateClick(v, _p=p):
-                from ..PluginListActivity.translation import translate_plugin
+                from ...utils.translation import translate_plugin
                 translate_plugin(_p)
             translate_btn.setOnClickListener(OnClickListener(onTranslateClick))
 
@@ -2565,7 +2565,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 return
             import threading
             import requests as _req
-            from ..PluginListActivity.translation import _show_translate_sheet
+            from ...utils.translation import _show_translate_sheet
             from java.util import Locale
 
             def _set_loading(loading):

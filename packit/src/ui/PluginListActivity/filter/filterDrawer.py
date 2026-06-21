@@ -12,7 +12,7 @@ from android.view.animation import DecelerateInterpolator
 from java import dynamic_proxy
 from hook_utils import find_class
 from android_utils import OnClickListener
-from .service import filterEngine
+from . import filterEngine
 try:
     from org.telegram.ui.ActionBar import Theme
 except Exception as e:

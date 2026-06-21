@@ -15,22 +15,22 @@ try:
     from elyx import settings, strings
 except Exception as e:
     import android_utils as _au; _au.log(f"import elyx import settings, strings failed: {e}")
-    from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ....utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.ui.ActionBar import BottomSheet, Theme
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.ui.ActionBar import BottomSheet, Theme failed: {e}")
-    from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ....utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.ui.Components import LayoutHelper
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.ui.Components import LayoutHelper failed: {e}")
-    from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ....utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.messenger import AndroidUtilities
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities failed: {e}")
-    from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ....utils.importFailed import showImportFailedAlert as _sifa; _sifa()
 
 _SORT_ICONS = {
     "alpha_az": "msg_archive",
@@ -234,7 +234,7 @@ def show_sort_menu(install_ui, act, current_sort_type, build_list_with_sort):
 
         sort_sheet.setCustomView(sort_root)
         try:
-            from ..viewUtils import applyFontToTree
+            from ...viewUtils import applyFontToTree
             applyFontToTree(sort_root)
         except Exception:
             pass
