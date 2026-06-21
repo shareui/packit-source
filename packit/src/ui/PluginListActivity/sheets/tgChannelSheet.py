@@ -44,7 +44,7 @@ def _apply_press_scale(view):
 def show_tg_channel_sheet(activity, resource_provider):
     try:
         from elyx import strings
-        from ...utils.localConfig import LocalConfig
+        from ....utils.localConfig import LocalConfig
 
         sheet = BottomSheet(activity, False, resource_provider)
         sheet.fixNavigationBar()
@@ -86,7 +86,7 @@ def show_tg_channel_sheet(activity, resource_provider):
                 sheet.dismiss()
                 LocalConfig.set("showTgc", True)
                 try:
-                    from ...ui.AchievementsActivity.service.AchivementsEngine import unlock_secret
+                    from ....ui.AchievementsActivity.service.AchivementsEngine import unlock_secret
                     unlock_secret("subscriber")
                 except Exception as e:
                     logx(f"tgChannelSheet: achievement unlock error: {e}", False)
@@ -119,7 +119,7 @@ def show_tg_channel_sheet(activity, resource_provider):
         scroll.addView(frame)
         sheet.setCustomView(scroll)
         try:
-            from ..viewUtils import applyFontToTree
+            from ...viewUtils import applyFontToTree
             applyFontToTree(scroll)
         except Exception:
             pass

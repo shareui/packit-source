@@ -35,7 +35,7 @@ _GEMINI_MODEL_LABELS = ["2.5 Flash", "2.5 Flash Lite", "2.5 Pro"]
 
 def _load_gemini_cache() -> dict:
     try:
-        from ...utils.paths import getGeminiCachePath
+        from ....utils.paths import getGeminiCachePath
         path = getGeminiCachePath()
         if not os.path.exists(path):
             return {}
@@ -49,7 +49,7 @@ def _load_gemini_cache() -> dict:
 
 def _save_gemini_cache(cache: dict) -> None:
     try:
-        from ...utils.paths import getGeminiCachePath
+        from ....utils.paths import getGeminiCachePath
         path = getGeminiCachePath()
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
@@ -90,8 +90,8 @@ def _get_device_id() -> str:
 def _load_gemini_key() -> "str | None":
     # returns full key string or None
     try:
-        from ...nativeLoader import loadPackitKey
-        from ...utils.paths import getKeysDir
+        from ....nativeLoader import loadPackitKey
+        from ....utils.paths import getKeysDir
     except Exception as e:
         logx(f"AISearchSheet: _load_gemini_key import failed: {e}", False)
         return None
@@ -797,7 +797,7 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
 
         sheet.setCustomView(root)
         try:
-            from ..viewUtils import applyFontToTree
+            from ...viewUtils import applyFontToTree
             applyFontToTree(root)
         except Exception as e:
             logx(f"AISearchSheet: applyFontToTree failed: {e}", False)

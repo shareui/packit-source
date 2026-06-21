@@ -27,7 +27,7 @@ def _load_native() -> bool:
     except Exception:
         pass
 
-    from ....nativeLoader import loadSearch
+    from ..nativeLoader import loadSearch
     lib = loadSearch()
     if lib is None:
         logx("search: failed to load libsearch.so, using python fallback", True)

@@ -9,7 +9,6 @@ import time
 
 _launch_start = time.time()
 
-
 # the launch logic has been delegated to main.py
 # there shouldn't be anything extra in this file (if it is not required)
 class Main(BasePlugin):
@@ -46,7 +45,6 @@ class Main(BasePlugin):
 
     def create_settings(self) -> List[Any]:
         return main.create_settings(self)
-
 
 for _name, _method in main._AUTOCOMPLETE_METHODS.items():
     setattr(Main, _name, _method)

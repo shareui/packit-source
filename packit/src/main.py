@@ -5,7 +5,7 @@ from packutil import logx
 import time
 from typing import Any
 from .other import text as _text
-from .ChatActivity.pluginAutocomplete import (
+from .ChatActivity.inline.enterView import (
     _packit_get_class,
     _packit_hook_enter_view_constructor,
     _packit_attach_text_watcher,
@@ -166,7 +166,7 @@ def loadPlugin(plugin):
     plugin.hash_button_hook_ref = setup_hash_button_hook(plugin, plugin.repoManager)
     from .ChatActivity.LinksIcons import setup_links_buttons_hook
     plugin.links_button_hook_ref = setup_links_buttons_hook(plugin)
-    from .ui.PluginListActivity.service.InstallDismissHook import setup_install_dismiss_hook
+    from .standaloneHooks.InstallDismissHook import setup_install_dismiss_hook
     plugin.install_dismiss_hook_ref = setup_install_dismiss_hook(plugin)
     from .ChatActivity.export.DecryptorBottomSheet import setup_packit_file_hook
     setup_packit_file_hook(plugin)
@@ -186,9 +186,9 @@ def loadPlugin(plugin):
     setup_updates_widget(plugin)
     plugin.dialogs_menu_hook_ref = plugin.chatUI.setup_dialogs_menu_hook()
     plugin.everyone_hook_refs = _everyone.setup_hook(plugin)
-    from .ChatActivity.pluginAutocomplete import setup_packit_autocomplete
+    from .ChatActivity.inline.enterView import setup_packit_autocomplete
     plugin.packit_hook_constructor_ref = setup_packit_autocomplete(plugin)
-    from .ChatActivity.inlineBtns import setup_inline_translate_button
+    from .ChatActivity.inline.inlineBtns import setup_inline_translate_button
     setup_inline_translate_button(plugin)
     plugin._init_official_repository()
     plugin._check_for_update()

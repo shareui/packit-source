@@ -21,12 +21,12 @@ try:
     from org.telegram.messenger import AndroidUtilities, R as R_tg
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities, R as R_tg failed: {e}")
-    from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ..importFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from elyx import strings
 except Exception as e:
     import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
-    from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ..importFailed import showImportFailedAlert as _sifa; _sifa()
 from android.net import Uri
 try:
     from org.telegram.messenger.browser import Browser
@@ -258,7 +258,7 @@ def _show_translate_sheet(act, plugin_info, lang, translated_text):
 
         translate_sheet.setCustomView(root)
         try:
-            from ..viewUtils import applyFontToTree
+            from ..ui.viewUtils import applyFontToTree
             applyFontToTree(root)
         except Exception:
             pass

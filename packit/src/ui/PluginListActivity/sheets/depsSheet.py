@@ -256,7 +256,7 @@ def show_deps_sheet(install_ui, plugin_info: dict, on_confirm, all_plugins: list
 
             sheet.setCustomView(root)
             try:
-                from ..viewUtils import applyFontToTree
+                from ...viewUtils import applyFontToTree
                 applyFontToTree(root)
             except Exception:
                 pass
@@ -515,7 +515,7 @@ def _make_dep_card(act, dep_id, dep_name, dep_version, dep_author, dep_min_versi
                 logx(f"depsSheet: _do_refresh error for '{dep_id}': {e}", False)
 
         def on_install(v):
-            from ...core import install_plugin
+            from ....core import install_plugin
             if observer_registered[0] is None:
                 try:
                     from java import dynamic_proxy
