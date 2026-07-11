@@ -27,7 +27,6 @@ Official plugins catalog: [shareui/packit](https://github.com/shareui/packit)
 <tr><td>Elyx SDK</td><td>0.9.3 or higher</td></tr>
 <tr><td>exteraGram SDK</td><td>1.4.3.2 or higher</td></tr>
 <tr><td>OS</td><td>Android 13+</td></tr>
-<tr><td>Arch</td><td>arm64-v8a</td></tr>
 </table>
 
 ## Building
