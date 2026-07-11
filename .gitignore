@@ -3,3 +3,6 @@ builds/
 **/cache/
 .elyx/cache/
 utilities/
+**/CMakeCache.txt
+**/CMakeFiles/
+/native-build/
