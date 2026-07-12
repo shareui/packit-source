@@ -28,11 +28,16 @@ def _clearLatestLog():
         from .utils.paths import getCacheRoot, getPluginsDir
         import os, json
         settingsPath = getPluginsDir() + "/plugin_settings.json"
-        if os.path.exists(settingsPath):
-            with open(settingsPath, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            if not data.get("shareui_packit", {}).get("clean_logs", True):
-                return
+        # TEMP: clean_logs defaults to OFF while debugging the post-restart
+        # settings breakage, so the failed session's log survives the next
+        # start; only an explicit clean_logs=true wipes it. Revert to
+        # default-True (and wipe when settings file is missing) afterwards.
+        if not os.path.exists(settingsPath):
+            return
+        with open(settingsPath, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not data.get("shareui_packit", {}).get("clean_logs", False):
+            return
         path = getCacheRoot() + "/latestlog.txt"
         if os.path.exists(path):
             os.remove(path)
@@ -405,7 +410,12 @@ def on_plugin_unload(plugin):
 
 
 def create_settings(plugin):
-    return plugin.settingsBuilder.buildMainSettings()
+    try:
+        return plugin.settingsBuilder.buildMainSettings()
+    except Exception as e:
+        import traceback
+        logx(f"PackIt: create_settings failed: {e}\n{traceback.format_exc()}", False)
+        raise
 
 
 _AUTOCOMPLETE_METHODS = {
