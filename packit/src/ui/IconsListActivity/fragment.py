@@ -796,13 +796,11 @@ class InstallIconsUI:
             clear_btn_icon.setScaleType(ImageView.ScaleType.CENTER)
             clear_btn.addView(clear_btn_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
 
-            import os as _os
-            clearSoundPath = _os.path.join(_os.path.dirname(__file__), "../../res/sounds/clear-search.opus")
-
             def on_clear_click():
                 try:
+                    from elyx import assets
                     from ...utils.media import playSound
-                    playSound(clearSoundPath, "sfx_clear_search")
+                    playSound(assets.sounds.clear_search.path_str, "sfx_clear_search")
                 except Exception:
                     pass
                 try:
@@ -841,12 +839,12 @@ class InstallIconsUI:
                 pass
             search_btn_icon.setScaleType(ImageView.ScaleType.CENTER)
             search_btn.addView(search_btn_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
-            searchBtnSoundPath = _os.path.join(_os.path.dirname(__file__), "../../res/sounds/search-btn.opus")
 
             def onSearchBtnClick(v):
                 try:
+                    from elyx import assets
                     from ...utils.media import playSound
-                    playSound(searchBtnSoundPath, "sfx_search")
+                    playSound(assets.sounds.search_btn.path_str, "sfx_search")
                 except Exception:
                     pass
                 perform_search()

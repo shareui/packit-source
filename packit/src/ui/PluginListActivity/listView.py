@@ -1,7 +1,6 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import os
 import math
 import threading
 from collections import deque
@@ -252,11 +251,10 @@ def build_list_view(self) -> View:
     clear_btn_icon.setScaleType(ImageView.ScaleType.CENTER)
     clear_btn.addView(clear_btn_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
 
-    clearSoundPath = os.path.join(os.path.dirname(__file__), "../../../res/sounds/clear-search.opus")
-
     def on_clear_click():
         try:
-            playSound(clearSoundPath, "sfx_clear_search")
+            from elyx import assets
+            playSound(assets.sounds.clear_search.path_str, "sfx_clear_search")
         except Exception:
             pass
         try:
@@ -298,11 +296,11 @@ def build_list_view(self) -> View:
         pass
     search_btn_icon.setScaleType(ImageView.ScaleType.CENTER)
     search_btn.addView(search_btn_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
-    searchBtnSoundPath = os.path.join(os.path.dirname(__file__), "../../../res/sounds/search-btn.opus")
 
     def onSearchBtnClick(v):
         try:
-            playSound(searchBtnSoundPath, "sfx_search")
+            from elyx import assets
+            playSound(assets.sounds.search_btn.path_str, "sfx_search")
         except Exception:
             pass
         perform_search()

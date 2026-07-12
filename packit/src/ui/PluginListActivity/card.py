@@ -1,7 +1,6 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import os
 import threading
 import ctypes
 from android.view import View, MotionEvent, Gravity
@@ -45,8 +44,6 @@ except Exception:
 from .helpers.PluginActions import copy_plugin_link, share_plugin_file, view_plugin_code, report_plugin, download_plugin_file, translate_plugin
 from .filter.tagLayoutListener import _TagsLayoutListener
 from .helpers.utils import _check_app_version
-
-_SOUNDS_DIR = os.path.join(os.path.dirname(__file__), "../../../res/sounds")
 
 
 def make_plugin_card(self, p):
@@ -523,7 +520,12 @@ def make_plugin_card(self, p):
         self.install_ui._apply_press_scale(pill)
         return pill
 
-    copyLinkSoundPath = os.path.join(_SOUNDS_DIR, "copy-link.opus")
+    try:
+        from elyx import assets
+        copyLinkSoundPath = assets.sounds.copy_link.path_str
+    except Exception as e:
+        logx(f"card: copy-link sound asset unavailable: {e}", False)
+        copyLinkSoundPath = None
     act_for_share = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
 
     def do_download_relocated():

@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
-import os
 
 from android.media import MediaPlayer, AudioManager
 from java import dynamic_proxy
@@ -29,7 +28,8 @@ def _playMaxVolume():
     audioManager = ctx.getSystemService("audio")
     maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
 
-    soundPath = os.path.join(os.path.dirname(__file__), "../../../res/sounds/pocxalko.opus")
+    from elyx import assets
+    soundPath = assets.sounds.pocxalko.path_str
 
     player = MediaPlayer()
     try:

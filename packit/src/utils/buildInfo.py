@@ -2,24 +2,32 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
-import os
-import yaml
 
-
-_META_PATH = os.path.join(os.path.dirname(__file__), "../../meta.yml")
 
 _CLIENT_NAMES = {
     "com.exteragram.messenger": "exteraGram",
     "com.radolyn.ayugram": "AyuGram",
 }
 
+# keys consumed below; metainfo exposes the packed meta.yml (ElyxBuilder
+# injects client/staticVer/sourceHash into it at build time)
+_META_KEYS = ("client", "staticVer", "sourceHash")
+
 def _readMeta():
     try:
-        with open(_META_PATH, "r", encoding="utf-8") as f:
-            return yaml.safe_load(f) or {}
+        from elyx import metainfo
     except Exception as e:
-        logx(f"buildInfo: failed to read meta.yml: {e}", False)
+        logx(f"buildInfo: failed to import elyx metainfo: {e}", False)
         return {}
+    meta = {}
+    for key in _META_KEYS:
+        try:
+            value = metainfo[key]
+        except Exception:
+            continue
+        if value is not None:
+            meta[key] = value
+    return meta
 
 def _resolveClientName(pkg):
     if pkg is None:

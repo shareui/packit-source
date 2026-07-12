@@ -2,15 +2,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
-import os
 import random
 from android_utils import run_on_ui_thread
 from android.media import MediaPlayer, AudioManager
 from android.widget import FrameLayout, VideoView
 from android.view import ViewGroup
 from java import dynamic_proxy
-
-_VIDEO_PATH = os.path.join(os.path.dirname(__file__), "../../../res/videos/amethyst.mp4")
 
 _MIN_COUNT = 25
 _MAX_COUNT = 30
@@ -68,6 +65,11 @@ def _startSpawnChain():
         logx(f"deeplinks.aytist: startSpawnChain error: {e}\n{traceback.format_exc()}", False)
 
 
+def _getVideoPath() -> str:
+    from elyx import assets
+    return assets.videos.amethyst.path_str
+
+
 def _spawnOneVideo(act, decor, screenW, screenH, idx):
     try:
         sizePx = _dpToPx(act, random.randint(_MIN_SIZE_DP, _MAX_SIZE_DP))
@@ -87,7 +89,7 @@ def _spawnOneVideo(act, decor, screenW, screenH, idx):
             FrameLayout.LayoutParams(sizePx, sizePx),
         )
 
-        videoView.setVideoPath(_VIDEO_PATH)
+        videoView.setVideoPath(_getVideoPath())
 
         class _PreparedListener(dynamic_proxy(MediaPlayer.OnPreparedListener)):
             def onPrepared(self, mp):
