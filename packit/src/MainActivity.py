@@ -88,7 +88,9 @@ class SettingsBuilder:
                     try:
                         activity = param.thisObject
                         items = param.args[0]
-                        
+                        # TEMP: always-on diagnostic for the post-restart blank settings issue
+                        logx(f"MainActivity: PSA fillItems fired, items={items.size() if items else items}", False)
+
                         if not items or items.size() == 0:
                             return
 

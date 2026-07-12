@@ -411,7 +411,10 @@ def on_plugin_unload(plugin):
 
 def create_settings(plugin):
     try:
-        return plugin.settingsBuilder.buildMainSettings()
+        items = plugin.settingsBuilder.buildMainSettings()
+        # TEMP: always-on diagnostic for the post-restart blank settings issue
+        logx(f"PackIt: create_settings -> {len(items)} items", False)
+        return items
     except Exception as e:
         import traceback
         logx(f"PackIt: create_settings failed: {e}\n{traceback.format_exc()}", False)
