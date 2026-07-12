@@ -62,27 +62,30 @@ def setup_fast_expandable_hook(plugin, other_settings):
 
 
 def _fast_reload(param, plugin_id, other_settings):
+    # returns a replacement result only when the fast path applies; None keeps
+    # the original method's result. Never re-invoke the original from an
+    # after-hook (it has already run) and never hand the engine an empty page:
+    # an empty list gets cached as "plugin has no settings" and the settings
+    # screen stays blank until reinstall.
     try:
         from elyx import settings as _s
-        from org.telegram.ui.Components import UItem
         from android_utils import OnClickListener as _OCL
-        from com.exteragram.messenger.plugins import PluginsController
 
         # get settingItems from the open PluginSettingsActivity
         frag = get_last_fragment()
         if frag is None:
-            logx("fastExpandableHook: frag is None -> fallback full reload", True)
-            return _original_call(param)
+            logx("fastExpandableHook: frag is None -> keep original result", True)
+            return None
 
         frag_class = frag.getClass().getName()
         if "PluginSettingsActivity" not in frag_class:
-            logx(f"fastExpandableHook: frag is {frag_class} -> fallback full reload", True)
-            return _original_call(param)
+            logx(f"fastExpandableHook: frag is {frag_class} -> keep original result", True)
+            return None
 
         setting_items = get_private_field(frag, "settingItems")
-        if setting_items is None:
-            logx("fastExpandableHook: settingItems is None -> fallback full reload", True)
-            return _original_call(param)
+        if setting_items is None or setting_items.size() == 0:
+            logx("fastExpandableHook: settingItems missing/empty -> keep original result", True)
+            return None
 
         logx(f"fastExpandableHook: fast path, patching {setting_items.size()} items in-place", True)
 
@@ -130,7 +133,7 @@ def _fast_reload(param, plugin_id, other_settings):
 
     except Exception as e:
         logx(f"fastExpandableHook: _fast_reload error: {e}", False)
-        return _original_call(param)
+        return None
 
 
 def _patch_expandable(si, uitem, key, children, other_settings, _s, _OCL):
@@ -152,11 +155,3 @@ def _patch_expandable(si, uitem, key, children, other_settings, _s, _OCL):
         uitem.clickCallback = _OCL(switch_click)
     except Exception as e:
         logx(f"fastExpandableHook: _patch_expandable error: {e}", False)
-
-
-def _original_call(param):
-    try:
-        return param.method.invoke(param.thisObject, param.args)
-    except Exception as e:
-        logx(f"fastExpandableHook: _original_call error: {e}", False)
-        return None

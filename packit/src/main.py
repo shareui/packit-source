@@ -203,6 +203,36 @@ def loadPlugin(plugin):
         plugin._check_update_notifications_bulletin()
     launchTime = time.time() - plugin._launch_start
     logx(f"PackIt was launched in {launchTime:.3f}s, launch time: {launchTime - plugin._init_time:.3f}s, initialization time: {plugin._init_time:.3f}s", True)
+    _refresh_engine_settings_cache(plugin)
+
+
+def _refresh_engine_settings_cache(plugin):
+    # workaround for the blank settings screen after a client restart: the
+    # engine comes up with an empty settings cache for this plugin and never
+    # re-requests create_settings, so rebuild the cache explicitly — once
+    # right after load and once more after startup settles
+    def _reload(tag):
+        try:
+            from com.exteragram.messenger.plugins import PluginsController
+            engine = PluginsController.getEngines().get("python")
+            if engine is None:
+                logx(f"PackIt: settings cache refresh ({tag}): python engine not found", False)
+                return
+            items = engine.loadPluginSettings(plugin.id)
+            try:
+                size = items.size() if items is not None else None
+            except Exception:
+                size = "?"
+            logx(f"PackIt: settings cache refreshed ({tag}), items={size}", False)
+        except Exception as e:
+            logx(f"PackIt: settings cache refresh ({tag}) failed: {e}", False)
+
+    _reload("load")
+    try:
+        from android_utils import run_on_ui_thread
+        run_on_ui_thread(lambda: _reload("delayed"), 2500)
+    except Exception as e:
+        logx(f"PackIt: settings cache refresh scheduling failed: {e}", False)
 
 
 def _show_startup_bulletin(plugin):
