@@ -1,0 +1,48 @@
+name: Build PackIt
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, vcvk]
+    paths:
+      - "packit/**"
+      - "refmap.yml"
+      - "wheels/**"
+      - ".github/workflows/build.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "packit/**"
+      - "refmap.yml"
+      - "wheels/**"
+      - ".github/workflows/build.yml"
+
+jobs:
+  build:
+    name: Compiled build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # compiled builds must be produced with Python 3.11 (see BUILD.md)
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ElyxBuilder
+        run: pip install ElyxBuilder
+
+      - name: Build plugin
+        run: elyb build -c 2 -v -nf
+
+      - name: List build output
+        run: ls -la builds/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PackIt-compiled
+          path: builds/*.eaf
+          if-no-files-found: error

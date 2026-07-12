@@ -2,7 +2,11 @@
 
 ## Requirements
 
-Install **ElyxBuilder** from the [releases page](https://github.com/shareui/ElyxBuilder/releases).
+Install **ElyxBuilder** from PyPI:
+
+```bash
+pip install ElyxBuilder
+```
 
 Documentation:
 - [English](https://github.com/shareui/ElyxBuilder/blob/main/docs/en.md)
@@ -12,47 +16,39 @@ Compiled builds require **Python 3.11**.
 
 ## Build commands
 
-All commands are run from the repository root.
+All commands are run from the repository root. The output archive is written to `builds/`.
 
 ### Compiled
 
-**Universal** — use when all obfuscated classes are present in the build:
-
 ```bash
-elyb build -c -v -nf -sv 12.6.4 true
+elyb build -c 2 -v -nf
 ```
 
-**exteraGram** — use when the build does not contain obfuscated classes for AyuGram, or they are outdated:
-
-```bash
-elyb build -c -v -nf -sv 12.6.4 true -sc com.exteragram.messenger exteraGram
-```
-
-**AyuGram** — use when the build does not contain obfuscated classes for exteraGram, or they are outdated:
-
-```bash
-elyb build -c -v -nf -sv 12.6.4 true -sc com.radolyn.ayugram AyuGram
-```
+`-c 2` compiles sources to `.pyc` with optimization level 2, `-v` prints the build log, `-nf` excludes the elyxbuilder directory from the archive.
 
 ### Uncompiled
 
-**Universal:**
-
 ```bash
-elyb build -v -nf -sv 12.6.4 true
+elyb build -v -nf
 ```
 
-**exteraGram:**
+### Client-specific builds
+
+By default the build is **Universal** (works for both exteraGram and AyuGram). To mark a build for a specific client, add `-sc`:
 
 ```bash
-elyb build -v -nf -sv 12.6.4 true -sc com.exteragram.messenger exteraGram
+# exteraGram
+elyb build -c 2 -v -nf -sc com.exteragram.messenger exteraGram
+
+# AyuGram
+elyb build -c 2 -v -nf -sc com.radolyn.ayugram AyuGram
 ```
 
-**AyuGram:**
+The client version the build was made against can be recorded with `-sv <version> true` (the version is appended to the archive name). Run `elyb build --help` or see the ElyxBuilder docs for all flags.
 
-```bash
-elyb build -v -nf -sv 12.6.4 true -sc com.radolyn.ayugram AyuGram
-```
+## CI builds
+
+Every push that touches `packit/**` runs the [build workflow](.github/workflows/build.yml). The compiled `.eaf` is available as a downloadable artifact on the workflow run page (Actions → run → Artifacts).
 
 ## Native libraries
 
