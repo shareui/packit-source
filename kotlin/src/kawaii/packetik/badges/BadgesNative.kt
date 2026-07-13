@@ -50,6 +50,14 @@ object BadgesNative {
     private val unhooks = ArrayList<XC_MethodHook.Unhook>()
     private var installed = false
 
+    // diagnostics surfaced to Python via status() (visible in latestlog)
+    @Volatile private var lastError: String? = null
+
+    private fun err(where: String, t: Throwable) {
+        Log.e(TAG, where, t)
+        if (lastError == null) lastError = "$where: ${t.message}"
+    }
+
     // profileTitleIcon lazy-resolved constants
     private var swapDrawableClass: Class<*>? = null
     private var cacheStatus = 4
@@ -72,7 +80,7 @@ object BadgesNative {
             // 3) install hooks
             installHooks()
         } catch (t: Throwable) {
-            Log.e(TAG, "init error", t)
+            err("init error", t)
         }
     }
 
@@ -87,6 +95,10 @@ object BadgesNative {
     }
 
     @JvmStatic
+    fun status(): String =
+        "enabled=$enabled badges=${badges.size} hooks=${unhooks.size} installed=$installed err=${lastError ?: "-"}"
+
+    @JvmStatic
     fun deinit() {
         try {
             for (u in unhooks) {
@@ -95,7 +107,7 @@ object BadgesNative {
             unhooks.clear()
             installed = false
         } catch (t: Throwable) {
-            Log.e(TAG, "deinit error", t)
+            err("deinit error", t)
         }
     }
 
@@ -126,11 +138,15 @@ object BadgesNative {
             try {
                 val raw = fetchConfig() ?: return@Thread
                 val map = buildCache(parseBadges(raw), lang)
+                if (map.isEmpty()) {
+                    Log.i(TAG, "url config empty/unparsed, keeping ${badges.size} cached")
+                    return@Thread
+                }
                 badges = map
                 saveToPrefs(raw)
                 Log.i(TAG, "updated ${map.size} badge(s) from url")
             } catch (t: Throwable) {
-                Log.e(TAG, "refresh error", t)
+                err("refresh error", t)
             }
         }.apply { isDaemon = true }.start()
     }
@@ -253,12 +269,12 @@ object BadgesNative {
                         XposedHelpers.callMethod(cell, "setFixedSize", 0)
                         XposedHelpers.callMethod(cell, "setText", sb)
                     } catch (t: Throwable) {
-                        Log.e(TAG, "profile info cell hook", t)
+                        err("profile info cell hook", t)
                     }
                 }
             }))
         } catch (t: Throwable) {
-            Log.e(TAG, "hookProfileInfoCell", t)
+            err("hookProfileInfoCell", t)
         }
     }
 
@@ -280,12 +296,12 @@ object BadgesNative {
                         val sb = buildEmojiText(entry.emojiId, entry.text, fm)
                         XposedHelpers.callMethod(hint, "setText", sb)
                     } catch (t: Throwable) {
-                        Log.e(TAG, "chat top panel hook", t)
+                        err("chat top panel hook", t)
                     }
                 }
             }))
         } catch (t: Throwable) {
-            Log.e(TAG, "hookChatTopPanel", t)
+            err("hookChatTopPanel", t)
         }
     }
 
@@ -300,7 +316,7 @@ object BadgesNative {
                             val right = if (param.args.size > 1) param.args[1] else null
                             XposedHelpers.callMethod(param.thisObject, "setTag", right)
                         } catch (t: Throwable) {
-                            Log.e(TAG, "setTitleIcons hook", t)
+                            err("setTitleIcons hook", t)
                         }
                     }
                 }))
@@ -321,12 +337,12 @@ object BadgesNative {
                         val right = XposedHelpers.callMethod(avatar, "getTag")
                         XposedHelpers.callMethod(avatar, "setTitleIcons", drawable, right)
                     } catch (t: Throwable) {
-                        Log.e(TAG, "updateTitleIcons hook", t)
+                        err("updateTitleIcons hook", t)
                     }
                 }
             }))
         } catch (t: Throwable) {
-            Log.e(TAG, "hookChatTitleIcon", t)
+            err("hookChatTitleIcon", t)
         }
     }
 
@@ -353,7 +369,7 @@ object BadgesNative {
             XposedHelpers.callMethod(d, "offset", 0, XposedHelpers.callStaticMethod(au, "dp", 1) as Int)
             d
         } catch (t: Throwable) {
-            Log.e(TAG, "makeSwapDrawable[$index]", t)
+            err("makeSwapDrawable[$index]", t)
             null
         }
     }
@@ -389,12 +405,12 @@ object BadgesNative {
                             XposedHelpers.callMethod(nameView, "setLeftDrawable", d)
                         }
                     } catch (t: Throwable) {
-                        Log.e(TAG, "updateProfileData hook", t)
+                        err("updateProfileData hook", t)
                     }
                 }
             }))
         } catch (t: Throwable) {
-            Log.e(TAG, "hookProfileTitleIcon", t)
+            err("hookProfileTitleIcon", t)
         }
     }
 }

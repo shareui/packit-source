@@ -77,7 +77,10 @@ def loadBadges(context, enabled: bool) -> bool:
         if cls is None:
             return False
         _callStatic(cls, "init", context.getClassLoader(), context, bool(enabled))
-        logx("dexLoader: badges init ok", True)
+        try:
+            logx(f"dexLoader: badges status: {_callStatic(cls, 'status')}", False)
+        except Exception as e:
+            logx(f"dexLoader: badges status error: {e}", False)
         return True
     except Exception as e:
         logx(f"dexLoader: loadBadges error: {e}", False)
