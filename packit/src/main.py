@@ -276,9 +276,9 @@ def _check_update_notifications_bulletin(plugin):
                     if not fragment:
                         return
                     try:
-                        import os as _os
+                        from elyx import assets
                         from .utils.media import playSound
-                        _snd = _os.path.join(_os.path.dirname(__file__), "../res/sounds/available-updates.opus")
+                        _snd = assets.sounds.available_updates.path_str
                         playSound(_snd, "sfx_available_updates")
                     except Exception as _e:
                         logx(f"PackIt: update bulletin sound error: {_e}", True)

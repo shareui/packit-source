@@ -1071,9 +1071,9 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     def _finish(ok):
                         if ok:
                             try:
-                                import os as _os
+                                from elyx import assets
                                 from ...utils.media import playSound
-                                _snd = _os.path.join(_os.path.dirname(__file__), "../../../res/sounds/install.opus")
+                                _snd = assets.sounds.install.path_str
                                 playSound(_snd, "sfx_install")
                             except Exception:
                                 pass
@@ -1250,9 +1250,9 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 def _finish(ok):
                     if ok:
                         try:
-                            import os as _os
+                            from elyx import assets
                             from ...utils.media import playSound
-                            _snd = _os.path.join(_os.path.dirname(__file__), "../../../res/sounds/install.opus")
+                            _snd = assets.sounds.install.path_str
                             playSound(_snd, "sfx_install")
                         except Exception:
                             pass

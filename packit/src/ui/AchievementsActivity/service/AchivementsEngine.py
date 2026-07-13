@@ -33,12 +33,15 @@ def unregister_bulletin_container(container):
 
 
 def _load_achievements() -> list:
-    path = os.path.join(os.path.dirname(__file__), "../../../../res/achievList.json")
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    from elyx import assets
+    return json.loads(assets.achievList.content_string())
 
 
-ACHIEVEMENTS = _load_achievements()
+try:
+    ACHIEVEMENTS = _load_achievements()
+except Exception as e:
+    logx(f"achievements: failed to load achievList asset: {e}", False)
+    ACHIEVEMENTS = []
 
 
 def _get_configs_dir() -> str:
@@ -421,7 +424,8 @@ def _show_achievement_bulletin(achievement: dict, on_hide=None):
 def _play_achievement_sound():
     try:
         from ....utils.media import playSound
-        sound_path = os.path.join(os.path.dirname(__file__), "../../../../res/sounds/received-achievement.opus")
+        from elyx import assets
+        sound_path = assets.sounds.received_achievement.path_str
         playSound(sound_path, "sfx_achievement", check_pending=False, default=True)
     except Exception as e:
         logx(f"achievements._play_achievement_sound: error: {e}", False)

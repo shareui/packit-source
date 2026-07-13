@@ -1,9 +1,8 @@
 name: PackIt
 description: "{plugin_description} [shareui/packit-source](https://github.com/shareui/packit-source)"
 id: shareui_packit
-version: "0.0.0-rc.598"
+version: "0.0.0-rc.600"
 author: "@packitX"
-app_version: ">=12.6.4"
-sdk_version: ">=1.4.3.2"
-elyx_version: ">=0.9.3b"
+app_version: ">=12.8.1"
+sdk_version: ">=1.4.4.6"
 icon: plugin232/17
