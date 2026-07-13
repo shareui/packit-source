@@ -13,19 +13,16 @@ def _getCacheRoot() -> str:
     return ApplicationLoader.applicationContext.getFilesDir().getAbsolutePath() + "/packit"
 
 def _isWriteLogsEnabled() -> bool:
-    # TEMP: file logging is ON by default while debugging the post-restart
-    # settings breakage; an explicit write_logs=false still disables it.
-    # Revert all three defaults below to False after logs are captured.
     try:
         path = _getPluginsDir() + "/plugin_settings.json"
         if not os.path.exists(path):
-            return True
+            return False
         with open(path, "r", encoding="utf-8") as f:
             import json
             data = json.load(f)
-        return bool(data.get("shareui_packit", {}).get("write_logs", True))
+        return bool(data.get("shareui_packit", {}).get("write_logs", False))
     except Exception:
-        return True
+        return False
 
 def _writeToFile(msg: str):
     try:

@@ -185,7 +185,7 @@ def setup_settings_activity_hook(plugin):
             SettingCellFactoryClass = find_class("org.telegram.ui.SettingsActivity$SettingCell$Factory")
             bind_method = None
             if SettingCellFactoryClass is not None:
-                for m in SettingCellFactoryClass.getClass().getDeclaredMethods():
+                for m in SettingCellFactoryClass.getDeclaredMethods():
                     try:
                         if m.getName() == "bindView" and len(m.getParameterTypes()) == 5:
                             bind_method = m

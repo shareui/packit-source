@@ -28,16 +28,11 @@ def _clearLatestLog():
         from .utils.paths import getCacheRoot, getPluginsDir
         import os, json
         settingsPath = getPluginsDir() + "/plugin_settings.json"
-        # TEMP: clean_logs defaults to OFF while debugging the post-restart
-        # settings breakage, so the failed session's log survives the next
-        # start; only an explicit clean_logs=true wipes it. Revert to
-        # default-True (and wipe when settings file is missing) afterwards.
-        if not os.path.exists(settingsPath):
-            return
-        with open(settingsPath, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        if not data.get("shareui_packit", {}).get("clean_logs", False):
-            return
+        if os.path.exists(settingsPath):
+            with open(settingsPath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if not data.get("shareui_packit", {}).get("clean_logs", True):
+                return
         path = getCacheRoot() + "/latestlog.txt"
         if os.path.exists(path):
             os.remove(path)
@@ -203,36 +198,6 @@ def loadPlugin(plugin):
         plugin._check_update_notifications_bulletin()
     launchTime = time.time() - plugin._launch_start
     logx(f"PackIt was launched in {launchTime:.3f}s, launch time: {launchTime - plugin._init_time:.3f}s, initialization time: {plugin._init_time:.3f}s", True)
-    _refresh_engine_settings_cache(plugin)
-
-
-def _refresh_engine_settings_cache(plugin):
-    # workaround for the blank settings screen after a client restart: the
-    # engine comes up with an empty settings cache for this plugin and never
-    # re-requests create_settings, so rebuild the cache explicitly — once
-    # right after load and once more after startup settles
-    def _reload(tag):
-        try:
-            from com.exteragram.messenger.plugins import PluginsController
-            engine = PluginsController.getEngines().get("python")
-            if engine is None:
-                logx(f"PackIt: settings cache refresh ({tag}): python engine not found", False)
-                return
-            items = engine.loadPluginSettings(plugin.id)
-            try:
-                size = items.size() if items is not None else None
-            except Exception:
-                size = "?"
-            logx(f"PackIt: settings cache refreshed ({tag}), items={size}", False)
-        except Exception as e:
-            logx(f"PackIt: settings cache refresh ({tag}) failed: {e}", False)
-
-    _reload("load")
-    try:
-        from android_utils import run_on_ui_thread
-        run_on_ui_thread(lambda: _reload("delayed"), 2500)
-    except Exception as e:
-        logx(f"PackIt: settings cache refresh scheduling failed: {e}", False)
 
 
 def _show_startup_bulletin(plugin):
@@ -440,15 +405,7 @@ def on_plugin_unload(plugin):
 
 
 def create_settings(plugin):
-    try:
-        items = plugin.settingsBuilder.buildMainSettings()
-        # TEMP: always-on diagnostic for the post-restart blank settings issue
-        logx(f"PackIt: create_settings -> {len(items)} items", False)
-        return items
-    except Exception as e:
-        import traceback
-        logx(f"PackIt: create_settings failed: {e}\n{traceback.format_exc()}", False)
-        raise
+    return plugin.settingsBuilder.buildMainSettings()
 
 
 _AUTOCOMPLETE_METHODS = {

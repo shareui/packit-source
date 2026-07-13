@@ -146,9 +146,7 @@ def build_debug_page():
             key="write_logs",
             text=strings.write_logs,
             subtext=strings.write_logs_desc,
-            # TEMP: default ON while debugging the post-restart settings
-            # breakage (must match logx._isWriteLogsEnabled default)
-            default=True,
+            default=False,
             icon="msg_edit",
             link_alias="write_logs",
             on_change=lambda enabled: _onWriteLogsChange(enabled)
@@ -175,9 +173,7 @@ def build_debug_page():
             key="clean_logs",
             text=strings.clean_logs,
             subtext=strings.clean_logs_desc,
-            # TEMP: default OFF so the log of a failed session survives the
-            # next start/reinstall (must match main._clearLatestLog default)
-            default=False,
+            default=True,
             icon="msg_clear",
             link_alias="clean_logs"
         ),

@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "packutil"
-version = "0.1.2"
+version = "0.1.1"
 description = "Shared utilities for PackIt plugin"
-requires-python = "==3.11.*"
+requires-python = "==3.11"
 
 [tool.setuptools.packages.find]
 where = ["."]
