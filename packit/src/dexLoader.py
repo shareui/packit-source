@@ -22,14 +22,14 @@ def _dexPath(name: str) -> str:
     return _filesDir() + _DEX_BASE + "/" + detectArch() + "/" + name + ".dex"
 
 
-def _optDir() -> str:
-    from .utils.paths import getCacheRoot
-    return getCacheRoot() + "/.cache/dex"
-
-
 def _loadClass(dexName: str, className: str, context):
-    # loads className from packit/dex/<abi>/<dexName>.dex via DexClassLoader
-    # whose parent is the host app classloader (so host classes resolve).
+    # loads className from packit/dex/<abi>/<dexName>.dex whose parent is the
+    # host app classloader (so host classes resolve).
+    #
+    # Uses InMemoryDexClassLoader (API 26+; PackIt requires Android 13+): the
+    # plugin dir is writable by the app, and Android's W^X policy refuses to
+    # load a writable dex file via DexClassLoader ("Writable dex file ... is not
+    # allowed"). Loading from an in-memory ByteBuffer sidesteps that entirely.
     cached = _loaded.get(dexName)
     if cached is not None:
         return cached
@@ -37,14 +37,15 @@ def _loadClass(dexName: str, className: str, context):
     if not os.path.exists(dex_path):
         logx(f"dexLoader: {dexName}.dex not found at {dex_path}", False)
         return None
-    opt_dir = _optDir()
-    os.makedirs(opt_dir, exist_ok=True)
-    from dalvik.system import DexClassLoader
+    with open(dex_path, "rb") as f:
+        data = f.read()
+    from java.nio import ByteBuffer
+    from dalvik.system import InMemoryDexClassLoader
     parent_cl = context.getClassLoader()
-    loader = DexClassLoader(dex_path, opt_dir, None, parent_cl)
+    loader = InMemoryDexClassLoader(ByteBuffer.wrap(data), parent_cl)
     cls = loader.loadClass(className)
     _loaded[dexName] = cls
-    logx(f"dexLoader: loaded {className} from {dexName}.dex", True)
+    logx(f"dexLoader: loaded {className} from {dexName}.dex ({len(data)} bytes, in-memory)", True)
     return cls
 
 
