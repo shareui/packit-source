@@ -43,6 +43,9 @@ def _clearLatestLog():
 def startInit(plugin, launchStart):
     _clearLatestLog()
 
+    from .nativeLoader import detectArch
+    detectArch()
+
     from .RepositoryManager import RepositoryManager
     from .core import PackItCore
     from .MainActivity import SettingsBuilder

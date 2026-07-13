@@ -3,7 +3,9 @@ import platform
 
 def _soPath() -> str:
     from ..utils.paths import _filesDir
-    return _filesDir() + "/plugins/ElyxPlugins/shareui_packit/packit/native/libscl.so"
+    from ..nativeLoader import detectArch
+    arch = detectArch()
+    return _filesDir() + f"/plugins/ElyxPlugins/shareui_packit/packit/native/{arch}/libscl.so"
 
 _lib = ctypes.CDLL(_soPath())
 

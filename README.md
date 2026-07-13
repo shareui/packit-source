@@ -22,10 +22,9 @@ Official plugins catalog: [shareui/packit](https://github.com/shareui/packit)
 ## Requirements
 
 <table>
-<tr><td>Client version</td><td>12.6.4 or higher</td></tr>
+<tr><td>Client version</td><td>12.8.1 or higher</td></tr>
 <tr><td>RAM</td><td>6 GB or more</td></tr>
-<tr><td>Elyx SDK</td><td>0.9.3 or higher</td></tr>
-<tr><td>exteraGram SDK</td><td>1.4.3.2 or higher</td></tr>
+<tr><td>exteraGram SDK</td><td>1.4.4.6 or higher</td></tr>
 <tr><td>OS</td><td>Android 13+</td></tr>
 </table>
 
@@ -33,7 +32,7 @@ Official plugins catalog: [shareui/packit](https://github.com/shareui/packit)
 
 See [BUILD.md](https://github.com/shareui/packit-source/blob/main/BUILD.md).
 
-All versions are listed in [versions.md](https://github.com/shareui/packit-source/blob/main/versions.md).
+All versions are listed in [VERSIONS.md](https://github.com/shareui/packit-source/blob/main/VERSIONS.md).
 
 ## Community
 
@@ -42,15 +41,6 @@ RU channel: [@packitapp](https://t.me/packitapp)
 EN channel: [@packitappen](https://t.me/packitappen)  
 Forum: [@packitGround](https://t.me/packitGround)  
 
-## Team
-
-| Role | User |
-|---|---|
-| Founder | [@shareui](https://t.me/shareui) |
-| Developer | [@mr_Vestr](https://t.me/mr_Vestr) |
-| Developer | [@ageekapple](https://t.me/ageekapple) |
-| Translator | [@homewatcha](https://t.me/homewatcha) |
-
 ## License
 
-[GNU General Public License v3.0](https://github.com/shareui/packit-source/blob/main/LICENSE)
+[GPL v3.0](https://github.com/shareui/packit-source/blob/main/LICENSE) 2026
