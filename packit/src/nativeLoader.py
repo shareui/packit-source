@@ -16,10 +16,31 @@ CHECK_SO_PATHS = False
 
 _BASE = "/plugins/ElyxPlugins/shareui_packit/packit/native"
 
+_SUPPORTED_ARCHS = ("arm64-v8a", "armeabi-v7a")
+
+_arch = None
+
+
+def detectArch() -> str:
+    # resolved once at plugin init and cached, avoid re-detecting on every native call
+    global _arch
+    if _arch is not None:
+        return _arch
+    try:
+        from android.os import Build
+        abi = str(Build.SUPPORTED_ABIS[0])
+    except Exception as e:
+        logx(f"nativeLoader: arch detection error: {e}", False)
+        abi = "arm64-v8a"
+    _arch = abi if abi in _SUPPORTED_ARCHS else "arm64-v8a"
+    logx(f"your arch is {_arch}", False)
+    return _arch
+
 
 def _soPath(libName: str) -> str:
     from .utils.paths import _filesDir
-    return _filesDir() + _BASE + "/" + libName + ".so"
+    arch = detectArch()
+    return _filesDir() + _BASE + "/" + arch + "/" + libName + ".so"
 
 
 def checkSoPaths():
