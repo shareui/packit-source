@@ -22,6 +22,38 @@ def _soPath(libName: str) -> str:
     return _filesDir() + _BASE + "/" + libName + ".so"
 
 
+# supported dex/native ABI dirs shipped in the plugin
+_ABI_ARM64 = "arm64-v8a"
+_ABI_ARM32 = "armeabi-v7a"
+
+
+def getAbi() -> str:
+    # returns the ABI subdir to load arch-specific assets from (arm64-v8a /
+    # armeabi-v7a). NOTE: .dex is Dalvik bytecode and arch-independent — the
+    # same badges.dex is shipped in both dirs; this just picks which copy to
+    # load, matching the native/ layout convention.
+    try:
+        from android.os import Build
+        primary = None
+        try:
+            abis = Build.SUPPORTED_ABIS
+            if abis is not None and len(abis) > 0:
+                primary = str(abis[0])
+        except Exception:
+            pass
+        if not primary:
+            try:
+                primary = str(Build.CPU_ABI)
+            except Exception:
+                primary = ""
+        primary = (primary or "").lower()
+        # 64-bit (arm64/x86_64) -> arm64-v8a, everything else -> armeabi-v7a
+        return _ABI_ARM64 if "64" in primary else _ABI_ARM32
+    except Exception as e:
+        logx(f"nativeLoader.getAbi: {e}", False)
+        return _ABI_ARM64
+
+
 def checkSoPaths():
     for name in ("libbithash", "libsearch", "libpacklight", "libpackitdb", "libexport"):
         path = _soPath(name)
