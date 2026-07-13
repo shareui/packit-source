@@ -74,3 +74,9 @@ except Exception as e:
 logx(f"repo: fetch_data returned {len(data)} items", True)
 logx(f"repo: cache miss, fetching from network", True)
 ```
+
+---
+
+### Scripts
+
+If you need to use the script for yourself, either create a directory `scripts/{username}/` or add it to `.gitignore`

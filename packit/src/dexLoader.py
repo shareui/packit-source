@@ -8,7 +8,7 @@
 from packutil import logx
 import os
 
-from .nativeLoader import getAbi
+from .nativeLoader import detectArch
 
 _DEX_BASE = "/plugins/ElyxPlugins/shareui_packit/packit/dex"
 _BADGES_CLASS = "kawaii.packetik.badges.BadgesNative"
@@ -19,7 +19,7 @@ _loaded = {}
 
 def _dexPath(name: str) -> str:
     from .utils.paths import _filesDir
-    return _filesDir() + _DEX_BASE + "/" + getAbi() + "/" + name + ".dex"
+    return _filesDir() + _DEX_BASE + "/" + detectArch() + "/" + name + ".dex"
 
 
 def _optDir() -> str:
