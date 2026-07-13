@@ -50,10 +50,20 @@ def _loadClass(dexName: str, className: str, context):
 
 
 def _callStatic(cls, method: str, *args):
-    # invoke a static method on a dynamically loaded class via the host's
-    # XposedHelpers (best-match resolution, same as elsewhere in the plugin)
-    from de.robv.android.xposed import XposedHelpers
-    return XposedHelpers.callStaticMethod(cls, method, *args)
+    # invoke a static method on a dynamically loaded class by name via plain
+    # java.lang.reflect. We can't `from de.robv... import XposedHelpers` here —
+    # chaquopy can't import arbitrary Java packages like `de.*` ("No module
+    # named 'de'"), and the loaded class isn't on chaquopy's import path either.
+    # Reflection on the Class object we already hold sidesteps both.
+    n = len(args)
+    _STATIC = 0x8  # java.lang.reflect.Modifier.STATIC (@JvmStatic also emits an
+                   # instance method of the same name; we must pick the static one)
+    for m in cls.getMethods():
+        if (m.getName() == method
+                and (m.getModifiers() & _STATIC) != 0
+                and len(m.getParameterTypes()) == n):
+            return m.invoke(None, *args)
+    raise Exception(f"static method {method}({n} args) not found on {cls}")
 
 
 def loadBadges(context, enabled: bool) -> bool:
