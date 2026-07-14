@@ -113,17 +113,33 @@ class BadgeManager:
     def __init__(self, plugin):
         self.plugin = plugin
         self._hook_refs = []
+        self._dex_loaded = False
         self.context = ApplicationLoader.applicationContext if ApplicationLoader else None
 
     def setup_hooks(self):
         try:
+            enabled = True
             try:
                 from elyx import settings as _s
-                if not _s.get("packit_verification", True):
-                    logx("[Packit Badges] disabled via settings", True)
-                    return
+                enabled = bool(_s.get("packit_verification", True))
             except Exception:
                 pass
+
+            # primary path: precompiled Kotlin dex (config fetch + cache + hooks
+            # all live in packit/dex/<abi>/badges.dex, source in /kotlin/)
+            try:
+                from ..dexLoader import loadBadges
+                if loadBadges(self.context, enabled):
+                    self._dex_loaded = True
+                    logx("[Packit Badges] using precompiled dex", True)
+                    return
+            except Exception as e:
+                logx(f"[Packit Badges] dex load failed, falling back to python: {e}", False)
+
+            # fallback: pure-python implementation (below)
+            if not enabled:
+                logx("[Packit Badges] disabled via settings", True)
+                return
 
             lang = _get_lang()
             prefs = _load_from_prefs(self.context)
@@ -188,6 +204,13 @@ class BadgeManager:
 
     def cleanup(self):
         try:
+            if self._dex_loaded:
+                try:
+                    from ..dexLoader import unloadBadges
+                    unloadBadges()
+                except Exception as e:
+                    logx(f"[Packit Badges] dex unload error: {e}", False)
+                self._dex_loaded = False
             for ref in self._hook_refs:
                 if ref:
                     self.plugin.unhook_method(ref)
