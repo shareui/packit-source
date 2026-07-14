@@ -77,25 +77,7 @@ def loadBadges(context, enabled: bool) -> bool:
         if cls is None:
             return False
         _callStatic(cls, "init", context.getClassLoader(), context, bool(enabled))
-        try:
-            logx(f"dexLoader: badges status: {_callStatic(cls, 'status')}", False)
-        except Exception as e:
-            logx(f"dexLoader: badges status error: {e}", False)
-        # re-log status after a delay so callback fires/errors (which only happen
-        # once a profile/chat is opened) also land in latestlog without adb
-        def _later():
-            import time
-            for _ in range(2):
-                time.sleep(30)
-                try:
-                    logx(f"dexLoader: badges status(+): {_callStatic(cls, 'status')}", False)
-                except Exception:
-                    pass
-        try:
-            import threading
-            threading.Thread(target=_later, daemon=True).start()
-        except Exception:
-            pass
+        logx("dexLoader: badges init ok", True)
         return True
     except Exception as e:
         logx(f"dexLoader: loadBadges error: {e}", False)

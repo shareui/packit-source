@@ -54,14 +54,8 @@ object BadgesNative {
     private val unhooks = ArrayList<XC_MethodHook.Unhook>()
     private var installed = false
 
-    // diagnostics surfaced to Python via status() (visible in latestlog)
-    @Volatile private var lastError: String? = null
-    @Volatile private var fires = 0
-    private val diag = StringBuilder()
-
     private fun err(where: String, t: Throwable) {
         Log.e(TAG, where, t)
-        if (lastError == null) lastError = "$where: ${t.javaClass.simpleName}: ${t.message}"
     }
 
     // profileTitleIcon lazy-resolved constants
@@ -96,11 +90,6 @@ object BadgesNative {
     fun refresh() {
         refreshAsync(getLang())
     }
-
-    @JvmStatic
-    fun status(): String =
-        "enabled=$enabled badges=${badges.size} hooks=${unhooks.size} installed=$installed" +
-            " fires=$fires err=${lastError ?: "-"} diag=[${diag.toString().trim()}]"
 
     @JvmStatic
     fun deinit() {
@@ -203,7 +192,6 @@ object BadgesNative {
             if (ld == null) continue
             try { return Class.forName(name, false, ld) } catch (_: Throwable) {}
         }
-        diag.append("NOCLS:${name.substringAfterLast('.')} ")
         return null
     }
 
@@ -328,7 +316,6 @@ object BadgesNative {
     }
 
     private fun add(set: Set<XC_MethodHook.Unhook>?) {
-        diag.append("h=${set?.size ?: 0} ")
         if (set != null) unhooks.addAll(set)
     }
 
@@ -338,7 +325,6 @@ object BadgesNative {
             val adapter = fc("org.telegram.ui.ProfileActivity\$ListAdapter") ?: return
             add(XposedBridge.hookAllMethods(adapter, "onBindViewHolder", object : XC_MethodHook() {
                 override fun afterHookedMethod(param: MethodHookParam) {
-                    fires++
                     if (!enabled) return
                     try {
                         val holder = param.args[0] ?: return
@@ -371,7 +357,6 @@ object BadgesNative {
             val chat = fc("org.telegram.ui.ChatActivity") ?: return
             add(XposedBridge.hookAllMethods(chat, "updateTopPanel", object : XC_MethodHook() {
                 override fun afterHookedMethod(param: MethodHookParam) {
-                    fires++
                     if (!enabled) return
                     try {
                         val activity = param.thisObject
@@ -412,7 +397,6 @@ object BadgesNative {
             val chat = fc("org.telegram.ui.ChatActivity") ?: return
             add(XposedBridge.hookAllMethods(chat, "updateTitleIcons", object : XC_MethodHook() {
                 override fun afterHookedMethod(param: MethodHookParam) {
-                    fires++
                     if (!enabled) return
                     try {
                         val activity = param.thisObject
@@ -466,7 +450,6 @@ object BadgesNative {
             val profile = fc("org.telegram.ui.ProfileActivity") ?: return
             add(XposedBridge.hookAllMethods(profile, "updateProfileData", object : XC_MethodHook() {
                 override fun afterHookedMethod(param: MethodHookParam) {
-                    fires++
                     if (!enabled) return
                     try {
                         if (!initSwapClasses()) return
