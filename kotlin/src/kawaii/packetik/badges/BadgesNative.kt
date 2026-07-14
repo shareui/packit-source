@@ -52,6 +52,7 @@ object BadgesNative {
 
     // diagnostics surfaced to Python via status() (visible in latestlog)
     @Volatile private var lastError: String? = null
+    private val diag = StringBuilder()
 
     private fun err(where: String, t: Throwable) {
         Log.e(TAG, where, t)
@@ -96,7 +97,8 @@ object BadgesNative {
 
     @JvmStatic
     fun status(): String =
-        "enabled=$enabled badges=${badges.size} hooks=${unhooks.size} installed=$installed err=${lastError ?: "-"}"
+        "enabled=$enabled badges=${badges.size} hooks=${unhooks.size} installed=$installed" +
+            " err=${lastError ?: "-"} diag=[${diag.toString().trim()}]"
 
     @JvmStatic
     fun deinit() {
@@ -194,8 +196,17 @@ object BadgesNative {
 
     // ---- helpers -------------------------------------------------------------
 
-    private fun fc(name: String): Class<*>? =
-        try { XposedHelpers.findClass(name, cl) } catch (_: Throwable) { null }
+    // resolve a host class trying several classloaders (the dex parent = app
+    // loader should see org.telegram.*, but be defensive); records misses in diag
+    private fun fc(name: String): Class<*>? {
+        for (ld in listOf(cl, javaClass.classLoader, Thread.currentThread().contextClassLoader)) {
+            if (ld == null) continue
+            try { return Class.forName(name, false, ld) } catch (_: Throwable) {}
+        }
+        try { return XposedHelpers.findClass(name, cl) } catch (_: Throwable) {}
+        diag.append("NOCLS:${name.substringAfterLast('.')} ")
+        return null
+    }
 
     private fun lookup(entityId: Long): Badge? = badges[entityId]
 
@@ -240,6 +251,7 @@ object BadgesNative {
     }
 
     private fun add(set: Set<XC_MethodHook.Unhook>?) {
+        diag.append("h=${set?.size ?: 0} ")
         if (set != null) unhooks.addAll(set)
     }
 
