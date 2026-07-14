@@ -14,7 +14,8 @@ def build_misc_page(other_settings):
             subtext=strings.packit_verification_desc,
             default=True,
             icon="msg_premium_badge",
-            link_alias="packit_verification"
+            link_alias="packit_verification",
+            on_change=other_settings._onRestartRequiredSwitch
         ),
         Switch(
             key="show_startup_status",
