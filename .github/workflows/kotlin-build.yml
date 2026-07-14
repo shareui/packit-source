@@ -2,12 +2,6 @@ name: Build Kotlin dexes
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main, vcvk]
-    paths:
-      - "kotlin/**"
-      - "scripts/kotlin-build.sh"
-      - ".github/workflows/kotlin-build.yml"
 
 jobs:
   build:
@@ -40,8 +34,8 @@ jobs:
 
       - name: Build dexes
         run: |
-          chmod +x scripts/kotlin-build.sh
-          ./scripts/kotlin-build.sh
+          chmod +x scripts/linux/kotlin-build.sh
+          ./scripts/linux/kotlin-build.sh
 
       - name: Show result
         run: |
