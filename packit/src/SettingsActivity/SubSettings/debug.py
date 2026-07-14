@@ -116,6 +116,31 @@ def _getLatestLogPath():
         return None
 
 
+def _isWriteLogsEnabled():
+    try:
+        from elyx import settings as _s
+        return bool(_s.get("write_logs", False))
+    except Exception:
+        return False
+
+
+def _viewLatestLog(view):
+    # opens latestlog.txt in exteraGram's native plugin file viewer
+    try:
+        from client_utils import get_last_fragment
+        from com.exteragram.messenger.plugins.ui.components import PluginFileViewer
+        from java.io import File
+        logPath = _getLatestLogPath()
+        if not logPath or not os.path.exists(logPath):
+            return
+        frag = get_last_fragment()
+        if not frag:
+            return
+        PluginFileViewer.INSTANCE.open(frag, File(logPath), "latestlog.txt")
+    except Exception as e:
+        logx(f"viewLatestLog: error: {e}", False)
+
+
 def _forceCleanLog(view):
     from ui.bulletin import BulletinHelper
     try:
@@ -154,6 +179,13 @@ def build_debug_page():
     ]
 
     if logExists:
+        # native log viewer only when the file exists AND file logging is on
+        if _isWriteLogsEnabled():
+            items.append(Text(
+                text=strings.view_latestlog,
+                icon="msg_view_file",
+                on_click=_viewLatestLog
+            ))
         items.append(Text(
             text=strings.send_latestlog,
             icon="msg_share",

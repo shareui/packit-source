@@ -1149,6 +1149,7 @@
   "write_logs_desc": "Сохраняет все логи в latestlog.txt в директории кэша PackIt",
   "clean_logs": "Очищать логи при запуске",
   "clean_logs_desc": "Очищает файл логов при каждом новом запуске",
+  "view_latestlog": "Просмотреть файл логов",
   "send_latestlog": "Отправить latestlog как файл",
   "copy_latestlog_path": "Скопировать путь к latestlog",
   "copy_latestlog_path_desc": "Копирует абсолютный путь в буфер обмена",
