@@ -4,11 +4,14 @@
 // badges.py, chatBadge.py, chatTitleIcon.py, profileTitleIcon.py). Loaded at
 // runtime from packit/dex/<abi>/badges.dex by packit/src/dexLoader.py.
 //
-// Config fetch + prefs cache + language + lookup now live here (Kotlin). Python
-// only loads the dex and calls init(), passing the app ClassLoader, the app
-// Context and the current on/off state of the "packit_verification" setting.
-// Hooks are installed with the host Xposed runtime (XposedBridge); all host
-// classes are accessed reflectively (XposedHelpers), like the Python original.
+// Config fetch + prefs cache + language + lookup live here. Python only loads
+// the dex and calls init(), passing the app ClassLoader, the app Context and the
+// current on/off state of the "packit_verification" setting.
+//
+// Hooks are installed with the host Xposed runtime (XposedBridge). Host field /
+// method / constructor access is done with plain java.lang.reflect (NOT
+// XposedHelpers, which is not guaranteed to be present in the host) — matching
+// the original Python impl that used get_private_field / find_class.
 //
 // Любая попытка неправомерного использования системы бейджей автоматически лишает
 // ваш плагин права на публикацию через официальные источники и приводит к
@@ -23,9 +26,10 @@ import android.util.Log
 import android.view.View
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
-import de.robv.android.xposed.XposedHelpers
 import org.json.JSONArray
 import org.json.JSONObject
+import java.lang.reflect.Constructor
+import java.lang.reflect.Method
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Locale
@@ -52,11 +56,12 @@ object BadgesNative {
 
     // diagnostics surfaced to Python via status() (visible in latestlog)
     @Volatile private var lastError: String? = null
+    @Volatile private var fires = 0
     private val diag = StringBuilder()
 
     private fun err(where: String, t: Throwable) {
         Log.e(TAG, where, t)
-        if (lastError == null) lastError = "$where: ${t.message}"
+        if (lastError == null) lastError = "$where: ${t.javaClass.simpleName}: ${t.message}"
     }
 
     // profileTitleIcon lazy-resolved constants
@@ -73,12 +78,9 @@ object BadgesNative {
             enabled = isEnabled
             appContext = context as? Context
             val lang = getLang()
-            // 1) prime from prefs cache so badges show instantly
             badges = buildCache(parseBadges(loadFromPrefs()), lang)
             Log.i(TAG, "loaded ${badges.size} badge(s) from prefs")
-            // 2) refresh from URL in the background
             refreshAsync(lang)
-            // 3) install hooks
             installHooks()
         } catch (t: Throwable) {
             err("init error", t)
@@ -98,7 +100,7 @@ object BadgesNative {
     @JvmStatic
     fun status(): String =
         "enabled=$enabled badges=${badges.size} hooks=${unhooks.size} installed=$installed" +
-            " err=${lastError ?: "-"} diag=[${diag.toString().trim()}]"
+            " fires=$fires err=${lastError ?: "-"} diag=[${diag.toString().trim()}]"
 
     @JvmStatic
     fun deinit() {
@@ -194,19 +196,96 @@ object BadgesNative {
         return map
     }
 
-    // ---- helpers -------------------------------------------------------------
+    // ---- reflection helpers (java.lang.reflect, no XposedHelpers) -------------
 
-    // resolve a host class trying several classloaders (the dex parent = app
-    // loader should see org.telegram.*, but be defensive); records misses in diag
     private fun fc(name: String): Class<*>? {
         for (ld in listOf(cl, javaClass.classLoader, Thread.currentThread().contextClassLoader)) {
             if (ld == null) continue
             try { return Class.forName(name, false, ld) } catch (_: Throwable) {}
         }
-        try { return XposedHelpers.findClass(name, cl) } catch (_: Throwable) {}
         diag.append("NOCLS:${name.substringAfterLast('.')} ")
         return null
     }
+
+    private fun assignable(pt: Class<*>, a: Any?): Boolean {
+        if (a == null) return !pt.isPrimitive
+        return when (pt) {
+            java.lang.Integer.TYPE -> a is Int
+            java.lang.Long.TYPE -> a is Long || a is Int
+            java.lang.Boolean.TYPE -> a is Boolean
+            java.lang.Float.TYPE -> a is Float || a is Int
+            java.lang.Double.TYPE -> a is Double || a is Float || a is Int
+            java.lang.Short.TYPE -> a is Short
+            java.lang.Byte.TYPE -> a is Byte
+            java.lang.Character.TYPE -> a is Char
+            else -> pt.isInstance(a)
+        }
+    }
+
+    private fun paramsMatch(types: Array<Class<*>>, args: Array<out Any?>): Boolean {
+        if (types.size != args.size) return false
+        for (i in types.indices) if (!assignable(types[i], args[i])) return false
+        return true
+    }
+
+    private fun getField(obj: Any, name: String): Any? {
+        var c: Class<*>? = obj.javaClass
+        while (c != null) {
+            try {
+                val f = c.getDeclaredField(name)
+                f.isAccessible = true
+                return f.get(obj)
+            } catch (_: NoSuchFieldException) {
+                c = c.superclass
+            }
+        }
+        throw NoSuchFieldException("$name on ${obj.javaClass.name}")
+    }
+
+    private fun staticIntField(cls: Class<*>, name: String): Int {
+        val f = cls.getDeclaredField(name)
+        f.isAccessible = true
+        return f.getInt(null)
+    }
+
+    private fun findMethod(cls: Class<*>, name: String, args: Array<out Any?>): Method {
+        var fallback: Method? = null
+        var c: Class<*>? = cls
+        while (c != null) {
+            for (m in c.declaredMethods) {
+                if (m.name != name || m.parameterCount != args.size) continue
+                if (paramsMatch(m.parameterTypes, args)) { m.isAccessible = true; return m }
+                if (fallback == null) fallback = m
+            }
+            c = c.superclass
+        }
+        for (m in cls.methods) {
+            if (m.name == name && m.parameterCount == args.size && paramsMatch(m.parameterTypes, args)) {
+                m.isAccessible = true; return m
+            }
+        }
+        fallback?.let { it.isAccessible = true; return it }
+        throw NoSuchMethodException("$name/${args.size} on ${cls.name}")
+    }
+
+    private fun call(obj: Any, name: String, vararg args: Any?): Any? =
+        findMethod(obj.javaClass, name, args).invoke(obj, *args)
+
+    private fun callStatic(cls: Class<*>, name: String, vararg args: Any?): Any? =
+        findMethod(cls, name, args).invoke(null, *args)
+
+    private fun newInst(cls: Class<*>, vararg args: Any?): Any? {
+        var fallback: Constructor<*>? = null
+        for (ct in cls.declaredConstructors) {
+            if (ct.parameterCount != args.size) continue
+            if (paramsMatch(ct.parameterTypes, args)) { ct.isAccessible = true; return ct.newInstance(*args) }
+            if (fallback == null) fallback = ct
+        }
+        fallback?.let { it.isAccessible = true; return it.newInstance(*args) }
+        throw NoSuchMethodException("ctor/${args.size} on ${cls.name}")
+    }
+
+    // ---- shared ---------------------------------------------------------------
 
     private fun lookup(entityId: Long): Badge? = badges[entityId]
 
@@ -228,9 +307,7 @@ object BadgesNative {
     }
 
     private fun buildEmojiText(emojiId: Long, text: String, fontMetrics: Any?): SpannableStringBuilder {
-        val span = XposedHelpers.newInstance(
-            fc("org.telegram.ui.Components.AnimatedEmojiSpan"), emojiId, fontMetrics
-        )
+        val span = newInst(fc("org.telegram.ui.Components.AnimatedEmojiSpan")!!, emojiId, fontMetrics)
         val sb = SpannableStringBuilder()
         sb.append("x")
         sb.setSpan(span, 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
@@ -261,25 +338,23 @@ object BadgesNative {
             val adapter = fc("org.telegram.ui.ProfileActivity\$ListAdapter") ?: return
             add(XposedBridge.hookAllMethods(adapter, "onBindViewHolder", object : XC_MethodHook() {
                 override fun afterHookedMethod(param: MethodHookParam) {
+                    fires++
                     if (!enabled) return
                     try {
                         val holder = param.args[0] ?: return
-                        if ((XposedHelpers.callMethod(holder, "getItemViewType") as Int) != SHADOW_TEXT_TYPE) return
-                        val profile = XposedHelpers.getObjectField(param.thisObject, "this\$0") ?: return
-                        val infoRow = asLong(XposedHelpers.getObjectField(profile, "infoSectionRow")) ?: return
+                        if ((call(holder, "getItemViewType") as Int) != SHADOW_TEXT_TYPE) return
+                        val profile = getField(param.thisObject, "this\$0") ?: return
+                        val infoRow = asLong(getField(profile, "infoSectionRow")) ?: return
                         val position = asLong(param.args[1]) ?: return
                         if (infoRow != position) return
-                        val entityId = entityIdOf(
-                            XposedHelpers.getObjectField(profile, "userId"),
-                            XposedHelpers.getObjectField(profile, "chatId")
-                        ) ?: return
+                        val entityId = entityIdOf(getField(profile, "userId"), getField(profile, "chatId")) ?: return
                         val entry = lookup(entityId) ?: return
-                        val cell = XposedHelpers.getObjectField(holder, "itemView") ?: return
-                        val tv = XposedHelpers.callMethod(cell, "getTextView")
-                        val fm = XposedHelpers.callMethod(XposedHelpers.callMethod(tv, "getPaint"), "getFontMetricsInt")
+                        val cell = getField(holder, "itemView") ?: return
+                        val tv = call(cell, "getTextView") ?: return
+                        val fm = call(call(tv, "getPaint")!!, "getFontMetricsInt")
                         val sb = buildEmojiText(entry.emojiId, entry.text, fm)
-                        XposedHelpers.callMethod(cell, "setFixedSize", 0)
-                        XposedHelpers.callMethod(cell, "setText", sb)
+                        call(cell, "setFixedSize", 0)
+                        call(cell, "setText", sb)
                     } catch (t: Throwable) {
                         err("profile info cell hook", t)
                     }
@@ -296,17 +371,18 @@ object BadgesNative {
             val chat = fc("org.telegram.ui.ChatActivity") ?: return
             add(XposedBridge.hookAllMethods(chat, "updateTopPanel", object : XC_MethodHook() {
                 override fun afterHookedMethod(param: MethodHookParam) {
+                    fires++
                     if (!enabled) return
                     try {
                         val activity = param.thisObject
-                        val did = asLong(XposedHelpers.getObjectField(activity, "dialog_id")) ?: return
+                        val did = asLong(getField(activity, "dialog_id")) ?: return
                         val entityId = if (did > 0) did else Math.abs(did)
                         val entry = lookup(entityId) ?: return
-                        val hint = XposedHelpers.getObjectField(activity, "emojiStatusSpamHint") ?: return
-                        if ((XposedHelpers.callMethod(hint, "getVisibility") as Int) != View.VISIBLE) return
-                        val fm = XposedHelpers.callMethod(XposedHelpers.callMethod(hint, "getPaint"), "getFontMetricsInt")
+                        val hint = getField(activity, "emojiStatusSpamHint") ?: return
+                        if ((call(hint, "getVisibility") as Int) != View.VISIBLE) return
+                        val fm = call(call(hint, "getPaint")!!, "getFontMetricsInt")
                         val sb = buildEmojiText(entry.emojiId, entry.text, fm)
-                        XposedHelpers.callMethod(hint, "setText", sb)
+                        call(hint, "setText", sb)
                     } catch (t: Throwable) {
                         err("chat top panel hook", t)
                     }
@@ -326,7 +402,7 @@ object BadgesNative {
                     override fun beforeHookedMethod(param: MethodHookParam) {
                         try {
                             val right = if (param.args.size > 1) param.args[1] else null
-                            XposedHelpers.callMethod(param.thisObject, "setTag", right)
+                            call(param.thisObject, "setTag", right)
                         } catch (t: Throwable) {
                             err("setTitleIcons hook", t)
                         }
@@ -336,18 +412,17 @@ object BadgesNative {
             val chat = fc("org.telegram.ui.ChatActivity") ?: return
             add(XposedBridge.hookAllMethods(chat, "updateTitleIcons", object : XC_MethodHook() {
                 override fun afterHookedMethod(param: MethodHookParam) {
+                    fires++
                     if (!enabled) return
                     try {
                         val activity = param.thisObject
-                        val did = asLong(XposedHelpers.getObjectField(activity, "dialog_id")) ?: return
+                        val did = asLong(getField(activity, "dialog_id")) ?: return
                         val entityId = if (did > 0) did else Math.abs(did)
                         val entry = lookup(entityId) ?: return
-                        val avatar = XposedHelpers.getObjectField(activity, "avatarContainer") ?: return
-                        val drawable = XposedHelpers.callMethod(
-                            avatar, "getBotVerificationDrawable", entry.emojiId, false
-                        ) ?: return
-                        val right = XposedHelpers.callMethod(avatar, "getTag")
-                        XposedHelpers.callMethod(avatar, "setTitleIcons", drawable, right)
+                        val avatar = getField(activity, "avatarContainer") ?: return
+                        val drawable = call(avatar, "getBotVerificationDrawable", entry.emojiId, false) ?: return
+                        val right = call(avatar, "getTag")
+                        call(avatar, "setTitleIcons", drawable, right)
                     } catch (t: Throwable) {
                         err("updateTitleIcons hook", t)
                     }
@@ -364,8 +439,8 @@ object BadgesNative {
         val animated = fc("org.telegram.ui.Components.AnimatedEmojiDrawable") ?: return false
         val swap = fc("org.telegram.ui.Components.AnimatedEmojiDrawable\$SwapAnimatedEmojiDrawable") ?: return false
         try {
-            cacheStatus = XposedHelpers.getStaticIntField(animated, "CACHE_TYPE_EMOJI_STATUS")
-            cacheKeyboard = XposedHelpers.getStaticIntField(animated, "CACHE_TYPE_KEYBOARD")
+            cacheStatus = staticIntField(animated, "CACHE_TYPE_EMOJI_STATUS")
+            cacheKeyboard = staticIntField(animated, "CACHE_TYPE_KEYBOARD")
         } catch (_: Throwable) {
         }
         swapDrawableClass = swap
@@ -375,10 +450,10 @@ object BadgesNative {
     private fun makeSwapDrawable(nameView: Any?, index: Int): Any? {
         return try {
             val cacheType = if (index == 0) cacheStatus else cacheKeyboard
-            val au = fc("org.telegram.messenger.AndroidUtilities")
-            val size = XposedHelpers.callStaticMethod(au, "dp", 17) as Int
-            val d = XposedHelpers.newInstance(swapDrawableClass, nameView, size, cacheType)
-            XposedHelpers.callMethod(d, "offset", 0, XposedHelpers.callStaticMethod(au, "dp", 1) as Int)
+            val au = fc("org.telegram.messenger.AndroidUtilities")!!
+            val size = callStatic(au, "dp", 17) as Int
+            val d = newInst(swapDrawableClass!!, nameView, size, cacheType)
+            call(d!!, "offset", 0, callStatic(au, "dp", 1) as Int)
             d
         } catch (t: Throwable) {
             err("makeSwapDrawable[$index]", t)
@@ -391,18 +466,16 @@ object BadgesNative {
             val profile = fc("org.telegram.ui.ProfileActivity") ?: return
             add(XposedBridge.hookAllMethods(profile, "updateProfileData", object : XC_MethodHook() {
                 override fun afterHookedMethod(param: MethodHookParam) {
+                    fires++
                     if (!enabled) return
                     try {
                         if (!initSwapClasses()) return
                         val obj = param.thisObject
-                        val entityId = entityIdOf(
-                            XposedHelpers.getObjectField(obj, "userId"),
-                            XposedHelpers.getObjectField(obj, "chatId")
-                        ) ?: return
+                        val entityId = entityIdOf(getField(obj, "userId"), getField(obj, "chatId")) ?: return
                         val entry = lookup(entityId) ?: return
-                        val drawables = XposedHelpers.getObjectField(obj, "botVerificationDrawable") ?: return
-                        val nameViews = XposedHelpers.getObjectField(obj, "nameTextView") ?: return
-                        val attached = XposedHelpers.getObjectField(obj, "fragmentViewAttached") as? Boolean ?: false
+                        val drawables = getField(obj, "botVerificationDrawable") ?: return
+                        val nameViews = getField(obj, "nameTextView") ?: return
+                        val attached = getField(obj, "fragmentViewAttached") as? Boolean ?: false
                         val count = JArray.getLength(drawables)
                         for (i in 0 until count) {
                             val nameView = JArray.get(nameViews, i) ?: continue
@@ -410,11 +483,11 @@ object BadgesNative {
                             if (d == null) {
                                 d = makeSwapDrawable(nameView, i) ?: continue
                                 JArray.set(drawables, i, d)
-                                if (attached) XposedHelpers.callMethod(d, "attach")
+                                if (attached) call(d, "attach")
                             }
-                            XposedHelpers.callMethod(d, "set", entry.emojiId, false)
-                            XposedHelpers.callMethod(nameView, "setLeftDrawableOutside", true)
-                            XposedHelpers.callMethod(nameView, "setLeftDrawable", d)
+                            call(d, "set", entry.emojiId, false)
+                            call(nameView, "setLeftDrawableOutside", true)
+                            call(nameView, "setLeftDrawable", d)
                         }
                     } catch (t: Throwable) {
                         err("updateProfileData hook", t)
