@@ -1149,6 +1149,7 @@
   "write_logs_desc": "Saves all logs to latestlog.txt in the PackIt cache directory",
   "clean_logs": "Clean logs on launch",
   "clean_logs_desc": "Clears logs on every new launch",
+  "view_latestlog": "View log file",
   "send_latestlog": "Send latestlog as file",
   "copy_latestlog_path": "Copy latestlog path",
   "copy_latestlog_path_desc": "Copies the absolute path to the clipboard",
