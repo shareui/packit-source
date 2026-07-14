@@ -2,8 +2,7 @@ package de.robv.android.xposed;
 
 import java.lang.reflect.Member;
 
-// Compile-only stub of the exteraGram/LSPatch Xposed API. Not shipped in the
-// dex — the real classes are provided by the host app at runtime.
+//compilation stub
 public abstract class XC_MethodHook {
     public XC_MethodHook() {}
     public XC_MethodHook(int priority) {}
