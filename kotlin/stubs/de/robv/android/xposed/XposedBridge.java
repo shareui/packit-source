@@ -2,7 +2,7 @@ package de.robv.android.xposed;
 
 import java.util.Set;
 
-// Compile-only stub. Real implementation provided by the host app at runtime.
+// compilation stub
 public final class XposedBridge {
     private XposedBridge() {}
 
