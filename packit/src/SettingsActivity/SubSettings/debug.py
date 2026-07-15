@@ -125,18 +125,51 @@ def _isWriteLogsEnabled():
 
 
 def _viewLatestLog(view):
-    # opens latestlog.txt in exteraGram's native plugin file viewer
+    # opens latestlog.txt in exteraGram's native plugin file viewer.
+    # PluginFileViewer.open() forces a ".plugin" suffix onto the title via
+    # normalizeFileName; we replicate open() but call the private
+    # createMessageObject(File, String) directly so the title stays
+    # "latestlog.txt" without a suffix.
     try:
+        import threading
         from client_utils import get_last_fragment
+        from hook_utils import find_class
         from com.exteragram.messenger.plugins.ui.components import PluginFileViewer
         from java.io import File
+        from android_utils import run_on_ui_thread
         logPath = _getLatestLogPath()
         if not logPath or not os.path.exists(logPath):
             return
         frag = get_last_fragment()
         if not frag:
             return
-        PluginFileViewer.INSTANCE.open(frag, File(logPath), "latestlog.txt")
+        f = File(logPath)
+        if not f.exists() or not f.isFile():
+            return
+        inst = PluginFileViewer.INSTANCE
+        if f.length() > 524288:
+            # >512KB: let the host show its standard "file too large" bulletin
+            # (open() returns without presenting anything, so no suffix leaks).
+            inst.open(frag, f, "latestlog.txt")
+            return
+        PFVCls = find_class("com.exteragram.messenger.plugins.ui.components.PluginFileViewer")
+        FileCls = find_class("java.io.File")
+        StringCls = find_class("java.lang.String")
+        create_mo = PFVCls.getClass().getDeclaredMethod("createMessageObject", FileCls, StringCls)
+        create_mo.setAccessible(True)
+
+        def _build_and_open():
+            # read file / build MessageObject off the UI thread (as the host does),
+            # then present the article viewer on the UI thread.
+            try:
+                mo = create_mo.invoke(inst, f, "latestlog.txt")
+                if mo is None:
+                    return
+                run_on_ui_thread(lambda: frag.createArticleViewer(False).open(mo))
+            except Exception as e:
+                logx(f"viewLatestLog: build/open error: {e}", False)
+
+        threading.Thread(target=_build_and_open, daemon=True).start()
     except Exception as e:
         logx(f"viewLatestLog: error: {e}", False)
 
