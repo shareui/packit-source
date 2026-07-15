@@ -8,9 +8,15 @@ from hook_utils import find_class
 
 
 class _InstallSuccessHook(MethodHook):
+    # hooks the native install-success callback
+    # $r8$lambda$…(InstallPluginBottomSheet, String error, BaseFragment):
+    # args[1] (error) == None means the install succeeded.
     def after_hooked_method(self, param):
         try:
-            error_str = param.args[1]
+            args = getattr(param, "args", None)
+            if not args or len(args) < 2:
+                return
+            error_str = args[1]
             if error_str is not None:
                 return
             try:
@@ -18,8 +24,13 @@ class _InstallSuccessHook(MethodHook):
                 increment_category("Installing plugins")
             except Exception as e:
                 logx(f"installSuccessHook: achievements increment error: {e}", False)
-            from ..utils.installIndex import commit_pending
-            commit_pending()
+            # backstop index write; core's pluginsUpdated observer is the
+            # primary path. commit_pending consumes _pending -> idempotent.
+            try:
+                from ..utils.installIndex import commit_pending
+                commit_pending()
+            except Exception as e:
+                logx(f"installSuccessHook: commit_pending error: {e}", False)
         except Exception as e:
             logx(f"installSuccessHook: error: {e}", False)
 
