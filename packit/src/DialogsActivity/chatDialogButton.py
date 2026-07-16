@@ -38,14 +38,6 @@ def _get_extera_config():
         return None
 
 
-def _is_drawer_mode():
-    try:
-        cfg = _get_extera_config()
-        return bool(cfg.navigationDrawer) if cfg is not None else False
-    except Exception:
-        return False
-
-
 _MENU_STATE_KEY = "dialogs_install_btn_enabled"
 
 
