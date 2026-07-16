@@ -186,6 +186,15 @@ def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button,
             # write the install index from this reliable post-install signal
             # (covers both native and elyx installs), then fire callbacks
             _commit_index()
+            # bump the "installed plugins" achievement/stat for elyx installs;
+            # the native path already does this in InstallDismissHook, so guard
+            # to elyx only to avoid double counting.
+            if _is_elyx_plugin(plugin_info):
+                try:
+                    from .ui.AchievementsActivity.service.AchivementsEngine import increment_category
+                    increment_category("Installing plugins")
+                except Exception as e:
+                    logx(f"core: elyx achievement increment error: {e}", False)
             try:
                 if on_finish:
                     on_finish(True)
