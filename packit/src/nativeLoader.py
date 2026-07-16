@@ -336,19 +336,7 @@ def loadPackitDb() -> "ctypes.CDLL | None":
         return None
 
 
-_packitkey_lib = None
-_packitkey_tried = False
-
-
 def loadPackitKey() -> "ctypes.CDLL | None":
-    # libpackitkey powers an OPTIONAL feature (API-key storage for AI search)
-    # and is a separate, closed-source native lib. Unlike the core libs it must
-    # degrade quietly when absent: memoize the attempt and never show the
-    # native-error sheet — callers already treat a None result as "unavailable".
-    global _packitkey_lib, _packitkey_tried
-    if _packitkey_tried:
-        return _packitkey_lib
-    _packitkey_tried = True
     try:
         lib = ctypes.CDLL(_soPath("libpackitkey"))
         cp   = ctypes.c_char_p
@@ -364,11 +352,10 @@ def loadPackitKey() -> "ctypes.CDLL | None":
         lib.packitkey_delete.argtypes = [cp, cp, cp]
         lib.packitkey_exists.restype = ci
         lib.packitkey_exists.argtypes = [cp, cp, cp]
-        _packitkey_lib = lib
         return lib
     except Exception as e:
-        logx(f"nativeLoader: libpackitkey unavailable (optional): {e}", False)
-        _packitkey_lib = None
+        logx(f"nativeLoader: libpackitkey load error: {e}", False)
+        showNativeErrorSheet("libpackitkey.so", str(e))
         return None
 
 
