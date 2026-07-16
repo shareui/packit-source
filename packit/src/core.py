@@ -225,10 +225,31 @@ def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button,
                 pass
 
         if _is_elyx_plugin(plugin_info):
-            from elyxcore import ElyxEngine
-            from com.exteragram.messenger.plugins.ui.components import InstallPluginBottomSheet
-            install_params = InstallPluginBottomSheet.PluginInstallParams(temp_path, False)
-            ElyxEngine.instance.showInstallDialog(fragment, install_params)
+            # elyx goes through the same host entry as native plugins: the
+            # temp file carries .eaf, so the controller routes it to the
+            # elyx engine, which shows the SDK's own install sheet.
+            # (elyxcore 0.9.9b no longer exports ElyxEngine from the
+            # package root, so the old direct call broke with ImportError.)
+            from java.io import File as _JFile
+            eng = None
+            try:
+                eng = PluginsController.getPluginEngine(_JFile(temp_path))
+            except Exception as e:
+                logx(f"core: getPluginEngine check error: {e}", False)
+            if eng is not None:
+                logx(f"core: elyx install via host showInstallDialog ('{temp_path}')", True)
+                PluginsController.getInstance().showInstallDialog(fragment, temp_path, True)
+            else:
+                # extension not claimed by any engine (e.g. customized
+                # allowed_extensions) — call the elyx engine directly
+                logx("core: no engine claimed elyx temp file, using direct engine call", True)
+                try:
+                    from elyxcore._plugin_engine import ElyxEngine
+                except ImportError:
+                    from elyxcore import ElyxEngine  # older SDKs
+                from com.exteragram.messenger.plugins.ui.components import InstallPluginBottomSheet
+                install_params = InstallPluginBottomSheet.PluginInstallParams(temp_path, False)
+                ElyxEngine.instance.showInstallDialog(fragment, install_params)
         else:
             if write_index:
                 from .utils.installIndex import set_pending
@@ -236,6 +257,7 @@ def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button,
             PluginsController.getInstance().showInstallDialog(fragment, temp_path, True)
 
     except Exception as e:
+        logx(f"core: _open_install_dialog error: {e}", False)
         BulletinHelper.show_error(_s("core_failed_install_dialog", error=e))
         try:
             if on_finish:
@@ -322,7 +344,10 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
             except Exception:
                 pass
 
-            temp_path = os.path.join(plugins_dir, f".temp_{plugin_id}.plugin")
+            # elyx archives get .eaf so PluginsController.getPluginEngine
+            # routes the file to the elyx engine by extension
+            temp_ext = ".eaf" if _is_elyx_plugin(plugin_info) else ".plugin"
+            temp_path = os.path.join(plugins_dir, f".temp_{plugin_id}{temp_ext}")
             # check local plugin cache
             filename = url.split("/")[-1] or f"{plugin_id}.plugin"
             cache_path = _get_plugin_cache_path(None, filename)
@@ -556,7 +581,12 @@ def install_plugin_silent(file_path: str, plugin_data: dict, repo_id: str, on_co
     if is_elyx:
         try:
             from zipfile import ZipFile
-            from elyxcore import ElyxPlugin, ElyxEngine
+            try:
+                # elyxcore 0.9.9b keeps these in private modules only
+                from elyxcore._plugin import ElyxPlugin
+                from elyxcore._plugin_engine import ElyxEngine
+            except ImportError:
+                from elyxcore import ElyxPlugin, ElyxEngine  # older SDKs
             from .utils.installIndex import commit_elyx_pending
 
             elyx_plugin = ElyxPlugin(plzip=ZipFile(file_path, "r"), raise_errors=False)
