@@ -652,7 +652,7 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 ],
                 donations=[
                     {"text": strings.support_via_send, "icon": "filled_paid_suggest_24", "on_click": lambda v: (_show_bulletin("info", strings.donate_easter_egg), run_on_ui_thread(lambda: self._open_url("https://t.me/send?start=IV7kTHbP2iXp"), 1000))},
-                    {"text": strings.support_via_ton, "icon": "menu_my_ton", "on_click": lambda v: (_show_bulletin("copy", strings.copied_to_clipboard) if AndroidUtilities.addToClipboard("UQADRm0R1HNgMYuTfbHB3kdENuWt_Et5dFlEtrILK3LQ-KKL") else _show_bulletin("", strings.failed_to_copy, is_error=True))},
+                    {"text": strings.support_via_ton, "icon": "menu_wallet", "on_click": lambda v: (_show_bulletin("copy", strings.copied_to_clipboard) if AndroidUtilities.addToClipboard("UQADRm0R1HNgMYuTfbHB3kdENuWt_Et5dFlEtrILK3LQ-KKL") else _show_bulletin("", strings.failed_to_copy, is_error=True))},
                 ],
                 animate_idx=0,
             ),
@@ -710,7 +710,7 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 ],
                 donations=[
                     {"text": strings.support_via_send, "icon": "filled_paid_suggest_24", "on_click": lambda v: (_show_bulletin("info", strings.donate_easter_egg), run_on_ui_thread(lambda: self._open_url("https://t.me/send?start=IVwvWMdWfPCE"), 1000))},
-                    {"text": strings.support_via_ton, "icon": "menu_my_ton", "on_click": lambda v: (_show_bulletin("copy", strings.copied_to_clipboard) if AndroidUtilities.addToClipboard("UQBZCTLurgR5KiyvV5o8AchUQSsz-5o_mvehtuf08c8DuDMI") else _show_bulletin("", strings.failed_to_copy, is_error=True))},
+                    {"text": strings.support_via_ton, "icon": "menu_wallet", "on_click": lambda v: (_show_bulletin("copy", strings.copied_to_clipboard) if AndroidUtilities.addToClipboard("UQBZCTLurgR5KiyvV5o8AchUQSsz-5o_mvehtuf08c8DuDMI") else _show_bulletin("", strings.failed_to_copy, is_error=True))},
                 ],
                 animate_idx=4,
             ),
