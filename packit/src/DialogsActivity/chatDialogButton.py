@@ -128,10 +128,13 @@ class ChatDialogButton:
             self._setup_sanitize_hook()
             self._setup_main_menu_prefs_hooks()
 
-            if _is_drawer_mode():
-                self._setup_drawer_hook()
-            else:
-                self._setup_dots_hook()
+            # install both resolvers regardless of the current navigation mode:
+            # the dots overflow (DialogsActivity/MainTabs) and the drawer use
+            # different MainMenuHelper methods, so hooking both makes the PackIt
+            # entry appear in whichever surface the user opens, with no restart
+            # needed after switching modes.
+            self._setup_dots_hook()
+            self._setup_drawer_hook()
 
             logx("ChatDialogButton: hooks set up", True)
         except Exception as e:
