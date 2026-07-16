@@ -25,6 +25,7 @@ MIN_API=26
 # what to build: "<dexName>=<keepClassFqn>"
 PACKAGES=(
   "badges=kawaii.packetik.badges.BadgesNative"
+  "openfile=kawaii.packetik.openfile.OpenFileNative"
 )
 
 die() { echo "error: $*" >&2; exit 1; }
