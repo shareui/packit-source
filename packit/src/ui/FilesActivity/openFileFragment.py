@@ -108,7 +108,7 @@ def _show_binary_sheet(activity):
         border_bg.setStroke(AndroidUtilities.dp(2), Theme.getColor(Theme.key_featuredStickers_addButton))
         border_bg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite))
         msg_container.setBackground(border_bg)
-        
+
         msg = TextView(activity)
         msg.setText(strings["binary_file_message"])
         msg.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
@@ -182,11 +182,6 @@ def _show_binary_sheet(activity):
         logx(f"openFileFragment: _show_binary_sheet error: {e}", False)
 
 
-_FIRST_CHUNK_SIZE = 16 * 1024   # 16 KB — shown immediately
-_CHUNK_SIZE = 64 * 1024         # 64 KB per subsequent update
-_CHUNK_INTERVAL_S = 0.1         # 100 ms pause between subsequent chunks
-
-
 class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
 
     def __init__(self, path: str, on_finish=None):
@@ -196,8 +191,11 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
         self._on_finish = on_finish
         self._edit_mode = False
         self._content_view = None
-        self._content_tv = None
+        self._viewer_container = None
+        self._viewer_view = None      # Kotlin viewer root (or fallback h_scroll)
+        self._content_tv = None       # fallback TextView
         self._edit_tv = None
+        self._edit_scroll = None
         self._frag_ref = [None]
         self._text = ""
         self._original_text = ""
@@ -206,6 +204,8 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
         self._reset_btn = None
         self._h_scroll = None
         self._v_scroll = None
+        self._act = None
+        self._theme = None
         self._loading = False
         self._load_cancelled = False
         self._highlight_cancelled = False
@@ -220,6 +220,12 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
         self._load_cancelled = True
         self._highlight_cancelled = True
         try:
+            from ...dexLoader import openFileCancel
+            if self._viewer_view is not None:
+                openFileCancel(self._viewer_view)
+        except Exception as e:
+            logx(f"openFileFragment: destroy cancel error: {e}", False)
+        try:
             if self._content_view is not None:
                 parent = self._content_view.getParent()
                 if parent is not None:
@@ -227,6 +233,8 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
                 self._content_view = None
                 self._content_tv = None
                 self._edit_tv = None
+                self._viewer_view = None
+                self._viewer_container = None
         except Exception as e:
             logx(f"openFileFragment: onFragmentDestroy error: {e}", False)
         try:
@@ -343,95 +351,180 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
 
         outer.addView(toolbar, LayoutHelper.createLinear(-1, -2))
 
-        # content scroll: h_scroll wraps v_scroll wraps content
-        self._h_scroll = HorizontalScrollView(act)
-        self._h_scroll.setHorizontalScrollBarEnabled(True)
-        self._h_scroll.setFillViewport(True)
-        self._h_scroll.setBackgroundColor(bg)
-
-        self._v_scroll = ScrollView(act)
-        self._v_scroll.setVerticalScrollBarEnabled(True)
-        self._v_scroll.setFillViewport(False)
-
-        self._content_tv = TextView(act)
-        self._content_tv.setText("")
-        self._content_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
-        self._content_tv.setTextColor(text_primary)
-        self._content_tv.setSingleLine(False)
-        self._content_tv.setMaxLines(999999)
-        self._content_tv.setHorizontallyScrolling(True)
-        self._content_tv.setPadding(dp(16), dp(12), dp(16), dp(32))
-        try:
-            from android.graphics import Typeface
-            self._content_tv.setTypeface(Typeface.MONOSPACE)
-        except Exception:
-            pass
-
-        self._v_scroll.addView(self._content_tv, LayoutHelper.createScroll(-2, -2, 0))
-        self._h_scroll.addView(self._v_scroll, LayoutHelper.createScroll(-1, -1, 0))
-        outer.addView(self._h_scroll, LayoutHelper.createLinear(-1, 0, 1.0))
+        # content container — the Kotlin virtualized viewer (or the Python
+        # fallback renderer) is added here after the file is read off-thread
+        self._viewer_container = FrameLayout(act)
+        self._viewer_container.setBackgroundColor(bg)
+        outer.addView(self._viewer_container, LayoutHelper.createLinear(-1, 0, 1.0))
 
         self._start_loading()
         return self._content_view
+
+    # -------------------------------------------------------------- loading
 
     def _start_loading(self):
         from client_utils import run_on_queue
         self._loading = True
         self._load_cancelled = False
         self._highlight_cancelled = False
-        run_on_queue(self._load_chunked)
+        run_on_queue(self._load_bg)
 
-    def _load_chunked(self):
-        # runs on background thread, appends chunks to TextView via UI thread
-        import time
+    def _load_bg(self):
+        # read the file off-thread, then tokenize + attach the viewer
         try:
-            from android_utils import run_on_ui_thread
-            first = True
-
-            with open(self._path, "r", encoding="utf-8", errors="replace") as f:
-                while True:
-                    if self._load_cancelled:
-                        logx("openFileFragment: load cancelled", True)
-                        return
-
-                    size = _FIRST_CHUNK_SIZE if first else _CHUNK_SIZE
-                    chunk = f.read(size)
-                    if not chunk:
-                        break
-
-                    if not self._load_cancelled:
-                        run_on_ui_thread(lambda p=chunk: self._append_chunk(p))
-
-                    if first:
-                        first = False
-                    else:
-                        # throttle subsequent chunks so UI thread stays free
-                        time.sleep(_CHUNK_INTERVAL_S)
-
-            if not self._load_cancelled:
-                run_on_ui_thread(self._on_load_done)
+            text = ""
+            try:
+                with open(self._path, "r", encoding="utf-8", errors="replace") as f:
+                    text = f.read()
+            except Exception as e:
+                logx(f"openFileFragment: read error: {e}", False)
+            if self._load_cancelled:
+                return
+            self._text = text
+            self._original_text = text
+            self._process_and_attach()
         except Exception as e:
-            logx(f"openFileFragment: _load_chunked error: {e}", False)
-            if not self._load_cancelled:
-                from android_utils import run_on_ui_thread
-                run_on_ui_thread(self._on_load_done)
+            logx(f"openFileFragment: _load_bg error: {e}", False)
 
-    def _append_chunk(self, chunk: str):
-        # runs on UI thread
-        if self._load_cancelled or self._content_tv is None:
+    def _process_and_attach(self):
+        # background queue: tokenize self._text, then attach the viewer on UI
+        try:
+            tt, ts, te, ck, cv = self._tokenize()
+        except Exception as e:
+            logx(f"openFileFragment: tokenize error: {e}", False)
+            tt, ts, te, ck, cv = [], [], [], [], []
+        if self._load_cancelled:
+            return
+        from android_utils import run_on_ui_thread
+        run_on_ui_thread(lambda: self._attach_viewer(tt, ts, te, ck, cv))
+
+    def _tokenize(self):
+        # returns (types, starts, ends, colorKeys, colorVals) as flat int lists
+        tt, ts, te, ck, cv = [], [], [], [], []
+        try:
+            from elyx import settings
+            if not settings.get("highlight_syntax", True):
+                return tt, ts, te, ck, cv
+        except Exception:
+            pass
+        ext = os.path.splitext(self._path)[1].lower()
+        if ext not in (".json", ".py", ".plugin", ".java", ".kt"):
+            return tt, ts, te, ck, cv
+        try:
+            from .packlight import tokenizeJson, tokenizePython, tokenizeJava, tokenizeKotlin, _resolveColors
+            text = self._text
+            if ext == ".json":
+                result = tokenizeJson(text)
+            elif ext == ".java":
+                result = tokenizeJava(text)
+            elif ext == ".kt":
+                result = tokenizeKotlin(text)
+            else:
+                result = tokenizePython(text)
+            if result is None:
+                return tt, ts, te, ck, cv
+            tokBuf, ranges, cnt = result
+            INVALID = 0xFFFFFFFF
+            for k in range(cnt):
+                cs = ranges[k].char_start
+                ce = ranges[k].char_end
+                if cs == INVALID or ce == INVALID or cs >= ce:
+                    continue
+                tt.append(int(tokBuf[k].type))
+                ts.append(int(cs))
+                te.append(int(ce))
+            for typ, col in _resolveColors().items():
+                ck.append(int(typ))
+                cv.append(int(col))
+        except Exception as e:
+            logx(f"openFileFragment: _tokenize error: {e}", False)
+            return [], [], [], [], []
+        return tt, ts, te, ck, cv
+
+    def _attach_viewer(self, tt, ts, te, ck, cv):
+        # runs on UI thread: build the Kotlin virtualized viewer (or fall back)
+        if self._load_cancelled or self._viewer_container is None:
             return
         try:
-            self._text += chunk
-            self._content_tv.append(chunk)
+            from ...dexLoader import openFileCreate, openFileCancel
+            # drop a previous viewer (rebuild after save)
+            if self._viewer_view is not None:
+                try:
+                    openFileCancel(self._viewer_view)
+                except Exception:
+                    pass
+                try:
+                    self._viewer_container.removeView(self._viewer_view)
+                except Exception:
+                    pass
+                self._viewer_view = None
+            dp = AndroidUtilities.dp
+            t = self._theme
+            view = openFileCreate(
+                self._act, self._path, float(dp(13)),
+                dp(16), dp(12), dp(16), dp(32),
+                t["bg"], t["text_primary"],
+                tt, ts, te, ck, cv,
+            )
+            if view is None:
+                self._fallback_render()
+                return
+            self._viewer_view = view
+            self._viewer_container.addView(view, 0, FrameLayout.LayoutParams(-1, -1))
+            self._loading = False
+            logx("openFileFragment: kotlin viewer attached", True)
         except Exception as e:
-            logx(f"openFileFragment: _append_chunk error: {e}", False)
+            logx(f"openFileFragment: _attach_viewer error: {e}", False)
+            self._fallback_render()
 
-    def _on_load_done(self):
-        # runs on UI thread
-        self._loading = False
-        self._original_text = self._text
-        logx(f"openFileFragment: load done, total={len(self._text)} chars", True)
-        self._startHighlight()
+    def _fallback_render(self):
+        # Python renderer used only if the Kotlin dex is unavailable: a single
+        # setText (no O(n^2) append loop) + the existing packlight highlight.
+        if self._load_cancelled or self._viewer_container is None:
+            return
+        try:
+            act = self._act
+            dp = AndroidUtilities.dp
+            t = self._theme
+
+            h_scroll = HorizontalScrollView(act)
+            h_scroll.setHorizontalScrollBarEnabled(True)
+            h_scroll.setFillViewport(True)
+            h_scroll.setBackgroundColor(t["bg"])
+
+            v_scroll = ScrollView(act)
+            v_scroll.setVerticalScrollBarEnabled(True)
+            v_scroll.setFillViewport(False)
+
+            content_tv = TextView(act)
+            content_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+            content_tv.setTextColor(t["text_primary"])
+            content_tv.setSingleLine(False)
+            content_tv.setMaxLines(999999)
+            content_tv.setHorizontallyScrolling(True)
+            content_tv.setPadding(dp(16), dp(12), dp(16), dp(32))
+            try:
+                from android.graphics import Typeface
+                content_tv.setTypeface(Typeface.MONOSPACE)
+            except Exception:
+                pass
+            content_tv.setText(self._text)
+
+            v_scroll.addView(content_tv, LayoutHelper.createScroll(-2, -2, 0))
+            h_scroll.addView(v_scroll, LayoutHelper.createScroll(-1, -1, 0))
+
+            self._h_scroll = h_scroll
+            self._v_scroll = v_scroll
+            self._content_tv = content_tv
+            self._viewer_view = h_scroll
+            self._viewer_container.addView(h_scroll, 0, FrameLayout.LayoutParams(-1, -1))
+            self._loading = False
+            self._startHighlight()
+            logx("openFileFragment: fallback renderer attached", True)
+        except Exception as e:
+            logx(f"openFileFragment: _fallback_render error: {e}", False)
+
+    # ---------------------------------------------- fallback syntax highlight
 
     def _startHighlight(self):
         try:
@@ -440,6 +533,8 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
                 return
         except Exception:
             pass
+        if self._content_tv is None:
+            return
         ext = os.path.splitext(self._path)[1].lower()
         if ext not in (".json", ".py", ".plugin", ".java", ".kt"):
             return
@@ -448,9 +543,8 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
         run_on_queue(lambda: self._highlightBg(ext))
 
     def _highlightBg(self, ext: str):
-        # runs on background thread — tokenize + char mapping in C, no Python UTF-8 walk
         try:
-            from .packlight import tokenizeJson, tokenizePython, tokenizeJava, tokenizeKotlin, _resolveColors, _applySpans
+            from .packlight import tokenizeJson, tokenizePython, tokenizeJava, tokenizeKotlin, _resolveColors
             if self._highlight_cancelled:
                 return
             text = self._text
@@ -463,27 +557,20 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
             else:
                 result = tokenizePython(text)
             if result is None or self._highlight_cancelled:
-                from android_utils import run_on_ui_thread
                 return
             tokBuf, ranges, cnt = result
             colors = _resolveColors()
             if not colors or self._highlight_cancelled:
                 return
-            logx(f"openFileFragment: highlight done, tokens={cnt}, applying chunked", True)
             from android_utils import run_on_ui_thread
             run_on_ui_thread(lambda: self._applyHighlightChunked(text, tokBuf, ranges, cnt, colors, 0))
         except Exception as e:
             logx(f"openFileFragment: _highlightBg error: {e}", False)
-            from android_utils import run_on_ui_thread
 
-    # how many setSpan() calls per UI frame
     _SPAN_CHUNK = 1000
 
     def _applyHighlightChunked(self, text: str, tokBuf, ranges, cnt: int, colors: dict, offset: int):
-        # runs on UI thread — no sleep, no blocking
         if self._highlight_cancelled or self._content_tv is None:
-            tokBuf = None
-            ranges = None
             return
         try:
             from android.text import SpannableString
@@ -505,15 +592,12 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
                 if not self._highlight_cancelled and self._content_tv is not None:
                     self._highlighted = self._spannable
                     self._content_tv.setText(self._spannable)
-                    logx("openFileFragment: highlight applied", True)
                 self._spannable = None
-                tokBuf = None
-                ranges = None
         except Exception as e:
             logx(f"openFileFragment: _applyHighlightChunked error: {e}", False)
             self._spannable = None
-            tokBuf = None
-            ranges = None
+
+    # -------------------------------------------------------------- edit mode
 
     def _toggle_edit(self):
         if self._loading:
@@ -523,27 +607,27 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
         logx(f"openFileFragment: toggle edit mode={self._edit_mode}", True)
         try:
             t = self._theme
-
             if self._edit_mode:
                 self._edit_btn.setColorFilter(t["accent"])
                 self._save_btn.setVisibility(View.VISIBLE)
                 self._reset_btn.setVisibility(View.VISIBLE)
-                self._content_tv.setVisibility(View.GONE)
-                self._h_scroll.setBackgroundColor(t["bg_gray"])
                 self._ensure_edit_tv()
-                self._edit_tv.setVisibility(View.VISIBLE)
+                if self._viewer_view is not None:
+                    self._viewer_view.setVisibility(View.GONE)
+                if self._edit_scroll is not None:
+                    self._edit_scroll.setVisibility(View.VISIBLE)
                 self._edit_tv.requestFocus()
                 AndroidUtilities.showKeyboard(self._edit_tv)
             else:
                 self._edit_btn.setColorFilter(t["text_gray"])
                 self._save_btn.setVisibility(View.GONE)
                 self._reset_btn.setVisibility(View.GONE)
-                if self._edit_tv:
+                if self._edit_tv is not None:
                     AndroidUtilities.hideKeyboard(self._edit_tv)
-                    self._edit_tv.setVisibility(View.GONE)
-                self._h_scroll.setBackgroundColor(t["bg"])
-                self._content_tv.setText(self._highlighted if self._highlighted is not None else self._text)
-                self._content_tv.setVisibility(View.VISIBLE)
+                if self._edit_scroll is not None:
+                    self._edit_scroll.setVisibility(View.GONE)
+                if self._viewer_view is not None:
+                    self._viewer_view.setVisibility(View.VISIBLE)
         except Exception as e:
             logx(f"openFileFragment: _toggle_edit error: {e}", False)
 
@@ -557,6 +641,9 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
             from org.telegram.ui.ActionBar import Theme as TgTheme
             act = self._act
             dp = AndroidUtilities.dp
+
+            scroll = ScrollView(act)
+            scroll.setVerticalScrollBarEnabled(True)
 
             edit = EditTextBoldCursor(act)
             edit.lineYFix = True
@@ -579,12 +666,10 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
             edit.setSelection(0)
 
             self._edit_tv = edit
-            self._v_scroll.removeAllViews()
-            wrapper = LinearLayout(act)
-            wrapper.setOrientation(LinearLayout.VERTICAL)
-            wrapper.addView(self._content_tv, LayoutHelper.createLinear(-2, -2))
-            wrapper.addView(self._edit_tv, LayoutHelper.createLinear(-1, -2))
-            self._v_scroll.addView(wrapper, LayoutHelper.createScroll(-1, -2, 0))
+            scroll.addView(edit, LayoutHelper.createScroll(-1, -2, 0))
+            self._edit_scroll = scroll
+            self._edit_scroll.setVisibility(View.GONE)
+            self._viewer_container.addView(self._edit_scroll, FrameLayout.LayoutParams(-1, -1))
         except Exception as e:
             logx(f"openFileFragment: _ensure_edit_tv error: {e}", False)
 
@@ -596,8 +681,12 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
             with open(self._path, "w", encoding="utf-8") as f:
                 f.write(new_text)
             self._text = new_text
+            self._original_text = new_text
             self._highlighted = None
-            self._startHighlight()
+            # rebuild the viewer from the new text (no file re-read)
+            from client_utils import run_on_queue
+            self._loading = True
+            run_on_queue(self._process_and_attach)
             logx(f"openFileFragment: saved {self._path}", True)
         except Exception as e:
             logx(f"openFileFragment: _do_save error: {e}", False)
