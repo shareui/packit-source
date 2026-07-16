@@ -764,7 +764,8 @@ class InstallIconsUI:
                             self.clear_btn.setVisibility(View.GONE)
                     try:
                         from elyx import settings as _s
-                        if _s.get("live_search", False):
+                        # default must match the plugins catalog (True)
+                        if _s.get("live_search", True):
                             self._show_live_spinner()
                             self._schedule_live_search(text)
                     except Exception:
@@ -853,7 +854,9 @@ class InstallIconsUI:
             self.install_ui._apply_press_scale(search_btn)
             try:
                 from elyx import settings as _s
-                if _s.get("live_search", False):
+                # default must match the plugins catalog (True): manual
+                # search button stays hidden unless live_search is off
+                if _s.get("live_search", True):
                     search_btn.setVisibility(View.GONE)
             except Exception:
                 pass

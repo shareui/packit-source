@@ -7,6 +7,8 @@ from android_utils import run_on_ui_thread, OnClickListener
 from base_plugin import MethodHook
 from hook_utils import find_class
 
+FAB_TAG = "packit_icons_fab"
+
 
 def setup_icon_packs_activity_fab(plugin):
     # direct hook on the real (non-obfuscated) icon packs activity, mirroring
@@ -31,24 +33,59 @@ def setup_icon_packs_activity_fab(plugin):
                     frag_view = param.getResult()
                     if frag_view is None:
                         return
-                    run_on_ui_thread(lambda: _inject_fab(plugin, frag_view))
+                    fragment = param.thisObject
+                    run_on_ui_thread(lambda: _inject_fab(plugin, frag_view, fragment))
                 except Exception as e:
                     logx(f"addIconsFab: after_hooked_method error: {e}", False)
 
-        hook_ref = plugin.hook_method(create_view_method, IconPacksCreateViewHook())
+        hook_refs = [plugin.hook_method(create_view_method, IconPacksCreateViewHook())]
         logx("addIconsFab: IconPacksActivity.createView hooked", True)
-        return hook_ref
+
+        # the native FAB is lifted above the nav bar by onInsets
+        # (floatingButton.setTranslationY(-bottom)); keep ours level with it
+        try:
+            from java.lang import Integer
+            on_insets_method = IconPacksActivityClass.getClass().getDeclaredMethod(
+                "onInsets", Integer.TYPE, Integer.TYPE, Integer.TYPE, Integer.TYPE
+            )
+            on_insets_method.setAccessible(True)
+
+            class IconPacksInsetsHook(MethodHook):
+                def after_hooked_method(self_hook, param):
+                    try:
+                        bottom = param.args[3]
+                        root = param.thisObject.fragmentView
+                        if root is None:
+                            return
+                        fab = root.findViewWithTag(FAB_TAG)
+                        if fab is not None:
+                            fab.setTranslationY(-float(bottom))
+                    except Exception as e:
+                        logx(f"addIconsFab: onInsets hook error: {e}", False)
+
+            hook_refs.append(plugin.hook_method(on_insets_method, IconPacksInsetsHook()))
+            logx("addIconsFab: IconPacksActivity.onInsets hooked", True)
+        except Exception as e:
+            logx(f"addIconsFab: onInsets hook setup error: {e}", False)
+
+        return hook_refs
     except Exception as e:
         logx(f"addIconsFab: setup_icon_packs_activity_fab error: {e}", False)
         return None
 
 
-def _inject_fab(plugin, frag_view):
+def _inject_fab(plugin, frag_view, fragment=None):
     logx(f"addIconsFab: _inject_fab called, view={frag_view}", True)
     try:
         from elyx import settings
         if not settings.get("show_icon_packs_fab", True):
             logx("addIconsFab: show_icon_packs_fab is disabled, skipping", True)
+            return
+    except Exception:
+        pass
+    try:
+        if frag_view.findViewWithTag(FAB_TAG) is not None:
+            logx("addIconsFab: FAB already injected, skipping", True)
             return
     except Exception:
         pass
@@ -117,8 +154,16 @@ def _inject_fab(plugin, frag_view):
         fab_lp.leftMargin = margin_side
         fab_lp.bottomMargin = margin_bottom
 
+        fab.setTag(FAB_TAG)
         frag_view.addView(fab, fab_lp)
         fab.bringToFront()
+
+        # match the native FAB, which onInsets lifts above the nav bar
+        try:
+            if fragment is not None:
+                fab.setTranslationY(-float(fragment.getBottomInset()))
+        except Exception as e:
+            logx(f"addIconsFab: bottom inset error: {e}", False)
 
         logx(f"addIconsFab: FAB injected, view child count={frag_view.getChildCount()}", True)
     except Exception as e:
