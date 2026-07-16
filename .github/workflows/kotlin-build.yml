@@ -40,11 +40,11 @@ jobs:
       - name: Show result
         run: |
           git status --porcelain packit/dex/ || true
-          ls -la packit/dex/*/ || true
+          ls -la packit/dex/ || true
 
       - name: Upload dex artifacts
         uses: actions/upload-artifact@v4
         with:
           name: packit-dexes
-          path: packit/dex/**/*.dex
+          path: packit/dex/*.dex
           if-no-files-found: error

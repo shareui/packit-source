@@ -1,14 +1,15 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# Loads precompiled Kotlin dexes shipped in packit/dex/<abi>/ and calls their
+# Loads precompiled Kotlin dexes shipped in packit/dex/ and calls their
 # entrypoints. Currently used for the badge system (kawaii.packetik.badges),
 # ported from packit/src/other/{badges,chatBadge,chatTitleIcon,profileTitleIcon}.py.
+#
+# Dex is arch-independent Dalvik bytecode, so a single copy is shipped for all
+# ABIs (unlike packit/native/, which is per-ABI).
 
 from packutil import logx
 import os
-
-from .nativeLoader import detectArch
 
 _DEX_BASE = "/plugins/ElyxPlugins/shareui_packit/packit/dex"
 _BADGES_CLASS = "kawaii.packetik.badges.BadgesNative"
@@ -19,7 +20,7 @@ _loaded = {}
 
 def _dexPath(name: str) -> str:
     from .utils.paths import _filesDir
-    return _filesDir() + _DEX_BASE + "/" + detectArch() + "/" + name + ".dex"
+    return _filesDir() + _DEX_BASE + "/" + name + ".dex"
 
 
 def _loadClass(dexName: str, className: str, context):
