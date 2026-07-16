@@ -162,7 +162,21 @@ def _viewLatestLog(view):
             # read file / build MessageObject off the UI thread (as the host does),
             # then present the article viewer on the UI thread.
             try:
-                mo = create_mo.invoke(inst, f, "latestlog.txt")
+                # "Open in…" runs FileProvider on tL_page.local, and the
+                # provider doesn't cover files/packit/ — serve a copy from
+                # the host's sharing dir (cache/sharing/), which it does cover
+                view_file = f
+                try:
+                    import shutil
+                    from org.telegram.messenger import AndroidUtilities
+                    sharing_dir = AndroidUtilities.getSharingDirectory()
+                    sharing_dir.mkdirs()
+                    share_file = File(sharing_dir, "latestlog.txt")
+                    shutil.copyfile(logPath, share_file.getAbsolutePath())
+                    view_file = share_file
+                except Exception as e:
+                    logx(f"viewLatestLog: sharing copy error: {e}", False)
+                mo = create_mo.invoke(inst, view_file, "latestlog.txt")
                 if mo is None:
                     return
                 run_on_ui_thread(lambda: frag.createArticleViewer(False).open(mo))
