@@ -1313,6 +1313,8 @@ def _buildSortMenuDesignToggle(context, key, default, on_change=None):
 
 @java_subclass(LinearLayout)
 class SfxVolumeSlider(Base):
+    # tall enough for the title row + the 75dp MD3 SlideIntChooseView; the
+    # SeekBar fallback centers itself vertically in the same height
     onMeasure = jMVELoverride(
         arguments=[("widthMeasureSpec", "int"), ("heightMeasureSpec", "int")],
         code="""
@@ -1322,7 +1324,7 @@ class SfxVolumeSlider(Base):
                     android.view.View$MeasureSpec.EXACTLY
                 ),
                 android.view.View$MeasureSpec.makeMeasureSpec(
-                    org.telegram.messenger.AndroidUtilities.dp(72),
+                    org.telegram.messenger.AndroidUtilities.dp(104),
                     android.view.View$MeasureSpec.EXACTLY
                 )
             );
@@ -1331,16 +1333,62 @@ class SfxVolumeSlider(Base):
     )
 
     def on_post_init(self, context):
-        from android.widget import SeekBar
         from android.view import Gravity
-        from java import dynamic_proxy
         from elyx import settings as _s
         dp = AndroidUtilities.dp
 
         self._s = _s
+        self._md3 = None
         self.setOrientation(LinearLayout.VERTICAL)
-        self.setPadding(dp(21), dp(8), dp(21), dp(8))
         self.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite))
+
+        try:
+            initial = int(_s.get("sfx_volume", 100))
+        except Exception:
+            initial = 100
+
+        def _on_change(v):
+            try:
+                _s.set("sfx_volume", int(v), reload_settings=False)
+            except Exception:
+                pass
+
+        def _fmt(label_type, v):
+            # center label shows the pretty value, edges show plain percents
+            if label_type == 0:
+                return SfxVolumeSlider._volLabel(v)
+            return f"{v}%"
+
+        try:
+            from ..ui.md3Slider import createMd3Slider
+            md3 = createMd3Slider(context, 0, 100, initial, _on_change, _fmt)
+        except Exception as e:
+            logx(f"SfxVolumeSlider: md3 import/create error: {e}", False)
+            md3 = None
+
+        if md3 is not None:
+            self.setPadding(0, dp(6), 0, 0)
+            title = TextView(context)
+            title.setText(str(strings.sfx_volume))
+            title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
+            title.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
+            self.addView(title, LayoutHelper.createLinear(-2, -2, 22, 0, 22, 0))
+            # the MD3 cell is edge-to-edge with its own 22dp text insets
+            self.addView(md3.view, LayoutHelper.createLinear(-1, -2))
+            self._md3 = md3
+            return
+
+        self._build_seekbar_fallback(context)
+
+    def _build_seekbar_fallback(self, context):
+        from android.widget import SeekBar
+        from android.view import Gravity
+        from java import dynamic_proxy
+        _s = self._s
+        dp = AndroidUtilities.dp
+
+        self.setPadding(dp(21), dp(8), dp(21), dp(8))
+        self.setGravity(Gravity.CENTER_VERTICAL)
 
         labelRow = LinearLayout(context)
         labelRow.setOrientation(LinearLayout.HORIZONTAL)
@@ -1393,6 +1441,9 @@ class SfxVolumeSlider(Base):
             vol = int(self._s.get("sfx_volume", 100))
         except Exception:
             vol = 100
+        if self._md3 is not None:
+            self._md3.set_value(vol, False)
+            return
         self._seekBar.setProgress(vol)
         self._valueView.setText(SfxVolumeSlider._volLabel(vol))
 
