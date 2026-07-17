@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ...utils.netQueue import run_io
 import json
 import threading
 import re
@@ -382,7 +383,7 @@ class InstallIconsUI:
             finally:
                 self._loads_in_flight.discard(load_key)
         try:
-            run_on_queue(load_task)
+            run_io(load_task)
         except Exception:
             self._loads_in_flight.discard(load_key)
             raise
@@ -458,7 +459,7 @@ class InstallIconsUI:
             finally:
                 self._loads_in_flight.discard(load_key)
         try:
-            run_on_queue(load_task)
+            run_io(load_task)
         except Exception:
             self._loads_in_flight.discard(load_key)
             raise

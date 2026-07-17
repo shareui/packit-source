@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ...utils.netQueue import run_io
 import re
 import json
 import threading
@@ -295,7 +296,7 @@ class InstallUI:
                 run_on_ui_thread(lambda: self._update_current_fragment_plugins([]))
             finally:
                 self._reload_in_flight.discard(reload_key)
-        run_on_queue(load_task)
+        run_io(load_task)
 
     def _open_all_repos_plugins(self):
         fragment = get_last_fragment()
