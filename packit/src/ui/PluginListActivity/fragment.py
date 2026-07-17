@@ -596,6 +596,7 @@ class InstallUI:
             self._s_chip_deps_size = float(settings.get("chip_deps_size", 11))
             self._s_chip_size_size = float(settings.get("chip_size_size", 11))
             self._s_fuzzy_search = settings.get("fuzzy_search", False)
+            self._s_relocate_install = settings.get("relocate_install", False)
             self._s_relocate_copy = settings.get("relocate_copy_link", False)
             self._s_relocate_share = settings.get("relocate_share", False)
             self._s_relocate_code = settings.get("relocate_code", False)
