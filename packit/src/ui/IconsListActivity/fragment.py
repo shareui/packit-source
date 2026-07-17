@@ -59,11 +59,47 @@ def _count_active_repos(repoManager) -> int:
         return 0
 
 
+# capped bitmap cache size (LRU eviction, see InstallIconsUI._preview_cache)
+_PREVIEW_CACHE_CAP = 384
+
+# shared preview download pool: one thread per card (15+ at once, each pulling
+# every preview of its pack) starves the CPU/network on entry; a small fixed
+# pool keeps decode work bounded while the UI thread stays free
+_PREVIEW_WORKERS = 4
+_preview_queue = None
+_preview_queue_lock = threading.Lock()
+
+
+def _preview_pool_submit(task):
+    global _preview_queue
+    with _preview_queue_lock:
+        if _preview_queue is None:
+            import queue
+            _preview_queue = queue.Queue()
+
+            def _worker():
+                while True:
+                    fn = _preview_queue.get()
+                    try:
+                        fn()
+                    except Exception as e:
+                        logx(f"icons preview worker error: {e}", True)
+                    finally:
+                        _preview_queue.task_done()
+
+            for _ in range(_PREVIEW_WORKERS):
+                threading.Thread(target=_worker, daemon=True).start()
+    _preview_queue.put(task)
+
+
 class InstallIconsUI:
     def __init__(self, plugin):
         self.plugin = plugin
         self.repoManager = plugin.repoManager
-        self._preview_cache = {}
+        # LRU-capped: 64dp ARGB bitmaps are ~100-250KB each, an unbounded dict
+        # grows past 100MB on big catalogs and drives low-RAM devices into GC
+        from collections import OrderedDict
+        self._preview_cache = OrderedDict()
         self._preview_cache_lock = threading.Lock()
 
     def _apply_press_scale(self, view):
@@ -324,7 +360,10 @@ class InstallIconsUI:
                         logx(f"IconList._open_all_repos_icons: failed to load repo '{repo.get('name')}': {e}", False)
 
                 logx(f"IconList._open_all_repos_icons: total icons collected={len(all_icons)}", True)
-                run_on_ui_thread(lambda: self._update_current_fragment_icons(all_icons))
+                # index build (json.dumps of the whole catalog + native call) is
+                # heavy — do it here on the queue thread, not on the UI thread
+                prebuilt = search_mod.build_index(all_icons)
+                run_on_ui_thread(lambda: self._update_current_fragment_icons(all_icons, prebuilt))
             except Exception as e:
                 BulletinHelper.show_error(str(strings["il_load_failed"]))
                 logx(f"IconList._open_all_repos_icons: fatal error: {e}", False)
@@ -387,14 +426,16 @@ class InstallIconsUI:
                             logx(f"IconList._open_repo_icons: skipping list item (no id or not dict): {item}", True)
 
                 logx(f"IconList._open_repo_icons: parsed icons count={len(icons)}", True)
-                run_on_ui_thread(lambda: self._update_current_fragment_icons(icons))
+                # index build is heavy — run it here on the queue thread
+                prebuilt = search_mod.build_index(icons)
+                run_on_ui_thread(lambda: self._update_current_fragment_icons(icons, prebuilt))
             except Exception as e:
                 BulletinHelper.show_error(str(strings["il_download_error"]))
                 logx(f"IconList._open_repo_icons: error for url='{repo_url}': {e}", False)
                 run_on_ui_thread(lambda: self._update_current_fragment_icons([]))
         run_on_queue(load_task)
 
-    def _update_current_fragment_icons(self, icons):
+    def _update_current_fragment_icons(self, icons, prebuilt_index=None):
         logx(f"IconList._update_current_fragment_icons: called with icons count={len(icons) if icons else 0}", True)
         try:
             fragment = get_last_fragment()
@@ -409,7 +450,7 @@ class InstallIconsUI:
                 logx(f"IconList._update_current_fragment_icons: delegate={delegate} hasIcons={has_icons_attr}", True)
                 if has_icons_attr:
                     delegate.icons = icons
-                    delegate.search_index = search_mod.build_index(icons)
+                    delegate.search_index = prebuilt_index if prebuilt_index is not None else search_mod.build_index(icons)
                     logx(f"IconList._update_current_fragment_icons: search index built for {len(icons)} icons", True)
                     delegate.filtered_icons = []
                     delegate.visible_icons = []
@@ -437,11 +478,32 @@ class InstallIconsUI:
         try:
             delegate = self.IconListFragment(self, repo_name, icons, show_loading_initial=True, repo_id=repo_id)
             new_fragment = UniversalFragment(delegate)
-            fragment.presentFragment(new_fragment)
-            try:
-                new_fragment.setTitle(repo_name, False, 0)
-                actionBar = new_fragment.getActionBar()
-                if actionBar:
+            presented = fragment.presentFragment(new_fragment)
+            if not presented:
+                # host drops presentFragment during an in-flight transition
+                # (slow devices) — retry once when the animation settles
+                def _retry_present():
+                    try:
+                        f = get_last_fragment()
+                        if f:
+                            f.presentFragment(new_fragment)
+                    except Exception as e:
+                        logx(f"icons: presentFragment retry error: {e}", False)
+                run_on_ui_thread(_retry_present, 300)
+
+            def _setup_action_bar(attempt=0):
+                try:
+                    actionBar = new_fragment.getActionBar()
+                    if not actionBar:
+                        # on slow devices the fragment view (and its action
+                        # bar) appears a few frames after presentFragment;
+                        # calling setTitle before that NPEs inside the host
+                        if attempt < 10:
+                            run_on_ui_thread(lambda: _setup_action_bar(attempt + 1), 120)
+                        else:
+                            logx("icons: action bar never appeared, skipping setup", True)
+                        return
+                    new_fragment.setTitle(repo_name, False, 0)
                     actionBar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))
                     from org.telegram.messenger import R as R_tg
                     back_icon = getattr(R_tg.drawable, 'ic_ab_back', 0)
@@ -457,8 +519,9 @@ class InstallIconsUI:
                                 back_button.setOnClickListener(OnClickListener(_on_back_click))
                         except Exception:
                             pass
-            except Exception as e:
-                logx(f"icons: failed to setup action bar: {e}", False)
+                except Exception as e:
+                    logx(f"icons: failed to setup action bar: {e}", False)
+            _setup_action_bar()
         except Exception as e:
             logx(f"icons: failed to show universal: {e}", False)
 
@@ -485,6 +548,9 @@ class InstallIconsUI:
             self._card_registry = []
             self._ticker_started = False
             self._live_search_spinner = None
+            # bumped on every list rebuild; preview tasks captured with an
+            # older epoch abort instead of downloading for discarded cards
+            self._preview_epoch = 0
 
         def onFragmentCreate(self, *_):
             try:
@@ -729,6 +795,7 @@ class InstallIconsUI:
                                         outer.visible_icons = []
                                         outer._card_registry = []
                                         outer._ticker_started = False
+                                        outer._preview_epoch += 1
                                         if hasattr(outer, "subtitle"):
                                             outer.subtitle.setText(strings["icons_count"].format(len(filtered)))
                                         if not filtered:
@@ -1161,6 +1228,7 @@ class InstallIconsUI:
             self.lazy_load_queue.clear()
             self._card_registry = []
             self._ticker_started = False
+            self._preview_epoch += 1
 
             if not q:
                 filtered = list(self.icons)
@@ -1480,57 +1548,84 @@ class InstallIconsUI:
             # register this card so the fragment-level ticker can swap it
             self._card_registry.append((iv, loaded))
             self._start_ticker_if_needed()
+            epoch = self._preview_epoch
+            delegate = self
 
-            def fetch_all(urls=all_urls, px=icon_size_px):
-                for url in urls:
-                    try:
-                        with cache_lock:
-                            bmp = cache.get(url)
-                        if bmp is None:
-                            r = requests.get(url, timeout=10)
-                            if r.status_code != 200:
-                                continue
-                            data = r.content
-                            if url.lower().endswith(".svg"):
-                                try:
-                                    SVG = find_class("com.caverock.androidsvg.SVG")
-                                    ByteArrayInputStream = find_class("java.io.ByteArrayInputStream")
-                                    Bitmap = find_class("android.graphics.Bitmap")
-                                    Canvas = find_class("android.graphics.Canvas")
-                                    stream = ByteArrayInputStream(data)
-                                    svg = SVG.getFromInputStream(stream)
-                                    # force render at target size, respects viewBox scaling
-                                    svg.setDocumentWidth(px)
-                                    svg.setDocumentHeight(px)
-                                    bmp = Bitmap.createBitmap(px, px, Bitmap.Config.ARGB_8888)
-                                    canvas = Canvas(bmp)
-                                    svg.renderToCanvas(canvas)
-                                except Exception as e:
-                                    logx(f"icons svg render error: {e}", False)
-                                    continue
-                            else:
-                                BitmapFactory = find_class("android.graphics.BitmapFactory")
-                                opts = BitmapFactory.Options()
-                                opts.inJustDecodeBounds = True
-                                BitmapFactory.decodeByteArray(data, 0, len(data), opts)
-                                scale = max(1, min(opts.outWidth // px, opts.outHeight // px))
-                                opts.inSampleSize = scale
-                                opts.inJustDecodeBounds = False
-                                bmp = BitmapFactory.decodeByteArray(data, 0, len(data), opts)
-                            if bmp is None:
-                                continue
-                            with cache_lock:
-                                cache[url] = bmp
+            def load_one(url, px=icon_size_px):
+                # cache-aware download + decode of a single preview, or None
+                try:
+                    with cache_lock:
+                        bmp = cache.get(url)
+                        if bmp is not None:
+                            cache.move_to_end(url)
+                            return bmp
+                    r = requests.get(url, timeout=10)
+                    if r.status_code != 200:
+                        return None
+                    data = r.content
+                    if url.lower().endswith(".svg"):
+                        try:
+                            SVG = find_class("com.caverock.androidsvg.SVG")
+                            ByteArrayInputStream = find_class("java.io.ByteArrayInputStream")
+                            Bitmap = find_class("android.graphics.Bitmap")
+                            Canvas = find_class("android.graphics.Canvas")
+                            stream = ByteArrayInputStream(data)
+                            svg = SVG.getFromInputStream(stream)
+                            # force render at target size, respects viewBox scaling
+                            svg.setDocumentWidth(px)
+                            svg.setDocumentHeight(px)
+                            bmp = Bitmap.createBitmap(px, px, Bitmap.Config.ARGB_8888)
+                            canvas = Canvas(bmp)
+                            svg.renderToCanvas(canvas)
+                        except Exception as e:
+                            logx(f"icons svg render error: {e}", False)
+                            return None
+                    else:
+                        BitmapFactory = find_class("android.graphics.BitmapFactory")
+                        opts = BitmapFactory.Options()
+                        opts.inJustDecodeBounds = True
+                        BitmapFactory.decodeByteArray(data, 0, len(data), opts)
+                        scale = max(1, min(opts.outWidth // px, opts.outHeight // px))
+                        opts.inSampleSize = scale
+                        opts.inJustDecodeBounds = False
+                        bmp = BitmapFactory.decodeByteArray(data, 0, len(data), opts)
+                    if bmp is None:
+                        return None
+                    with cache_lock:
+                        cache[url] = bmp
+                        while len(cache) > _PREVIEW_CACHE_CAP:
+                            cache.popitem(last=False)
+                    return bmp
+                except Exception as e:
+                    logx(f"icons preview load error: {e}", False)
+                    return None
+
+            def fetch_rest(rest):
+                # ticker variety: the remaining previews of this pack, queued
+                # behind every card's first image so entry stays snappy
+                for url in rest:
+                    if delegate._preview_epoch != epoch:
+                        return
+                    bmp = load_one(url)
+                    if bmp is not None:
                         loaded.append(bmp)
-                    except Exception as e:
-                        logx(f"icons preview load error: {e}", False)
-                # show a random bitmap from all loaded ones
-                if loaded:
-                    import random
-                    b = random.choice(loaded)
-                    run_on_ui_thread(lambda b=b: iv.setImageBitmap(b))
 
-            threading.Thread(target=fetch_all, daemon=True).start()
+            def fetch_first(urls=all_urls):
+                # phase 1: get any single preview on screen ASAP
+                for i, url in enumerate(urls):
+                    if delegate._preview_epoch != epoch:
+                        return
+                    bmp = load_one(url)
+                    if bmp is not None:
+                        loaded.append(bmp)
+                        if delegate._preview_epoch == epoch:
+                            run_on_ui_thread(lambda b=bmp: iv.setImageBitmap(b))
+                        rest = urls[i + 1:]
+                        if rest:
+                            _preview_pool_submit(lambda: fetch_rest(rest))
+                        return
+
+            _preview_pool_submit(fetch_first)
 
             card.setClickable(True)
             card.setFocusable(True)
