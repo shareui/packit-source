@@ -1136,6 +1136,8 @@
   "role_founder": "Founder",
   "achiev_title_secret_connect_is_bullshit": "We all hate Connect",
   "achiev_hint_secret_connect_is_bullshit": "Drawing goddess Umi Asanagi without knowing human anatomy... May they burn in hell.",
+  "achiev_title_secret_opsec": "Operational security",
+  "achiev_hint_secret_opsec": "You installed opsec the privileged way: sudo packit install opsec.",
   "pp_section_about": "About the project",
   "pp_source_code": "Source code",
   "pp_not_provided": "Not provided",

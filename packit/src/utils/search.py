@@ -266,3 +266,27 @@ def score(plugin: dict, query: str, index, isRussian: bool, fuzzy: bool = False)
         return (6, 0, 0.0)
 
     return _py_score(plugin, query, index, isRussian, fuzzy)
+
+
+def score_percent(result: tuple) -> int:
+    """Convert the internal search rank into a stable, user-facing percentage."""
+    try:
+        field_rank, match_kind, similarity = result
+        if int(field_rank) >= 6:
+            return 0
+
+        # Trigram matches already carry their normalized similarity in item 3.
+        if float(similarity) < 0:
+            return max(1, min(100, int(round(-float(similarity) * 100))))
+
+        match_base = {
+            0: 100,  # exact prefix
+            1: 95,   # exact substring
+            2: 92,   # word prefix
+            3: 88,   # all query tokens matched
+            5: 75,   # one-edit fuzzy match
+        }.get(int(match_kind), 70)
+        field_penalty = {1: 0, 2: 5, 3: 8, 4: 10, 5: 15}.get(int(field_rank), 20)
+        return max(1, min(100, match_base - field_penalty))
+    except Exception:
+        return 0

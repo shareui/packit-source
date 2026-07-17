@@ -304,7 +304,7 @@ def build_apikeys_page():
             key="gemini_model",
             text=strings.gemini_model_selector,
             default=0,
-            items=["2.5 Flash", "2.5 Flash Lite", "2.5 Pro"],
+            items=["3.5 Flash", "3.1 Flash Lite", "3.1 Pro (Preview)"],
             icon="msg_list",
         ))
         items.append(Switch(
