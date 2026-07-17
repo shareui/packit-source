@@ -318,11 +318,12 @@ class ProfileSettings:
             outer.setClipChildren(False)
             outer.setClipToPadding(False)
             try:
+                # project-standard sheet top corners (uiHelpers/FontPicker: 20dp)
                 bg = GradientDrawable()
                 bg.setShape(GradientDrawable.RECTANGLE)
                 bg.setCornerRadii([
-                    dp(24), dp(24),
-                    dp(24), dp(24),
+                    dp(20), dp(20),
+                    dp(20), dp(20),
                     0, 0, 0, 0,
                 ])
                 bg.setColor(Theme.getColor(Theme.key_dialogBackground))
@@ -443,9 +444,16 @@ class ProfileSettings:
                 card.setClickable(True)
                 card.setFocusable(True)
 
+                # monet-style segmented group: big outer corners on the first
+                # and last rows, small inner ones, hairline gaps between rows
+                top_r = float(dp(18 if i == 0 else 6))
+                bot_r = float(dp(18 if i == len(options) - 1 else 6))
                 card_bg = GradientDrawable()
                 card_bg.setShape(GradientDrawable.RECTANGLE)
-                card_bg.setCornerRadius(float(dp(16)))
+                card_bg.setCornerRadii([
+                    top_r, top_r, top_r, top_r,
+                    bot_r, bot_r, bot_r, bot_r,
+                ])
                 card_bg.setColor(card_on)
                 card.setBackground(card_bg)
 
@@ -541,12 +549,13 @@ class ProfileSettings:
                     _animate_card(checkboxStates[i])
 
                 card.setOnClickListener(OnClickListener(onClick))
-                _apply_press_scale(card)
+                # gentle: rows are one visual group, big scale would tear it
+                _apply_press_scale(card, 0.98)
                 return card
 
             for i, (labelText, descText, iconName) in enumerate(options):
                 card = makeOptionCard(i, labelText, descText, iconName)
-                outer.addView(card, LayoutHelper.createLinear(-1, -2, pad_h, 10 if i == 0 else 8, pad_h, 0))
+                outer.addView(card, LayoutHelper.createLinear(-1, -2, pad_h, 10 if i == 0 else 3, pad_h, 0))
                 cards.append(card)
 
             def onShare():
