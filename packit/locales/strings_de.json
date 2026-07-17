@@ -1164,5 +1164,16 @@
   "force_clean_log_error": "Die Protokolldatei konnte nicht gelöscht werden",
   "debug_clearing_header": "Protokolle löschen",
   "debug_perf_warning": "Die Verwendung dieser Einstellung kann die Leistung beeinträchtigen. Nur bei Bedarf verwenden.",
+  "bi_header": "Build-Info",
+  "bi_manufacturer": "Hersteller",
+  "bi_model": "Modell",
+  "bi_android_version": "Android-Version",
+  "bi_sdk_version": "SDK-Version",
+  "bi_abi": "Architektur",
+  "bi_root_status": "Root-Status",
+  "bi_root_yes": "Ja",
+  "bi_root_no": "Nein",
+  "bi_app_version": "App-Version",
+  "bi_app_package": "App-Paket",
   "plus_sponsor": "+ Sponsor"
 }

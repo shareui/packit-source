@@ -1164,5 +1164,16 @@
   "force_clean_log_error": "Не удалось очистить файл логов",
   "debug_clearing_header": "Очистка логов",
   "debug_perf_warning": "Использование этого параметра может снизить производительность. Используйте только при необходимости.",
+  "bi_header": "Информация о сборке",
+  "bi_manufacturer": "Производитель",
+  "bi_model": "Модель",
+  "bi_android_version": "Версия Android",
+  "bi_sdk_version": "Версия SDK",
+  "bi_abi": "Архитектура",
+  "bi_root_status": "Статус рута",
+  "bi_root_yes": "Да",
+  "bi_root_no": "Нет",
+  "bi_app_version": "Версия приложения",
+  "bi_app_package": "Пакет приложения",
   "plus_sponsor": "+ Спонсор"
 }

@@ -2,9 +2,252 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
-from ui.settings import Divider, Header, Switch, Text
+from ui.settings import Custom, Divider, Header, Switch, Text
 from elyx import strings
 from packutil import logx
+
+# common su locations checked for the root-status card
+_SU_PATHS = (
+    "/system/bin/su", "/system/xbin/su", "/sbin/su", "/su/bin/su",
+    "/system/sd/xbin/su", "/system/bin/failsafe/su",
+    "/data/local/su", "/data/local/bin/su", "/data/local/xbin/su",
+    "/system/app/Superuser.apk",
+)
+
+
+def _isDeviceRooted():
+    try:
+        for p in _SU_PATHS:
+            if os.path.exists(p):
+                return True
+        try:
+            from android.os import Build
+            tags = str(Build.TAGS or "")
+            if "test-keys" in tags:
+                return True
+        except Exception:
+            pass
+    except Exception:
+        pass
+    return False
+
+
+def _makeBuildInfoCard(ctx):
+    # material-you style info card: circle-icon header + grid of rounded
+    # value tiles (big bold value under a small gray label)
+    try:
+        import ctypes
+        from android.view import Gravity
+        from android.widget import LinearLayout, TextView, FrameLayout, ImageView
+        from android.util import TypedValue
+        from android.graphics import PorterDuff
+        from android.graphics.drawable import GradientDrawable
+        from android.os import Build
+        from hook_utils import find_class
+        from org.telegram.messenger import AndroidUtilities, R as R_tg
+        from org.telegram.ui.ActionBar import Theme
+        from org.telegram.ui.Components import LayoutHelper
+
+        dp = AndroidUtilities.dp
+
+        def _c(color):
+            return ctypes.c_int32(color).value
+
+        def _alpha(color, a):
+            return _c((a << 24) | (color & 0x00FFFFFF))
+
+        accent = Theme.getColor(Theme.key_featuredStickers_addButton)
+        text_black = Theme.getColor(Theme.key_windowBackgroundWhiteBlackText)
+        text_gray = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+
+        # ---- collect values (each guarded, "?" on failure)
+        def _sget(fn, fallback="?"):
+            try:
+                v = fn()
+                return str(v) if v is not None and str(v) else fallback
+            except Exception:
+                return fallback
+
+        manufacturer = _sget(lambda: str(Build.MANUFACTURER))
+        manufacturer = manufacturer[:1].upper() + manufacturer[1:] if manufacturer else "?"
+        model = _sget(lambda: str(Build.MODEL))
+        android_ver = _sget(lambda: str(Build.VERSION.RELEASE))
+        sdk_ver = _sget(lambda: str(Build.VERSION.SDK_INT))
+        abi = _sget(lambda: str(Build.SUPPORTED_ABIS[0]))
+        abis_all = _sget(lambda: ", ".join([str(a) for a in Build.SUPPORTED_ABIS]), "")
+        rooted = _isDeviceRooted()
+        root_str = str(strings.bi_root_yes) if rooted else str(strings.bi_root_no)
+
+        app_ver = "?"
+        app_code = ""
+        try:
+            BuildVars = find_class("org.telegram.messenger.BuildVars")
+            app_ver = str(BuildVars.BUILD_VERSION_STRING)
+            app_code = str(BuildVars.BUILD_VERSION)
+        except Exception:
+            pass
+        package = "?"
+        try:
+            from org.telegram.messenger import ApplicationLoader
+            package = str(ApplicationLoader.applicationContext.getPackageName())
+        except Exception:
+            pass
+
+        # ---- card scaffolding
+        outer = LinearLayout(ctx)
+        outer.setOrientation(LinearLayout.VERTICAL)
+        outer.setPadding(dp(16), dp(16), dp(16), dp(16))
+        card_bg = GradientDrawable()
+        card_bg.setShape(GradientDrawable.RECTANGLE)
+        card_bg.setCornerRadius(float(dp(24)))
+        card_bg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite))
+        outer.setBackground(card_bg)
+
+        header = LinearLayout(ctx)
+        header.setOrientation(LinearLayout.HORIZONTAL)
+        header.setGravity(Gravity.CENTER_VERTICAL)
+
+        circle = FrameLayout(ctx)
+        circle_bg = GradientDrawable()
+        circle_bg.setShape(GradientDrawable.OVAL)
+        circle_bg.setColor(_alpha(accent, 0x1C))
+        circle.setBackground(circle_bg)
+        circle_icon = ImageView(ctx)
+        try:
+            circle_icon.setImageResource(getattr(R_tg.drawable, "msg_info", 0))
+            circle_icon.setColorFilter(_c(accent), PorterDuff.Mode.SRC_IN)
+        except Exception:
+            pass
+        circle_icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+        circle.addView(circle_icon, FrameLayout.LayoutParams(dp(22), dp(22), Gravity.CENTER))
+        header.addView(circle, LayoutHelper.createLinear(44, 44, Gravity.CENTER_VERTICAL, 0, 0, 14, 0))
+
+        header_tv = TextView(ctx)
+        header_tv.setText(str(strings.bi_header))
+        header_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 21)
+        try:
+            header_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+        except Exception:
+            pass
+        header_tv.setTextColor(_c(text_black))
+        header.addView(header_tv, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+
+        outer.addView(header, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 12))
+
+        field_color = Theme.getColor(Theme.key_windowBackgroundGray)
+
+        def value_tile(labelText, valueText, subText=None, value_size=21):
+            tile = LinearLayout(ctx)
+            tile.setOrientation(LinearLayout.VERTICAL)
+            tile.setPadding(dp(14), dp(12), dp(14), dp(12))
+            tile_bg = GradientDrawable()
+            tile_bg.setShape(GradientDrawable.RECTANGLE)
+            tile_bg.setCornerRadius(float(dp(18)))
+            tile_bg.setColor(_c(field_color))
+            tile.setBackground(tile_bg)
+
+            lab = TextView(ctx)
+            lab.setText(str(labelText))
+            lab.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+            lab.setTextColor(_c(text_gray))
+            tile.addView(lab, LayoutHelper.createLinear(-2, -2))
+
+            val = TextView(ctx)
+            val.setText(str(valueText))
+            val.setTextSize(TypedValue.COMPLEX_UNIT_DIP, value_size)
+            try:
+                val.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+            except Exception:
+                pass
+            val.setTextColor(_c(text_black))
+            val.setSingleLine(True)
+            val.setHorizontalFadingEdgeEnabled(True)
+            val.setFadingEdgeLength(dp(24))
+            tile.addView(val, LayoutHelper.createLinear(-2, -2, 0, 2, 0, 0))
+
+            if subText:
+                sub = TextView(ctx)
+                sub.setText(str(subText))
+                sub.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
+                sub.setTextColor(_c(text_gray))
+                sub.setSingleLine(True)
+                sub.setHorizontalFadingEdgeEnabled(True)
+                sub.setFadingEdgeLength(dp(24))
+                tile.addView(sub, LayoutHelper.createLinear(-2, -2, 0, 2, 0, 0))
+            return tile
+
+        def pair_row(left, right):
+            row = LinearLayout(ctx)
+            row.setOrientation(LinearLayout.HORIZONTAL)
+            lp = LinearLayout.LayoutParams(0, -1, 1.0)
+            lp.rightMargin = dp(4)
+            row.addView(left, lp)
+            rp = LinearLayout.LayoutParams(0, -1, 1.0)
+            rp.leftMargin = dp(4)
+            row.addView(right, rp)
+            return row
+
+        rows = [
+            pair_row(
+                value_tile(strings.bi_manufacturer, manufacturer),
+                value_tile(strings.bi_model, model),
+            ),
+            pair_row(
+                value_tile(strings.bi_android_version, android_ver),
+                value_tile(strings.bi_sdk_version, sdk_ver),
+            ),
+            pair_row(
+                value_tile(strings.bi_abi, abi, abis_all if abis_all != abi else None, value_size=17),
+                value_tile(strings.bi_root_status, root_str),
+            ),
+        ]
+        for i, row in enumerate(rows):
+            outer.addView(row, LayoutHelper.createLinear(-1, -2, 0, 0 if i == 0 else 8, 0, 0))
+
+        outer.addView(
+            value_tile(strings.bi_app_version, app_ver, app_code or None),
+            LayoutHelper.createLinear(-1, -2, 0, 8, 0, 0),
+        )
+        outer.addView(
+            value_tile(strings.bi_app_package, package, value_size=16),
+            LayoutHelper.createLinear(-1, -2, 0, 8, 0, 0),
+        )
+
+        try:
+            from ...ui.viewUtils import applyFontToTree
+            applyFontToTree(outer)
+        except Exception:
+            pass
+
+        # transparent list row carrying the floating card
+        container = FrameLayout(ctx)
+        container.setPadding(dp(12), dp(6), dp(12), dp(6))
+        container.addView(outer, FrameLayout.LayoutParams(-1, -2))
+        return container
+    except Exception as e:
+        logx(f"debug: _makeBuildInfoCard error: {e}", False)
+        return None
+
+
+def _buildInfoItem():
+    try:
+        from client_utils import get_last_fragment
+        frag = get_last_fragment()
+        ctx = frag.getParentActivity() if frag else None
+        if not ctx:
+            return None
+        view = _makeBuildInfoCard(ctx)
+        if view is None:
+            return None
+        item = Custom(view=view)
+        try:
+            item.setTransparent(True)
+        except Exception:
+            pass
+        return item
+    except Exception as e:
+        logx(f"debug: _buildInfoItem error: {e}", False)
+        return None
 
 
 def _onWriteLogsChange(enabled):
@@ -264,5 +507,13 @@ def build_debug_page():
             on_click=_forceCleanLog
         ),
     ]
+
+    try:
+        buildInfo = _buildInfoItem()
+        if buildInfo is not None:
+            items.append(Divider())
+            items.append(buildInfo)
+    except Exception as e:
+        logx(f"debug: build info append error: {e}", False)
 
     return items
