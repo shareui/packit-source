@@ -673,7 +673,7 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 ],
                 donations=[
                     {"text": strings.support_with_stars, "icon": "menu_feature_reactions", "on_click": lambda v: self._open_gift_sheet(_UID_VCVK)},
-                    {"text": strings.support_via_yoomoney, "icon": "filter_money", "on_click": lambda v: (_show_bulletin("info", strings.donate_easter_egg), run_on_ui_thread(lambda: self._open_url("https://yoomoney.ru/to/4100116528377334/0"), 1000))},
+                    {"text": strings.support_via_yoomoney, "icon": "menu_wallet", "on_click": lambda v: (_show_bulletin("info", strings.donate_easter_egg), run_on_ui_thread(lambda: self._open_url("https://yoomoney.ru/to/4100116528377334/0"), 1000))},
                 ],
                 animate_idx=4,
             ),
