@@ -138,6 +138,71 @@ def openFileCreate(context, path, text_size_px, pad_l, pad_t, pad_r, pad_b,
         return None
 
 
+_CATALOG_CLASS = "kawaii.packetik.catalog.CatalogChromeNative"
+
+
+def catalogChromeCreate(context, main_bg, card_bg, card_pressed, text_color,
+                        accent, accent_pressed, button_text,
+                        icon_clear, icon_search, icon_ai, icon_filter, icon_sort,
+                        ai_label, subtitle_text, show_search_btn, bold_typeface):
+    # builds the plugins-catalog chrome skeleton on the java side and returns
+    # its root LinearLayout (children are looked up by tag), or None on
+    # failure -> caller builds the chrome in Python as before.
+    try:
+        if context is None:
+            from org.telegram.messenger import ApplicationLoader
+            context = ApplicationLoader.applicationContext
+        cls = _loadClass("catalog", _CATALOG_CLASS, context)
+        if cls is None:
+            return None
+        from java import jint
+
+        def _i(v):
+            return jint(int(v))
+
+        return _callStatic(
+            cls, "createPluginsChrome",
+            context,
+            _i(main_bg), _i(card_bg), _i(card_pressed), _i(text_color),
+            _i(accent), _i(accent_pressed), _i(button_text),
+            _i(icon_clear), _i(icon_search), _i(icon_ai), _i(icon_filter), _i(icon_sort),
+            str(ai_label), str(subtitle_text), bool(show_search_btn), bold_typeface,
+        )
+    except Exception as e:
+        logx(f"dexLoader: catalogChromeCreate error: {e}", False)
+        return None
+
+
+def catalogIconsChromeCreate(context, main_bg, card_bg, card_pressed, text_color,
+                             accent, accent_pressed, button_text,
+                             icon_clear, icon_search, icon_repo, icon_sort,
+                             subtitle_text, show_search_btn):
+    # icons-catalog chrome skeleton; see catalogChromeCreate above.
+    try:
+        if context is None:
+            from org.telegram.messenger import ApplicationLoader
+            context = ApplicationLoader.applicationContext
+        cls = _loadClass("catalog", _CATALOG_CLASS, context)
+        if cls is None:
+            return None
+        from java import jint
+
+        def _i(v):
+            return jint(int(v))
+
+        return _callStatic(
+            cls, "createIconsChrome",
+            context,
+            _i(main_bg), _i(card_bg), _i(card_pressed), _i(text_color),
+            _i(accent), _i(accent_pressed), _i(button_text),
+            _i(icon_clear), _i(icon_search), _i(icon_repo), _i(icon_sort),
+            str(subtitle_text), bool(show_search_btn),
+        )
+    except Exception as e:
+        logx(f"dexLoader: catalogIconsChromeCreate error: {e}", False)
+        return None
+
+
 def openFileCancel(view):
     try:
         cls = _loaded.get("openfile")

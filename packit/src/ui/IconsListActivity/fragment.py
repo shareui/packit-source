@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ...utils.netQueue import run_io
 import json
 import threading
 import re
@@ -90,6 +91,338 @@ def _preview_pool_submit(task):
             for _ in range(_PREVIEW_WORKERS):
                 threading.Thread(target=_worker, daemon=True).start()
     _preview_queue.put(task)
+
+
+
+def _icons_perform_search(self, act):
+    try:
+        query = self.search.getText().toString()
+        if query != self.last_search_query:
+            self.last_search_query = query
+            self.build_list(query)
+        imm = act.getSystemService("input_method")
+        imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
+    except Exception:
+        pass
+
+
+class _IconsSearchTextWatcher(dynamic_proxy(TextWatcher)):
+    def __init__(self, outer, clear_btn_ref, act):
+        super().__init__()
+        self.outer = outer
+        self.clear_btn = clear_btn_ref
+        self._live_timer = None
+        self._act = act
+
+    def _show_live_spinner(self):
+        try:
+            if getattr(self.outer, '_live_search_spinner', None) is None:
+                from org.telegram.ui.Components import CircularProgressDrawable
+                _size = 122
+                _color = Theme.getColor(Theme.key_featuredStickers_addButton)
+                try:
+                    _d = CircularProgressDrawable(float(_size), float(AndroidUtilities.dp(8)), _color)
+                except Exception:
+                    _d = CircularProgressDrawable(_color)
+                    try:
+                        _d.size = float(_size)
+                        _d.thickness = float(AndroidUtilities.dp(8))
+                    except Exception:
+                        pass
+                _d.setBounds(0, 0, _size, _size)
+                _spinner_iv = ImageView(self._act)
+                _spinner_iv.setImageDrawable(_d)
+                _spinner_iv.setScaleType(ImageView.ScaleType.FIT_CENTER)
+                spinner_container = FrameLayout(self._act)
+                spinner_container.setLayoutParams(FrameLayout.LayoutParams(-1, -1))
+                _lp = FrameLayout.LayoutParams(_size, _size, Gravity.CENTER)
+                spinner_container.addView(_spinner_iv, _lp)
+                self.outer._live_search_spinner = spinner_container
+                self.outer.content_view.addView(spinner_container, FrameLayout.LayoutParams(-1, -1))
+            else:
+                self.outer._live_search_spinner.setAlpha(1.0)
+                self.outer._live_search_spinner.setVisibility(View.VISIBLE)
+            try:
+                self.outer.results_container.setVisibility(View.INVISIBLE)
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    def _hide_live_spinner(self):
+        try:
+            spinner = getattr(self.outer, '_live_search_spinner', None)
+            if spinner is None:
+                return
+            spinner.animate().alpha(0.0).setDuration(150).withEndAction(
+                lambda: spinner.setVisibility(View.GONE)
+            ).start()
+        except Exception:
+            pass
+        try:
+            self.outer.results_container.setVisibility(View.VISIBLE)
+        except Exception:
+            pass
+
+    def _schedule_live_search(self, query):
+        prev = self._live_timer
+        if prev is not None:
+            try:
+                prev.cancel()
+            except Exception:
+                pass
+        outer = self.outer
+
+        def _do_search():
+            # scoring runs on background thread after debounce
+            try:
+                if query != outer.last_search_query:
+                    q = query.strip()
+                    icons = outer.icons or []
+                    search_index = outer.search_index
+                    sort_type = outer.current_sort_type
+
+                    if not q:
+                        filtered = list(icons)
+                    else:
+                        isRussian = False
+                        try:
+                            from java.util import Locale
+                            isRussian = Locale.getDefault().getLanguage() == "ru"
+                        except Exception:
+                            pass
+                        fuzzy = settings.get("fuzzy_search", False)
+                        scored = []
+                        for icon in icons:
+                            s = search_mod.score(icon, q, search_index, isRussian, fuzzy)
+                            if s[0] < 6:
+                                scored.append((s, icon))
+                        scored.sort(key=lambda x: x[0])
+                        filtered = [icon for _, icon in scored]
+
+                    if not q:
+                        if sort_type == "alpha_az":
+                            filtered.sort(key=lambda i: str(i.get("name") or i.get("id") or "").lower())
+                        elif sort_type == "alpha_za":
+                            filtered.sort(key=lambda i: str(i.get("name") or i.get("id") or "").lower(), reverse=True)
+                        elif sort_type == "authors":
+                            filtered.sort(key=lambda i: str(i.get("author") or "").lower())
+
+                    def _ui(q=q, filtered=filtered):
+                        try:
+                            outer.last_search_query = q
+                            outer.filtered_icons = filtered
+                            outer.is_loading = True
+                            outer.results_container.removeAllViews()
+                            outer.visible_icons = []
+                            outer._card_registry = []
+                            outer._ticker_started = False
+                            outer._preview_epoch += 1
+                            if hasattr(outer, "subtitle"):
+                                outer.subtitle.setText(strings["icons_count"].format(len(filtered)))
+                            if not filtered:
+                                outer._show_empty_state()
+                            else:
+                                outer._load_initial_batch()
+                            self._hide_live_spinner()
+                        except Exception:
+                            pass
+                    run_on_ui_thread(_ui)
+                else:
+                    run_on_ui_thread(lambda: self._hide_live_spinner())
+            except Exception:
+                run_on_ui_thread(lambda: self._hide_live_spinner())
+
+        t = threading.Timer(0.3, _do_search)
+        self._live_timer = t
+        t.start()
+
+    def afterTextChanged(self, s):
+        text = s.toString()
+        if text and len(text) > 0:
+            self.clear_btn.setVisibility(View.VISIBLE)
+            try:
+                self.clear_btn.animate().alpha(1.0).setDuration(200).start()
+            except Exception:
+                pass
+        else:
+            try:
+                self.clear_btn.animate().alpha(0.0).setDuration(200).withEndAction(
+                    lambda: self.clear_btn.setVisibility(View.GONE)).start()
+            except Exception:
+                self.clear_btn.setVisibility(View.GONE)
+        try:
+            from elyx import settings as _s
+            # default must match the plugins catalog (True)
+            if _s.get("live_search", True):
+                self._show_live_spinner()
+                self._schedule_live_search(text)
+        except Exception:
+            pass
+
+    def beforeTextChanged(self, s, start, count, after):
+        pass
+    def onTextChanged(self, s, start, before, count):
+        pass
+
+
+def _icons_on_clear_click(self, act):
+    try:
+        from elyx import assets
+        from ...utils.media import playSound
+        playSound(assets.sounds.clear_search.path_str, "sfx_clear_search")
+    except Exception:
+        pass
+    try:
+        self.search.setText("")
+        self.last_search_query = ""
+        self.build_list("")
+        imm = act.getSystemService("input_method")
+        imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
+    except Exception:
+        pass
+
+
+def _icons_on_search_btn_click(self, act):
+    try:
+        from elyx import assets
+        from ...utils.media import playSound
+        playSound(assets.sounds.search_btn.path_str, "sfx_search")
+    except Exception:
+        pass
+    _icons_perform_search(self, act)
+
+
+def _icons_show_repo_menu(self, act):
+    try:
+        imm = act.getSystemService("input_method")
+        imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
+    except Exception:
+        pass
+    fragment = get_last_fragment()
+    if fragment:
+        fragment.finishFragment()
+    repos = []
+    try:
+        for r in (self.install_ui.plugin.repoManager.getRepositories() or []):
+            if not r or not r.get("enabled"):
+                continue
+            name = str(r.get("name") or "").strip()
+            url = str(r.get("url") or "").strip()
+            if name and url:
+                repos.append(r)
+    except Exception:
+        pass
+    show_icon_repo_sheet(self.install_ui, repos, on_select=self._handle_repo_select)
+
+
+def _icons_open_sort_menu(self, act):
+    try:
+        imm = act.getSystemService("input_method")
+        imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
+    except Exception:
+        pass
+    def on_sort_selected(sort_type):
+        try:
+            current_q = self.search.getText().toString() if self.search else (self.last_search_query or "")
+        except Exception:
+            current_q = self.last_search_query or ""
+        self.build_list_with_sort(sort_type, current_q)
+    show_icon_sort_menu(self.install_ui, act, self.current_sort_type, on_sort_selected)
+
+
+
+def _icons_editor_listener(outer, act):
+    EditActionListener = find_class("android.widget.TextView$OnEditorActionListener")
+
+    class _L(dynamic_proxy(EditActionListener)):
+        def __init__(self):
+            super().__init__()
+
+        def onEditorAction(self, v, actionId, event):
+            if actionId in (EditorInfo.IME_ACTION_SEARCH, EditorInfo.IME_ACTION_DONE, 6, 3):
+                _icons_perform_search(outer, act)
+                return True
+            return False
+
+    return _L()
+
+
+def _icons_build_chrome_kotlin(self, act):
+    # java-side chrome skeleton (kawaii.packetik.catalog.CatalogChromeNative.
+    # createIconsChrome); returns (main_layout, scroll, clear_btn) or None ->
+    # the python fallback builder runs instead
+    from ...dexLoader import catalogIconsChromeCreate
+    live_search = bool(settings.get("live_search", True))
+    try:
+        accent = Theme.getColor(Theme.key_featuredStickers_addButton)
+        accent_pressed = Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
+        button_text = Theme.getColor(Theme.key_featuredStickers_buttonText)
+    except Exception:
+        accent = Theme.getColor(Theme.key_dialogTextBlue)
+        accent_pressed = accent
+        button_text = -1
+    subtitle_text = str(strings["total_plugins_unknown"]) if not self.icons else str(strings["icons_count"]).format(len(self.icons))
+    main_layout = catalogIconsChromeCreate(
+        act,
+        self.main_bg_color, self.card_bg_color, self.card_pressed_color, self.text_color,
+        accent, accent_pressed, button_text,
+        self.install_ui._resolve_icon("input_clear"),
+        self.install_ui._resolve_icon("ic_ab_search"),
+        self.install_ui._resolve_icon("msg_smile_status"),
+        self.install_ui._resolve_icon("msg_list"),
+        subtitle_text, (not live_search),
+    )
+    if main_layout is None:
+        return None
+    search_slot = main_layout.findViewWithTag("search_slot")
+    clear_btn = main_layout.findViewWithTag("clear_btn")
+    search_btn = main_layout.findViewWithTag("search_btn")
+    repo_btn = main_layout.findViewWithTag("repo_btn")
+    subtitle = main_layout.findViewWithTag("subtitle")
+    sort_btn = main_layout.findViewWithTag("sort_btn")
+    scroll = main_layout.findViewWithTag("scroll")
+    if None in (search_slot, clear_btn, search_btn, repo_btn, subtitle, sort_btn, scroll):
+        logx("icons: kotlin chrome missing tagged views, falling back", False)
+        return None
+
+    self.search = EditTextBoldCursor(act)
+    self.search.setHint(strings["icons_search_hint"])
+    self.search.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+    self.search.setSingleLine(True)
+    self.search.setInputType(InputType.TYPE_CLASS_TEXT)
+    self.search.setBackgroundColor(0)
+    self.search.setTextColor(self.text_color)
+    try:
+        self.search.setHintTextColor(self.hint_text_color)
+    except Exception:
+        pass
+    try:
+        self.search.setCursorColor(self.cursor_color)
+    except Exception:
+        pass
+    try:
+        self.search.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(10), AndroidUtilities.dp(8))
+    except Exception:
+        pass
+    try:
+        self.search.setOnEditorActionListener(_icons_editor_listener(self, act))
+    except Exception as ex:
+        logx(f"icons: setOnEditorActionListener failed: {ex}", True)
+    search_slot.addView(self.search, FrameLayout.LayoutParams(-1, -1))
+
+    clear_btn.setOnClickListener(OnClickListener(lambda v: _icons_on_clear_click(self, act)))
+    self.install_ui._apply_press_scale(clear_btn)
+    search_btn.setOnClickListener(OnClickListener(lambda v: _icons_on_search_btn_click(self, act)))
+    self.install_ui._apply_press_scale(search_btn)
+    repo_btn.setOnClickListener(OnClickListener(lambda v: _icons_show_repo_menu(self, act)))
+    self.install_ui._apply_press_scale(repo_btn)
+    sort_btn.setOnClickListener(OnClickListener(lambda v: _icons_open_sort_menu(self, act)))
+    self.install_ui._apply_press_scale(sort_btn)
+
+    self.subtitle = subtitle
+    logx("icons: chrome built via kotlin dex", True)
+    return (main_layout, scroll, clear_btn)
 
 
 class InstallIconsUI:
@@ -382,7 +715,7 @@ class InstallIconsUI:
             finally:
                 self._loads_in_flight.discard(load_key)
         try:
-            run_on_queue(load_task)
+            run_io(load_task)
         except Exception:
             self._loads_in_flight.discard(load_key)
             raise
@@ -458,7 +791,7 @@ class InstallIconsUI:
             finally:
                 self._loads_in_flight.discard(load_key)
         try:
-            run_on_queue(load_task)
+            run_io(load_task)
         except Exception:
             self._loads_in_flight.discard(load_key)
             raise
@@ -493,7 +826,10 @@ class InstallIconsUI:
                         logx(f"IconList._update_current_fragment_icons: calling build_list_with_sort('{delegate.current_sort_type}')", True)
                         delegate.build_list_with_sort(delegate.current_sort_type)
                     else:
-                        logx("IconList._update_current_fragment_icons: no results_container and loading not started, icons not shown", True)
+                        # deferred chrome not built yet — flag it, the shell
+                        # wrapper applies the data right after _build_chrome
+                        delegate._data_ready_pending = True
+                        logx("IconList._update_current_fragment_icons: chrome not ready, data flagged as pending", True)
             else:
                 logx("IconList._update_current_fragment_icons: fragment has no usable delegate", True)
         except Exception as e:
@@ -564,6 +900,8 @@ class InstallIconsUI:
             self.results_container = None
             self._finish_loading = None
             self._loading_started = False
+            # set when icons arrive before the deferred chrome is built
+            self._data_ready_pending = False
             # registry of (iv, loaded_list) for the global swap ticker
             self._card_registry = []
             self._ticker_started = False
@@ -619,25 +957,42 @@ class InstallIconsUI:
                 self.install_ui._open_repo_icons(selected)
 
         def beforeCreateView(self):
+            # light shell now, heavy chrome a few frames later: _build_chrome
+            # makes hundreds of python->java calls and used to block the UI
+            # thread, freezing the fragment open animation for ~half a second
             act = get_last_fragment().getContext()
-            colors = self.install_ui._get_theme_colors()
-            self.main_bg_color = colors["main_bg_color"]
-            self.card_bg_color = colors["card_bg_color"]
-            self.card_pressed_color = colors["card_pressed_color"]
-            self.text_color = colors["text_color"]
-            self.secondary_text_color = colors["secondary_text_color"]
-            self.hint_text_color = colors["hint_text_color"]
-            self.cursor_color = colors["cursor_color"]
-            self.search_border_color = colors["search_border_color"]
-            self.search_stroke_width = colors["search_stroke_width"]
+            try:
+                shell_bg = self.install_ui._get_theme_colors()["main_bg_color"]
+            except Exception:
+                shell_bg = Theme.getColor(Theme.key_windowBackgroundGray)
+            shell = FrameLayout(act)
+            shell.setBackgroundColor(shell_bg)
 
-            self.content_view = FrameLayout(act)
-            self.content_view.setBackgroundColor(self.main_bg_color)
+            def _deferred():
+                try:
+                    view = self._build_chrome()
+                    if view is not None:
+                        shell.addView(view, FrameLayout.LayoutParams(-1, -1))
+                    # data that landed while the chrome was still building
+                    if getattr(self, "_data_ready_pending", False):
+                        self._data_ready_pending = False
+                        if self._loading_started and callable(self._finish_loading):
+                            logx("IconList: applying pending data after chrome build", True)
+                            self._loading_started = False
+                            self._finish_loading()
+                        elif self.results_container is not None:
+                            self.build_list_with_sort(self.current_sort_type)
+                except Exception as e:
+                    logx(f"IconList: deferred _build_chrome error: {e}", False)
+            # let the open animation start smoothly before the heavy build
+            run_on_ui_thread(_deferred, 30)
+            return shell
 
+        def _build_chrome_python(self, act):
+            # original python chrome builder, kept as the fallback path
             main_layout = LinearLayout(act)
             main_layout.setOrientation(LinearLayout.VERTICAL)
             main_layout.setPadding(AndroidUtilities.dp(16), 0, AndroidUtilities.dp(16), AndroidUtilities.dp(14))
-            self.content_view.addView(main_layout, FrameLayout.LayoutParams(-1, -1))
 
             # search bar
             search_container = FrameLayout(act)
@@ -679,189 +1034,12 @@ class InstallIconsUI:
             except Exception:
                 pass
 
-            def perform_search():
-                try:
-                    query = self.search.getText().toString()
-                    if query != self.last_search_query:
-                        self.last_search_query = query
-                        self.build_list(query)
-                    imm = act.getSystemService("input_method")
-                    imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
-                except Exception:
-                    pass
 
             try:
-                EditActionListener = find_class("android.widget.TextView$OnEditorActionListener")
-                class SearchEditorActionListener(dynamic_proxy(EditActionListener)):
-                    def __init__(self, outer):
-                        super().__init__()
-                        self.outer = outer
-                    def onEditorAction(self, v, actionId, event):
-                        if actionId in (EditorInfo.IME_ACTION_SEARCH, EditorInfo.IME_ACTION_DONE, 6, 3):
-                            perform_search()
-                            return True
-                        return False
-                self.search.setOnEditorActionListener(SearchEditorActionListener(self))
+                self.search.setOnEditorActionListener(_icons_editor_listener(self, act))
             except Exception as ex:
                 logx(f"icons: setOnEditorActionListener failed: {ex}", True)
 
-            class SearchTextWatcher(dynamic_proxy(TextWatcher)):
-                def __init__(self, outer, clear_btn_ref):
-                    super().__init__()
-                    self.outer = outer
-                    self.clear_btn = clear_btn_ref
-                    self._live_timer = None
-
-                def _show_live_spinner(self):
-                    try:
-                        if getattr(self.outer, '_live_search_spinner', None) is None:
-                            from org.telegram.ui.Components import CircularProgressDrawable
-                            _size = 122
-                            _color = Theme.getColor(Theme.key_featuredStickers_addButton)
-                            try:
-                                _d = CircularProgressDrawable(float(_size), float(AndroidUtilities.dp(8)), _color)
-                            except Exception:
-                                _d = CircularProgressDrawable(_color)
-                                try:
-                                    _d.size = float(_size)
-                                    _d.thickness = float(AndroidUtilities.dp(8))
-                                except Exception:
-                                    pass
-                            _d.setBounds(0, 0, _size, _size)
-                            _spinner_iv = ImageView(act)
-                            _spinner_iv.setImageDrawable(_d)
-                            _spinner_iv.setScaleType(ImageView.ScaleType.FIT_CENTER)
-                            spinner_container = FrameLayout(act)
-                            spinner_container.setLayoutParams(FrameLayout.LayoutParams(-1, -1))
-                            _lp = FrameLayout.LayoutParams(_size, _size, Gravity.CENTER)
-                            spinner_container.addView(_spinner_iv, _lp)
-                            self.outer._live_search_spinner = spinner_container
-                            self.outer.content_view.addView(spinner_container, FrameLayout.LayoutParams(-1, -1))
-                        else:
-                            self.outer._live_search_spinner.setAlpha(1.0)
-                            self.outer._live_search_spinner.setVisibility(View.VISIBLE)
-                        try:
-                            self.outer.results_container.setVisibility(View.INVISIBLE)
-                        except Exception:
-                            pass
-                    except Exception:
-                        pass
-
-                def _hide_live_spinner(self):
-                    try:
-                        spinner = getattr(self.outer, '_live_search_spinner', None)
-                        if spinner is None:
-                            return
-                        spinner.animate().alpha(0.0).setDuration(150).withEndAction(
-                            lambda: spinner.setVisibility(View.GONE)
-                        ).start()
-                    except Exception:
-                        pass
-                    try:
-                        self.outer.results_container.setVisibility(View.VISIBLE)
-                    except Exception:
-                        pass
-
-                def _schedule_live_search(self, query):
-                    prev = self._live_timer
-                    if prev is not None:
-                        try:
-                            prev.cancel()
-                        except Exception:
-                            pass
-                    outer = self.outer
-
-                    def _do_search():
-                        # scoring runs on background thread after debounce
-                        try:
-                            if query != outer.last_search_query:
-                                q = query.strip()
-                                icons = outer.icons or []
-                                search_index = outer.search_index
-                                sort_type = outer.current_sort_type
-
-                                if not q:
-                                    filtered = list(icons)
-                                else:
-                                    isRussian = False
-                                    try:
-                                        from java.util import Locale
-                                        isRussian = Locale.getDefault().getLanguage() == "ru"
-                                    except Exception:
-                                        pass
-                                    fuzzy = settings.get("fuzzy_search", False)
-                                    scored = []
-                                    for icon in icons:
-                                        s = search_mod.score(icon, q, search_index, isRussian, fuzzy)
-                                        if s[0] < 6:
-                                            scored.append((s, icon))
-                                    scored.sort(key=lambda x: x[0])
-                                    filtered = [icon for _, icon in scored]
-
-                                if not q:
-                                    if sort_type == "alpha_az":
-                                        filtered.sort(key=lambda i: str(i.get("name") or i.get("id") or "").lower())
-                                    elif sort_type == "alpha_za":
-                                        filtered.sort(key=lambda i: str(i.get("name") or i.get("id") or "").lower(), reverse=True)
-                                    elif sort_type == "authors":
-                                        filtered.sort(key=lambda i: str(i.get("author") or "").lower())
-
-                                def _ui(q=q, filtered=filtered):
-                                    try:
-                                        outer.last_search_query = q
-                                        outer.filtered_icons = filtered
-                                        outer.is_loading = True
-                                        outer.results_container.removeAllViews()
-                                        outer.visible_icons = []
-                                        outer._card_registry = []
-                                        outer._ticker_started = False
-                                        outer._preview_epoch += 1
-                                        if hasattr(outer, "subtitle"):
-                                            outer.subtitle.setText(strings["icons_count"].format(len(filtered)))
-                                        if not filtered:
-                                            outer._show_empty_state()
-                                        else:
-                                            outer._load_initial_batch()
-                                        self._hide_live_spinner()
-                                    except Exception:
-                                        pass
-                                run_on_ui_thread(_ui)
-                            else:
-                                run_on_ui_thread(lambda: self._hide_live_spinner())
-                        except Exception:
-                            run_on_ui_thread(lambda: self._hide_live_spinner())
-
-                    t = threading.Timer(0.3, _do_search)
-                    self._live_timer = t
-                    t.start()
-
-                def afterTextChanged(self, s):
-                    text = s.toString()
-                    if text and len(text) > 0:
-                        self.clear_btn.setVisibility(View.VISIBLE)
-                        try:
-                            self.clear_btn.animate().alpha(1.0).setDuration(200).start()
-                        except Exception:
-                            pass
-                    else:
-                        try:
-                            self.clear_btn.animate().alpha(0.0).setDuration(200).withEndAction(
-                                lambda: self.clear_btn.setVisibility(View.GONE)).start()
-                        except Exception:
-                            self.clear_btn.setVisibility(View.GONE)
-                    try:
-                        from elyx import settings as _s
-                        # default must match the plugins catalog (True)
-                        if _s.get("live_search", True):
-                            self._show_live_spinner()
-                            self._schedule_live_search(text)
-                    except Exception:
-                        pass
-
-                def beforeTextChanged(self, s, start, count, after):
-                    pass
-                def onTextChanged(self, s, start, before, count):
-                    pass
 
             search_row = LinearLayout(act)
             search_row.setOrientation(LinearLayout.HORIZONTAL)
@@ -884,23 +1062,8 @@ class InstallIconsUI:
             clear_btn_icon.setScaleType(ImageView.ScaleType.CENTER)
             clear_btn.addView(clear_btn_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
 
-            def on_clear_click():
-                try:
-                    from elyx import assets
-                    from ...utils.media import playSound
-                    playSound(assets.sounds.clear_search.path_str, "sfx_clear_search")
-                except Exception:
-                    pass
-                try:
-                    self.search.setText("")
-                    self.last_search_query = ""
-                    self.build_list("")
-                    imm = act.getSystemService("input_method")
-                    imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
-                except Exception:
-                    pass
 
-            clear_btn.setOnClickListener(OnClickListener(lambda v: on_clear_click()))
+            clear_btn.setOnClickListener(OnClickListener(lambda v: _icons_on_clear_click(self, act)))
             self.install_ui._apply_press_scale(clear_btn)
             clear_btn.setVisibility(View.GONE)
             clear_btn.setAlpha(0.0)
@@ -928,16 +1091,8 @@ class InstallIconsUI:
             search_btn_icon.setScaleType(ImageView.ScaleType.CENTER)
             search_btn.addView(search_btn_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
 
-            def onSearchBtnClick(v):
-                try:
-                    from elyx import assets
-                    from ...utils.media import playSound
-                    playSound(assets.sounds.search_btn.path_str, "sfx_search")
-                except Exception:
-                    pass
-                perform_search()
 
-            search_btn.setOnClickListener(OnClickListener(onSearchBtnClick))
+            search_btn.setOnClickListener(OnClickListener(lambda v: _icons_on_search_btn_click(self, act)))
             self.install_ui._apply_press_scale(search_btn)
             try:
                 from elyx import settings as _s
@@ -976,29 +1131,8 @@ class InstallIconsUI:
                 pass
             repo_btn.addView(repo_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
 
-            def show_repo_menu_handler():
-                try:
-                    imm = act.getSystemService("input_method")
-                    imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
-                except Exception:
-                    pass
-                fragment = get_last_fragment()
-                if fragment:
-                    fragment.finishFragment()
-                repos = []
-                try:
-                    for r in (self.install_ui.plugin.repoManager.getRepositories() or []):
-                        if not r or not r.get("enabled"):
-                            continue
-                        name = str(r.get("name") or "").strip()
-                        url = str(r.get("url") or "").strip()
-                        if name and url:
-                            repos.append(r)
-                except Exception:
-                    pass
-                show_icon_repo_sheet(self.install_ui, repos, on_select=self._handle_repo_select)
 
-            repo_btn.setOnClickListener(OnClickListener(lambda v: show_repo_menu_handler()))
+            repo_btn.setOnClickListener(OnClickListener(lambda v: _icons_show_repo_menu(self, act)))
             self.install_ui._apply_press_scale(repo_btn)
             header_row.addView(repo_btn, FrameLayout.LayoutParams(-2, -2, Gravity.LEFT | Gravity.CENTER_VERTICAL))
 
@@ -1040,21 +1174,8 @@ class InstallIconsUI:
                 pass
             sort_btn.addView(sort_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
 
-            def show_sort_menu_handler():
-                try:
-                    imm = act.getSystemService("input_method")
-                    imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
-                except Exception:
-                    pass
-                def on_sort_selected(sort_type):
-                    try:
-                        current_q = self.search.getText().toString() if self.search else (self.last_search_query or "")
-                    except Exception:
-                        current_q = self.last_search_query or ""
-                    self.build_list_with_sort(sort_type, current_q)
-                show_icon_sort_menu(self.install_ui, act, self.current_sort_type, on_sort_selected)
 
-            sort_btn.setOnClickListener(OnClickListener(lambda v: show_sort_menu_handler()))
+            sort_btn.setOnClickListener(OnClickListener(lambda v: _icons_open_sort_menu(self, act)))
             self.install_ui._apply_press_scale(sort_btn)
             header_row.addView(sort_btn, FrameLayout.LayoutParams(-2, -2, Gravity.RIGHT | Gravity.CENTER_VERTICAL))
 
@@ -1068,6 +1189,35 @@ class InstallIconsUI:
                 scroll.setNestedScrollingEnabled(True)
             except Exception:
                 pass
+
+            return main_layout, scroll, clear_btn
+
+        def _build_chrome(self):
+            act = get_last_fragment().getContext()
+            colors = self.install_ui._get_theme_colors()
+            self.main_bg_color = colors["main_bg_color"]
+            self.card_bg_color = colors["card_bg_color"]
+            self.card_pressed_color = colors["card_pressed_color"]
+            self.text_color = colors["text_color"]
+            self.secondary_text_color = colors["secondary_text_color"]
+            self.hint_text_color = colors["hint_text_color"]
+            self.cursor_color = colors["cursor_color"]
+            self.search_border_color = colors["search_border_color"]
+            self.search_stroke_width = colors["search_stroke_width"]
+
+            self.content_view = FrameLayout(act)
+            self.content_view.setBackgroundColor(self.main_bg_color)
+
+            chrome = None
+            try:
+                chrome = _icons_build_chrome_kotlin(self, act)
+            except Exception as e:
+                logx(f"icons: kotlin chrome error: {e}", False)
+            if chrome is None:
+                main_layout, scroll, clear_btn = self._build_chrome_python(act)
+            else:
+                main_layout, scroll, clear_btn = chrome
+            self.content_view.addView(main_layout, 0, FrameLayout.LayoutParams(-1, -1))
 
             self.results_container = LinearLayout(act)
             self.results_container.setOrientation(LinearLayout.VERTICAL)
@@ -1189,8 +1339,9 @@ class InstallIconsUI:
             except Exception:
                 pass
 
-            main_layout.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1.0))
-            self.search.addTextChangedListener(SearchTextWatcher(self, clear_btn))
+            if scroll.getParent() is None:
+                main_layout.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1.0))
+            self.search.addTextChangedListener(_IconsSearchTextWatcher(self, clear_btn, act))
             try:
                 from ..viewUtils import applyFontToTree
                 applyFontToTree(self.content_view)

@@ -540,6 +540,27 @@ def make_plugin_card(self, p):
         copyLinkSoundPath = None
     act_for_share = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
 
+    def do_install():
+        # install straight from the catalog card; stat increments happen
+        # inside the install pipeline, no manual bump here
+        if not is_available:
+            try:
+                from ui.bulletin import BulletinHelper
+                BulletinHelper.show_error(str(strings["plugin_version_below_min"]))
+            except Exception:
+                pass
+            return
+        try:
+            from ...core import install_plugin
+            install_plugin(
+                p,
+                install_ui=self.install_ui,
+                all_plugins=self.plugins,
+                rm_rid=self.repo_id or str(p.get("_repo_id") or ""),
+            )
+        except Exception as e:
+            logx(f"card: install from card error: {e}", False)
+
     def do_download_relocated():
         download_plugin_file(p)
         try:
@@ -587,6 +608,7 @@ def make_plugin_card(self, p):
     buttons.addView(spacer, LayoutHelper.createLinear(0, 0, 1.0))
 
     relocate_actions = [
+        ("_s_relocate_install",   "msg_add",       do_install),
         ("_s_relocate_copy",      "msg_copy",      do_copy_relocated),
         ("_s_relocate_share",     "msg_share",     do_share_relocated),
         ("_s_relocate_code",      "msg_view_file", do_code_relocated),
@@ -647,6 +669,7 @@ def make_plugin_card(self, p):
                     pass
 
             show_plugin_context_menu(anchor_view.getRootView(), anchor_view, [
+                {"icon": "msg_add",       "text": str(strings["msg_one_plugin_install"]), "action": do_install, "show": not getattr(self, "_s_relocate_install", False)},
                 {"icon": "msg_copy",      "text": str(strings["copy_link"]), "action": do_copy,      "show": not getattr(self, "_s_relocate_copy",      False)},
                 {"icon": "msg_share",     "text": str(strings["share"]),     "action": do_share,     "show": not getattr(self, "_s_relocate_share",     False)},
                 {"icon": "msg_view_file", "text": str(strings["code"]),      "action": do_code,      "show": not getattr(self, "_s_relocate_code",      False)},

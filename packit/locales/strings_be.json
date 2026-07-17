@@ -827,6 +827,8 @@
   "achiev_hint_secret_utils_rule": "кстати цябе врадли выложат у utilits. Ты па факту паўтарыў kpm. А як бы ў utils правіла другі варыянт нельга выкладваць",
   "achiev_title_secret_aytist": "Ты знайшоў аметыст!",
   "achiev_hint_secret_aytist": "Ты сапраўды знайшоў аметыст, цяпер табе не трэба працаваць да канца жыцця...",
+  "achiev_title_secret_opsec": "opsec усталяваны",
+  "achiev_hint_secret_opsec": "sudo packit install opsec — гатова. Інкогніта актывавана, акуляры надзеты, ніхто нічога не бачыў.",
   "tags_section_title": "Тэгі",
   "apply_button": "Ужыць",
   "authors_section_title": "Аўтары",

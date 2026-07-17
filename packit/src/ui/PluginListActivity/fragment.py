@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ...utils.netQueue import run_io
 import re
 import json
 import threading
@@ -295,7 +296,7 @@ class InstallUI:
                 run_on_ui_thread(lambda: self._update_current_fragment_plugins([]))
             finally:
                 self._reload_in_flight.discard(reload_key)
-        run_on_queue(load_task)
+        run_io(load_task)
 
     def _open_all_repos_plugins(self):
         fragment = get_last_fragment()
@@ -408,7 +409,8 @@ class InstallUI:
             self.repo_id = repo_id
             self.plugins = _filter_unavailable(plugins)
             self.show_loading_initial = show_loading_initial
-            self.search_index = search_mod.build_index(self.plugins)
+            # skip the pointless empty-index build (json+dlopen on the click path)
+            self.search_index = search_mod.build_index(self.plugins) if self.plugins else None
             self.last_search_query = None
             self.filtered_plugins = []
             self.visible_plugins = []
@@ -522,8 +524,32 @@ class InstallUI:
                 self.install_ui._open_repo_plugins(selected)
 
         def beforeCreateView(self):
+            # light shell now, heavy chrome a few frames later: build_list_view
+            # makes hundreds of python->java calls and used to block the UI
+            # thread, freezing the fragment open animation for ~half a second.
+            # Data arriving before the chrome is already handled by the
+            # _data_ready_before_view flag consumed inside build_list_view.
             from . import listView as _lv
-            return _lv.build_list_view(self)
+            from android_utils import run_on_ui_thread
+            act = get_last_fragment().getContext()
+            try:
+                bg = self.install_ui._get_theme_colors()["main_bg_color"]
+            except Exception:
+                from org.telegram.ui.ActionBar import Theme
+                bg = Theme.getColor(Theme.key_windowBackgroundGray)
+            shell = FrameLayout(act)
+            shell.setBackgroundColor(bg)
+
+            def _deferred():
+                try:
+                    view = _lv.build_list_view(self)
+                    if view is not None:
+                        shell.addView(view, FrameLayout.LayoutParams(-1, -1))
+                except Exception as e:
+                    logx(f"InstallUI: deferred build_list_view error: {e}", False)
+            # let the open animation start smoothly before the heavy build
+            run_on_ui_thread(_deferred, 30)
+            return shell
 
         def getTitle(self):
             return self.title
@@ -596,6 +622,7 @@ class InstallUI:
             self._s_chip_deps_size = float(settings.get("chip_deps_size", 11))
             self._s_chip_size_size = float(settings.get("chip_size_size", 11))
             self._s_fuzzy_search = settings.get("fuzzy_search", False)
+            self._s_relocate_install = settings.get("relocate_install", False)
             self._s_relocate_copy = settings.get("relocate_copy_link", False)
             self._s_relocate_share = settings.get("relocate_share", False)
             self._s_relocate_code = settings.get("relocate_code", False)

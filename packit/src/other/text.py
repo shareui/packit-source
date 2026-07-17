@@ -8,6 +8,7 @@ from packutil import logx
 _TRIGGER_TALKING = "ты про себя?"
 _TRIGGER_UTILS = "кстати тебя врядли выложат в utilits. ты пофакту, повторил kpm. а как бы в utils правило второй вариант нельзя выкладыватьб"
 _TRIGGER_CONNECT = "коннект хуйня"
+_TRIGGER_OPSEC = "sudo packit install opsec"
 
 
 def check_message(text: str):
@@ -22,5 +23,7 @@ def check_message(text: str):
             unlock_secret("utils_rule")
         elif lower == _TRIGGER_CONNECT:
             unlock_secret("connect_is_bullshit")
+        elif lower == _TRIGGER_OPSEC:
+            unlock_secret("opsec")
     except Exception as e:
         logx(f"[text] check_message error: {e}", False)

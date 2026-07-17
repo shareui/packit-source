@@ -72,6 +72,7 @@ _EXTERNAL_DEFAULTS = {
 }
 
 _BUTTON_DEFAULTS = {
+    "relocate_install":  False,
     "relocate_copy_link": False,
     "relocate_share":      False,
     "relocate_code":       False,
@@ -572,6 +573,7 @@ class PluginCardPreview:
 
         self._action_buttons = {}
         for setting_key, icon_name in [
+            ("relocate_install", "msg_add"),
             ("relocate_copy_link", "msg_copy"),
             ("relocate_share", "msg_share"),
             ("relocate_code", "msg_view_file"),
@@ -811,7 +813,7 @@ class PluginCardPreview:
         class Tap(dynamic_proxy(View.OnClickListener)):
             def __init__(self, k): super().__init__(); self.k = k
             def onClick(self, v):
-                if self.k in ['details', 'more', 'relocate_copy_link', 'relocate_share', 'relocate_code', 
+                if self.k in ['details', 'more', 'relocate_install', 'relocate_copy_link', 'relocate_share', 'relocate_code',
                               'relocate_download', 'relocate_translate', 'relocate_report']:
                     buttons_wrapper = preview.elements.get('buttons_wrapper')
                     if buttons_wrapper:
@@ -996,7 +998,7 @@ class PluginCardPreview:
                     view_btn.setAlpha(0.5)
 
             relocate_keys = [
-                "relocate_copy_link", "relocate_share", "relocate_code",
+                "relocate_install", "relocate_copy_link", "relocate_share", "relocate_code",
                 "relocate_download", "relocate_translate", "relocate_report"
             ]
             enabled_relocate_count = sum(1 for key in relocate_keys if _gs(key))
@@ -1063,7 +1065,7 @@ class PluginCardPreview:
                     logx(f"PCE: Error updating details button color: {e}", False)
 
             relocate_keys = [
-                "relocate_copy_link", "relocate_share", "relocate_code",
+                "relocate_install", "relocate_copy_link", "relocate_share", "relocate_code",
                 "relocate_download", "relocate_translate", "relocate_report"
             ]
             enabled_relocate_count = sum(1 for key in relocate_keys if _gs(key))
@@ -1253,6 +1255,7 @@ class PluginCardEditorPage:
             self._check_details_button(ctx, "show_details_button", strings.show_details_button)
             self._divider(ctx)
             for setting_key, label, icon in [
+                ("relocate_install", strings.msg_one_plugin_install, "msg_add"),
                 ("relocate_copy_link", strings.copy_link, "msg_copy"),
                 ("relocate_share", strings.share, "msg_share"),
                 ("relocate_code", strings.code, "msg_view_file"),
@@ -1380,7 +1383,7 @@ class PluginCardEditorPage:
             class CellClick(dynamic_proxy(View.OnClickListener)):
                 def onClick(self, v):
                     relocate_keys = [
-                        "relocate_copy_link", "relocate_share", "relocate_code",
+                        "relocate_install", "relocate_copy_link", "relocate_share", "relocate_code",
                         "relocate_download", "relocate_translate", "relocate_report"
                     ]
                     enabled_count = sum(1 for k in relocate_keys if _gs(k))
@@ -1433,7 +1436,7 @@ class PluginCardEditorPage:
             class CellClick(dynamic_proxy(View.OnClickListener)):
                 def onClick(self, v):
                     relocate_keys = [
-                        "relocate_copy_link", "relocate_share", "relocate_code",
+                        "relocate_install", "relocate_copy_link", "relocate_share", "relocate_code",
                         "relocate_download", "relocate_translate", "relocate_report"
                     ]
                     enabled_count = sum(1 for k in relocate_keys if _gs(k))

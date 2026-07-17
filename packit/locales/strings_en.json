@@ -827,6 +827,8 @@
   "achiev_hint_secret_utils_rule": "кстати тебя врядли выложат в utilits. Ты пофакту, повторил kpm. А как бы в utils правило второй вариант нельзя выкладыватьб",
   "achiev_title_secret_aytist": "You found an amethyst!",
   "achiev_hint_secret_aytist": "You really found an amethyst, now you don't have to work for the rest of your life...",
+  "achiev_title_secret_opsec": "opsec installed",
+  "achiev_hint_secret_opsec": "sudo packit install opsec — done. Incognito activated, glasses on, nobody saw anything.",
   "tags_section_title": "Tags",
   "apply_button": "Apply",
   "authors_section_title": "Authors",
