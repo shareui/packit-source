@@ -974,11 +974,11 @@
   {
     "id": "secret_opsec",
     "category": "Unknown achievements",
-    "title": "Operational security",
+    "title": "opsec installed",
     "goal": 1,
-    "hint": "sudo packit install opsec",
+    "hint": "sudo packit install opsec \u2014 done. Incognito activated, glasses on, nobody saw anything.",
     "icon": "msg_secret",
-    "playSound": true,
+    "playSound": false,
     "title_key": "achiev_title_secret_opsec",
     "hint_key": "achiev_hint_secret_opsec",
     "category_key": "achiev_cat_unknown"

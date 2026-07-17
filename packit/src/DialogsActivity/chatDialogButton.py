@@ -38,14 +38,6 @@ def _get_extera_config():
         return None
 
 
-def _is_drawer_mode():
-    try:
-        cfg = _get_extera_config()
-        return bool(cfg.navigationDrawer) if cfg is not None else False
-    except Exception:
-        return False
-
-
 _MENU_STATE_KEY = "dialogs_install_btn_enabled"
 
 
@@ -128,153 +120,168 @@ class ChatDialogButton:
             self._setup_sanitize_hook()
             self._setup_main_menu_prefs_hooks()
 
-            if _is_drawer_mode():
-                self._setup_drawer_hook()
-            else:
-                self._setup_dots_hook()
+            # install both resolvers regardless of the current navigation mode:
+            # the dots overflow (DialogsActivity/MainTabs) and the drawer use
+            # different MainMenuHelper methods, so hooking both makes the PackIt
+            # entry appear in whichever surface the user opens, with no restart
+            # needed after switching modes.
+            self._setup_dots_hook()
+            self._setup_drawer_hook()
 
             logx("ChatDialogButton: hooks set up", True)
         except Exception as e:
             logx(f"ChatDialogButton: setup_dialogs_menu_hook error: {e}", False)
 
+    def _build_menu_runnable(self, menu_context):
+        # onClick shared by the dots and drawer menu entries; opens the PackIt
+        # UI selected by the current mode. menu_context.fragment() gives the
+        # active fragment to present from.
+        plugin = self.plugin
+        _Runnable = jclass("java.lang.Runnable")
+        from java import dynamic_proxy
+
+        class _OnClick(dynamic_proxy(_Runnable)):
+            def __init__(self):
+                super().__init__()
+
+            def run(self):
+                try:
+                    m = _get_current_mode()
+                    if m == 0:
+                        def _open():
+                            try:
+                                from com.exteragram.messenger.plugins import PluginsController
+                                from com.exteragram.messenger.plugins.ui import PluginSettingsActivity
+                                from client_utils import get_last_fragment
+                                frag = get_last_fragment()
+                                pluginObj = PluginsController.getInstance().plugins.get(plugin.id)
+                                if pluginObj and frag:
+                                    frag.presentFragment(PluginSettingsActivity(pluginObj))
+                            except Exception as e:
+                                logx(f"ChatDialogButton: open settings error: {e}", False)
+                        run_on_ui_thread(_open)
+                    elif m == 2:
+                        from ..ui.IconsListActivity.fragment import InstallIconsUI
+                        run_on_ui_thread(lambda: InstallIconsUI(plugin).open())
+                    else:
+                        from ..ui.PluginListActivity.fragment import InstallUI
+                        run_on_ui_thread(lambda: InstallUI(plugin).open())
+                except Exception as e:
+                    logx(f"ChatDialogButton: onClick error: {e}", False)
+
+        return _OnClick()
+
     def _setup_dots_hook(self):
+        # dots menu (dialogs "3 dots") is built by
+        # MainMenuHelper.addConfiguredItemOption(ItemOptions, MenuContext, int);
+        # for our custom id MainMenuItem.getById returns null, so hook it and
+        # add our entry ourselves.
         try:
-            DialogsActivity = find_class("org.telegram.ui.DialogsActivity")
-            if DialogsActivity is None:
-                logx("ChatDialogButton: DialogsActivity not found", True)
+            MainMenuHelper = _safe_find_class("com.exteragram.messenger.utils.chats.MainMenuHelper")
+            if MainMenuHelper is None:
+                logx("ChatDialogButton: MainMenuHelper not found", True)
                 return None
 
-            target_method = None
-            for m in DialogsActivity.getClass().getDeclaredMethods():
+            add_option_method = None
+            for m in MainMenuHelper.getClass().getDeclaredMethods():
                 try:
-                    if m.getName() == "addMainMenuConfiguredItem" and len(m.getParameterTypes()) == 2:
-                        target_method = m
+                    if m.getName() == "addConfiguredItemOption" and len(m.getParameterTypes()) == 3:
+                        add_option_method = m
                         break
                 except Exception:
                     continue
 
-            if target_method is None:
-                logx("ChatDialogButton: addMainMenuConfiguredItem not found", True)
+            if add_option_method is None:
+                logx("ChatDialogButton: addConfiguredItemOption not found", True)
                 return None
 
-            target_method.setAccessible(True)
+            add_option_method.setAccessible(True)
+            builder = self._build_menu_runnable
 
-            plugin = self.plugin
-
-            class AddMainMenuItemHook(MethodHook):
+            class AddConfiguredItemHook(MethodHook):
                 def before_hooked_method(self_hook, param):
                     try:
-                        item_id = int(param.args[1])
-                        if item_id != _PACKIT_MENU_ID:
+                        if int(param.args[2]) != _PACKIT_MENU_ID:
                             return
-
-                        io = param.args[0]
-                        if io is None:
+                        item_options = param.args[0]
+                        menu_context = param.args[1]
+                        if item_options is None:
                             return
-
                         mode = _get_current_mode()
                         icon_id = _get_mode_icon_id(mode)
                         label = _get_mode_label(mode)
-
                         _String = jclass("java.lang.String")
-                        _Runnable = jclass("java.lang.Runnable")
-                        from java import dynamic_proxy
-
-                        class _OnClick(dynamic_proxy(_Runnable)):
-                            def __init__(self):
-                                super().__init__()
-
-                            def run(self):
-                                try:
-                                    m = _get_current_mode()
-                                    if m == 0:
-                                        from com.exteragram.messenger.plugins import PluginsController
-                                        from com.exteragram.messenger.plugins.ui import PluginSettingsActivity
-                                        from client_utils import get_last_fragment
-                                        def _open():
-                                            try:
-                                                frag = get_last_fragment()
-                                                pluginObj = PluginsController.getInstance().plugins.get(plugin.id)
-                                                if pluginObj and frag:
-                                                    frag.presentFragment(PluginSettingsActivity(pluginObj))
-                                            except Exception as e:
-                                                logx(f"ChatDialogButton: open settings error: {e}", False)
-                                        run_on_ui_thread(_open)
-                                    elif m == 2:
-                                        from ..ui.IconsListActivity.fragment import InstallIconsUI
-                                        run_on_ui_thread(lambda: InstallIconsUI(plugin).open())
-                                    else:
-                                        from ..ui.PluginListActivity.fragment import InstallUI
-                                        run_on_ui_thread(lambda: InstallUI(plugin).open())
-                                except Exception as e:
-                                    logx(f"ChatDialogButton: onClick error: {e}", False)
-
-                        io.add(icon_id, _String(label), _OnClick())
+                        item_options.add(icon_id, _String(label), builder(menu_context))
                         param.setResult(True)
                     except Exception as e:
-                        logx(f"ChatDialogButton: before_hooked_method error: {e}", False)
+                        logx(f"ChatDialogButton: addConfiguredItemOption hook error: {e}", False)
 
-            return self.plugin.hook_method(target_method, AddMainMenuItemHook())
+            return self.plugin.hook_method(add_option_method, AddConfiguredItemHook())
         except Exception as e:
             logx(f"ChatDialogButton: _setup_dots_hook error: {e}", False)
             return None
 
     def _setup_drawer_hook(self):
+        # drawer (side menu) is built by
+        # MainMenuHelper.resolveDrawerMenuItems(int, MenuContext); same story —
+        # return a single MenuItemInfo for our id.
         try:
-            DrawerMenuViewClass = _safe_find_class("com.exteragram.messenger.drawer.DrawerMenuView")
-            if DrawerMenuViewClass is None:
-                logx("ChatDialogButton: DrawerMenuView not found", True)
+            MainMenuHelper = _safe_find_class("com.exteragram.messenger.utils.chats.MainMenuHelper")
+            if MainMenuHelper is None:
+                logx("ChatDialogButton: MainMenuHelper not found", True)
                 return None
 
-            rebuild_method = None
-            for m in DrawerMenuViewClass.getClass().getDeclaredMethods():
+            resolve_method = None
+            for m in MainMenuHelper.getClass().getDeclaredMethods():
                 try:
-                    if m.getName() == "rebuildMenu" and len(m.getParameterTypes()) == 2:
-                        rebuild_method = m
+                    if m.getName() == "resolveDrawerMenuItems" and len(m.getParameterTypes()) == 2:
+                        resolve_method = m
                         break
                 except Exception:
                     continue
 
-            if rebuild_method is None:
-                logx("ChatDialogButton: DrawerMenuView.rebuildMenu not found", True)
+            if resolve_method is None:
+                logx("ChatDialogButton: resolveDrawerMenuItems not found", True)
                 return None
 
-            rebuild_method.setAccessible(True)
-            from base_plugin import MenuItemData, MenuItemType
-            plugin = self.plugin
-            mode = _get_current_mode()
-            icon_name = ["msg_plugins", "msg_addbot", "input_smile"][mode] if 0 <= mode <= 2 else "msg_addbot"
-            label = _get_mode_label(mode)
+            resolve_method.setAccessible(True)
 
-            def on_drawer_click(context):
-                try:
-                    m = _get_current_mode()
-                    if m == 0:
-                        from com.exteragram.messenger.plugins import PluginsController
-                        from com.exteragram.messenger.plugins.ui import PluginSettingsActivity
-                        from client_utils import get_last_fragment
-                        frag = get_last_fragment()
-                        pluginObj = PluginsController.getInstance().plugins.get(plugin.id)
-                        if pluginObj and frag:
-                            frag.presentFragment(PluginSettingsActivity(pluginObj))
-                    elif m == 2:
-                        from ..ui.IconsListActivity.fragment import InstallIconsUI
-                        InstallIconsUI(plugin).open()
-                    else:
-                        from ..ui.PluginListActivity.fragment import InstallUI
-                        InstallUI(plugin).open()
-                except Exception as e:
-                    logx(f"ChatDialogButton: drawer onClick error: {e}", False)
+            MenuItemInfoCls = _safe_find_class(
+                "com.exteragram.messenger.utils.chats.MainMenuHelper$MenuItemInfo"
+            )
+            if MenuItemInfoCls is None:
+                logx("ChatDialogButton: MenuItemInfo not found", True)
+                return None
+            _CharSequence = jclass("java.lang.CharSequence")
+            _Runnable = jclass("java.lang.Runnable")
+            info_ctor = MenuItemInfoCls.getClass().getDeclaredConstructor(
+                _Integer.TYPE, _CharSequence, _Runnable, _Runnable
+            )
+            info_ctor.setAccessible(True)
+            Collections = jclass("java.util.Collections")
+            builder = self._build_menu_runnable
 
-            self.plugin.add_menu_item(MenuItemData(
-                menu_type=MenuItemType.DRAWER_MENU,
-                text=label,
-                on_click=on_drawer_click,
-                icon=icon_name
-            ))
-            logx("ChatDialogButton: drawer menu item added", True)
+            class ResolveDrawerHook(MethodHook):
+                def before_hooked_method(self_hook, param):
+                    try:
+                        if int(param.args[0]) != _PACKIT_MENU_ID:
+                            return
+                        menu_context = param.args[1]
+                        mode = _get_current_mode()
+                        icon_id = _get_mode_icon_id(mode)
+                        label = _get_mode_label(mode)
+                        _String = jclass("java.lang.String")
+                        info = info_ctor.newInstance(
+                            _Integer(icon_id), _String(label), builder(menu_context), None
+                        )
+                        param.setResult(Collections.singletonList(info))
+                    except Exception as e:
+                        logx(f"ChatDialogButton: resolveDrawerMenuItems hook error: {e}", False)
+
+            return self.plugin.hook_method(resolve_method, ResolveDrawerHook())
         except Exception as e:
             logx(f"ChatDialogButton: _setup_drawer_hook error: {e}", False)
+            return None
 
     def _setup_sanitize_hook(self):
         try:

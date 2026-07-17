@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ..utils.netQueue import run_io
 from android_utils import run_on_ui_thread
 from android.view import Gravity
 from android.widget import LinearLayout, ImageView, TextView
@@ -214,7 +215,7 @@ def _prefetch_and_register(plugin):
             logx(f"UpdatesWidget: prefetch error: {e}", False)
         run_on_ui_thread(lambda: _register_pill(plugin))
 
-    run_on_queue(task)
+    run_io(task)
 
 
 def _get_prefs():

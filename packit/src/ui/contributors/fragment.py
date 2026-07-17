@@ -68,6 +68,7 @@ _UID_SHAREUI = 400216230
 _UID_VESTR   = 2037728749
 _UID_WATCHA  = 1061520526
 _UID_APPLE   = 6018596876
+_UID_VCVK    = 1602207467
 _UID_PIXWET  = 5184725450
 
 # special thanks user ids
@@ -77,11 +78,6 @@ _THANKS_UIDS = [
     5887975295,
     5266659018,
     5758928467,
-]
-
-# sponsors user ids
-_SPONSORS_UIDS = [
-    1602207467,
 ]
 
 
@@ -152,9 +148,15 @@ def _show_bulletin(icon_raw_name, text, is_error=False):
             return
         BulletinFactory = _fc("org.telegram.ui.Components.BulletinFactory")
         from org.telegram.messenger import R as R_tg
-        container = frag.getParentActivity().getWindow().getDecorView()
-        rp = frag.getResourceProvider()
-        factory = BulletinFactory.of(container, rp)
+        try:
+            # fragment overload puts the bulletin inside the fragment's layout
+            # container with native insets (above the nav bar), same as install
+            # bulletins; the decorView overload pinned it under the nav bar
+            factory = BulletinFactory.of(frag)
+        except Exception:
+            container = frag.getParentActivity().getWindow().getDecorView()
+            rp = frag.getResourceProvider()
+            factory = BulletinFactory.of(container, rp)
         if is_error:
             factory.createErrorBulletin(str(text)).show()
         else:
@@ -206,8 +208,10 @@ def _fetch_user(user_id, on_done):
     run_on_queue(_do)
 
 
-def _make_avatar_view(context, user_id, title_text):
-    # builds header row; starts async user fetch for avatar + nickname
+def _make_avatar_view(context, user_id, title_text, title_badge=None):
+    # builds header row; starts async user fetch for avatar + nickname.
+    # title_badge, when set, renders as a small secondary-colored suffix
+    # right after the title (e.g. "Developer  + Sponsor")
     try:
         dp = AndroidUtilities.dp
 
@@ -234,7 +238,23 @@ def _make_avatar_view(context, user_id, title_text):
         except Exception:
             pass
         title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20)
-        title.setText(title_text)
+        if title_badge:
+            try:
+                from android.text import SpannableStringBuilder, Spanned
+                from android.text.style import RelativeSizeSpan
+                # single space + no color span: the badge sits close to the
+                # title and inherits its adaptive color (white on dark themes,
+                # black on light) — only the 0.6x size sets it apart
+                ssb = SpannableStringBuilder(str(title_text) + " ")
+                badge_start = ssb.length()
+                ssb.append(str(title_badge))
+                ssb.setSpan(RelativeSizeSpan(0.6), badge_start, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                title.setText(ssb)
+            except Exception as _be:
+                logx(f"contributors fragment: title badge error: {_be}", True)
+                title.setText(str(title_text) + " " + str(title_badge))
+        else:
+            title.setText(title_text)
         title.setSingleLine(True)
         title.setHorizontalFadingEdgeEnabled(True)
         title.setFadingEdgeLength(dp(24))
@@ -434,7 +454,10 @@ def _build_special_thanks_card(act, content, animate_idx=0):
 
         sep = View(act)
         sep.setBackgroundColor(Theme.getColor(Theme.key_divider))
-        sep_lp = LinearLayout.LayoutParams(-1, dp(1))
+        # 1 physical px, not dp(1): native cell dividers are hairlines drawn
+        # with Theme.dividerPaint (strokeWidth 1px); dp(1) is 2-3px and reads
+        # much darker than everywhere else in the app
+        sep_lp = LinearLayout.LayoutParams(-1, 1)
         sep_lp.setMargins(dp(16), 0, dp(16), 0)
         card.addView(sep, sep_lp)
 
@@ -457,66 +480,6 @@ def _build_special_thanks_card(act, content, animate_idx=0):
             pass
     except Exception as _e:
         logx(f"contributors fragment: _build_special_thanks_card error: {_e}", True)
-
-
-def _build_sponsors_card(act, content, animate_idx=0):
-    try:
-        dp = AndroidUtilities.dp
-
-        card = LinearLayout(act)
-        card.setOrientation(LinearLayout.VERTICAL)
-        try:
-            card.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                dp(18),
-                Theme.getColor(Theme.key_windowBackgroundWhite),
-                Theme.getColor(Theme.key_windowBackgroundWhite)
-            ))
-        except Exception:
-            try:
-                bg = GradientDrawable()
-                bg.setShape(GradientDrawable.RECTANGLE)
-                bg.setCornerRadius(dp(18))
-                bg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite))
-                card.setBackground(bg)
-            except Exception:
-                pass
-
-        title_tv = TextView(act)
-        title_tv.setText(str(strings.sponsors))
-        title_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
-        title_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20)
-        try:
-            title_tv.setTypeface(AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_MEDIUM))
-        except Exception:
-            pass
-        title_tv.setPadding(dp(20), dp(20), dp(20), dp(12))
-        card.addView(title_tv, LinearLayout.LayoutParams(-1, -2))
-
-        sep = View(act)
-        sep.setBackgroundColor(Theme.getColor(Theme.key_divider))
-        sep_lp = LinearLayout.LayoutParams(-1, dp(1))
-        sep_lp.setMargins(dp(16), 0, dp(16), 0)
-        card.addView(sep, sep_lp)
-
-        for uid in _SPONSORS_UIDS:
-            row = _make_thanks_row(act, uid)
-            if row is not None:
-                card.addView(row, LinearLayout.LayoutParams(-1, -2))
-
-        card.setPadding(0, 0, 0, dp(8))
-        card_lp = LinearLayout.LayoutParams(-1, -2)
-        card_lp.setMargins(dp(8), dp(4), dp(8), dp(8))
-        try:
-            card.setAlpha(0.0)
-        except Exception:
-            pass
-        content.addView(card, card_lp)
-        try:
-            card.animate().alpha(1.0).setDuration(180).start()
-        except Exception:
-            pass
-    except Exception as _e:
-        logx(f"contributors fragment: _build_sponsors_card error: {_e}", True)
 
 
 def _make_link_row(context, icon_name, label_text, link_text, on_click):
@@ -652,7 +615,7 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 ],
                 donations=[
                     {"text": strings.support_via_send, "icon": "filled_paid_suggest_24", "on_click": lambda v: (_show_bulletin("info", strings.donate_easter_egg), run_on_ui_thread(lambda: self._open_url("https://t.me/send?start=IV7kTHbP2iXp"), 1000))},
-                    {"text": strings.support_via_ton, "icon": "menu_my_ton", "on_click": lambda v: (_show_bulletin("copy", strings.copied_to_clipboard) if AndroidUtilities.addToClipboard("UQADRm0R1HNgMYuTfbHB3kdENuWt_Et5dFlEtrILK3LQ-KKL") else _show_bulletin("", strings.failed_to_copy, is_error=True))},
+                    {"text": strings.support_via_ton, "icon": "menu_wallet", "on_click": lambda v: (_show_bulletin("copy", strings.copied_to_clipboard) if AndroidUtilities.addToClipboard("UQADRm0R1HNgMYuTfbHB3kdENuWt_Et5dFlEtrILK3LQ-KKL") else _show_bulletin("", strings.failed_to_copy, is_error=True))},
                 ],
                 animate_idx=0,
             ),
@@ -666,7 +629,7 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     {"icon": "msg_channel", "label": str(strings.plugins_channel), "text": "t.me/I_am_Vestr", "on_click": lambda v: self._open_url("https://t.me/I_am_Vestr")},
                 ],
                 donations=[
-                    {"text": strings.support_with_stars, "icon": "menu_feature_reactions", "on_click": lambda v: self._open_gift_sheet_vestr()},
+                    {"text": strings.support_with_stars, "icon": "menu_feature_reactions", "on_click": lambda v: self._open_gift_sheet(_UID_VESTR)},
                 ],
                 animate_idx=1,
             ),
@@ -700,6 +663,21 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             ),
             lambda: self._build_contributor_block(
                 act, content,
+                user_id=_UID_VCVK,
+                title_text=str(strings["developer"]),
+                title_badge=str(strings.plus_sponsor),
+                links=[
+                    {"icon": "msg_link", "label": str(strings.github), "text": "github.com/vcvkk", "on_click": lambda v: self._open_url("https://github.com/vcvkk")},
+                    {"icon": "msg_channel", "label": str(strings.plugins_channel), "text": "t.me/vcvk1", "on_click": lambda v: self._open_url("https://t.me/vcvk1")},
+                ],
+                donations=[
+                    {"text": strings.support_with_stars, "icon": "menu_feature_reactions", "on_click": lambda v: self._open_gift_sheet(_UID_VCVK)},
+                    {"text": strings.support_via_yoomoney, "icon": "menu_wallet", "on_click": lambda v: (_show_bulletin("info", strings.donate_easter_egg), run_on_ui_thread(lambda: self._open_url("https://yoomoney.ru/to/4100116528377334/0"), 1000))},
+                ],
+                animate_idx=4,
+            ),
+            lambda: self._build_contributor_block(
+                act, content,
                 user_id=_UID_PIXWET,
                 title_text=str(strings.mentor),
                 links=[
@@ -710,12 +688,11 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 ],
                 donations=[
                     {"text": strings.support_via_send, "icon": "filled_paid_suggest_24", "on_click": lambda v: (_show_bulletin("info", strings.donate_easter_egg), run_on_ui_thread(lambda: self._open_url("https://t.me/send?start=IVwvWMdWfPCE"), 1000))},
-                    {"text": strings.support_via_ton, "icon": "menu_my_ton", "on_click": lambda v: (_show_bulletin("copy", strings.copied_to_clipboard) if AndroidUtilities.addToClipboard("UQBZCTLurgR5KiyvV5o8AchUQSsz-5o_mvehtuf08c8DuDMI") else _show_bulletin("", strings.failed_to_copy, is_error=True))},
+                    {"text": strings.support_via_ton, "icon": "menu_wallet", "on_click": lambda v: (_show_bulletin("copy", strings.copied_to_clipboard) if AndroidUtilities.addToClipboard("UQBZCTLurgR5KiyvV5o8AchUQSsz-5o_mvehtuf08c8DuDMI") else _show_bulletin("", strings.failed_to_copy, is_error=True))},
                 ],
-                animate_idx=4,
+                animate_idx=5,
             ),
-            lambda: _build_special_thanks_card(act, content, animate_idx=5),
-            lambda: _build_sponsors_card(act, content, animate_idx=6),
+            lambda: _build_special_thanks_card(act, content, animate_idx=6),
         ]
 
         def _post_builder(idx):
@@ -794,7 +771,7 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         except Exception:
             self._open_url("https://t.me/mr_Vestr")
 
-    def _open_gift_sheet_vestr(self):
+    def _open_gift_sheet(self, uid):
         try:
             if not hasattr(LaunchActivity, 'instance') or LaunchActivity.instance is None:
                 return
@@ -808,7 +785,7 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             gift_sheet = GiftSheet(
                 last_fragment.getContext(),
                 current_account,
-                _UID_VESTR,
+                uid,
                 None,
                 None
             )
@@ -816,16 +793,17 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         except Exception:
             pass
 
-    def _make_avatar_item(self, act, user_id, title_text):
-        return _make_avatar_view(act, user_id, title_text)
+    def _make_avatar_item(self, act, user_id, title_text, title_badge=None):
+        return _make_avatar_view(act, user_id, title_text, title_badge)
 
     def _make_small_divider(self, act):
         try:
             divider = View(act)
-            divider.setMinimumHeight(AndroidUtilities.dp(1))
+            divider.setMinimumHeight(1)
             divider.setBackgroundColor(Theme.getColor(Theme.key_divider))
             container = FrameLayout(act)
-            params = FrameLayout.LayoutParams(-1, AndroidUtilities.dp(1))
+            # 1px hairline like native cell dividers (dp(1) reads too dark)
+            params = FrameLayout.LayoutParams(-1, 1)
             params.setMargins(AndroidUtilities.dp(68), AndroidUtilities.dp(4), AndroidUtilities.dp(16), 0)
             container.addView(divider, params)
             return container
@@ -887,11 +865,12 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 return
             divider = View(act)
             divider.setBackgroundColor(Theme.getColor(Theme.key_divider))
-            content.addView(divider, LinearLayout.LayoutParams(-1, AndroidUtilities.dp(1)))
+            # 1px hairline like native cell dividers (dp(1) reads too dark)
+            content.addView(divider, LinearLayout.LayoutParams(-1, 1))
         except Exception:
             pass
 
-    def _build_contributor_block(self, act, content, user_id, title_text, links, donations, animate_idx=0):
+    def _build_contributor_block(self, act, content, user_id, title_text, links, donations, animate_idx=0, title_badge=None):
         dp = AndroidUtilities.dp
 
         # card container with rounded background
@@ -913,7 +892,7 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             except Exception:
                 pass
 
-        avatar_view = self._make_avatar_item(act, user_id, title_text)
+        avatar_view = self._make_avatar_item(act, user_id, title_text, title_badge)
         if avatar_view is not None:
             card.addView(avatar_view, LinearLayout.LayoutParams(-1, -2))
         else:
@@ -928,7 +907,8 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             # separator between header and links inside card
             sep = View(act)
             sep.setBackgroundColor(Theme.getColor(Theme.key_divider))
-            sep_lp = LinearLayout.LayoutParams(-1, dp(1))
+            # 1px hairline like native cell dividers (dp(1) reads too dark)
+            sep_lp = LinearLayout.LayoutParams(-1, 1)
             sep_lp.setMargins(dp(16), 0, dp(16), 0)
             card.addView(sep, sep_lp)
 

@@ -30,6 +30,23 @@ _ICON_BG_COLOR = ctypes.c_int32((0xFF << 24) | (230 << 16) | (217 << 8) | 245).v
 # icon fg: #615ea4 = rgba(97, 94, 164)
 _ICON_FG_COLOR = ctypes.c_int32((0xFF << 24) | (97 << 16) | (94 << 8) | 164).value
 
+# tag marking the PackIt settings icon so SettingCell.updateColors() (which
+# resets the glyph to white on non-Monet themes) can re-apply our tint
+_ICON_TAG = "packit_settings_icon"
+
+
+def _tint_packit_icon(icon_view):
+    # re-apply PackIt's glyph color; native updateColors() forces the glyph to
+    # white on non-Monet themes, so this runs after both bindView and
+    # updateColors. On Monet themes we leave the native themed color.
+    try:
+        from android.graphics import PorterDuff
+        from org.telegram.ui.ActionBar import Theme
+        if not Theme.isCurrentThemeMonet():
+            icon_view.setColorFilter(_ICON_FG_COLOR, PorterDuff.Mode.SRC_IN)
+    except Exception as e:
+        logx(f"settingsActivityHook: _tint_packit_icon error: {e}", False)
+
 
 def setup_settings_activity_hook(plugin):
     hooks = []
@@ -161,18 +178,38 @@ def setup_settings_activity_hook(plugin):
             def after_hooked_method(self, param):
                 try:
                     uItem = param.args[1]
-                    if uItem is None:
-                        return
-                    if int(uItem.id) != _PACKIT_SETTINGS_ID:
-                        return
                     view = param.args[0]
                     icon_view = view.getIconView()
-                    from android.graphics import PorterDuff
-                    from org.telegram.ui.ActionBar import Theme
-                    if not Theme.isCurrentThemeMonet():
-                        icon_view.setColorFilter(_ICON_FG_COLOR, PorterDuff.Mode.SRC_IN)
+                    if icon_view is None:
+                        return
+                    is_packit = False
+                    try:
+                        is_packit = uItem is not None and int(uItem.id) == _PACKIT_SETTINGS_ID
+                    except Exception:
+                        pass
+                    # tag/untag so updateColors() recognises our (recycled) cell
+                    try:
+                        icon_view.setTag(_ICON_TAG if is_packit else None)
+                    except Exception:
+                        pass
+                    if is_packit:
+                        _tint_packit_icon(icon_view)
                 except Exception as e:
                     logx(f"settingsActivityHook: BindViewHook error: {e}", False)
+
+        class UpdateColorsHook(MethodHook):
+            def after_hooked_method(self, param):
+                try:
+                    cell = param.thisObject
+                    icon_view = cell.getIconView()
+                    if icon_view is None:
+                        return
+                    tag = icon_view.getTag()
+                    if tag is None or str(tag) != _ICON_TAG:
+                        return
+                    _tint_packit_icon(icon_view)
+                except Exception as e:
+                    logx(f"settingsActivityHook: UpdateColorsHook error: {e}", False)
 
         try:
             fill_method = SA.getClass().getDeclaredMethod("fillItems", ArrayList, UniversalAdapter)
@@ -185,7 +222,7 @@ def setup_settings_activity_hook(plugin):
             SettingCellFactoryClass = find_class("org.telegram.ui.SettingsActivity$SettingCell$Factory")
             bind_method = None
             if SettingCellFactoryClass is not None:
-                for m in SettingCellFactoryClass.getDeclaredMethods():
+                for m in SettingCellFactoryClass.getClass().getDeclaredMethods():
                     try:
                         if m.getName() == "bindView" and len(m.getParameterTypes()) == 5:
                             bind_method = m
@@ -197,6 +234,23 @@ def setup_settings_activity_hook(plugin):
                 hooks.append(plugin.hook_method(bind_method, BindViewHook()))
         except Exception as e:
             logx(f"settingsActivityHook: bindView hook error: {e}", False)
+
+        try:
+            SettingCellClass = find_class("org.telegram.ui.SettingsActivity$SettingCell")
+            update_colors_method = None
+            if SettingCellClass is not None:
+                for m in SettingCellClass.getClass().getDeclaredMethods():
+                    try:
+                        if m.getName() == "updateColors" and len(m.getParameterTypes()) == 0:
+                            update_colors_method = m
+                            break
+                    except Exception:
+                        pass
+            if update_colors_method:
+                update_colors_method.setAccessible(True)
+                hooks.append(plugin.hook_method(update_colors_method, UpdateColorsHook()))
+        except Exception as e:
+            logx(f"settingsActivityHook: updateColors hook error: {e}", False)
 
         try:
             click_method = None

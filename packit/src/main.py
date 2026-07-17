@@ -171,6 +171,8 @@ def loadPlugin(plugin):
     plugin.links_button_hook_ref = setup_links_buttons_hook(plugin)
     from .standaloneHooks.InstallDismissHook import setup_install_dismiss_hook
     plugin.install_dismiss_hook_ref = setup_install_dismiss_hook(plugin)
+    from .standaloneHooks.universalFragmentFix import setup_universal_fragment_fix
+    plugin.universal_fragment_fix_ref = setup_universal_fragment_fix(plugin)
     from .ChatActivity.export.DecryptorBottomSheet import setup_packit_file_hook
     setup_packit_file_hook(plugin)
     from .ChatActivity.afpFile import setup_afp_file_hook

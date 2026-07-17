@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ...utils.netQueue import run_io
 import json
 import os
 import threading
@@ -1015,7 +1016,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 logx(f"pluginsUpdates: task error: {e}", False)
                 run_on_ui_thread(lambda: (setattr(self, '_is_loading', False), self._show_empty(str(strings["updates_failed_to_check"]), "error", title=str(strings["updates_error_title"]))) if alive[0] else None)
 
-        run_on_queue(task)
+        run_io(task)
 
     def _hide_spinner(self):
         try:
@@ -1511,7 +1512,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 except Exception as e:
                     logx(f"pluginsUpdates: _open_plugin_profile task error: {e}", False)
 
-            run_on_queue(task)
+            run_io(task)
         except Exception as e:
             logx(f"pluginsUpdates: _open_plugin_profile error: {e}", False)
 
@@ -1674,7 +1675,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 logx(f"pluginsUpdates: _install_update task error: {e}", False)
                 run_on_ui_thread(lambda: set_btn_state("idle"))
 
-        run_on_queue(task)
+        run_io(task)
 
     def _on_plugin_done(self):
         self._done_count[0] += 1
@@ -2191,7 +2192,7 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 if on_done:
                     on_done()
 
-        run_on_queue(task)
+        run_io(task)
 
     def _on_update_all_click(self):
         if self._is_loading:

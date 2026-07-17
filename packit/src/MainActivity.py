@@ -305,31 +305,36 @@ class SettingsBuilder:
             Text(
                 text=strings.deeplinks,
                 icon="msg_link",
-                create_sub_fragment=self.deeplinksSettings.build
+                create_sub_fragment=self.deeplinksSettings.build,
+                link_alias="deeplinks"
             ),
             
             Text(
                 text=strings.repositories,
                 icon="msg_folders",
-                create_sub_fragment=self.repositoriesSettings.build
+                create_sub_fragment=self.repositoriesSettings.build,
+                link_alias="repositories"
             ),
             
             Text(
                 text=strings.profile,
                 icon="msg_contacts",
-                create_sub_fragment=self.profileSettings.build
+                create_sub_fragment=self.profileSettings.build,
+                link_alias="profile"
             ),
             
             Text(
                 text=strings.utilities,
                 icon="msg_work",
-                create_sub_fragment=self.utilitiesSettings.build
+                create_sub_fragment=self.utilitiesSettings.build,
+                link_alias="utilities"
             ),
             
             Text(
                 text=strings.other_settings,
                 icon="msg_settings",
-                create_sub_fragment=self.otherSettings.build
+                create_sub_fragment=self.otherSettings.build,
+                link_alias="other"
             ),
             
             Divider(),
@@ -356,7 +361,8 @@ class SettingsBuilder:
             Text(
                 text=strings.links_docs,
                 icon="msg_help",
-                create_sub_fragment=self.documentationSettings.build
+                create_sub_fragment=self.documentationSettings.build,
+                link_alias="docs"
             ),
             
             Text(

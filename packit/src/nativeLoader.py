@@ -148,7 +148,7 @@ def showNativeErrorSheet(libName: str, error: str):
                             pass
                         if not ss:
                             try:
-                                ss = mdc.getStickerSetByEmojiOrName("wtffffffffffDD")
+                                ss = mdc.getStickerSetByEmojiOrName("randomshareui")
                             except Exception:
                                 pass
                         if not ss:
@@ -160,7 +160,7 @@ def showNativeErrorSheet(libName: str, error: str):
                         docs_count = ss.documents.size() if getattr(ss, "documents", None) else 0
                         if docs_count <= 27:
                             return False
-                        doc = ss.documents.get(27)
+                        doc = ss.documents.get(49)
                         iv.setImage(
                             ImageLocation.getForDocument(doc),
                             "100_100",

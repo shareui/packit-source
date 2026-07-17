@@ -72,6 +72,7 @@ _EXTERNAL_DEFAULTS = {
 }
 
 _BUTTON_DEFAULTS = {
+    "relocate_install":  False,
     "relocate_copy_link": False,
     "relocate_share":      False,
     "relocate_code":       False,
@@ -572,6 +573,7 @@ class PluginCardPreview:
 
         self._action_buttons = {}
         for setting_key, icon_name in [
+            ("relocate_install", "msg_add"),
             ("relocate_copy_link", "msg_copy"),
             ("relocate_share", "msg_share"),
             ("relocate_code", "msg_view_file"),
@@ -811,7 +813,7 @@ class PluginCardPreview:
         class Tap(dynamic_proxy(View.OnClickListener)):
             def __init__(self, k): super().__init__(); self.k = k
             def onClick(self, v):
-                if self.k in ['details', 'more', 'relocate_copy_link', 'relocate_share', 'relocate_code', 
+                if self.k in ['details', 'more', 'relocate_install', 'relocate_copy_link', 'relocate_share', 'relocate_code',
                               'relocate_download', 'relocate_translate', 'relocate_report']:
                     buttons_wrapper = preview.elements.get('buttons_wrapper')
                     if buttons_wrapper:
@@ -996,7 +998,7 @@ class PluginCardPreview:
                     view_btn.setAlpha(0.5)
 
             relocate_keys = [
-                "relocate_copy_link", "relocate_share", "relocate_code",
+                "relocate_install", "relocate_copy_link", "relocate_share", "relocate_code",
                 "relocate_download", "relocate_translate", "relocate_report"
             ]
             enabled_relocate_count = sum(1 for key in relocate_keys if _gs(key))
@@ -1063,7 +1065,7 @@ class PluginCardPreview:
                     logx(f"PCE: Error updating details button color: {e}", False)
 
             relocate_keys = [
-                "relocate_copy_link", "relocate_share", "relocate_code",
+                "relocate_install", "relocate_copy_link", "relocate_share", "relocate_code",
                 "relocate_download", "relocate_translate", "relocate_report"
             ]
             enabled_relocate_count = sum(1 for key in relocate_keys if _gs(key))
@@ -1253,6 +1255,7 @@ class PluginCardEditorPage:
             self._check_details_button(ctx, "show_details_button", strings.show_details_button)
             self._divider(ctx)
             for setting_key, label, icon in [
+                ("relocate_install", strings.msg_one_plugin_install, "msg_add"),
                 ("relocate_copy_link", strings.copy_link, "msg_copy"),
                 ("relocate_share", strings.share, "msg_share"),
                 ("relocate_code", strings.code, "msg_view_file"),
@@ -1380,7 +1383,7 @@ class PluginCardEditorPage:
             class CellClick(dynamic_proxy(View.OnClickListener)):
                 def onClick(self, v):
                     relocate_keys = [
-                        "relocate_copy_link", "relocate_share", "relocate_code",
+                        "relocate_install", "relocate_copy_link", "relocate_share", "relocate_code",
                         "relocate_download", "relocate_translate", "relocate_report"
                     ]
                     enabled_count = sum(1 for k in relocate_keys if _gs(k))
@@ -1433,7 +1436,7 @@ class PluginCardEditorPage:
             class CellClick(dynamic_proxy(View.OnClickListener)):
                 def onClick(self, v):
                     relocate_keys = [
-                        "relocate_copy_link", "relocate_share", "relocate_code",
+                        "relocate_install", "relocate_copy_link", "relocate_share", "relocate_code",
                         "relocate_download", "relocate_translate", "relocate_report"
                     ]
                     enabled_count = sum(1 for k in relocate_keys if _gs(k))
@@ -1488,19 +1491,15 @@ class PluginCardEditorPage:
         ll.setOrientation(LinearLayout.VERTICAL)
         ll.setClickable(False)
         ll.setFocusable(False)
-        ll.setPadding(
-            AndroidUtilities.dp(23), AndroidUtilities.dp(10),
-            AndroidUtilities.dp(23), AndroidUtilities.dp(10)
-        )
         raw = _gs(key)
         val = int(raw) if raw is not None else default
+        preview = self.preview
 
         header_row = LinearLayout(ctx)
         header_row.setOrientation(LinearLayout.HORIZONTAL)
         header_row.setGravity(Gravity.CENTER_VERTICAL)
 
         tv = TextView(ctx)
-        tv.setText(f"{label}: {val}")
         tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15.0)
         tv.setTextColor(ctypes.c_int32(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText)).value)
         header_row.addView(tv, LayoutHelper.createLinear(0, -2, 1.0))
@@ -1519,7 +1518,48 @@ class PluginCardEditorPage:
             AndroidUtilities.dp(4), AndroidUtilities.dp(4)
         )
         header_row.addView(reset_btn, LayoutHelper.createLinear(28, 28))
+        reset_btn.setClickable(True)
+        reset_btn.setFocusable(True)
+        reset_btn.setBackground(Theme.createSelectorDrawable(
+            ctypes.c_int32(Theme.getColor(Theme.key_listSelector)).value, 1
+        ))
 
+        def on_change(v):
+            _cs(key, v)
+            if preview:
+                run_on_ui_thread(preview.refresh)
+
+        md3 = None
+        try:
+            from ...ui.md3Slider import createMd3Slider
+            md3 = createMd3Slider(ctx, min_val, max_val, val, on_change)
+        except Exception as e:
+            logx(f"PCE: md3 slider create error: {e}", False)
+
+        if md3 is not None:
+            # MD3 cell shows the value itself; header keeps label + reset.
+            # The cell is edge-to-edge (22dp own insets), header aligns to it.
+            tv.setText(str(label))
+            ll.setPadding(0, AndroidUtilities.dp(6), 0, 0)
+            ll.addView(header_row, LayoutHelper.createLinear(-1, -2, 22, 0, 16, 0))
+            ll.addView(md3.view, LayoutHelper.createLinear(-1, -2))
+
+            class ResetClick(dynamic_proxy(View.OnClickListener)):
+                def onClick(self, v):
+                    _cs(key, default)
+                    md3.set_value(default, True)
+                    on_change(default)
+
+            reset_btn.setOnClickListener(ResetClick())
+            self.settings_root.addView(ll, LayoutHelper.createLinear(-1, -2))
+            return
+
+        # fallback: plain SeekBar layout for hosts without SlideIntChooseView
+        ll.setPadding(
+            AndroidUtilities.dp(23), AndroidUtilities.dp(10),
+            AndroidUtilities.dp(23), AndroidUtilities.dp(10)
+        )
+        tv.setText(f"{label}: {val}")
         ll.addView(header_row, LayoutHelper.createLinear(-1, -2))
 
         sb = SeekBar(ctx)
@@ -1527,29 +1567,21 @@ class PluginCardEditorPage:
         sb.setOnTouchListener(_SeekTouchProxy())
         sb.setMax(max_val - min_val)
         sb.setProgress(val - min_val)
-        preview = self.preview
 
-        def on_change(prog):
+        def on_change_sb(prog):
             v = prog + min_val
             tv.setText(f"{label}: {v}")
-            _cs(key, v)
-            if preview:
-                run_on_ui_thread(preview.refresh)
+            on_change(v)
 
-        sb.setOnSeekBarChangeListener(_SeekListener(on_change))
+        sb.setOnSeekBarChangeListener(_SeekListener(on_change_sb))
 
-        class ResetClick(dynamic_proxy(View.OnClickListener)):
+        class ResetClickSb(dynamic_proxy(View.OnClickListener)):
             def onClick(self, v):
                 _cs(key, default)
                 sb.setProgress(default - min_val)
-                on_change(default - min_val)
+                on_change_sb(default - min_val)
 
-        reset_btn.setClickable(True)
-        reset_btn.setFocusable(True)
-        reset_btn.setOnClickListener(ResetClick())
-        reset_btn.setBackground(Theme.createSelectorDrawable(
-            ctypes.c_int32(Theme.getColor(Theme.key_listSelector)).value, 1
-        ))
+        reset_btn.setOnClickListener(ResetClickSb())
 
         ll.addView(sb, LayoutHelper.createLinear(-1, -2, 0, 10, 0, 0))
         self.settings_root.addView(ll, LayoutHelper.createLinear(-1, -2))

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from .utils.netQueue import run_serial_io
 import os
 import json
 import requests
@@ -228,7 +229,7 @@ class RepositoryManager:
                     }
                 repos.append(newRepo)
                 self.setRepositories(repos)
-            run_on_queue(task)
+            run_serial_io(task)
         else:
             repos = self.getRepositories()
             newRepo = {
@@ -297,7 +298,7 @@ class RepositoryManager:
             fragment = get_last_fragment()
             if fragment and hasattr(fragment, "rebuildAllItems"):
                 fragment.rebuildAllItems()
-        run_on_queue(task)
+        run_serial_io(task)
     
     def resetRepositories(self):
         def task():
@@ -314,7 +315,7 @@ class RepositoryManager:
             fragment = get_last_fragment()
             if fragment and hasattr(fragment, "rebuildAllItems"):
                 fragment.rebuildAllItems()
-        run_on_queue(task)
+        run_serial_io(task)
     
     def clearAllExceptFirst(self):
         repos = self.getRepositories()
@@ -391,4 +392,4 @@ class RepositoryManager:
                     except Exception as e:
                         logx(f"updateAllCaches: on_complete error: {e}", False)
 
-        run_on_queue(task)
+        run_serial_io(task)
