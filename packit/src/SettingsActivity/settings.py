@@ -1964,7 +1964,8 @@ class OtherSettings:
                 text=strings.api_keys_nav,
                 subtext=strings.api_keys_nav_desc,
                 icon="msg_secret",
-                create_sub_fragment=self._open_apikeys_page
+                create_sub_fragment=self._open_apikeys_page,
+                link_alias="api_keys"
             ),
             Text(
                 text=strings.misc_nav,

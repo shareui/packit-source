@@ -329,7 +329,8 @@ class SettingsBuilder:
             Text(
                 text=strings.other_settings,
                 icon="msg_settings",
-                create_sub_fragment=self.otherSettings.build
+                create_sub_fragment=self.otherSettings.build,
+                link_alias="other"
             ),
             
             Divider(),
