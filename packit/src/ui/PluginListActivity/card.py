@@ -44,6 +44,7 @@ except Exception:
 from .helpers.PluginActions import copy_plugin_link, share_plugin_file, view_plugin_code, report_plugin, download_plugin_file, translate_plugin
 from .filter.tagLayoutListener import _TagsLayoutListener
 from .helpers.utils import _check_app_version
+from ..viewUtils import highlightQuery as _highlight_query
 
 
 def make_plugin_card(self, p):
@@ -221,8 +222,19 @@ def make_plugin_card(self, p):
     except Exception:
         name_tv.setTypeface(AndroidUtilities.bold())
     name_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, self._s_card_name_size)
-    display_name = p.get("name") or p.get("id") or "Unknown"
-    name_tv.setText(str(display_name))
+    display_name = str(p.get("name") or p.get("id") or "Unknown")
+    # highlight search matches in the name with the accent color
+    highlighted = None
+    try:
+        _q = getattr(self, "last_search_query", None)
+        if _q:
+            highlighted = _highlight_query(
+                display_name, str(_q),
+                Theme.getColor(Theme.key_featuredStickers_addButton),
+            )
+    except Exception:
+        highlighted = None
+    name_tv.setText(highlighted if highlighted is not None else display_name)
     name_tv.setTextColor(self.text_color)
     name_tv.setSingleLine(True)
     name_tv.setHorizontalFadingEdgeEnabled(True)

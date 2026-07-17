@@ -1164,5 +1164,16 @@
   "force_clean_log_error": "Не ўдалося ачысціць файл логаў",
   "debug_clearing_header": "Ачыстка логаў",
   "debug_perf_warning": "Выкарыстанне гэтай налады можа знізіць прадукцыйнасць. Выкарыстоўвайце толькі пры неабходнасці.",
+  "bi_header": "Інфармацыя пра прыладу",
+  "bi_manufacturer": "Вытворца",
+  "bi_model": "Мадэль",
+  "bi_android_version": "Версія Android",
+  "bi_sdk_version": "Версія SDK",
+  "bi_abi": "Архітэктура",
+  "bi_root_status": "Статус рута",
+  "bi_root_yes": "Так",
+  "bi_root_no": "Не",
+  "bi_app_version": "Версія праграмы",
+  "bi_app_package": "Пакет праграмы",
   "plus_sponsor": "+ Спонсар"
 }
