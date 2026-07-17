@@ -478,18 +478,10 @@ class InstallIconsUI:
         try:
             delegate = self.IconListFragment(self, repo_name, icons, show_loading_initial=True, repo_id=repo_id)
             new_fragment = UniversalFragment(delegate)
-            presented = fragment.presentFragment(new_fragment)
-            if not presented:
-                # host drops presentFragment during an in-flight transition
-                # (slow devices) — retry once when the animation settles
-                def _retry_present():
-                    try:
-                        f = get_last_fragment()
-                        if f:
-                            f.presentFragment(new_fragment)
-                    except Exception as e:
-                        logx(f"icons: presentFragment retry error: {e}", False)
-                run_on_ui_thread(_retry_present, 300)
+            # NOTE: do not "retry" presentFragment based on its return value —
+            # the host can present successfully while returning a falsy value,
+            # and re-presenting the same instance stacks a duplicate screen
+            fragment.presentFragment(new_fragment)
 
             def _setup_action_bar(attempt=0):
                 try:
