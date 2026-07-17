@@ -1520,7 +1520,20 @@ class InstallIconsUI:
                 name_tv.setTypeface(AndroidUtilities.bold())
             name_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
             name_tv.setGravity(Gravity.CENTER)
-            name_tv.setText(str(icon.get("name") or icon.get("id") or "Unknown"))
+            _display_name = str(icon.get("name") or icon.get("id") or "Unknown")
+            # highlight search matches in the name with the accent color
+            _hl = None
+            try:
+                _q = getattr(self, "last_search_query", None)
+                if _q:
+                    from ..viewUtils import highlightQuery
+                    _hl = highlightQuery(
+                        _display_name, str(_q),
+                        Theme.getColor(Theme.key_featuredStickers_addButton),
+                    )
+            except Exception:
+                _hl = None
+            name_tv.setText(_hl if _hl is not None else _display_name)
             name_tv.setTextColor(self.text_color)
             name_tv.setSingleLine(True)
             try:
