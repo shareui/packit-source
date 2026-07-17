@@ -1164,7 +1164,7 @@
   "force_clean_log_error": "Failed to clear log file",
   "debug_clearing_header": "Clearing logs",
   "debug_perf_warning": "Using this setting may reduce performance. Use only when necessary.",
-  "bi_header": "Build info",
+  "bi_header": "Device info",
   "bi_manufacturer": "Manufacturer",
   "bi_model": "Model",
   "bi_android_version": "Android version",

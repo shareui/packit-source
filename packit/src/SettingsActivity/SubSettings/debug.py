@@ -119,8 +119,8 @@ def _makeBuildInfoCard(ctx):
         except Exception:
             pass
         circle_icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
-        circle.addView(circle_icon, FrameLayout.LayoutParams(dp(22), dp(22), Gravity.CENTER))
-        header.addView(circle, LayoutHelper.createLinear(44, 44, Gravity.CENTER_VERTICAL, 0, 0, 14, 0))
+        circle.addView(circle_icon, FrameLayout.LayoutParams(dp(18), dp(18), Gravity.CENTER))
+        header.addView(circle, LayoutHelper.createLinear(35, 35, Gravity.CENTER_VERTICAL, 0, 0, 14, 0))
 
         header_tv = TextView(ctx)
         header_tv.setText(str(strings.bi_header))
