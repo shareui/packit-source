@@ -70,6 +70,7 @@ _UID_WATCHA  = 1061520526
 _UID_APPLE   = 6018596876
 _UID_VCVK    = 1602207467
 _UID_PIXWET  = 5184725450
+_UID_FAUSTYU = 1415937101
 
 # special thanks user ids
 _THANKS_UIDS = [
@@ -692,7 +693,18 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 ],
                 animate_idx=5,
             ),
-            lambda: _build_special_thanks_card(act, content, animate_idx=6),
+            lambda: self._build_contributor_block(
+                act, content,
+                user_id=_UID_FAUSTYU,
+                title_text=str(strings["developer"]),
+                links=[
+                    {"icon": "msg_link", "label": str(strings.github), "text": "github.com/faustyu1", "on_click": lambda v: self._open_url("https://github.com/faustyu1")},
+                    {"icon": "msg_message", "label": str(strings.direct_message), "text": "t.me/bot4pi", "on_click": lambda v: self._open_url("https://t.me/bot4pi")},
+                ],
+                donations=[],
+                animate_idx=6,
+            ),
+            lambda: _build_special_thanks_card(act, content, animate_idx=7),
         ]
 
         def _post_builder(idx):
