@@ -241,15 +241,14 @@ def _make_avatar_view(context, user_id, title_text, title_badge=None):
         if title_badge:
             try:
                 from android.text import SpannableStringBuilder, Spanned
-                from android.text.style import RelativeSizeSpan, ForegroundColorSpan
-                ssb = SpannableStringBuilder(str(title_text) + "  ")
+                from android.text.style import RelativeSizeSpan
+                # single space + no color span: the badge sits close to the
+                # title and inherits its adaptive color (white on dark themes,
+                # black on light) — only the 0.6x size sets it apart
+                ssb = SpannableStringBuilder(str(title_text) + " ")
                 badge_start = ssb.length()
                 ssb.append(str(title_badge))
                 ssb.setSpan(RelativeSizeSpan(0.6), badge_start, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                ssb.setSpan(
-                    ForegroundColorSpan(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)),
-                    badge_start, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
-                )
                 title.setText(ssb)
             except Exception as _be:
                 logx(f"contributors fragment: title badge error: {_be}", True)
