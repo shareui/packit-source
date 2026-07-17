@@ -493,7 +493,10 @@ class InstallIconsUI:
                         logx(f"IconList._update_current_fragment_icons: calling build_list_with_sort('{delegate.current_sort_type}')", True)
                         delegate.build_list_with_sort(delegate.current_sort_type)
                     else:
-                        logx("IconList._update_current_fragment_icons: no results_container and loading not started, icons not shown", True)
+                        # deferred chrome not built yet — flag it, the shell
+                        # wrapper applies the data right after _build_chrome
+                        delegate._data_ready_pending = True
+                        logx("IconList._update_current_fragment_icons: chrome not ready, data flagged as pending", True)
             else:
                 logx("IconList._update_current_fragment_icons: fragment has no usable delegate", True)
         except Exception as e:
@@ -564,6 +567,8 @@ class InstallIconsUI:
             self.results_container = None
             self._finish_loading = None
             self._loading_started = False
+            # set when icons arrive before the deferred chrome is built
+            self._data_ready_pending = False
             # registry of (iv, loaded_list) for the global swap ticker
             self._card_registry = []
             self._ticker_started = False
@@ -619,6 +624,38 @@ class InstallIconsUI:
                 self.install_ui._open_repo_icons(selected)
 
         def beforeCreateView(self):
+            # light shell now, heavy chrome a few frames later: _build_chrome
+            # makes hundreds of python->java calls and used to block the UI
+            # thread, freezing the fragment open animation for ~half a second
+            act = get_last_fragment().getContext()
+            try:
+                shell_bg = self.install_ui._get_theme_colors()["main_bg_color"]
+            except Exception:
+                shell_bg = Theme.getColor(Theme.key_windowBackgroundGray)
+            shell = FrameLayout(act)
+            shell.setBackgroundColor(shell_bg)
+
+            def _deferred():
+                try:
+                    view = self._build_chrome()
+                    if view is not None:
+                        shell.addView(view, FrameLayout.LayoutParams(-1, -1))
+                    # data that landed while the chrome was still building
+                    if getattr(self, "_data_ready_pending", False):
+                        self._data_ready_pending = False
+                        if self._loading_started and callable(self._finish_loading):
+                            logx("IconList: applying pending data after chrome build", True)
+                            self._loading_started = False
+                            self._finish_loading()
+                        elif self.results_container is not None:
+                            self.build_list_with_sort(self.current_sort_type)
+                except Exception as e:
+                    logx(f"IconList: deferred _build_chrome error: {e}", False)
+            # let the open animation start smoothly before the heavy build
+            run_on_ui_thread(_deferred, 120)
+            return shell
+
+        def _build_chrome(self):
             act = get_last_fragment().getContext()
             colors = self.install_ui._get_theme_colors()
             self.main_bg_color = colors["main_bg_color"]

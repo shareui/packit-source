@@ -522,8 +522,32 @@ class InstallUI:
                 self.install_ui._open_repo_plugins(selected)
 
         def beforeCreateView(self):
+            # light shell now, heavy chrome a few frames later: build_list_view
+            # makes hundreds of python->java calls and used to block the UI
+            # thread, freezing the fragment open animation for ~half a second.
+            # Data arriving before the chrome is already handled by the
+            # _data_ready_before_view flag consumed inside build_list_view.
             from . import listView as _lv
-            return _lv.build_list_view(self)
+            from android_utils import run_on_ui_thread
+            act = get_last_fragment().getContext()
+            try:
+                bg = self.install_ui._get_theme_colors()["main_bg_color"]
+            except Exception:
+                from org.telegram.ui.ActionBar import Theme
+                bg = Theme.getColor(Theme.key_windowBackgroundGray)
+            shell = FrameLayout(act)
+            shell.setBackgroundColor(bg)
+
+            def _deferred():
+                try:
+                    view = _lv.build_list_view(self)
+                    if view is not None:
+                        shell.addView(view, FrameLayout.LayoutParams(-1, -1))
+                except Exception as e:
+                    logx(f"InstallUI: deferred build_list_view error: {e}", False)
+            # let the open animation start smoothly before the heavy build
+            run_on_ui_thread(_deferred, 120)
+            return shell
 
         def getTitle(self):
             return self.title
