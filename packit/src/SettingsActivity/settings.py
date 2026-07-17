@@ -1922,43 +1922,50 @@ class OtherSettings:
                 text=strings.interface_header,
                 subtext=strings.interface_header_desc,
                 icon="msg_theme",
-                create_sub_fragment=self._open_interface_page
+                create_sub_fragment=self._open_interface_page,
+                link_alias="interface"
             ),
             Text(
                 text=strings.sfx_settings,
                 subtext=strings.sfx_settings_desc,
                 icon="msg_voicechat",
-                create_sub_fragment=self._open_sfx_page
+                create_sub_fragment=self._open_sfx_page,
+                link_alias="sfx"
             ),
             Text(
                 text=strings.plugin_components,
                 subtext=strings.plugin_components_desc,
                 icon="msg_photo_settings",
-                create_sub_fragment=self._open_comps_page
+                create_sub_fragment=self._open_comps_page,
+                link_alias="components"
             ),
             Text(
                 text=strings.hotkeys_header,
                 subtext=strings.hotkeys_subtext,
                 icon="msg_addbot",
-                create_sub_fragment=self._open_hotkeys_page
+                create_sub_fragment=self._open_hotkeys_page,
+                link_alias="hotkeys"
             ),
             Text(
                 text=strings.inline_search_nav,
                 subtext=strings.inline_search_nav_desc,
                 icon="msg_search",
-                create_sub_fragment=self._open_inline_page
+                create_sub_fragment=self._open_inline_page,
+                link_alias="inline"
             ),
             Text(
                 text=strings.plugin_profile_header,
                 subtext=strings.plugin_profile_subtext,
                 icon="msg_info",
-                create_sub_fragment=self._open_plugin_profile_page
+                create_sub_fragment=self._open_plugin_profile_page,
+                link_alias="plugin_profile"
             ),
             Text(
                 text=strings.updplugins_nav,
                 subtext=strings.updplugins_nav_desc,
                 icon="msg_download",
-                create_sub_fragment=self._open_updplugins_page
+                create_sub_fragment=self._open_updplugins_page,
+                link_alias="updplugins"
             ),
             Text(
                 text=strings.api_keys_nav,
@@ -1971,13 +1978,15 @@ class OtherSettings:
                 text=strings.misc_nav,
                 subtext=strings.misc_nav_desc,
                 icon="msg_settings_old",
-                create_sub_fragment=self._open_misc_page
+                create_sub_fragment=self._open_misc_page,
+                link_alias="misc"
             ),
             Text(
                 text=strings.debug_menu,
                 subtext=strings.debug_menu_desc,
                 icon="msg_log",
-                create_sub_fragment=self._open_debug_page
+                create_sub_fragment=self._open_debug_page,
+                link_alias="debug"
             ),
         ]
 
@@ -2073,7 +2082,8 @@ class OtherSettings:
             text=strings.file_system_settings_header,
             subtext=strings.file_system_settings_nav_desc,
             icon="msg_filehq",
-            create_sub_fragment=self._open_file_settings_page
+            create_sub_fragment=self._open_file_settings_page,
+            link_alias="file_settings"
         ))
 
         return items
