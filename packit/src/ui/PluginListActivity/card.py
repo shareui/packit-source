@@ -46,6 +46,46 @@ from .filter.tagLayoutListener import _TagsLayoutListener
 from .helpers.utils import _check_app_version
 
 
+def _u16(text, idx):
+    # python str indices are code points, SpannableString wants UTF-16 units;
+    # names with emoji would shift the spans otherwise
+    return len(text[:idx].encode("utf-16-le")) // 2
+
+
+def _highlight_query(text, query, color):
+    # ForegroundColorSpan over case-insensitive occurrences of every query
+    # word in text; None when nothing matches (caller keeps the plain string)
+    try:
+        q = (query or "").strip()
+        if not q:
+            return None
+        low = text.lower()
+        ranges = []
+        for word in q.lower().split():
+            start = 0
+            while True:
+                idx = low.find(word, start)
+                if idx < 0:
+                    break
+                ranges.append((idx, idx + len(word)))
+                start = idx + len(word)
+        if not ranges:
+            return None
+        from android.text import SpannableString, Spanned
+        from android.text.style import ForegroundColorSpan
+        ss = SpannableString(text)
+        for a, b in ranges:
+            ss.setSpan(
+                ForegroundColorSpan(color),
+                _u16(text, a), _u16(text, b),
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+            )
+        return ss
+    except Exception as e:
+        logx(f"card: _highlight_query error: {e}", True)
+        return None
+
+
 def make_plugin_card(self, p):
     act = get_last_fragment().getContext()
     fragment = get_last_fragment()
@@ -221,8 +261,19 @@ def make_plugin_card(self, p):
     except Exception:
         name_tv.setTypeface(AndroidUtilities.bold())
     name_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, self._s_card_name_size)
-    display_name = p.get("name") or p.get("id") or "Unknown"
-    name_tv.setText(str(display_name))
+    display_name = str(p.get("name") or p.get("id") or "Unknown")
+    # highlight search matches in the name with the accent color
+    highlighted = None
+    try:
+        _q = getattr(self, "last_search_query", None)
+        if _q:
+            highlighted = _highlight_query(
+                display_name, str(_q),
+                Theme.getColor(Theme.key_featuredStickers_addButton),
+            )
+    except Exception:
+        highlighted = None
+    name_tv.setText(highlighted if highlighted is not None else display_name)
     name_tv.setTextColor(self.text_color)
     name_tv.setSingleLine(True)
     name_tv.setHorizontalFadingEdgeEnabled(True)
