@@ -153,6 +153,7 @@
   "easter_egg_reset_message": "Belästigen Sie mich nicht mit Kleinigkeiten, Sie haben ein Repository.",
   "support_via_send": "Support über @send",
   "support_via_ton": "Unterstützung über GRAM",
+  "support_via_yoomoney": "Über YooMoney unterstützen",
   "support_send_message": "<З",
   "support_with_github_sponsors": "Unterstützung mit Github-Sponsoren",
   "copied_to_clipboard": "In die Zwischenablage kopiert",
@@ -1159,5 +1160,6 @@
   "force_clean_log_done": "Protokolldatei gelöscht",
   "force_clean_log_error": "Die Protokolldatei konnte nicht gelöscht werden",
   "debug_clearing_header": "Protokolle löschen",
-  "debug_perf_warning": "Die Verwendung dieser Einstellung kann die Leistung beeinträchtigen. Nur bei Bedarf verwenden."
+  "debug_perf_warning": "Die Verwendung dieser Einstellung kann die Leistung beeinträchtigen. Nur bei Bedarf verwenden.",
+  "plus_sponsor": "+ Sponsor"
 }

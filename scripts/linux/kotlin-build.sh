@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Builds the self-written Kotlin dexes (sources in /kotlin/) into
-# packit/dex/<abi>/<name>.dex. Reflection + Xposed based, so it compiles against
+# packit/dex/<name>.dex. Reflection + Xposed based, so it compiles against
 # android.jar + the compile-only Xposed stubs in kotlin/stubs (never shipped),
 # and R8 tree-shakes kotlin-stdlib so the dex stays tiny.
 #
@@ -19,12 +19,12 @@ SRC_DIR="$REPO_ROOT/kotlin/src"
 STUB_DIR="$REPO_ROOT/kotlin/stubs"
 OUT_DIR="$REPO_ROOT/kotlin-build"
 DEX_OUT_BASE="$REPO_ROOT/packit/dex"
-ABIS=("arm64-v8a" "armeabi-v7a")
 MIN_API=26
 
 # what to build: "<dexName>=<keepClassFqn>"
 PACKAGES=(
   "badges=kawaii.packetik.badges.BadgesNative"
+  "openfile=kawaii.packetik.openfile.OpenFileNative"
 )
 
 die() { echo "error: $*" >&2; exit 1; }
@@ -133,16 +133,12 @@ java -cp "$D8_JAR" com.android.tools.r8.R8 \
 
 [[ -f "$OUT_DIR/dex/classes.dex" ]] || die "R8 produced no classes.dex"
 
-# NOTE: .dex is arch-independent Dalvik bytecode; we ship the same file in every
-# ABI dir to match the native/ layout and let dexLoader pick by ABI.
+# NOTE: .dex is arch-independent Dalvik bytecode; a single copy serves all ABIs.
 for entry in "${PACKAGES[@]}"; do
   name="${entry%%=*}"
-  for abi in "${ABIS[@]}"; do
-    dest="$DEX_OUT_BASE/$abi"
-    mkdir -p "$dest"
-    cp "$OUT_DIR/dex/classes.dex" "$dest/$name.dex"
-    info "-> $dest/$name.dex ($(wc -c < "$dest/$name.dex") bytes)"
-  done
+  mkdir -p "$DEX_OUT_BASE"
+  cp "$OUT_DIR/dex/classes.dex" "$DEX_OUT_BASE/$name.dex"
+  info "-> $DEX_OUT_BASE/$name.dex ($(wc -c < "$DEX_OUT_BASE/$name.dex") bytes)"
 done
 
 info "done."

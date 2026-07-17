@@ -1,14 +1,15 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# Loads precompiled Kotlin dexes shipped in packit/dex/<abi>/ and calls their
+# Loads precompiled Kotlin dexes shipped in packit/dex/ and calls their
 # entrypoints. Currently used for the badge system (kawaii.packetik.badges),
 # ported from packit/src/other/{badges,chatBadge,chatTitleIcon,profileTitleIcon}.py.
+#
+# Dex is arch-independent Dalvik bytecode, so a single copy is shipped for all
+# ABIs (unlike packit/native/, which is per-ABI).
 
 from packutil import logx
 import os
-
-from .nativeLoader import detectArch
 
 _DEX_BASE = "/plugins/ElyxPlugins/shareui_packit/packit/dex"
 _BADGES_CLASS = "kawaii.packetik.badges.BadgesNative"
@@ -19,7 +20,7 @@ _loaded = {}
 
 def _dexPath(name: str) -> str:
     from .utils.paths import _filesDir
-    return _filesDir() + _DEX_BASE + "/" + detectArch() + "/" + name + ".dex"
+    return _filesDir() + _DEX_BASE + "/" + name + ".dex"
 
 
 def _loadClass(dexName: str, className: str, context):
@@ -100,3 +101,57 @@ def unloadBadges():
             _callStatic(cls, "deinit")
     except Exception as e:
         logx(f"dexLoader: unloadBadges error: {e}", False)
+
+
+_OPENFILE_CLASS = "kawaii.packetik.openfile.OpenFileNative"
+
+
+def openFileCreate(context, path, text_size_px, pad_l, pad_t, pad_r, pad_b,
+                   bg_color, text_color, token_types, token_starts, token_ends,
+                   color_keys, color_vals):
+    # builds the virtualized Kotlin code viewer for `path` and returns its root
+    # View (or None on failure -> caller falls back to the Python renderer).
+    # Args are wrapped in exact Chaquopy types so reflective invoke matches the
+    # Kotlin int[]/float parameters.
+    try:
+        if context is None:
+            from org.telegram.messenger import ApplicationLoader
+            context = ApplicationLoader.applicationContext
+        cls = _loadClass("openfile", _OPENFILE_CLASS, context)
+        if cls is None:
+            return None
+        from java import jint, jfloat, jarray
+
+        def _ia(lst):
+            return jarray(jint)([int(x) for x in (lst or [])])
+
+        return _callStatic(
+            cls, "create",
+            context, str(path), jfloat(float(text_size_px)),
+            jint(int(pad_l)), jint(int(pad_t)), jint(int(pad_r)), jint(int(pad_b)),
+            jint(int(bg_color)), jint(int(text_color)),
+            _ia(token_types), _ia(token_starts), _ia(token_ends),
+            _ia(color_keys), _ia(color_vals),
+        )
+    except Exception as e:
+        logx(f"dexLoader: openFileCreate error: {e}", False)
+        return None
+
+
+def openFileCancel(view):
+    try:
+        cls = _loaded.get("openfile")
+        if cls is not None and view is not None:
+            _callStatic(cls, "cancel", view)
+    except Exception as e:
+        logx(f"dexLoader: openFileCancel error: {e}", False)
+
+
+def openFileGetText(view):
+    try:
+        cls = _loaded.get("openfile")
+        if cls is not None and view is not None:
+            return _callStatic(cls, "getText", view)
+    except Exception as e:
+        logx(f"dexLoader: openFileGetText error: {e}", False)
+    return None

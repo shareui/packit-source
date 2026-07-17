@@ -152,7 +152,8 @@
   "easter_egg_clear_message": "Ты сур'ёзна думаў, што я працую тваім дворнікам? У цябе адзін рэпазіторый, гаспадар.",
   "easter_egg_reset_message": "Не турбуй мяне дробязямі, у цябе адзін рэпазіторый.",
   "support_via_send": "Падтрымаць праз @send",
-  "support_via_ton": "Падтрымаць праз TON",
+  "support_via_ton": "Падтрымаць праз GRAM",
+  "support_via_yoomoney": "Падтрымаць праз ЮMoney",
   "support_send_message": "<З",
   "support_with_github_sponsors": "Падтрымаць праз Github Sponsors",
   "copied_to_clipboard": "Скапіявана ў буфер",
@@ -1159,5 +1160,6 @@
   "force_clean_log_done": "Файл логаў ачышчаны",
   "force_clean_log_error": "Не ўдалося ачысціць файл логаў",
   "debug_clearing_header": "Ачыстка логаў",
-  "debug_perf_warning": "Выкарыстанне гэтай налады можа знізіць прадукцыйнасць. Выкарыстоўвайце толькі пры неабходнасці."
+  "debug_perf_warning": "Выкарыстанне гэтай налады можа знізіць прадукцыйнасць. Выкарыстоўвайце толькі пры неабходнасці.",
+  "plus_sponsor": "+ Спонсар"
 }

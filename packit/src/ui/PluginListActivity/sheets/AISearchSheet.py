@@ -293,7 +293,11 @@ def _ripple_bg(base_drawable, ripple_color: int = 0x20000000):
     return base_drawable
 
 
-_SETTINGS_URL = "https://t.me/exteraSettings?p=shareui_packit&s=::gemini_api_key"
+# full alias path from the settings root: each segment before the last must be
+# the link_alias of the Text row opening the next sub-screen (host joins with ':').
+# The old value "::gemini_api_key" had empty parent segments (rows had no
+# link_alias), so the engine's alias walker silently bailed and nothing opened.
+_SETTINGS_URL = "https://t.me/exteraSettings?p=shareui_packit&s=other:api_keys:gemini_api_key"
 
 
 def _open_settings_url(act):

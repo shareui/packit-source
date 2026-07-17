@@ -153,6 +153,7 @@
   "easter_egg_reset_message": "Don't bother me with trifles, you have one repository.",
   "support_via_send": "Support via @send",
   "support_via_ton": "Support via GRAM",
+  "support_via_yoomoney": "Support via YooMoney",
   "support_send_message": "<З",
   "support_with_github_sponsors": "Support with Github Sponsors",
   "copied_to_clipboard": "Copied to clipboard",
@@ -1159,5 +1160,6 @@
   "force_clean_log_done": "Log file cleared",
   "force_clean_log_error": "Failed to clear log file",
   "debug_clearing_header": "Clearing logs",
-  "debug_perf_warning": "Using this setting may reduce performance. Use only when necessary."
+  "debug_perf_warning": "Using this setting may reduce performance. Use only when necessary.",
+  "plus_sponsor": "+ Sponsor"
 }
