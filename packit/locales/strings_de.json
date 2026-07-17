@@ -827,6 +827,8 @@
   "achiev_hint_secret_utils_rule": "Die Installation wird in den Dienstprogrammen durchgeführt. Ihr Ansprechpartner ist kpm. Da die Utils in dieser Variante nicht ausgewählt wurden",
   "achiev_title_secret_aytist": "Du hast einen Amethyst gefunden!",
   "achiev_hint_secret_aytist": "Sie haben wirklich einen Amethyst gefunden, jetzt müssen Sie nicht mehr für den Rest Ihres Lebens arbeiten ...",
+  "achiev_title_secret_opsec": "opsec installiert",
+  "achiev_hint_secret_opsec": "sudo packit install opsec — fertig. Inkognito aktiviert, Brille auf, niemand hat etwas gesehen.",
   "tags_section_title": "Schlagworte",
   "apply_button": "Anwenden",
   "authors_section_title": "Autoren",
