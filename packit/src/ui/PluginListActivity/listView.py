@@ -40,36 +40,329 @@ from ...utils.media import playSound
 from .helpers.utils import _build_plugin_count_label
 
 
-def build_list_view(self) -> View:
-    logx(f"InstallUI: build_list_view enter id={id(self)} show_loading_initial={self.show_loading_initial} loading_container={getattr(self, 'loading_container', None) is not None} data_ready_before_view={getattr(self, '_data_ready_before_view', False)}", True)
-    # save scroll position before rebuilding view
-    _saved_scroll_y = 0
+
+def _perform_search(self, act):
     try:
-        if hasattr(self, '_scroll_view') and self._scroll_view:
-            _saved_scroll_y = self._scroll_view.getScrollY()
+        query = self.search.getText().toString()
+        if query != self.last_search_query:
+            self.last_search_query = query
+            self.build_list(query)
+        imm = act.getSystemService("input_method")
+        imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
     except Exception:
         pass
 
-    act = get_last_fragment().getContext()
-    colors = self.install_ui._get_theme_colors()
-    self.main_bg_color = colors["main_bg_color"]
-    self.card_bg_color = colors["card_bg_color"]
-    self.card_pressed_color = colors["card_pressed_color"]
-    self.text_color = colors["text_color"]
-    self.secondary_text_color = colors["secondary_text_color"]
-    self.hint_text_color = colors["hint_text_color"]
-    self.cursor_color = colors["cursor_color"]
-    self.search_border_color = colors["search_border_color"]
-    self.search_stroke_width = colors["search_stroke_width"]
 
-    self.content_view = FrameLayout(act)
-    self.content_view.setBackgroundColor(self.main_bg_color)
-    from ...ui.AchievementsActivity.service.AchivementsEngine import register_bulletin_container
-    register_bulletin_container(self.content_view)
+class _SearchTextWatcherWithClear(dynamic_proxy(TextWatcher)):
+    def __init__(self, outer, clear_btn_ref):
+        super().__init__()
+        self.outer = outer
+        self.clear_btn = clear_btn_ref
+        self._live_timer = None
+
+    def _show_live_spinner(self):
+        try:
+            if getattr(self.outer, '_live_search_spinner', None) is None:
+                spinner_container, spinner_view = self.outer.install_ui._create_center_loading_animation(self.outer.content_view)
+                if spinner_container is None:
+                    return
+                self.outer._live_search_spinner = spinner_container
+                self.outer._live_search_spinner_view = spinner_view
+                self.outer.content_view.addView(spinner_container, FrameLayout.LayoutParams(-1, -1))
+            else:
+                self.outer._live_search_spinner.setAlpha(1.0)
+                self.outer._live_search_spinner.setVisibility(View.VISIBLE)
+            # hide cards while spinner is shown
+            try:
+                self.outer.results_container.setVisibility(View.INVISIBLE)
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    def _hide_live_spinner(self):
+        try:
+            spinner = getattr(self.outer, '_live_search_spinner', None)
+            if spinner is None:
+                return
+            spinner.animate().alpha(0.0).setDuration(150).withEndAction(
+                lambda: spinner.setVisibility(View.GONE)
+            ).start()
+        except Exception:
+            pass
+        try:
+            self.outer.results_container.setVisibility(View.VISIBLE)
+        except Exception:
+            pass
+
+    def _schedule_live_search(self, query):
+        # cancel previous pending timer
+        prev = self._live_timer
+        if prev is not None:
+            try:
+                prev.cancel()
+            except Exception:
+                pass
+        outer = self.outer
+
+        def _do_search():
+            def _ui():
+                try:
+                    if query != outer.last_search_query:
+                        outer.last_search_query = query
+                        outer.build_list(query)
+                    self._hide_live_spinner()
+                except Exception:
+                    pass
+            run_on_ui_thread(_ui)
+
+        t = threading.Timer(0.3, _do_search)
+        self._live_timer = t
+        t.start()
+
+    def afterTextChanged(self, s):
+        text = s.toString()
+        if text and len(text) > 0:
+            self.clear_btn.setVisibility(View.VISIBLE)
+            try:
+                self.clear_btn.animate().alpha(1.0).setDuration(200).start()
+            except Exception:
+                pass
+        else:
+            try:
+                self.clear_btn.animate().alpha(0.0).setDuration(200).withEndAction(
+                    lambda: self.clear_btn.setVisibility(View.GONE)).start()
+            except Exception:
+                self.clear_btn.setVisibility(View.GONE)
+        try:
+            from elyx import settings as _s
+            if _s.get("live_search", True) and not getattr(self.outer, "_ai_result_active", False):
+                self._show_live_spinner()
+                self._schedule_live_search(text)
+        except Exception:
+            pass
+
+    def beforeTextChanged(self, s, start, count, after):
+        pass
+    def onTextChanged(self, s, start, before, count):
+        pass
+
+
+def _on_clear_click(self, act):
+    try:
+        from elyx import assets
+        playSound(assets.sounds.clear_search.path_str, "sfx_clear_search")
+    except Exception:
+        pass
+    try:
+        self._ai_result_active = False
+        self._ai_result_plugins = []
+        self.search.setText("")
+        self.last_search_query = ""
+        self.build_list("")
+        imm = act.getSystemService("input_method")
+        imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
+    except Exception:
+        pass
+
+
+def _on_search_btn_click(self, act):
+    try:
+        from elyx import assets
+        playSound(assets.sounds.search_btn.path_str, "sfx_search")
+    except Exception:
+        pass
+    _perform_search(self, act)
+
+
+def _on_ai_pill_click(self, act):
+    try:
+        def _on_ai_results(names, query):
+            # set search field text and filter list by AI-returned plugin names
+            try:
+                ai_marker = "%ai response%"
+                # filter visible plugins to only those returned by AI, preserving order
+                name_set = set(n.lower() for n in names)
+                ordered = []
+                for name in names:
+                    for p in self.plugins:
+                        pname = str(p.get("name") or p.get("id") or "").strip()
+                        if pname.lower() == name.lower():
+                            ordered.append(p)
+                            break
+                # fallback: include any plugin whose name is in name_set but not yet matched
+                matched_names = set(str(p.get("name") or p.get("id") or "").strip().lower() for p in ordered)
+                for p in self.plugins:
+                    pname = str(p.get("name") or p.get("id") or "").strip().lower()
+                    if pname in name_set and pname not in matched_names:
+                        ordered.append(p)
+                        matched_names.add(pname)
+                self._ai_result_plugins = ordered
+                # set flag before setText so watcher skips live search
+                self._ai_result_active = True
+                self.last_search_query = ai_marker
+                self.search.setText(ai_marker)
+                self.filtered_plugins = ordered
+                self.visible_plugins = []
+                self.lazy_load_queue = deque()
+                self.results_container.removeAllViews()
+                if hasattr(self, "subtitle"):
+                    total = len(self.plugins)
+                    self.subtitle.setText(f"{len(ordered)}/{_build_plugin_count_label(total)}")
+                self._load_initial_batch()
+            except Exception as e:
+                logx(f"listView: on_ai_results error: {e}", False)
+
+        show_ai_search_sheet(self.install_ui, act, on_ai_results=_on_ai_results)
+    except Exception as e:
+        logx(f"listView: ai search sheet error: {e}", False)
+
+
+def _show_tag_filter(self, act):
+    try:
+        imm = act.getSystemService("input_method")
+        imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
+    except Exception:
+        pass
+    def on_apply(tags, authors, app_versions, saved):
+        try:
+            self.selected_tags = tags
+            self.selected_authors = authors
+            self.selected_app_versions = app_versions
+            self.selected_saved = saved
+            current_q = self.search.getText().toString() if self.search else (self.last_search_query or "")
+            self.build_list_with_sort(self.current_sort_type, current_q)
+        except Exception:
+            pass
+    self._active_drawer = show_tag_drawer(act, self.content_view, self.plugins, self.selected_tags, on_apply,
+                                          self.selected_authors, self.selected_app_versions, self.selected_saved)
+
+
+def _open_sort_menu(self, act):
+    try:
+        imm = act.getSystemService("input_method")
+        imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
+    except Exception:
+        pass
+    def on_sort_selected(sort_type):
+        try:
+            current_q = self.search.getText().toString() if self.search else (self.last_search_query or "")
+        except Exception:
+            current_q = self.last_search_query or ""
+        self.build_list_with_sort(sort_type, current_q)
+    show_sort_menu(self.install_ui, act, self.current_sort_type, on_sort_selected)
+
+
+
+def _make_editor_action_listener(outer, act):
+    EditActionListener = find_class("android.widget.TextView$OnEditorActionListener")
+
+    class _L(dynamic_proxy(EditActionListener)):
+        def __init__(self):
+            super().__init__()
+
+        def onEditorAction(self, v, actionId, event):
+            if actionId == EditorInfo.IME_ACTION_SEARCH or actionId == EditorInfo.IME_ACTION_DONE or actionId == 6 or actionId == 3:
+                _perform_search(outer, act)
+                return True
+            return False
+
+    return _L()
+
+
+def _build_chrome_kotlin(self, act):
+    # java-side chrome skeleton (kawaii.packetik.catalog.CatalogChromeNative):
+    # the same tree costs hundreds of bridge calls from python. Returns
+    # (main_layout, scroll, clear_btn) or None -> python fallback below.
+    from ...dexLoader import catalogChromeCreate
+    from elyx import settings as _s
+    live_search = bool(_s.get("live_search", True))
+    try:
+        accent = Theme.getColor(Theme.key_featuredStickers_addButton)
+        accent_pressed = Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
+        button_text = Theme.getColor(Theme.key_featuredStickers_buttonText)
+    except Exception:
+        accent = Theme.getColor(Theme.key_dialogTextBlue)
+        accent_pressed = accent
+        button_text = -1
+    try:
+        bold = AndroidUtilities.bold()
+    except Exception:
+        bold = None
+    subtitle_text = _build_plugin_count_label(len(self.plugins)) if self.plugins else str(strings["total_plugins_unknown"])
+    main_layout = catalogChromeCreate(
+        act,
+        self.main_bg_color, self.card_bg_color, self.card_pressed_color, self.text_color,
+        accent, accent_pressed, button_text,
+        self.install_ui._resolve_icon("input_clear"),
+        self.install_ui._resolve_icon("ic_ab_search"),
+        self.install_ui._resolve_icon("msg_search"),
+        self.install_ui._resolve_icon("msg_list"),
+        self.install_ui._resolve_icon("msg_topics"),
+        "AI", subtitle_text, (not live_search), bold,
+    )
+    if main_layout is None:
+        return None
+    search_slot = main_layout.findViewWithTag("search_slot")
+    clear_btn = main_layout.findViewWithTag("clear_btn")
+    search_btn = main_layout.findViewWithTag("search_btn")
+    ai_pill = main_layout.findViewWithTag("ai_pill")
+    subtitle = main_layout.findViewWithTag("subtitle")
+    tag_filter_btn = main_layout.findViewWithTag("tag_filter_btn")
+    sort_btn = main_layout.findViewWithTag("sort_btn")
+    scroll = main_layout.findViewWithTag("scroll")
+    if None in (search_slot, clear_btn, search_btn, ai_pill, subtitle, tag_filter_btn, sort_btn, scroll):
+        logx("listView: kotlin chrome missing tagged views, falling back", False)
+        return None
+
+    # the only telegram-specific view is created here on the python side
+    self.search = EditTextBoldCursor(act)
+    self.search.setHint(strings["search_hint"])
+    self.search.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+    self.search.setSingleLine(True)
+    self.search.setInputType(InputType.TYPE_CLASS_TEXT)
+    self.search.setBackgroundColor(0)
+    self.search.setTextColor(self.text_color)
+    try:
+        self.search.setHintTextColor(self.hint_text_color)
+    except Exception:
+        pass
+    try:
+        self.search.setCursorColor(self.cursor_color)
+    except Exception:
+        pass
+    try:
+        self.search.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(10), AndroidUtilities.dp(8))
+    except Exception:
+        pass
+    try:
+        self.search.setOnEditorActionListener(_make_editor_action_listener(self, act))
+    except Exception:
+        pass
+    search_slot.addView(self.search, FrameLayout.LayoutParams(-1, -1))
+
+    clear_btn.setOnClickListener(OnClickListener(lambda v: _on_clear_click(self, act)))
+    self.install_ui._apply_press_scale(clear_btn)
+    search_btn.setOnClickListener(OnClickListener(lambda v: _on_search_btn_click(self, act)))
+    self.install_ui._apply_press_scale(search_btn)
+    ai_pill.setOnClickListener(OnClickListener(lambda v: _on_ai_pill_click(self, act)))
+    self.install_ui._apply_press_scale(ai_pill)
+    tag_filter_btn.setOnClickListener(OnClickListener(lambda v: _show_tag_filter(self, act)))
+    self.install_ui._apply_press_scale(tag_filter_btn)
+    sort_btn.setOnClickListener(OnClickListener(lambda v: _open_sort_menu(self, act)))
+    self.install_ui._apply_press_scale(sort_btn)
+
+    self.subtitle = subtitle
+    self._scroll_view = scroll
+    logx("listView: chrome built via kotlin dex", True)
+    return (main_layout, scroll, clear_btn)
+
+
+def _build_chrome_python(self, act):
+    # original python chrome builder, kept as the fallback path
     main_layout = LinearLayout(act)
     main_layout.setOrientation(LinearLayout.VERTICAL)
     main_layout.setPadding(AndroidUtilities.dp(16), 0, AndroidUtilities.dp(16), AndroidUtilities.dp(14))
-    self.content_view.addView(main_layout, FrameLayout.LayoutParams(-1, -1))
 
     search_container = FrameLayout(act)
     pill = GradientDrawable()
@@ -109,125 +402,12 @@ def build_list_view(self) -> View:
     except Exception:
         pass
 
-    def perform_search():
-        try:
-            query = self.search.getText().toString()
-            if query != self.last_search_query:
-                self.last_search_query = query
-                self.build_list(query)
-            imm = act.getSystemService("input_method")
-            imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
-        except Exception:
-            pass
 
     try:
-        EditActionListener = find_class("android.widget.TextView$OnEditorActionListener")
-        class SearchEditorActionListener(dynamic_proxy(EditActionListener)):
-            def __init__(self, outer):
-                super().__init__()
-                self.outer = outer
-            def onEditorAction(self, v, actionId, event):
-                if actionId == EditorInfo.IME_ACTION_SEARCH or actionId == EditorInfo.IME_ACTION_DONE or actionId == 6 or actionId == 3:
-                    perform_search()
-                    return True
-                return False
-        self.search.setOnEditorActionListener(SearchEditorActionListener(self))
+        self.search.setOnEditorActionListener(_make_editor_action_listener(self, act))
     except Exception:
         pass
 
-    class SearchTextWatcherWithClear(dynamic_proxy(TextWatcher)):
-        def __init__(self, outer, clear_btn_ref):
-            super().__init__()
-            self.outer = outer
-            self.clear_btn = clear_btn_ref
-            self._live_timer = None
-
-        def _show_live_spinner(self):
-            try:
-                if getattr(self.outer, '_live_search_spinner', None) is None:
-                    spinner_container, spinner_view = self.outer.install_ui._create_center_loading_animation(self.outer.content_view)
-                    if spinner_container is None:
-                        return
-                    self.outer._live_search_spinner = spinner_container
-                    self.outer._live_search_spinner_view = spinner_view
-                    self.outer.content_view.addView(spinner_container, FrameLayout.LayoutParams(-1, -1))
-                else:
-                    self.outer._live_search_spinner.setAlpha(1.0)
-                    self.outer._live_search_spinner.setVisibility(View.VISIBLE)
-                # hide cards while spinner is shown
-                try:
-                    self.outer.results_container.setVisibility(View.INVISIBLE)
-                except Exception:
-                    pass
-            except Exception:
-                pass
-
-        def _hide_live_spinner(self):
-            try:
-                spinner = getattr(self.outer, '_live_search_spinner', None)
-                if spinner is None:
-                    return
-                spinner.animate().alpha(0.0).setDuration(150).withEndAction(
-                    lambda: spinner.setVisibility(View.GONE)
-                ).start()
-            except Exception:
-                pass
-            try:
-                self.outer.results_container.setVisibility(View.VISIBLE)
-            except Exception:
-                pass
-
-        def _schedule_live_search(self, query):
-            # cancel previous pending timer
-            prev = self._live_timer
-            if prev is not None:
-                try:
-                    prev.cancel()
-                except Exception:
-                    pass
-            outer = self.outer
-
-            def _do_search():
-                def _ui():
-                    try:
-                        if query != outer.last_search_query:
-                            outer.last_search_query = query
-                            outer.build_list(query)
-                        self._hide_live_spinner()
-                    except Exception:
-                        pass
-                run_on_ui_thread(_ui)
-
-            t = threading.Timer(0.3, _do_search)
-            self._live_timer = t
-            t.start()
-
-        def afterTextChanged(self, s):
-            text = s.toString()
-            if text and len(text) > 0:
-                self.clear_btn.setVisibility(View.VISIBLE)
-                try:
-                    self.clear_btn.animate().alpha(1.0).setDuration(200).start()
-                except Exception:
-                    pass
-            else:
-                try:
-                    self.clear_btn.animate().alpha(0.0).setDuration(200).withEndAction(
-                        lambda: self.clear_btn.setVisibility(View.GONE)).start()
-                except Exception:
-                    self.clear_btn.setVisibility(View.GONE)
-            try:
-                from elyx import settings as _s
-                if _s.get("live_search", True) and not getattr(self.outer, "_ai_result_active", False):
-                    self._show_live_spinner()
-                    self._schedule_live_search(text)
-            except Exception:
-                pass
-
-        def beforeTextChanged(self, s, start, count, after):
-            pass
-        def onTextChanged(self, s, start, before, count):
-            pass
 
     search_row = LinearLayout(act)
     search_row.setOrientation(LinearLayout.HORIZONTAL)
@@ -251,24 +431,8 @@ def build_list_view(self) -> View:
     clear_btn_icon.setScaleType(ImageView.ScaleType.CENTER)
     clear_btn.addView(clear_btn_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
 
-    def on_clear_click():
-        try:
-            from elyx import assets
-            playSound(assets.sounds.clear_search.path_str, "sfx_clear_search")
-        except Exception:
-            pass
-        try:
-            self._ai_result_active = False
-            self._ai_result_plugins = []
-            self.search.setText("")
-            self.last_search_query = ""
-            self.build_list("")
-            imm = act.getSystemService("input_method")
-            imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
-        except Exception:
-            pass
 
-    clear_btn.setOnClickListener(OnClickListener(lambda v: on_clear_click()))
+    clear_btn.setOnClickListener(OnClickListener(lambda v: _on_clear_click(self, act)))
     self.install_ui._apply_press_scale(clear_btn)
     clear_btn.setVisibility(View.GONE)
     clear_btn.setAlpha(0.0)
@@ -297,15 +461,8 @@ def build_list_view(self) -> View:
     search_btn_icon.setScaleType(ImageView.ScaleType.CENTER)
     search_btn.addView(search_btn_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
 
-    def onSearchBtnClick(v):
-        try:
-            from elyx import assets
-            playSound(assets.sounds.search_btn.path_str, "sfx_search")
-        except Exception:
-            pass
-        perform_search()
 
-    search_btn.setOnClickListener(OnClickListener(onSearchBtnClick))
+    search_btn.setOnClickListener(OnClickListener(lambda v: _on_search_btn_click(self, act)))
     self.install_ui._apply_press_scale(search_btn)
     try:
         from elyx import settings as _s
@@ -361,49 +518,8 @@ def build_list_view(self) -> View:
     ai_pill_lp = FrameLayout.LayoutParams(-2, -2, Gravity.LEFT | Gravity.CENTER_VERTICAL)
     header_row.addView(ai_pill, ai_pill_lp)
 
-    def on_ai_pill_click(v):
-        try:
-            def _on_ai_results(names, query):
-                # set search field text and filter list by AI-returned plugin names
-                try:
-                    ai_marker = "%ai response%"
-                    # filter visible plugins to only those returned by AI, preserving order
-                    name_set = set(n.lower() for n in names)
-                    ordered = []
-                    for name in names:
-                        for p in self.plugins:
-                            pname = str(p.get("name") or p.get("id") or "").strip()
-                            if pname.lower() == name.lower():
-                                ordered.append(p)
-                                break
-                    # fallback: include any plugin whose name is in name_set but not yet matched
-                    matched_names = set(str(p.get("name") or p.get("id") or "").strip().lower() for p in ordered)
-                    for p in self.plugins:
-                        pname = str(p.get("name") or p.get("id") or "").strip().lower()
-                        if pname in name_set and pname not in matched_names:
-                            ordered.append(p)
-                            matched_names.add(pname)
-                    self._ai_result_plugins = ordered
-                    # set flag before setText so watcher skips live search
-                    self._ai_result_active = True
-                    self.last_search_query = ai_marker
-                    self.search.setText(ai_marker)
-                    self.filtered_plugins = ordered
-                    self.visible_plugins = []
-                    self.lazy_load_queue = deque()
-                    self.results_container.removeAllViews()
-                    if hasattr(self, "subtitle"):
-                        total = len(self.plugins)
-                        self.subtitle.setText(f"{len(ordered)}/{_build_plugin_count_label(total)}")
-                    self._load_initial_batch()
-                except Exception as e:
-                    logx(f"listView: on_ai_results error: {e}", False)
 
-            show_ai_search_sheet(self.install_ui, act, on_ai_results=_on_ai_results)
-        except Exception as e:
-            logx(f"listView: ai search sheet error: {e}", False)
-
-    ai_pill.setOnClickListener(OnClickListener(on_ai_pill_click))
+    ai_pill.setOnClickListener(OnClickListener(lambda v: _on_ai_pill_click(self, act)))
     self.install_ui._apply_press_scale(ai_pill)
 
     subtitle = TextView(act)
@@ -447,26 +563,8 @@ def build_list_view(self) -> View:
         pass
     tag_filter_btn.addView(tag_filter_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
 
-    def show_tag_filter_handler():
-        try:
-            imm = act.getSystemService("input_method")
-            imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
-        except Exception:
-            pass
-        def on_apply(tags, authors, app_versions, saved):
-            try:
-                self.selected_tags = tags
-                self.selected_authors = authors
-                self.selected_app_versions = app_versions
-                self.selected_saved = saved
-                current_q = self.search.getText().toString() if self.search else (self.last_search_query or "")
-                self.build_list_with_sort(self.current_sort_type, current_q)
-            except Exception:
-                pass
-        self._active_drawer = show_tag_drawer(act, self.content_view, self.plugins, self.selected_tags, on_apply,
-                                              self.selected_authors, self.selected_app_versions, self.selected_saved)
 
-    tag_filter_btn.setOnClickListener(OnClickListener(lambda v: show_tag_filter_handler()))
+    tag_filter_btn.setOnClickListener(OnClickListener(lambda v: _show_tag_filter(self, act)))
     self.install_ui._apply_press_scale(tag_filter_btn)
     tag_filter_btn_lp = FrameLayout.LayoutParams(-2, -2, Gravity.RIGHT | Gravity.CENTER_VERTICAL)
     tag_filter_btn_lp.rightMargin = AndroidUtilities.dp(40)
@@ -491,21 +589,8 @@ def build_list_view(self) -> View:
         pass
     sort_btn.addView(sort_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
 
-    def show_sort_menu_handler():
-        try:
-            imm = act.getSystemService("input_method")
-            imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
-        except Exception:
-            pass
-        def on_sort_selected(sort_type):
-            try:
-                current_q = self.search.getText().toString() if self.search else (self.last_search_query or "")
-            except Exception:
-                current_q = self.last_search_query or ""
-            self.build_list_with_sort(sort_type, current_q)
-        show_sort_menu(self.install_ui, act, self.current_sort_type, on_sort_selected)
 
-    sort_btn.setOnClickListener(OnClickListener(lambda v: show_sort_menu_handler()))
+    sort_btn.setOnClickListener(OnClickListener(lambda v: _open_sort_menu(self, act)))
     self.install_ui._apply_press_scale(sort_btn)
     sort_btn_lp = FrameLayout.LayoutParams(-2, -2, Gravity.RIGHT | Gravity.CENTER_VERTICAL)
     header_row.addView(sort_btn, sort_btn_lp)
@@ -521,6 +606,46 @@ def build_list_view(self) -> View:
         scroll.setNestedScrollingEnabled(True)
     except Exception:
         pass
+
+    return main_layout, scroll, clear_btn
+
+
+def build_list_view(self) -> View:
+    logx(f"InstallUI: build_list_view enter id={id(self)} show_loading_initial={self.show_loading_initial} loading_container={getattr(self, 'loading_container', None) is not None} data_ready_before_view={getattr(self, '_data_ready_before_view', False)}", True)
+    # save scroll position before rebuilding view
+    _saved_scroll_y = 0
+    try:
+        if hasattr(self, '_scroll_view') and self._scroll_view:
+            _saved_scroll_y = self._scroll_view.getScrollY()
+    except Exception:
+        pass
+
+    act = get_last_fragment().getContext()
+    colors = self.install_ui._get_theme_colors()
+    self.main_bg_color = colors["main_bg_color"]
+    self.card_bg_color = colors["card_bg_color"]
+    self.card_pressed_color = colors["card_pressed_color"]
+    self.text_color = colors["text_color"]
+    self.secondary_text_color = colors["secondary_text_color"]
+    self.hint_text_color = colors["hint_text_color"]
+    self.cursor_color = colors["cursor_color"]
+    self.search_border_color = colors["search_border_color"]
+    self.search_stroke_width = colors["search_stroke_width"]
+
+    self.content_view = FrameLayout(act)
+    self.content_view.setBackgroundColor(self.main_bg_color)
+    from ...ui.AchievementsActivity.service.AchivementsEngine import register_bulletin_container
+    register_bulletin_container(self.content_view)
+    chrome = None
+    try:
+        chrome = _build_chrome_kotlin(self, act)
+    except Exception as e:
+        logx(f"listView: kotlin chrome error: {e}", False)
+    if chrome is None:
+        main_layout, scroll, clear_btn = _build_chrome_python(self, act)
+    else:
+        main_layout, scroll, clear_btn = chrome
+    self.content_view.addView(main_layout, FrameLayout.LayoutParams(-1, -1))
 
     if self.show_loading_initial:
         content_wrapper = FrameLayout(act)
@@ -802,13 +927,14 @@ def build_list_view(self) -> View:
         self.results_container = LinearLayout(act)
         self.results_container.setOrientation(LinearLayout.VERTICAL)
         self.results_container.setPadding(0, 0, 0, AndroidUtilities.dp(10))
-    main_layout.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1.0))
+    if scroll.getParent() is None:
+        main_layout.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1.0))
 
     if _saved_scroll_y > 0:
         _y = _saved_scroll_y
         run_on_ui_thread(lambda: scroll.scrollTo(0, _y))
 
-    self.search.addTextChangedListener(SearchTextWatcherWithClear(self, clear_btn))
+    self.search.addTextChangedListener(_SearchTextWatcherWithClear(self, clear_btn))
     try:
         from ..viewUtils import applyFontToTree
         applyFontToTree(self.content_view)

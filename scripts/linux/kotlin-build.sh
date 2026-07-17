@@ -25,6 +25,7 @@ MIN_API=26
 PACKAGES=(
   "badges=kawaii.packetik.badges.BadgesNative"
   "openfile=kawaii.packetik.openfile.OpenFileNative"
+  "catalog=kawaii.packetik.catalog.CatalogChromeNative"
 )
 
 die() { echo "error: $*" >&2; exit 1; }
