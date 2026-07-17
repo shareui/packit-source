@@ -101,6 +101,12 @@ class InstallIconsUI:
         from collections import OrderedDict
         self._preview_cache = OrderedDict()
         self._preview_cache_lock = threading.Lock()
+        # dedup for catalog loads: NoInternetBanner fires its "restored"
+        # callback immediately on registration (network is already up), which
+        # re-entered the loader ~1s after entry — second download, second
+        # build_list pass, tiles animating in twice (plugins catalog has the
+        # same guard in _reload_current_plugins)
+        self._loads_in_flight = set()
 
     def _apply_press_scale(self, view):
         try:
@@ -304,6 +310,11 @@ class InstallIconsUI:
         if not fragment:
             logx("IconList._open_all_repos_icons: no fragment, aborting", True)
             return
+        load_key = "all"
+        if load_key in self._loads_in_flight:
+            logx("IconList._open_all_repos_icons: skipped, already in flight", True)
+            return
+        self._loads_in_flight.add(load_key)
         self._show_icons_universal(strings["all_repositories"], [])
 
         def load_task():
@@ -368,7 +379,13 @@ class InstallIconsUI:
                 BulletinHelper.show_error(str(strings["il_load_failed"]))
                 logx(f"IconList._open_all_repos_icons: fatal error: {e}", False)
                 run_on_ui_thread(lambda: self._update_current_fragment_icons([]))
-        run_on_queue(load_task)
+            finally:
+                self._loads_in_flight.discard(load_key)
+        try:
+            run_on_queue(load_task)
+        except Exception:
+            self._loads_in_flight.discard(load_key)
+            raise
 
     def _open_repo_icons(self, repo):
         repo_name = repo.get("name") or strings["unnamed"]
@@ -384,6 +401,11 @@ class InstallIconsUI:
             return
         repo_id = (repo.get("id") or "").strip()
         logx(f"IconList._open_repo_icons: repo_id='{repo_id}'", True)
+        load_key = repo_id or repo_url
+        if load_key in self._loads_in_flight:
+            logx(f"IconList._open_repo_icons: skipped, already in flight for '{load_key}'", True)
+            return
+        self._loads_in_flight.add(load_key)
         self._show_icons_universal(repo_name, [], repo_id=repo_id)
 
         def load_task():
@@ -433,7 +455,13 @@ class InstallIconsUI:
                 BulletinHelper.show_error(str(strings["il_download_error"]))
                 logx(f"IconList._open_repo_icons: error for url='{repo_url}': {e}", False)
                 run_on_ui_thread(lambda: self._update_current_fragment_icons([]))
-        run_on_queue(load_task)
+            finally:
+                self._loads_in_flight.discard(load_key)
+        try:
+            run_on_queue(load_task)
+        except Exception:
+            self._loads_in_flight.discard(load_key)
+            raise
 
     def _update_current_fragment_icons(self, icons, prebuilt_index=None):
         logx(f"IconList._update_current_fragment_icons: called with icons count={len(icons) if icons else 0}", True)
