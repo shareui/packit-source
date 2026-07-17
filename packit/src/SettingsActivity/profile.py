@@ -269,13 +269,17 @@ class ProfileSettings:
             logx(f"profile._show_export_db: error: {e}", False)
 
     def _open_export_sheet(self):
+        # MD3-styled export sheet: drag handle, icon-tile header, option
+        # cards with animated selection tint, seamless nav bar
         try:
-            from android.widget import LinearLayout, TextView, FrameLayout
+            import ctypes as _ct
+            from android.widget import LinearLayout, TextView, FrameLayout, ImageView
             from android.view import Gravity, View, MotionEvent
             from android.util import TypedValue
-            from android.graphics import Color
+            from android.animation import ValueAnimator
+            from android.graphics import PorterDuff
             from android.graphics.drawable import GradientDrawable
-            from org.telegram.messenger import AndroidUtilities
+            from org.telegram.messenger import AndroidUtilities, R as R_tg
             from org.telegram.ui.ActionBar import Theme, BottomSheet
             from org.telegram.ui.Components import LayoutHelper, CheckBox2
             from android_utils import OnClickListener
@@ -290,19 +294,35 @@ class ProfileSettings:
 
             dp = AndroidUtilities.dp
 
+            def _c(color):
+                return _ct.c_int32(color).value
+
+            def _alpha(color, a):
+                return _c((a << 24) | (color & 0x00FFFFFF))
+
+            accent = Theme.getColor(Theme.key_featuredStickers_addButton)
+            text_black = Theme.getColor(Theme.key_dialogTextBlack)
+            text_gray = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+            field_color = Theme.getColor(Theme.key_windowBackgroundGray)
+
             sheet = BottomSheet(ctx, False, frag.getResourceProvider())
             sheet.setApplyBottomPadding(False)
             sheet.setApplyTopPadding(False)
-            sheet.setCanDismissWithSwipe(False)
+            try:
+                sheet.fixNavigationBar(Theme.getColor(Theme.key_dialogBackground))
+            except Exception:
+                pass
 
             outer = LinearLayout(ctx)
             outer.setOrientation(LinearLayout.VERTICAL)
+            outer.setClipChildren(False)
+            outer.setClipToPadding(False)
             try:
                 bg = GradientDrawable()
                 bg.setShape(GradientDrawable.RECTANGLE)
                 bg.setCornerRadii([
-                    dp(20), dp(20),
-                    dp(20), dp(20),
+                    dp(24), dp(24),
+                    dp(24), dp(24),
                     0, 0, 0, 0,
                 ])
                 bg.setColor(Theme.getColor(Theme.key_dialogBackground))
@@ -315,42 +335,74 @@ class ProfileSettings:
 
             pad_h = 20
 
-            title_tv = TextView(ctx)
-            title_tv.setText(str(strings["export_bs_title"]))
-            title_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20)
+            def _resolve_icon(name):
+                try:
+                    return getattr(R_tg.drawable, name, 0)
+                except Exception:
+                    return 0
+
+            # MD3 drag handle
             try:
-                title_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
-                title_tv.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
+                handle = View(ctx)
+                handle_bg = GradientDrawable()
+                handle_bg.setShape(GradientDrawable.RECTANGLE)
+                handle_bg.setCornerRadius(float(dp(2)))
+                try:
+                    handle_bg.setColor(Theme.getColor(Theme.key_sheet_scrollUp))
+                except Exception:
+                    handle_bg.setColor(_alpha(text_black, 0x2E))
+                handle.setBackground(handle_bg)
+                outer.addView(handle, LayoutHelper.createLinear(36, 4, Gravity.CENTER_HORIZONTAL, 0, 10, 0, 0))
             except Exception:
                 pass
 
-            subtitle_tv = TextView(ctx)
-            subtitle_tv.setText(str(strings["export_bs_subtitle"]))
-            subtitle_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            # header: accent icon tile + left-aligned title/subtitle
+            header = LinearLayout(ctx)
+            header.setOrientation(LinearLayout.HORIZONTAL)
+            header.setGravity(Gravity.CENTER_VERTICAL)
+
+            tile = FrameLayout(ctx)
             try:
-                subtitle_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
+                tile_bg = GradientDrawable()
+                tile_bg.setShape(GradientDrawable.RECTANGLE)
+                tile_bg.setCornerRadius(float(dp(13)))
+                tile_bg.setColor(_alpha(accent, 0x1C))
+                tile.setBackground(tile_bg)
             except Exception:
                 pass
+            tile_icon = ImageView(ctx)
+            try:
+                tile_icon.setImageResource(_resolve_icon("msg_shareout"))
+                tile_icon.setColorFilter(_c(accent), PorterDuff.Mode.SRC_IN)
+            except Exception:
+                pass
+            tile_icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+            tile.addView(tile_icon, FrameLayout.LayoutParams(dp(24), dp(24), Gravity.CENTER))
+            header.addView(tile, LayoutHelper.createLinear(44, 44, Gravity.CENTER_VERTICAL, 0, 0, 14, 0))
 
             title_col = LinearLayout(ctx)
             title_col.setOrientation(LinearLayout.VERTICAL)
-            title_col.setGravity(Gravity.CENTER_HORIZONTAL)
-            title_tv.setGravity(Gravity.CENTER)
-            subtitle_tv.setGravity(Gravity.CENTER)
-            title_col.addView(title_tv, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_HORIZONTAL))
-            title_col.addView(subtitle_tv, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_HORIZONTAL, 0, 4, 0, 0))
 
-            outer.addView(title_col, LayoutHelper.createLinear(-1, -2, pad_h, 16, pad_h, 16))
+            title_tv = TextView(ctx)
+            title_tv.setText(str(strings["export_bs_title"]))
+            title_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 19)
+            try:
+                title_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+            except Exception:
+                pass
+            title_tv.setTextColor(_c(text_black))
+            title_col.addView(title_tv, LayoutHelper.createLinear(-2, -2))
 
-            checkboxStates = [True, True, True]
-            checkboxLabels = [
-                strings["export_bs_local_config"],
-                strings["export_bs_achievements"],
-                strings["export_bs_plugins"],
-            ]
-            checkboxViews = []
+            subtitle_tv = TextView(ctx)
+            subtitle_tv.setText(str(strings["export_bs_subtitle"]))
+            subtitle_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+            subtitle_tv.setTextColor(_c(text_gray))
+            title_col.addView(subtitle_tv, LayoutHelper.createLinear(-2, -2, 0, 2, 0, 0))
 
-            def _apply_press_scale(view):
+            header.addView(title_col, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+            outer.addView(header, LayoutHelper.createLinear(-1, -2, pad_h, 14, pad_h, 6))
+
+            def _apply_press_scale(view, scale=0.96):
                 try:
                     class _TouchListener(dynamic_proxy(View.OnTouchListener)):
                         def __init__(self):
@@ -359,7 +411,7 @@ class ProfileSettings:
                             try:
                                 action = event.getActionMasked()
                                 if action == MotionEvent.ACTION_DOWN:
-                                    v.animate().scaleX(0.93).scaleY(0.93).setDuration(100).start()
+                                    v.animate().scaleX(scale).scaleY(scale).setDuration(100).start()
                                 elif action in (MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL):
                                     v.animate().scaleX(1.0).scaleY(1.0).setDuration(200).start()
                             except Exception:
@@ -369,79 +421,133 @@ class ProfileSettings:
                 except Exception:
                     pass
 
-            def makeCheckRow(i, labelText):
-                row = LinearLayout(ctx)
-                row.setOrientation(LinearLayout.HORIZONTAL)
-                row.setGravity(Gravity.CENTER_VERTICAL)
-                row.setPadding(dp(12), dp(6), dp(12), dp(6))
-                row.setClickable(True)
-                row.setFocusable(True)
+            checkboxStates = [True, True, True]
+            options = [
+                (strings["export_bs_local_config"], strings["export_bs_local_config_desc"], "msg_settings"),
+                (strings["export_bs_achievements"], strings["export_bs_achievements_desc"], "msg_stats"),
+                (strings["export_bs_plugins"], strings["export_bs_plugins_desc"], "msg_saved"),
+            ]
+
+            card_off = _c(field_color)
+            card_on = _alpha(accent, 0x1F)
+            tile_off = _alpha(text_black, 0x0C)
+            tile_on = _alpha(accent, 0x24)
+
+            cards = []
+
+            def makeOptionCard(i, labelText, descText, iconName):
+                card = LinearLayout(ctx)
+                card.setOrientation(LinearLayout.HORIZONTAL)
+                card.setGravity(Gravity.CENTER_VERTICAL)
+                card.setPadding(dp(12), dp(11), dp(14), dp(11))
+                card.setClickable(True)
+                card.setFocusable(True)
+
+                card_bg = GradientDrawable()
+                card_bg.setShape(GradientDrawable.RECTANGLE)
+                card_bg.setCornerRadius(float(dp(16)))
+                card_bg.setColor(card_on)
+                card.setBackground(card_bg)
+
+                icon_tile = FrameLayout(ctx)
+                icon_bg = GradientDrawable()
+                icon_bg.setShape(GradientDrawable.RECTANGLE)
+                icon_bg.setCornerRadius(float(dp(10)))
+                icon_bg.setColor(tile_on)
+                icon_tile.setBackground(icon_bg)
+                icon_view = ImageView(ctx)
                 try:
-                    row_bg = GradientDrawable()
-                    row_bg.setShape(GradientDrawable.RECTANGLE)
-                    row_bg.setCornerRadius(dp(12))
-                    row_bg.setColor(Theme.getColor(Theme.key_dialogBackground))
-                    row.setBackground(row_bg)
+                    icon_view.setImageResource(_resolve_icon(iconName))
+                    icon_view.setColorFilter(_c(accent), PorterDuff.Mode.SRC_IN)
                 except Exception:
                     pass
+                icon_view.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+                icon_tile.addView(icon_view, FrameLayout.LayoutParams(dp(20), dp(20), Gravity.CENTER))
+                card.addView(icon_tile, LayoutHelper.createLinear(36, 36, Gravity.CENTER_VERTICAL, 0, 0, 12, 0))
+
+                text_col = LinearLayout(ctx)
+                text_col.setOrientation(LinearLayout.VERTICAL)
+
+                label = TextView(ctx)
+                label.setText(str(labelText))
+                label.setMaxLines(1)
+                label.setSingleLine(True)
+                label.setHorizontalFadingEdgeEnabled(True)
+                label.setFadingEdgeLength(dp(24))
+                label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+                try:
+                    label.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+                except Exception:
+                    pass
+                label.setTextColor(_c(text_black))
+                text_col.addView(label, LayoutHelper.createLinear(-2, -2))
+
+                desc = TextView(ctx)
+                desc.setText(str(descText))
+                desc.setMaxLines(1)
+                desc.setSingleLine(True)
+                desc.setHorizontalFadingEdgeEnabled(True)
+                desc.setFadingEdgeLength(dp(24))
+                desc.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
+                desc.setTextColor(_c(text_gray))
+                text_col.addView(desc, LayoutHelper.createLinear(-2, -2, 0, 1, 0, 0))
+
+                card.addView(text_col, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
 
                 cb = CheckBox2(ctx, 21, frag.getResourceProvider())
                 cb.setColor(Theme.key_radioBackgroundChecked, Theme.key_radioBackground, Theme.key_checkboxCheck)
                 cb.setDrawUnchecked(True)
                 cb.setDrawBackgroundAsArc(14)
                 cb.setChecked(True, False)
-                checkboxViews.append(cb)
+                card.addView(cb, LayoutHelper.createLinear(dp(21), dp(21), Gravity.CENTER_VERTICAL, 8, 0, 0, 0))
 
-                label = TextView(ctx)
-                label.setText(str(labelText))
-                label.setMaxLines(1)
-                label.setSingleLine(True)
-                try:
-                    label.setAutoSizeTextTypeWithDefaults(TextView.AUTO_SIZE_TEXT_TYPE_UNIFORM)
-                    label.setAutoSizeTextTypeUniformWithConfiguration(8, 15, 1, TypedValue.COMPLEX_UNIT_DIP)
-                except Exception:
-                    label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
-                try:
-                    label.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
-                except Exception:
-                    pass
+                anim_holder = [None]
 
-                row.addView(cb, LayoutHelper.createLinear(dp(21), dp(21), Gravity.CENTER_VERTICAL, 0, 0, dp(8), 0))
-                row.addView(label, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+                def _animate_card(selected):
+                    try:
+                        prev = anim_holder[0]
+                        if prev is not None:
+                            prev.cancel()
+                        frm = card_off if selected else card_on
+                        to = card_on if selected else card_off
+                        va = ValueAnimator.ofArgb(frm, to)
+                        va.setDuration(180)
 
-                def makeToggle(idx, checkbox):
-                    def onClick(v):
-                        checkboxStates[idx] = not checkboxStates[idx]
-                        checkbox.setChecked(checkboxStates[idx], True)
-                    return onClick
+                        AnimUpd = dynamic_proxy(ValueAnimator.AnimatorUpdateListener)
 
-                row.setOnClickListener(OnClickListener(makeToggle(i, cb)))
-                _apply_press_scale(row)
-                return row
+                        class _Upd(AnimUpd):
+                            def onAnimationUpdate(self_u, animator):
+                                try:
+                                    card_bg.setColor(int(animator.getAnimatedValue()))
+                                except Exception:
+                                    pass
 
-            checkboxes_list = LinearLayout(ctx)
-            checkboxes_list.setOrientation(LinearLayout.VERTICAL)
+                        va.addUpdateListener(_Upd())
+                        va.start()
+                        anim_holder[0] = va
+                    except Exception:
+                        card_bg.setColor(card_on if selected else card_off)
+                    try:
+                        icon_bg.setColor(tile_on if selected else tile_off)
+                        icon_view.setColorFilter(
+                            _c(accent) if selected else _c(text_gray), PorterDuff.Mode.SRC_IN
+                        )
+                    except Exception:
+                        pass
 
-            for i, label in enumerate(checkboxLabels):
-                rowView = makeCheckRow(i, label)
-                row_lp = LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8 if i < len(checkboxLabels) - 1 else 0)
-                checkboxes_list.addView(rowView, row_lp)
+                def onClick(v):
+                    checkboxStates[i] = not checkboxStates[i]
+                    cb.setChecked(checkboxStates[i], True)
+                    _animate_card(checkboxStates[i])
 
-            dark_container = FrameLayout(ctx)
-            dark_field_color = Theme.getColor(Theme.key_windowBackgroundGray)
-            dark_bg = GradientDrawable()
-            dark_bg.setShape(GradientDrawable.RECTANGLE)
-            dark_bg.setCornerRadius(dp(18))
-            dark_bg.setColor(dark_field_color)
-            dark_container.setBackground(dark_bg)
+                card.setOnClickListener(OnClickListener(onClick))
+                _apply_press_scale(card)
+                return card
 
-            checkboxes_list.setPadding(dp(12), dp(16), dp(12), dp(16))
-            dark_container.addView(checkboxes_list, FrameLayout.LayoutParams(-1, -2))
-
-            dark_lp = LinearLayout.LayoutParams(-1, -2)
-            dark_lp.leftMargin = dp(pad_h)
-            dark_lp.rightMargin = dp(pad_h)
-            outer.addView(dark_container, dark_lp)
+            for i, (labelText, descText, iconName) in enumerate(options):
+                card = makeOptionCard(i, labelText, descText, iconName)
+                outer.addView(card, LayoutHelper.createLinear(-1, -2, pad_h, 10 if i == 0 else 8, pad_h, 0))
+                cards.append(card)
 
             def onShare():
                 try:
@@ -456,12 +562,27 @@ class ProfileSettings:
                 t.start()
 
             export_btn = FrameLayout(ctx)
-            base = Theme.getColor(Theme.key_featuredStickers_addButton)
+            base = accent
             pressed = Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
             export_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(28), base, pressed))
             export_btn.setPadding(0, dp(14), 0, dp(14))
             export_btn.setClickable(True)
             export_btn.setFocusable(True)
+
+            btn_row = LinearLayout(ctx)
+            btn_row.setOrientation(LinearLayout.HORIZONTAL)
+            btn_row.setGravity(Gravity.CENTER)
+
+            btn_icon = ImageView(ctx)
+            try:
+                btn_icon.setImageResource(_resolve_icon("msg_share"))
+                btn_icon.setColorFilter(
+                    _c(Theme.getColor(Theme.key_featuredStickers_buttonText)), PorterDuff.Mode.SRC_IN
+                )
+            except Exception:
+                pass
+            btn_icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
+            btn_row.addView(btn_icon, LayoutHelper.createLinear(20, 20, Gravity.CENTER_VERTICAL, 0, 0, 8, 0))
 
             btn_tv = TextView(ctx)
             btn_tv.setText(str(strings["export_bs_share"]))
@@ -472,10 +593,32 @@ class ProfileSettings:
                 btn_tv.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
             except Exception:
                 pass
-            export_btn.addView(btn_tv, FrameLayout.LayoutParams(-1, -2))
+            btn_row.addView(btn_tv, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL))
+
+            export_btn.addView(btn_row, FrameLayout.LayoutParams(-1, -2, Gravity.CENTER))
             export_btn.setOnClickListener(OnClickListener(lambda v: onShare()))
-            _apply_press_scale(export_btn)
-            outer.addView(export_btn, LayoutHelper.createLinear(-1, -2, pad_h, 24, pad_h, 16))
+            _apply_press_scale(export_btn, 0.97)
+            outer.addView(export_btn, LayoutHelper.createLinear(-1, -2, pad_h, 20, pad_h, 16))
+
+            # staggered entrance: cards and button slide up while the sheet opens
+            try:
+                for idx, v in enumerate(cards + [export_btn]):
+                    v.setAlpha(0.0)
+                    v.setTranslationY(float(dp(14)))
+                    v.animate().alpha(1.0).translationY(0.0).setDuration(220).setStartDelay(60 + idx * 40).start()
+            except Exception:
+                for v in cards + [export_btn]:
+                    try:
+                        v.setAlpha(1.0)
+                        v.setTranslationY(0.0)
+                    except Exception:
+                        pass
+
+            try:
+                from ..ui.viewUtils import applyFontToTree
+                applyFontToTree(outer)
+            except Exception:
+                pass
 
             sheet.setCustomView(outer)
             sheet.show()
