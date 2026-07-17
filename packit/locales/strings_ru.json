@@ -153,6 +153,7 @@
   "easter_egg_reset_message": "Себя сбрось с окна. У тебя один репозиторий, дурачок~",
   "support_via_send": "Поддержать через @send",
   "support_via_ton": "Поддержать через GRAM",
+  "support_via_yoomoney": "Поддержать через ЮMoney",
   "support_send_message": "<З",
   "support_with_github_sponsors": "Поддержать через Github Sponsors",
   "copied_to_clipboard": "Скопировано в буфер обмена",
@@ -1159,5 +1160,6 @@
   "force_clean_log_done": "Файл логов очищен",
   "force_clean_log_error": "Не удалось очистить файл логов",
   "debug_clearing_header": "Очистка логов",
-  "debug_perf_warning": "Использование этого параметра может снизить производительность. Используйте только при необходимости."
+  "debug_perf_warning": "Использование этого параметра может снизить производительность. Используйте только при необходимости.",
+  "plus_sponsor": "+ Спонсор"
 }
