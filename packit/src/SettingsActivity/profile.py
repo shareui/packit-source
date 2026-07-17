@@ -472,6 +472,8 @@ class ProfileSettings:
                 label.setText(str(labelText))
                 label.setMaxLines(1)
                 label.setSingleLine(True)
+                label.setHorizontalFadingEdgeEnabled(True)
+                label.setFadingEdgeLength(dp(24))
                 label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
                 try:
                     label.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
@@ -484,6 +486,8 @@ class ProfileSettings:
                 desc.setText(str(descText))
                 desc.setMaxLines(1)
                 desc.setSingleLine(True)
+                desc.setHorizontalFadingEdgeEnabled(True)
+                desc.setFadingEdgeLength(dp(24))
                 desc.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
                 desc.setTextColor(_c(text_gray))
                 text_col.addView(desc, LayoutHelper.createLinear(-2, -2, 0, 1, 0, 0))
