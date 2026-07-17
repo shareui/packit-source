@@ -66,6 +66,129 @@ object CatalogChromeNative {
         return btn
     }
 
+    private fun searchPill(
+        ctx: Context, cardBg: Int, accent: Int, accentPressed: Int, buttonText: Int,
+        textColor: Int, iconClear: Int, iconSearch: Int, showSearchBtn: Boolean
+    ): FrameLayout {
+        val searchContainer = FrameLayout(ctx)
+        searchContainer.background =
+            rounded(cardBg, dp(ctx, 50f).toFloat(), dp(ctx, 2f), accent)
+        searchContainer.setPadding(dp(ctx, 16f), dp(ctx, 5f), dp(ctx, 8f), dp(ctx, 5f))
+
+        val searchRow = LinearLayout(ctx)
+        searchRow.orientation = LinearLayout.HORIZONTAL
+        searchRow.gravity = Gravity.CENTER_VERTICAL
+
+        val searchSlot = FrameLayout(ctx)
+        searchSlot.tag = "search_slot"
+        searchRow.addView(searchSlot, LinearLayout.LayoutParams(-1, dp(ctx, 36f), 1f))
+
+        val clearBtn = iconButton(
+            ctx, selector(0x00000000, 0x1F000000, dp(ctx, 25f).toFloat()),
+            iconClear, textColor, dp(ctx, 8f), "clear_btn"
+        )
+        clearBtn.visibility = View.GONE
+        clearBtn.alpha = 0f
+        searchRow.addView(clearBtn, LinearLayout.LayoutParams(dp(ctx, 52f), dp(ctx, 36f), 0f))
+
+        val searchBtn = iconButton(
+            ctx, selector(accent, accentPressed, dp(ctx, 25f).toFloat()),
+            iconSearch, buttonText, dp(ctx, 8f), "search_btn"
+        )
+        if (!showSearchBtn) searchBtn.visibility = View.GONE
+        searchRow.addView(searchBtn, LinearLayout.LayoutParams(dp(ctx, 52f), dp(ctx, 36f), 0f))
+
+        searchContainer.addView(searchRow, FrameLayout.LayoutParams(-1, -2))
+        return searchContainer
+    }
+
+    private fun resultsScroll(ctx: Context, mainBg: Int): ScrollView {
+        val scroll = ScrollView(ctx)
+        scroll.tag = "scroll"
+        scroll.isFillViewport = true
+        scroll.isVerticalScrollBarEnabled = false
+        scroll.setBackgroundColor(mainBg)
+        scroll.setFadingEdgeLength(dp(ctx, 24f))
+        scroll.isVerticalFadingEdgeEnabled = true
+        try {
+            scroll.isNestedScrollingEnabled = true
+        } catch (t: Throwable) {
+        }
+        return scroll
+    }
+
+    // icons catalog: search pill + [repo | count | sort] header + scroll.
+    // tags: search_slot, clear_btn, search_btn, repo_btn, subtitle, sort_btn,
+    // scroll
+    @JvmStatic
+    fun createIconsChrome(
+        ctx: Context,
+        mainBg: Int,
+        cardBg: Int,
+        cardPressed: Int,
+        textColor: Int,
+        accent: Int,
+        accentPressed: Int,
+        buttonText: Int,
+        iconClear: Int,
+        iconSearch: Int,
+        iconRepo: Int,
+        iconSort: Int,
+        subtitleText: String,
+        showSearchBtn: Boolean
+    ): LinearLayout {
+        val main = LinearLayout(ctx)
+        main.orientation = LinearLayout.VERTICAL
+        main.setPadding(dp(ctx, 16f), 0, dp(ctx, 16f), dp(ctx, 14f))
+
+        val searchContainer = searchPill(
+            ctx, cardBg, accent, accentPressed, buttonText, textColor,
+            iconClear, iconSearch, showSearchBtn
+        )
+        val scLp = LinearLayout.LayoutParams(-1, -2)
+        scLp.bottomMargin = dp(ctx, 8f)
+        main.addView(searchContainer, scLp)
+
+        val header = FrameLayout(ctx)
+        val hLp = LinearLayout.LayoutParams(-1, dp(ctx, 44f))
+        hLp.topMargin = dp(ctx, 4f)
+        hLp.bottomMargin = dp(ctx, 12f)
+        main.addView(header, hLp)
+
+        val repoBtn = iconButton(
+            ctx, selector(cardBg, cardPressed, dp(ctx, 16f).toFloat()),
+            iconRepo, textColor, dp(ctx, 8f), "repo_btn"
+        )
+        header.addView(
+            repoBtn,
+            FrameLayout.LayoutParams(-2, -2, Gravity.LEFT or Gravity.CENTER_VERTICAL)
+        )
+
+        val subtitle = TextView(ctx)
+        subtitle.tag = "subtitle"
+        subtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f)
+        subtitle.text = subtitleText
+        subtitle.gravity = Gravity.CENTER
+        subtitle.setPadding(dp(ctx, 12f), dp(ctx, 7f), dp(ctx, 12f), dp(ctx, 7f))
+        subtitle.isClickable = false
+        subtitle.isFocusable = false
+        subtitle.background = rounded(cardBg, dp(ctx, 16f).toFloat())
+        subtitle.setTextColor(textColor)
+        header.addView(subtitle, FrameLayout.LayoutParams(-2, -2, Gravity.CENTER))
+
+        val sortBtn = iconButton(
+            ctx, selector(cardBg, cardPressed, dp(ctx, 16f).toFloat()),
+            iconSort, textColor, dp(ctx, 8f), "sort_btn"
+        )
+        header.addView(
+            sortBtn,
+            FrameLayout.LayoutParams(-2, -2, Gravity.RIGHT or Gravity.CENTER_VERTICAL)
+        )
+
+        main.addView(resultsScroll(ctx, mainBg), LinearLayout.LayoutParams(-1, 0, 1f))
+        return main
+    }
+
     @JvmStatic
     fun createPluginsChrome(
         ctx: Context,
@@ -92,37 +215,11 @@ object CatalogChromeNative {
         main.orientation = LinearLayout.VERTICAL
         main.setPadding(dp(ctx, 16f), 0, dp(ctx, 16f), dp(ctx, 14f))
 
-        // -------- search pill
-        val searchContainer = FrameLayout(ctx)
-        searchContainer.background =
-            rounded(cardBg, dp(ctx, 50f).toFloat(), dp(ctx, 2f), accent)
-        searchContainer.setPadding(dp(ctx, 16f), dp(ctx, 5f), dp(ctx, 8f), dp(ctx, 5f))
-
-        val searchRow = LinearLayout(ctx)
-        searchRow.orientation = LinearLayout.HORIZONTAL
-        searchRow.gravity = Gravity.CENTER_VERTICAL
-
-        // python drops the telegram EditTextBoldCursor in here
-        val searchSlot = FrameLayout(ctx)
-        searchSlot.tag = "search_slot"
-        searchRow.addView(searchSlot, LinearLayout.LayoutParams(-1, dp(ctx, 36f), 1f))
-
-        val clearBtn = iconButton(
-            ctx, selector(0x00000000, 0x1F000000, dp(ctx, 25f).toFloat()),
-            iconClear, textColor, dp(ctx, 8f), "clear_btn"
+        // python drops the telegram EditTextBoldCursor into the tagged slot
+        val searchContainer = searchPill(
+            ctx, cardBg, accent, accentPressed, buttonText, textColor,
+            iconClear, iconSearch, showSearchBtn
         )
-        clearBtn.visibility = View.GONE
-        clearBtn.alpha = 0f
-        searchRow.addView(clearBtn, LinearLayout.LayoutParams(dp(ctx, 52f), dp(ctx, 36f), 0f))
-
-        val searchBtn = iconButton(
-            ctx, selector(accent, accentPressed, dp(ctx, 25f).toFloat()),
-            iconSearch, buttonText, dp(ctx, 8f), "search_btn"
-        )
-        if (!showSearchBtn) searchBtn.visibility = View.GONE
-        searchRow.addView(searchBtn, LinearLayout.LayoutParams(dp(ctx, 52f), dp(ctx, 36f), 0f))
-
-        searchContainer.addView(searchRow, FrameLayout.LayoutParams(-1, -2))
         val scLp = LinearLayout.LayoutParams(-1, -2)
         scLp.bottomMargin = dp(ctx, 8f)
         main.addView(searchContainer, scLp)
@@ -188,20 +285,7 @@ object CatalogChromeNative {
             FrameLayout.LayoutParams(-2, -2, Gravity.RIGHT or Gravity.CENTER_VERTICAL)
         )
 
-        // -------- results scroll
-        val scroll = ScrollView(ctx)
-        scroll.tag = "scroll"
-        scroll.isFillViewport = true
-        scroll.isVerticalScrollBarEnabled = false
-        scroll.setBackgroundColor(mainBg)
-        scroll.setFadingEdgeLength(dp(ctx, 24f))
-        scroll.isVerticalFadingEdgeEnabled = true
-        try {
-            scroll.isNestedScrollingEnabled = true
-        } catch (t: Throwable) {
-        }
-        main.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
-
+        main.addView(resultsScroll(ctx, mainBg), LinearLayout.LayoutParams(-1, 0, 1f))
         return main
     }
 }

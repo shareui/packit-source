@@ -409,7 +409,8 @@ class InstallUI:
             self.repo_id = repo_id
             self.plugins = _filter_unavailable(plugins)
             self.show_loading_initial = show_loading_initial
-            self.search_index = search_mod.build_index(self.plugins)
+            # skip the pointless empty-index build (json+dlopen on the click path)
+            self.search_index = search_mod.build_index(self.plugins) if self.plugins else None
             self.last_search_query = None
             self.filtered_plugins = []
             self.visible_plugins = []
@@ -547,7 +548,7 @@ class InstallUI:
                 except Exception as e:
                     logx(f"InstallUI: deferred build_list_view error: {e}", False)
             # let the open animation start smoothly before the heavy build
-            run_on_ui_thread(_deferred, 120)
+            run_on_ui_thread(_deferred, 30)
             return shell
 
         def getTitle(self):
