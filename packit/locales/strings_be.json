@@ -1123,6 +1123,8 @@
   "sponsors": "Спонсары",
   "achiev_title_secret_connect_is_bullshit": "Усе мы ненавідзім Connect",
   "achiev_hint_secret_connect_is_bullshit": "Малююць багіню Умі Асанагі, не ведаючы анатомію чалавека... Гарэць ім у пекле.",
+  "achiev_title_secret_opsec": "Аперацыйная бяспека",
+  "achiev_hint_secret_opsec": "Ты ўсталяваў opsec прывілеяваным спосабам: sudo packit install opsec.",
   "pp_closed_source_moderated": "Закрыты зыходны код, але з мадэрацыяй, таму вы ў бяспецы.",
   "beta_build_title": "Бэта-зборка",
   "beta_build_msg": "Вы не тэсціроўшчык, вам не варта было ўсталёўваць PackIt.",

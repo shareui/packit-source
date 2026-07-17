@@ -631,7 +631,9 @@ class InstallUI:
                 for p in self.plugins:
                     s = search_mod.score(p, q, self.search_index, isRussian, fuzzy)
                     if s[0] < 6:
-                        scored.append((s, p))
+                        result_plugin = dict(p)
+                        result_plugin["_search_similarity"] = search_mod.score_percent(s)
+                        scored.append((s, result_plugin))
                 scored.sort(key=lambda x: x[0])
                 filtered = [p for _, p in scored]
 

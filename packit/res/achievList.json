@@ -970,5 +970,17 @@
     "title_key": "achiev_title_secret_connect_is_bullshit",
     "hint_key": "achiev_hint_secret_connect_is_bullshit",
     "category_key": "achiev_cat_unknown"
+  },
+  {
+    "id": "secret_opsec",
+    "category": "Unknown achievements",
+    "title": "Operational security",
+    "goal": 1,
+    "hint": "sudo packit install opsec",
+    "icon": "msg_secret",
+    "playSound": true,
+    "title_key": "achiev_title_secret_opsec",
+    "hint_key": "achiev_hint_secret_opsec",
+    "category_key": "achiev_cat_unknown"
   }
 ]

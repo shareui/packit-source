@@ -29,8 +29,8 @@ except Exception as e:
     strings = {}
     settings = None
 
-_GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro"]
-_GEMINI_MODEL_LABELS = ["2.5 Flash", "2.5 Flash Lite", "2.5 Pro"]
+_GEMINI_MODELS = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-3.1-pro-preview"]
+_GEMINI_MODEL_LABELS = ["3.5 Flash", "3.1 Flash Lite", "3.1 Pro (Preview)"]
 
 
 def _load_gemini_cache() -> dict:

@@ -327,14 +327,24 @@ def make_plugin_card(self, p):
 
     top_row.addView(col, LayoutHelper.createLinear(0, -2, 1.0))
 
+    similarity = p.get("_search_similarity")
+    show_similarity = isinstance(similarity, (int, float)) and similarity > 0
     show_size = self._s_show_size
     show_min_ver = self._s_show_min_ver
     show_deps = self._s_show_deps
 
-    if show_size or show_min_ver or show_deps:
+    if show_similarity or show_size or show_min_ver or show_deps:
         chips_col = LinearLayout(act)
         chips_col.setOrientation(LinearLayout.VERTICAL)
         chips_col.setGravity(Gravity.TOP | Gravity.RIGHT)
+
+        if show_similarity:
+            chip = self.install_ui._make_info_chip(
+                act, f"{int(round(similarity))}%", "key_featuredStickers_addButton", self._s_chip_ver_size
+            )
+            chip_lp = LinearLayout.LayoutParams(-2, -2)
+            chip_lp.bottomMargin = AndroidUtilities.dp(4)
+            chips_col.addView(chip, chip_lp)
 
         if show_min_ver:
             min_ver = p.get("app_version")
@@ -591,6 +601,15 @@ def make_plugin_card(self, p):
         try:
             from ..contextMenu import show_plugin_context_menu
 
+            def do_install():
+                from ...core import install_plugin
+                install_plugin(
+                    p,
+                    install_ui=self.install_ui,
+                    all_plugins=self.plugins,
+                    rm_rid=self.repo_id or str(p.get("_repo_id") or ""),
+                )
+
             def do_download():
                 download_plugin_file(p)
                 try:
@@ -635,6 +654,7 @@ def make_plugin_card(self, p):
                     pass
 
             show_plugin_context_menu(anchor_view.getRootView(), anchor_view, [
+                {"icon": "msg_download_remix", "text": str(strings["pp_install"]), "action": do_install, "show": is_available},
                 {"icon": "msg_copy",      "text": str(strings["copy_link"]), "action": do_copy,      "show": not getattr(self, "_s_relocate_copy",      False)},
                 {"icon": "msg_share",     "text": str(strings["share"]),     "action": do_share,     "show": not getattr(self, "_s_relocate_share",     False)},
                 {"icon": "msg_view_file", "text": str(strings["code"]),      "action": do_code,      "show": not getattr(self, "_s_relocate_code",      False)},
