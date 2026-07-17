@@ -152,9 +152,15 @@ def _show_bulletin(icon_raw_name, text, is_error=False):
             return
         BulletinFactory = _fc("org.telegram.ui.Components.BulletinFactory")
         from org.telegram.messenger import R as R_tg
-        container = frag.getParentActivity().getWindow().getDecorView()
-        rp = frag.getResourceProvider()
-        factory = BulletinFactory.of(container, rp)
+        try:
+            # fragment overload puts the bulletin inside the fragment's layout
+            # container with native insets (above the nav bar), same as install
+            # bulletins; the decorView overload pinned it under the nav bar
+            factory = BulletinFactory.of(frag)
+        except Exception:
+            container = frag.getParentActivity().getWindow().getDecorView()
+            rp = frag.getResourceProvider()
+            factory = BulletinFactory.of(container, rp)
         if is_error:
             factory.createErrorBulletin(str(text)).show()
         else:
@@ -434,7 +440,10 @@ def _build_special_thanks_card(act, content, animate_idx=0):
 
         sep = View(act)
         sep.setBackgroundColor(Theme.getColor(Theme.key_divider))
-        sep_lp = LinearLayout.LayoutParams(-1, dp(1))
+        # 1 physical px, not dp(1): native cell dividers are hairlines drawn
+        # with Theme.dividerPaint (strokeWidth 1px); dp(1) is 2-3px and reads
+        # much darker than everywhere else in the app
+        sep_lp = LinearLayout.LayoutParams(-1, 1)
         sep_lp.setMargins(dp(16), 0, dp(16), 0)
         card.addView(sep, sep_lp)
 
@@ -494,7 +503,10 @@ def _build_sponsors_card(act, content, animate_idx=0):
 
         sep = View(act)
         sep.setBackgroundColor(Theme.getColor(Theme.key_divider))
-        sep_lp = LinearLayout.LayoutParams(-1, dp(1))
+        # 1 physical px, not dp(1): native cell dividers are hairlines drawn
+        # with Theme.dividerPaint (strokeWidth 1px); dp(1) is 2-3px and reads
+        # much darker than everywhere else in the app
+        sep_lp = LinearLayout.LayoutParams(-1, 1)
         sep_lp.setMargins(dp(16), 0, dp(16), 0)
         card.addView(sep, sep_lp)
 
@@ -822,10 +834,11 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
     def _make_small_divider(self, act):
         try:
             divider = View(act)
-            divider.setMinimumHeight(AndroidUtilities.dp(1))
+            divider.setMinimumHeight(1)
             divider.setBackgroundColor(Theme.getColor(Theme.key_divider))
             container = FrameLayout(act)
-            params = FrameLayout.LayoutParams(-1, AndroidUtilities.dp(1))
+            # 1px hairline like native cell dividers (dp(1) reads too dark)
+            params = FrameLayout.LayoutParams(-1, 1)
             params.setMargins(AndroidUtilities.dp(68), AndroidUtilities.dp(4), AndroidUtilities.dp(16), 0)
             container.addView(divider, params)
             return container
@@ -887,7 +900,8 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 return
             divider = View(act)
             divider.setBackgroundColor(Theme.getColor(Theme.key_divider))
-            content.addView(divider, LinearLayout.LayoutParams(-1, AndroidUtilities.dp(1)))
+            # 1px hairline like native cell dividers (dp(1) reads too dark)
+            content.addView(divider, LinearLayout.LayoutParams(-1, 1))
         except Exception:
             pass
 
@@ -928,7 +942,8 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             # separator between header and links inside card
             sep = View(act)
             sep.setBackgroundColor(Theme.getColor(Theme.key_divider))
-            sep_lp = LinearLayout.LayoutParams(-1, dp(1))
+            # 1px hairline like native cell dividers (dp(1) reads too dark)
+            sep_lp = LinearLayout.LayoutParams(-1, 1)
             sep_lp.setMargins(dp(16), 0, dp(16), 0)
             card.addView(sep, sep_lp)
 
