@@ -44,7 +44,7 @@ from typing import List, Any, Callable
 from dataclasses import dataclass, field
 from ..ui.FontPickerBottomSheet import showFontPicker
 from ..ui.FontManager import getSelectedFilename
-from extera_utils.classes import Base, java_subclass, jMVELoverride, joverride
+from extera_utils.classes import Base, java_subclass, joverride
 
 def _reload_plugin_settings():
     try:
@@ -1311,151 +1311,6 @@ def _buildSortMenuDesignToggle(context, key, default, on_change=None):
         return None
 
 
-@java_subclass(LinearLayout)
-class SfxVolumeSlider(Base):
-    # tall enough for the title row + the 75dp MD3 SlideIntChooseView; the
-    # SeekBar fallback centers itself vertically in the same height
-    onMeasure = jMVELoverride(
-        arguments=[("widthMeasureSpec", "int"), ("heightMeasureSpec", "int")],
-        code="""
-            SUPER_onMeasure(
-                android.view.View$MeasureSpec.makeMeasureSpec(
-                    android.view.View$MeasureSpec.getSize(widthMeasureSpec),
-                    android.view.View$MeasureSpec.EXACTLY
-                ),
-                android.view.View$MeasureSpec.makeMeasureSpec(
-                    org.telegram.messenger.AndroidUtilities.dp(104),
-                    android.view.View$MeasureSpec.EXACTLY
-                )
-            );
-            return null;
-        """,
-    )
-
-    def on_post_init(self, context):
-        from android.view import Gravity
-        from elyx import settings as _s
-        dp = AndroidUtilities.dp
-
-        self._s = _s
-        self._md3 = None
-        self.setOrientation(LinearLayout.VERTICAL)
-        self.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite))
-
-        try:
-            initial = int(_s.get("sfx_volume", 100))
-        except Exception:
-            initial = 100
-
-        def _on_change(v):
-            try:
-                _s.set("sfx_volume", int(v), reload_settings=False)
-            except Exception:
-                pass
-
-        def _fmt(label_type, v):
-            # center label shows the pretty value, edges show plain percents
-            if label_type == 0:
-                return SfxVolumeSlider._volLabel(v)
-            return f"{v}%"
-
-        try:
-            from ..ui.md3Slider import createMd3Slider
-            md3 = createMd3Slider(context, 0, 100, initial, _on_change, _fmt)
-        except Exception as e:
-            logx(f"SfxVolumeSlider: md3 import/create error: {e}", False)
-            md3 = None
-
-        if md3 is not None:
-            self.setPadding(0, dp(6), 0, 0)
-            title = TextView(context)
-            title.setText(str(strings.sfx_volume))
-            title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
-            title.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
-            self.addView(title, LayoutHelper.createLinear(-2, -2, 22, 0, 22, 0))
-            # the MD3 cell is edge-to-edge with its own 22dp text insets
-            self.addView(md3.view, LayoutHelper.createLinear(-1, -2))
-            self._md3 = md3
-            return
-
-        self._build_seekbar_fallback(context)
-
-    def _build_seekbar_fallback(self, context):
-        from android.widget import SeekBar
-        from android.view import Gravity
-        from java import dynamic_proxy
-        _s = self._s
-        dp = AndroidUtilities.dp
-
-        self.setPadding(dp(21), dp(8), dp(21), dp(8))
-        self.setGravity(Gravity.CENTER_VERTICAL)
-
-        labelRow = LinearLayout(context)
-        labelRow.setOrientation(LinearLayout.HORIZONTAL)
-        labelRow.setGravity(Gravity.CENTER_VERTICAL)
-        self.addView(labelRow, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 6))
-
-        self._labelView = TextView(context)
-        self._labelView.setText(str(strings.sfx_volume))
-        self._labelView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
-        self._labelView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
-        labelRow.addView(self._labelView, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
-
-        self._valueView = TextView(context)
-        self._valueView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
-        self._valueView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
-        labelRow.addView(self._valueView, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL))
-
-        self._seekBar = SeekBar(context)
-        self._seekBar.setMax(100)
-
-        try:
-            from android.graphics import PorterDuff, PorterDuffColorFilter
-            accent = Theme.getColor(Theme.key_featuredStickers_addButton)
-            self._seekBar.getProgressDrawable().setColorFilter(PorterDuffColorFilter(accent, PorterDuff.Mode.SRC_IN))
-            self._seekBar.getThumb().setColorFilter(PorterDuffColorFilter(accent, PorterDuff.Mode.SRC_IN))
-        except Exception:
-            pass
-
-        valueView = self._valueView
-
-        class _ChangeListener(dynamic_proxy(SeekBar.OnSeekBarChangeListener)):
-            def onProgressChanged(self_l, sb, progress, fromUser):
-                try:
-                    _s.set("sfx_volume", progress, reload_settings=False)
-                    valueView.setText(SfxVolumeSlider._volLabel(progress))
-                except Exception:
-                    pass
-
-            def onStartTrackingTouch(self_l, sb):
-                pass
-
-            def onStopTrackingTouch(self_l, sb):
-                pass
-
-        self._seekBar.setOnSeekBarChangeListener(_ChangeListener())
-        self.addView(self._seekBar, LayoutHelper.createLinear(-1, -2))
-
-    def bind(self):
-        try:
-            vol = int(self._s.get("sfx_volume", 100))
-        except Exception:
-            vol = 100
-        if self._md3 is not None:
-            self._md3.set_value(vol, False)
-            return
-        self._seekBar.setProgress(vol)
-        self._valueView.setText(SfxVolumeSlider._volLabel(vol))
-
-    @staticmethod
-    def _volLabel(v):
-        if v == 0:
-            return str(strings["sfx_volume_off"])
-        if v == 100:
-            return str(strings["sfx_volume_maximum"])
-        return f"{v}%"
-
-
 class OtherSettings:
     def __init__(self, chat_button=None, plugin=None):
         self.chat_button = chat_button
@@ -1621,19 +1476,6 @@ class OtherSettings:
             text=strings.hash_function,
             icon="msg_sendfile",
         )
-
-    def _build_sfx_volume_slider(self, ctx):
-        # slider 0-100 for sfx_volume setting, shown as a separate row under sfx section
-        try:
-            if not ctx:
-                return None
-            slider = SfxVolumeSlider.new_instance(ctx)
-            slider.bind()
-            return Custom(view=slider.java)
-        except Exception as e:
-            logx(f"other: _build_sfx_volume_slider error: {e}", False)
-            return None
-
 
     def _open_main_menu_settings(self, view):
         try:

@@ -139,6 +139,7 @@ def openFileCreate(context, path, text_size_px, pad_l, pad_t, pad_r, pad_b,
 
 
 _CATALOG_CLASS = "kawaii.packetik.catalog.CatalogChromeNative"
+_SFX_CLASS = "kawaii.packetik.sfx.SfxNative"
 
 
 def catalogChromeCreate(context, main_bg, card_bg, card_pressed, text_color,
@@ -200,6 +201,64 @@ def catalogIconsChromeCreate(context, main_bg, card_bg, card_pressed, text_color
         )
     except Exception as e:
         logx(f"dexLoader: catalogIconsChromeCreate error: {e}", False)
+        return None
+
+
+def sfxExpandableCreate(context, item_id, text, subtext, checked, collapsed,
+                        switch_click):
+    try:
+        if context is None:
+            from org.telegram.messenger import ApplicationLoader
+            context = ApplicationLoader.applicationContext
+        cls = _loadClass("sfx", _SFX_CLASS, context)
+        if cls is None:
+            return None
+        from java import jint
+        return _callStatic(
+            cls, "createExpandable",
+            context.getClassLoader(), jint(int(item_id)), str(text), str(subtext),
+            bool(checked), bool(collapsed), switch_click,
+        )
+    except Exception as e:
+        logx(f"dexLoader: sfxExpandableCreate error: {e}", False)
+        return None
+
+
+def sfxChildCreate(context, item_id, text, checked):
+    try:
+        if context is None:
+            from org.telegram.messenger import ApplicationLoader
+            context = ApplicationLoader.applicationContext
+        cls = _loadClass("sfx", _SFX_CLASS, context)
+        if cls is None:
+            return None
+        from java import jint
+        return _callStatic(
+            cls, "createChild",
+            context.getClassLoader(), jint(int(item_id)), str(text), bool(checked),
+        )
+    except Exception as e:
+        logx(f"dexLoader: sfxChildCreate error: {e}", False)
+        return None
+
+
+def sfxVolumeSliderCreate(context, initial, title, off_label, maximum_label,
+                          on_change):
+    try:
+        if context is None:
+            from org.telegram.messenger import ApplicationLoader
+            context = ApplicationLoader.applicationContext
+        cls = _loadClass("sfx", _SFX_CLASS, context)
+        if cls is None:
+            return None
+        from java import jint
+        return _callStatic(
+            cls, "createVolumeSlider",
+            context, jint(int(initial)), str(title), str(off_label),
+            str(maximum_label), on_change,
+        )
+    except Exception as e:
+        logx(f"dexLoader: sfxVolumeSliderCreate error: {e}", False)
         return None
 
 
