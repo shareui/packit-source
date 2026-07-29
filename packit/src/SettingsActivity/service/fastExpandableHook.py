@@ -16,6 +16,7 @@ _ES_GROUPS = {
         ("sfx_search", False),
         ("sfx_clear_search", False),
         ("sfx_achievement", True),
+        ("sfx_available_updates", False),
     ],
     "inline_send_enabled": [
         ("inline_send_name", True),

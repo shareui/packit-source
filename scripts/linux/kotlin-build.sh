@@ -26,6 +26,7 @@ PACKAGES=(
   "badges=kawaii.packetik.badges.BadgesNative"
   "openfile=kawaii.packetik.openfile.OpenFileNative"
   "catalog=kawaii.packetik.catalog.CatalogChromeNative"
+  "sfx=kawaii.packetik.sfx.SfxNative"
 )
 
 die() { echo "error: $*" >&2; exit 1; }
