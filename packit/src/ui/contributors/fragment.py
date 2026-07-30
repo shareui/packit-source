@@ -72,6 +72,12 @@ _UID_VCVK    = 1602207467
 _UID_PIXWET  = 5184725450
 _UID_FAUSTYU = 1415937101
 
+# contributors looked up by username instead of a hardcoded id
+_USERNAME_XARMAQ = "xarmaq"
+
+# username -> user id, filled in by _fetch_user_by_username
+_RESOLVED_UIDS = {}
+
 # special thanks user ids
 _THANKS_UIDS = [
     7382225582,
@@ -209,10 +215,53 @@ def _fetch_user(user_id, on_done):
     run_on_queue(_do)
 
 
-def _make_avatar_view(context, user_id, title_text, title_badge=None):
+def _fetch_user_by_username(username, on_done):
+    # resolve @username via TL_contacts_resolveUsername; calls on_done(user) on ui thread
+    def _do():
+        try:
+            from org.telegram.tgnet import TLRPC
+            account = getattr(UserConfig, 'selectedAccount', 0)
+            mc = MessagesController.getInstance(account)
+
+            # try cache first — the id is only known after the first resolve
+            cached_uid = _RESOLVED_UIDS.get(username)
+            if cached_uid:
+                cached = mc.getUser(cached_uid)
+                if cached is not None and not getattr(cached, 'min', True):
+                    run_on_ui_thread(lambda: on_done(cached))
+                    return
+
+            req = TLRPC.TL_contacts_resolveUsername()
+            req.username = username
+
+            from client_utils import send_request
+            def _on_resp(resp, err):
+                if err or resp is None:
+                    logx(f"contributors fragment: _fetch_user_by_username @{username} error: {err}", True)
+                    run_on_ui_thread(lambda: on_done(None))
+                    return
+                user = None
+                try:
+                    users = resp.users
+                    if users.size() > 0:
+                        user = users.get(0)
+                        mc.putUser(user, False)
+                        _RESOLVED_UIDS[username] = int(user.id)
+                except Exception as _e:
+                    logx(f"contributors fragment: _fetch_user_by_username putUser error: {_e}", True)
+                run_on_ui_thread(lambda: on_done(user))
+            send_request(req, _on_resp)
+        except Exception as _e:
+            logx(f"contributors fragment: _fetch_user_by_username outer error: {_e}", True)
+            run_on_ui_thread(lambda: on_done(None))
+    run_on_queue(_do)
+
+
+def _make_avatar_view(context, user_id, title_text, title_badge=None, username=None):
     # builds header row; starts async user fetch for avatar + nickname.
     # title_badge, when set, renders as a small secondary-colored suffix
     # right after the title (e.g. "Developer  + Sponsor")
+    # username, when set, resolves the user by @username instead of user_id
     try:
         dp = AndroidUtilities.dp
 
@@ -273,7 +322,9 @@ def _make_avatar_view(context, user_id, title_text, title_badge=None):
         main_layout.addView(text_container, LayoutHelper.createLinear(-1, -2, Gravity.CENTER_VERTICAL))
         container.addView(main_layout, LayoutHelper.createFrame(-1, -2, Gravity.CENTER))
 
-        _username_holder = [None]
+        # seeded with the known username so the avatar stays tappable even if
+        # the fetch fails
+        _username_holder = [username]
 
         def _open_profile(v):
             try:
@@ -330,7 +381,10 @@ def _make_avatar_view(context, user_id, title_text, title_badge=None):
             except Exception as _e:
                 logx(f"contributors fragment: _on_user error: {_e}", True)
 
-        _fetch_user(user_id, _on_user)
+        if username:
+            _fetch_user_by_username(username, _on_user)
+        else:
+            _fetch_user(user_id, _on_user)
 
         return container
     except Exception as _e:
@@ -704,7 +758,23 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 donations=[],
                 animate_idx=6,
             ),
-            lambda: _build_special_thanks_card(act, content, animate_idx=7),
+            lambda: self._build_contributor_block(
+                act, content,
+                user_id=0,
+                username=_USERNAME_XARMAQ,
+                title_text=str(strings["developer"]),
+                links=[
+                    {"icon": "msg_link", "label": str(strings.github), "text": "github.com/xarmaq", "on_click": lambda v: self._open_url("https://github.com/xarmaq")},
+                    {"icon": "msg_message", "label": str(strings.direct_message), "text": "t.me/xarmaq", "on_click": lambda v: self._open_url("https://t.me/xarmaq")},
+                    {"icon": "msg_channel", "label": str(strings.personal_channel), "text": "t.me/youngtaxable", "on_click": lambda v: self._open_url("https://t.me/youngtaxable")},
+                    {"icon": "msg_channel", "label": str(strings.plugins_channel), "text": "t.me/vcvk1", "on_click": lambda v: self._open_url("https://t.me/vcvk1")},
+                ],
+                donations=[
+                    {"text": strings.support_with_stars, "icon": "menu_feature_reactions", "on_click": lambda v: self._open_gift_sheet_by_username(_USERNAME_XARMAQ)},
+                ],
+                animate_idx=7,
+            ),
+            lambda: _build_special_thanks_card(act, content, animate_idx=8),
         ]
 
         def _post_builder(idx):
@@ -805,8 +875,27 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         except Exception:
             pass
 
-    def _make_avatar_item(self, act, user_id, title_text, title_badge=None):
-        return _make_avatar_view(act, user_id, title_text, title_badge)
+    def _open_gift_sheet_by_username(self, username):
+        # contributor without a hardcoded id — resolve @username first. The card
+        # build already primes _RESOLVED_UIDS, so this is normally a cache hit.
+        uid = _RESOLVED_UIDS.get(username)
+        if uid:
+            self._open_gift_sheet(uid)
+            return
+
+        def _on_user(user):
+            if user is None:
+                _show_bulletin("", strings.failed_to_open_link, is_error=True)
+                return
+            try:
+                self._open_gift_sheet(int(user.id))
+            except Exception as _e:
+                logx(f"contributors fragment: _open_gift_sheet_by_username error: {_e}", True)
+
+        _fetch_user_by_username(username, _on_user)
+
+    def _make_avatar_item(self, act, user_id, title_text, title_badge=None, username=None):
+        return _make_avatar_view(act, user_id, title_text, title_badge, username)
 
     def _make_small_divider(self, act):
         try:
@@ -882,7 +971,7 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         except Exception:
             pass
 
-    def _build_contributor_block(self, act, content, user_id, title_text, links, donations, animate_idx=0, title_badge=None):
+    def _build_contributor_block(self, act, content, user_id, title_text, links, donations, animate_idx=0, title_badge=None, username=None):
         dp = AndroidUtilities.dp
 
         # card container with rounded background
@@ -904,7 +993,7 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             except Exception:
                 pass
 
-        avatar_view = self._make_avatar_item(act, user_id, title_text, title_badge)
+        avatar_view = self._make_avatar_item(act, user_id, title_text, title_badge, username)
         if avatar_view is not None:
             card.addView(avatar_view, LinearLayout.LayoutParams(-1, -2))
         else:
