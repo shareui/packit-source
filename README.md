@@ -19,24 +19,21 @@ Official plugins catalog: [shareui/packit](https://github.com/shareui/packit)
 - Native UI built entirely on `android.view`: the best interface among all exteraGram/AyuGram plugins
 - A large ecosystem is planned
 
-## Requirements
-
-<table>
-<tr><td>Client version</td><td>12.8.1 or higher</td></tr>
-<tr><td>RAM</td><td>6 GB or more</td></tr>
-<tr><td>exteraGram SDK</td><td>1.4.4.6 or higher</td></tr>
-<tr><td>OS</td><td>Android 13+</td></tr>
-</table>
-
 ## Building
 
-See [BUILD.md](https://github.com/shareui/packit-source/blob/main/BUILD.md).
+Building with ElyxBuilder
 
-All versions are listed in [VERSIONS.md](https://github.com/shareui/packit-source/blob/main/VERSIONS.md).
+```shell
+pip install ElyxBuilder
+```
+
+```shell
+elyb build -c 2 -v -nf
+```
 
 ## Community
 
-Main channel: [@packitX](https://t.me/packitX)  
+Central channel: [@packitX](https://t.me/packitX)  
 RU channel: [@packitapp](https://t.me/packitapp)  
 EN channel: [@packitappen](https://t.me/packitappen)  
 Forum: [@packitGround](https://t.me/packitGround)  
