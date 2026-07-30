@@ -26,7 +26,7 @@ except Exception as e:
 
 INTERNAL_CFG_URL = "https://raw.githubusercontent.com/shareui/packit/main/configs/internal_cfg.json"
 _STICKER_RETRY_DELAY = 2.0
-SHOWUPD = False
+SHOWUPD = True
 
 
 def _parse_version(ver: str) -> tuple:
@@ -52,20 +52,21 @@ def _is_newer(remote: str, current: str) -> bool:
     return r > c
 
 
+# FIXME
 def _get_current_version() -> str:
-    try:
-        from elyx import assets
-        import yaml
-        raw = assets.meta.content_string()
-        logx(f"updateSheet: meta raw={raw[:120]}", True)
-        meta = yaml.safe_load(raw)
-        ver = str(meta.get("version", "0.0.0"))
-        logx(f"updateSheet: current version={ver}", True)
-        return ver
-    except Exception as e:
-        logx(f"updateSheet: _get_current_version error: {e}", False)
-        return "0.0.0"
-
+#    try:
+#        from elyx import assets
+#        import yaml
+#        raw = assets.meta.content_string()
+#        logx(f"updateSheet: meta raw={raw[:120]}", True)
+#        meta = yaml.safe_load(raw)
+#        ver = str(meta.get("version", "0.0.0"))
+#        logx(f"updateSheet: current version={ver}", True)
+#        return ver
+#    except Exception as e:
+#        logx(f"updateSheet: _get_current_version error: {e}", False)
+#        return "0.0.0"
+    return "0.1.0" # latest
 
 def _get_dismissed_ver() -> str:
     try:

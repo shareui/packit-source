@@ -3466,7 +3466,7 @@ def show_plugin_profile(plugin: dict, install_ui, all_plugins: list = None, repo
     except Exception as e:
         logx(f"pluginProfile: show_plugin_profile error: {e}", False)
 
-C = True
+C = False
 
 
 def _show_not_tester_sheet():
