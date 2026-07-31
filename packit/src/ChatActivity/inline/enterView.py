@@ -461,7 +461,21 @@ def _packit_show_plugins_popup(self, plugins):
         for desc in descriptions:
             new_result_help.add(desc)
         
-        bot_adapter.notifyDataSetChanged()
+        # afterTextChanged may run while Telegram's commands RecyclerView is in
+        # a layout pass. RecyclerView throws if its adapter is notified then,
+        # so defer the notification until that pass has finished.
+        list_view = bot_container.listView
+
+        def notify_adapter_when_idle():
+            try:
+                if list_view.isComputingLayout():
+                    run_on_ui_thread(notify_adapter_when_idle, delay=16)
+                    return
+                bot_adapter.notifyDataSetChanged()
+            except Exception as e:
+                logx(f"Packit notify plugins adapter error: {e}", False)
+
+        run_on_ui_thread(notify_adapter_when_idle)
 
         plugin_ref = weakref.ref(self)
         # ordered list for index-based lookup (long click uses position)
