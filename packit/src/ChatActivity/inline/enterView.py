@@ -447,35 +447,59 @@ def _packit_show_plugins_popup(self, plugins):
             descriptions.append(desc)
             self.packit_current_plugins[cmd] = plugin
         
-        new_result_field = bot_adapter.getClass().getDeclaredField("newResult")
-        new_result_field.setAccessible(True)
-        new_result = new_result_field.get(bot_adapter)
-        new_result.clear()
-        for cmd in commands:
-            new_result.add(cmd)
-        
-        new_result_help_field = bot_adapter.getClass().getDeclaredField("newResultHelp")
-        new_result_help_field.setAccessible(True)
-        new_result_help = new_result_help_field.get(bot_adapter)
-        new_result_help.clear()
-        for desc in descriptions:
-            new_result_help.add(desc)
-        
-        # afterTextChanged may run while Telegram's commands RecyclerView is in
-        # a layout pass. RecyclerView throws if its adapter is notified then,
-        # so defer the notification until that pass has finished.
         list_view = bot_container.listView
+        update_token = object()
+        self._packit_popup_update_token = update_token
 
-        def notify_adapter_when_idle():
+        def apply_adapter_update():
             try:
-                if list_view.isComputingLayout():
-                    run_on_ui_thread(notify_adapter_when_idle, delay=16)
+                # Drop delayed results superseded by a newer search or hide.
+                if getattr(self, "_packit_popup_update_token", None) is not update_token:
                     return
-                bot_adapter.notifyDataSetChanged()
-            except Exception as e:
-                logx(f"Packit notify plugins adapter error: {e}", False)
 
-        run_on_ui_thread(notify_adapter_when_idle)
+                # afterTextChanged may run during RecyclerView's layout pass.
+                # Mutating its backing lists or notifying the adapter then can
+                # either crash or leave the popup with no bound rows.
+                if list_view.isComputingLayout():
+                    run_on_ui_thread(apply_adapter_update, delay=16)
+                    return
+
+                new_result_field = bot_adapter.getClass().getDeclaredField("newResult")
+                new_result_field.setAccessible(True)
+                new_result = new_result_field.get(bot_adapter)
+
+                new_result_help_field = bot_adapter.getClass().getDeclaredField("newResultHelp")
+                new_result_help_field.setAccessible(True)
+                new_result_help = new_result_help_field.get(bot_adapter)
+
+                # Recent Telegram/AyuGram builds require one Boolean entry per
+                # row. Older builds do not have this field, so keep it optional.
+                new_result_ephemeral = None
+                try:
+                    ephemeral_field = bot_adapter.getClass().getDeclaredField("newResultEphemeral")
+                    ephemeral_field.setAccessible(True)
+                    new_result_ephemeral = ephemeral_field.get(bot_adapter)
+                except Exception:
+                    pass
+
+                new_result.clear()
+                new_result_help.clear()
+                if new_result_ephemeral is not None:
+                    new_result_ephemeral.clear()
+
+                for index, cmd in enumerate(commands):
+                    new_result.add(cmd)
+                    new_result_help.add(descriptions[index])
+                    if new_result_ephemeral is not None:
+                        new_result_ephemeral.add(False)
+
+                bot_adapter.notifyDataSetChanged()
+                bot_container.requestLayout()
+                bot_container.show()
+            except Exception as e:
+                logx(f"Packit update plugins adapter error: {e}", False)
+
+        run_on_ui_thread(apply_adapter_update)
 
         plugin_ref = weakref.ref(self)
         # ordered list for index-based lookup (long click uses position)
@@ -593,7 +617,6 @@ def _packit_show_plugins_popup(self, plugins):
         
         self.packit_custom_container = bot_container
         self._packit_hook_container_dismiss(bot_container)
-        bot_container.show()
     except Exception as e:
         logx(f"Packit show plugins popup error: {e}", False)
 
@@ -646,9 +669,9 @@ def _packit_hook_container_dismiss(self, bot_container):
 
 def _packit_hide_popup(self):
     try:
+        self._packit_search_token = None
+        self._packit_popup_update_token = None
         if self.packit_custom_container:
-            # clear token first so the dismiss hook lets it through
-            self._packit_search_token = None
             self.packit_custom_container.dismiss()
     except Exception as e:
         logx(f"Packit hide popup error: {e}", False)
