@@ -1023,9 +1023,15 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             install_label_container.addView(install_icon, LayoutHelper.createLinear(22, 22, Gravity.CENTER))
             install_btn.addView(install_label_container, FrameLayout.LayoutParams(circle_size, circle_size))
 
+            # hoisted out of the is_available guard: onInstallClickFab captures
+            # these as default args at def time, and the FAB block that defines
+            # it runs unconditionally (the button is built even when the plugin
+            # is unavailable), so they must always exist or def raises
+            # UnboundLocalError
+            _install_ui_ref = self.install_ui
+            _all_plugins_ref = self.all_plugins
+
             if is_available:
-                _install_ui_ref = self.install_ui
-                _all_plugins_ref = self.all_plugins
 
                 def _set_loading(_btn, _label, _btn_text_color, _act, isLoading):
                     try:
@@ -1236,7 +1242,10 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                                          lambda: _set_loading_fab(_btn, _label, _btn_text_color, _act, False)
                                      ), repo_id=self.repo_id)
 
-            install_btn.setOnClickListener(OnClickListener(onInstallClickFab))
+            # only wire the install action when the plugin is installable;
+            # an unavailable plugin's FAB is left disabled (set above)
+            if is_available:
+                install_btn.setOnClickListener(OnClickListener(onInstallClickFab))
             self.content_view.addView(install_btn, fab_lp)
             self._fab_ref = install_btn
 
