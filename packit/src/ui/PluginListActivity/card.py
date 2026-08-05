@@ -148,59 +148,10 @@ def make_plugin_card(self, p):
             else:
                 self.install_ui._apply_press_scale_on_target(icon_view, row)
 
-            def try_load_icon():
-                try:
-                    if "/" not in str(icon_str):
-                        return False
-                    pack_name, index_str = str(icon_str).split("/", 1)
-                    sticker_index = int(index_str)
-                    mdc = MediaDataController.getInstance(0)
-                    ss = None
-                    try:
-                        ss = mdc.getStickerSetByName(pack_name)
-                    except Exception:
-                        ss = None
-                    if not ss:
-                        try:
-                            ss = mdc.getStickerSetByEmojiOrName(pack_name)
-                        except Exception:
-                            ss = None
-                    if ss and getattr(ss, 'documents', None) and ss.documents.size() > sticker_index:
-                        doc = ss.documents.get(sticker_index)
-                        icon_view.setImage(
-                            ImageLocation.getForDocument(doc),
-                            f"{icon_size_dp}_{icon_size_dp}",
-                            None, None, 0, 1
-                        )
-                        return True
-                    return False
-                except Exception as e:
-                    return False
-
-            def _attempt_icon_load():
-                if try_load_icon():
-                    return
-                try:
-                    pack_name = str(icon_str).split("/", 1)[0]
-                    MediaDataController.getInstance(0).loadStickersByEmojiOrName(pack_name, False, False)
-                except Exception:
-                    pass
-
-                def _retry_load(view=icon_view, loader=try_load_icon):
-                    import time
-                    for delay in (0.5, 1.0, 2.0, 3.0):
-                        time.sleep(delay)
-                        try:
-                            if run_on_ui_thread(loader):
-                                return
-                        except Exception:
-                            pass
-
-                threading.Thread(target=_retry_load, daemon=True).start()
-
             # make_plugin_card runs off the UI thread (_load_initial_batch worker),
             # MediaDataController and BackupImageView.setImage must run on the UI thread
-            run_on_ui_thread(_attempt_icon_load)
+            from ...utils.stickers import load_sticker
+            run_on_ui_thread(lambda: load_sticker(icon_view, icon_str, icon_size_dp))
         except Exception as e:
             pass
 

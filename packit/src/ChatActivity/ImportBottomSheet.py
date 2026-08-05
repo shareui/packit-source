@@ -14,57 +14,6 @@ from android.graphics import Color
 from java import dynamic_proxy
 
 
-def _load_sticker(iv, icon_str: str, size_dp: int) -> bool:
-    try:
-        if not icon_str or "/" not in icon_str:
-            return False
-        from org.telegram.messenger import MediaDataController, ImageLocation
-        pack_name, index_str = icon_str.split("/", 1)
-        sticker_index = int(index_str)
-        mdc = MediaDataController.getInstance(0)
-        ss = None
-        try:
-            ss = mdc.getStickerSetByName(pack_name)
-        except Exception:
-            pass
-        if not ss:
-            try:
-                ss = mdc.getStickerSetByEmojiOrName(pack_name)
-            except Exception:
-                pass
-        if ss and getattr(ss, "documents", None) and ss.documents.size() > sticker_index:
-            doc = ss.documents.get(sticker_index)
-            iv.setImage(
-                ImageLocation.getForDocument(doc),
-                f"{size_dp}_{size_dp}",
-                None, None, 0, 1
-            )
-            return True
-        try:
-            mdc.loadStickersByEmojiOrName(pack_name, False, False)
-        except Exception:
-            pass
-        return False
-    except Exception as e:
-        logx(f"ImportBottomSheet._load_sticker: {e}", False)
-        return False
-
-
-def _schedule_sticker_retry(iv, icon_str: str, size_dp: int):
-    import time
-    def _retry():
-        for delay in (0.5, 1.0, 2.0, 3.0):
-            time.sleep(delay)
-            try:
-                result = [False]
-                run_on_ui_thread(lambda: result.__setitem__(0, _load_sticker(iv, icon_str, size_dp)))
-                if result[0]:
-                    return
-            except Exception:
-                pass
-    threading.Thread(target=_retry, daemon=True).start()
-
-
 def _make_icon_view(activity, icon_str: str, size_dp: int):
     from org.telegram.ui.Components import BackupImageView
     from org.telegram.messenger import AndroidUtilities
@@ -77,8 +26,8 @@ def _make_icon_view(activity, icon_str: str, size_dp: int):
             iv.getImageReceiver().setCrossfadeWithOldImage(True)
         except Exception:
             pass
-        if not _load_sticker(iv, icon_str, size_dp):
-            _schedule_sticker_retry(iv, icon_str, size_dp)
+        from ..utils.stickers import load_sticker
+        load_sticker(iv, icon_str, size_dp)
         return iv
     except Exception as e:
         logx(f"ImportBottomSheet._make_icon_view: {e}", False)

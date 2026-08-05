@@ -1197,51 +1197,8 @@ def _make_forked_popup(act, plugins: list, on_select):
                 icon_lp = LL.LayoutParams(icon_size_px, icon_size_px)
                 icon_lp.rightMargin = dp(12)
                 row.addView(icon_view, icon_lp)
-
-                def _try_load(iv=icon_view, s=icon_str):
-                    try:
-                        pack_name, index_str = s.split("/", 1)
-                        idx = int(index_str)
-                        mdc = MediaDataController.getInstance(0)
-                        ss = None
-                        try:
-                            ss = mdc.getStickerSetByName(pack_name)
-                        except Exception:
-                            pass
-                        if not ss:
-                            try:
-                                ss = mdc.getStickerSetByEmojiOrName(pack_name)
-                            except Exception:
-                                pass
-                        if ss and getattr(ss, "documents", None) and ss.documents.size() > idx:
-                            doc = ss.documents.get(idx)
-                            iv.setImage(
-                                ImageLocation.getForDocument(doc),
-                                f"{icon_size_dp}_{icon_size_dp}",
-                                None, None, 0, 1
-                            )
-                            return True
-                        return False
-                    except Exception:
-                        return False
-
-                if not _try_load():
-                    try:
-                        pack_name = icon_str.split("/", 1)[0]
-                        MediaDataController.getInstance(0).loadStickersByEmojiOrName(pack_name, False, False)
-                    except Exception:
-                        pass
-                    import threading
-                    def _retry(iv=icon_view, loader=_try_load):
-                        import time
-                        for d in (0.5, 1.0, 2.0):
-                            time.sleep(d)
-                            try:
-                                run_on_ui_thread(loader)
-                                return
-                            except Exception:
-                                pass
-                    threading.Thread(target=_retry, daemon=True).start()
+                from ...utils.stickers import load_sticker
+                load_sticker(icon_view, icon_str, icon_size_dp)
             except Exception as e:
                 logx(f"suggest: popup icon error: {e}", False)
                 _add_stub_icon(act, row, icon_size_dp, dp)
@@ -2977,52 +2934,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     icon_lp = LinearLayout.LayoutParams(icon_size_px, icon_size_px)
                     icon_lp.rightMargin = dp(10)
                     card.addView(icon_view, icon_lp)
-
-                    def _try_load(iv=icon_view, s=icon_str):
-                        try:
-                            from org.telegram.messenger import ImageLocation
-                            pack_name, index_str = s.split("/", 1)
-                            idx = int(index_str)
-                            mdc = MediaDataController.getInstance(0)
-                            ss = None
-                            try:
-                                ss = mdc.getStickerSetByName(pack_name)
-                            except Exception:
-                                pass
-                            if not ss:
-                                try:
-                                    ss = mdc.getStickerSetByEmojiOrName(pack_name)
-                                except Exception:
-                                    pass
-                            if ss and getattr(ss, "documents", None) and ss.documents.size() > idx:
-                                doc = ss.documents.get(idx)
-                                iv.setImage(
-                                    ImageLocation.getForDocument(doc),
-                                    f"{icon_size_dp}_{icon_size_dp}",
-                                    None, None, 0, 1
-                                )
-                                return True
-                            return False
-                        except Exception:
-                            return False
-
-                    if not _try_load():
-                        try:
-                            pack_name = icon_str.split("/", 1)[0]
-                            MediaDataController.getInstance(0).loadStickersByEmojiOrName(pack_name, False, False)
-                        except Exception:
-                            pass
-                        import threading
-                        def _retry(iv=icon_view, loader=_try_load):
-                            import time
-                            for d in (0.5, 1.0, 2.0):
-                                time.sleep(d)
-                                try:
-                                    run_on_ui_thread(loader)
-                                    return
-                                except Exception:
-                                    pass
-                        threading.Thread(target=_retry, daemon=True).start()
+                    from ...utils.stickers import load_sticker
+                    load_sticker(icon_view, icon_str, icon_size_dp)
                 except Exception as e:
                     logx(f"suggest: forked selected icon error: {e}", False)
                     _add_stub_icon(act, card, icon_size_dp, dp)

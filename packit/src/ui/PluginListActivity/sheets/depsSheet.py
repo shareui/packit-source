@@ -326,41 +326,8 @@ def _make_dep_card(act, dep_id, dep_name, dep_version, dep_author, dep_min_versi
             icon_lp = LinearLayout.LayoutParams(icon_size_px, icon_size_px)
             icon_lp.rightMargin = AndroidUtilities.dp(10)
             main_row.addView(icon_view, icon_lp)
-
-            def _try_load(iv=icon_view, icon_s=dep_icon):
-                try:
-                    pack_name, index_str = icon_s.split("/", 1)
-                    sticker_index = int(index_str)
-                    mdc = MediaDataController.getInstance(0)
-                    ss = None
-                    try:
-                        ss = mdc.getStickerSetByName(pack_name)
-                    except Exception:
-                        pass
-                    if not ss:
-                        try:
-                            ss = mdc.getStickerSetByEmojiOrName(pack_name)
-                        except Exception:
-                            pass
-                    if ss and getattr(ss, "documents", None) and ss.documents.size() > sticker_index:
-                        doc = ss.documents.get(sticker_index)
-                        iv.setImage(
-                            ImageLocation.getForDocument(doc),
-                            f"{icon_size_dp}_{icon_size_dp}",
-                            None, None, 0, 1
-                        )
-                        return True
-                    return False
-                except Exception as e:
-                    logx(f"depsSheet: icon load error for '{dep_id}': {e}", False)
-                    return False
-
-            if not _try_load():
-                try:
-                    pack_name = dep_icon.split("/", 1)[0]
-                    MediaDataController.getInstance(0).loadStickersByEmojiOrName(pack_name, False, False)
-                except Exception:
-                    pass
+            from ....utils.stickers import load_sticker
+            load_sticker(icon_view, dep_icon, icon_size_dp)
         except Exception as e:
             logx(f"depsSheet: icon init error for '{dep_id}': {e}", False)
 

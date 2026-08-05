@@ -135,65 +135,12 @@ except Exception:
 
 
 
-_STICKER_RETRY_DELAY = 1.5
-_STICKER_MAX_RETRIES = 5
-
-
 def _resolve_icon(name):
     try:
         R_tg = find_class("org.telegram.messenger.R")
         return getattr(R_tg.drawable, name)
     except Exception:
         return 0
-
-
-def _try_load_sticker(iv, icon_str, size_dp):
-    try:
-        if not icon_str or "/" not in str(icon_str):
-            return False
-        pack_name, index_str = str(icon_str).split("/", 1)
-        sticker_index = int(index_str)
-        mdc = MediaDataController.getInstance(0)
-        ss = None
-        try:
-            ss = mdc.getStickerSetByName(pack_name)
-        except Exception:
-            pass
-        if not ss:
-            try:
-                ss = mdc.getStickerSetByEmojiOrName(pack_name)
-            except Exception:
-                pass
-        if ss and getattr(ss, "documents", None) and ss.documents.size() > sticker_index:
-            doc = ss.documents.get(sticker_index)
-            iv.setImage(
-                ImageLocation.getForDocument(doc),
-                f"{size_dp}_{size_dp}",
-                None, None, 0, 1
-            )
-            return True
-        try:
-            mdc.loadStickersByEmojiOrName(pack_name, False, False)
-        except Exception:
-            pass
-        return False
-    except Exception as e:
-        logx(f"pluginProfile: _try_load_sticker error: {e}", False)
-        return False
-
-
-def _schedule_sticker_retry(iv, icon_str, size_dp, alive_ref, attempt=0):
-    if attempt >= _STICKER_MAX_RETRIES:
-        return
-
-    def _retry():
-        if not alive_ref[0]:
-            return
-        loaded = _try_load_sticker(iv, icon_str, size_dp)
-        if not loaded:
-            _schedule_sticker_retry(iv, icon_str, size_dp, alive_ref, attempt + 1)
-
-    threading.Timer(_STICKER_RETRY_DELAY, lambda: run_on_ui_thread(_retry)).start()
 
 
 def _make_chip(act, text, color_key):
@@ -781,8 +728,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             )
             iv_lp.rightMargin = AndroidUtilities.dp(14)
             top_row.addView(iv, iv_lp)
-            if not _try_load_sticker(iv, icon_str, sticker_size):
-                _schedule_sticker_retry(iv, icon_str, sticker_size, self._alive)
+            from ...utils.stickers import load_sticker
+            load_sticker(iv, icon_str, sticker_size)
 
         info_col = LinearLayout(act)
         info_col.setOrientation(LinearLayout.VERTICAL)
@@ -3052,8 +2999,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     )
                     iv_lp.rightMargin = AndroidUtilities.dp(10)
                     dep_row.addView(dep_iv, iv_lp)
-                    if not _try_load_sticker(dep_iv, dep_icon_str, icon_size_dp):
-                        _schedule_sticker_retry(dep_iv, dep_icon_str, icon_size_dp, self._alive)
+                    from ...utils.stickers import load_sticker
+                    load_sticker(dep_iv, dep_icon_str, icon_size_dp)
 
                 # status icon: msg_select green / msg_cancel red
                 installed = False
@@ -3321,8 +3268,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             except Exception:
                 pass
             col.addView(iv, icon_container_lp)
-            if not _try_load_sticker(iv, icon_str, size_dp):
-                _schedule_sticker_retry(iv, icon_str, size_dp, self._alive)
+            from ...utils.stickers import load_sticker
+            load_sticker(iv, icon_str, size_dp)
         else:
             # same placeholder as ImportBottomSheet: circle with plugins_filled icon
             try:
@@ -3388,8 +3335,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             iv_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(size_dp), AndroidUtilities.dp(size_dp))
             iv_lp.rightMargin = AndroidUtilities.dp(12)
             row.addView(iv, iv_lp)
-            if not _try_load_sticker(iv, icon_str, size_dp):
-                _schedule_sticker_retry(iv, icon_str, size_dp, self._alive)
+            from ...utils.stickers import load_sticker
+            load_sticker(iv, icon_str, size_dp)
 
         info = LinearLayout(act)
         info.setOrientation(LinearLayout.VERTICAL)

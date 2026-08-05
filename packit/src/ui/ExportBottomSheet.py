@@ -92,52 +92,6 @@ def _resolveIcon(name):
         return None
 
 
-def _tryLoadSticker(iv, icon_str: str, size_dp: int) -> bool:
-    try:
-        if not icon_str or "/" not in icon_str:
-            return False
-        pack_name, index_str = icon_str.split("/", 1)
-        sticker_index = int(index_str)
-        mdc = MediaDataController.getInstance(0)
-        ss = None
-        try:
-            ss = mdc.getStickerSetByName(pack_name)
-        except Exception:
-            pass
-        if not ss:
-            try:
-                ss = mdc.getStickerSetByEmojiOrName(pack_name)
-            except Exception:
-                pass
-        if ss and getattr(ss, "documents", None) and ss.documents.size() > sticker_index:
-            doc = ss.documents.get(sticker_index)
-            iv.setImage(
-                ImageLocation.getForDocument(doc),
-                f"{size_dp}_{size_dp}",
-                None, None, 0, 1
-            )
-            return True
-        try:
-            mdc.loadStickersByEmojiOrName(pack_name, False, False)
-        except Exception:
-            pass
-        return False
-    except Exception as e:
-        logx(f"ExportBottomSheet._tryLoadSticker: {e}\n{traceback.format_exc()}", False)
-        return False
-
-
-def _scheduleStickerRetry(iv, icon_str: str, size_dp: int):
-    import threading
-    import time
-
-    def _retry():
-        time.sleep(2.0)
-        run_on_ui_thread(lambda: _tryLoadSticker(iv, icon_str, size_dp))
-
-    threading.Thread(target=_retry, daemon=True).start()
-
-
 def _readPluginMeta(filepath):
     meta = {}
     try:
@@ -291,9 +245,8 @@ def _createCheckRow(act, label, version_str, icon_str, checked, on_change):
             except Exception:
                 pass
             row.addView(icon_view, LayoutHelper.createLinear(icon_size_dp, icon_size_dp, Gravity.CENTER_VERTICAL, 0, 0, 10, 0))
-            loaded = _tryLoadSticker(icon_view, icon_str, icon_size_dp)
-            if not loaded:
-                _scheduleStickerRetry(icon_view, icon_str, icon_size_dp)
+            from ..utils.stickers import load_sticker
+            load_sticker(icon_view, icon_str, icon_size_dp)
         except Exception as e:
             logx(f"ExportBottomSheet._createCheckRow: icon error: {e}\n{traceback.format_exc()}", False)
 
