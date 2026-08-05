@@ -470,6 +470,18 @@ def _make_input_field(act):
     return container, container_lp, search_input
 
 
+def _add_icon_balance_spacer(act, inner):
+    # right-side spacer equal to the leading icon block (icon width + its right
+    # margin) so the "Найти" label ends up dead-centre of the button instead of
+    # being pushed to the right by the search icon on its left
+    try:
+        inner.addView(View(act), LinearLayout.LayoutParams(
+            AndroidUtilities.dp(20) + AndroidUtilities.dp(8), AndroidUtilities.dp(1)
+        ))
+    except Exception:
+        pass
+
+
 def _make_search_button(act, install_ui):
     btn = FrameLayout(act)
     btn.setClickable(True)
@@ -518,6 +530,7 @@ def _make_search_button(act, install_ui):
     except Exception as e:
         logx(f"AISearchSheet: search_btn label color failed: {e}", False)
     inner.addView(label, LinearLayout.LayoutParams(-2, -2))
+    _add_icon_balance_spacer(act, inner)
 
     btn.addView(inner, FrameLayout.LayoutParams(-2, -2, Gravity.CENTER))
     install_ui._apply_press_scale(btn)
@@ -569,6 +582,7 @@ def _set_btn_loading(btn, loading: bool, install_ui):
             except Exception:
                 pass
             inner.addView(label, LinearLayout.LayoutParams(-2, -2))
+            _add_icon_balance_spacer(act, inner)
     except Exception as e:
         logx(f"AISearchSheet: _set_btn_loading error: {e}", False)
 
