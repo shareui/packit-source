@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ..utils.bulletins import factory as _pbf
 from android.view import View, MotionEvent
 from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView
 from android.view import Gravity
@@ -319,7 +320,7 @@ def show_deeplink_sheet(link_alias):
                         container = act.getWindow().getDecorView()
                         resource_provider = fragment.getResourceProvider()
                         R_tg = find_class("org.telegram.messenger.R")
-                        BulletinFactory.of(container, resource_provider).createSimpleBulletin(
+                        _pbf(container, resource_provider).createSimpleBulletin(
                             getattr(R_tg.raw, "voip_invite", 0), 
                             strings.link_copied
                         ).show()

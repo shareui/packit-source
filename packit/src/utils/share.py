@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ..utils.bulletins import factory as _pbf
 import os
 import requests
 import threading
@@ -67,19 +68,16 @@ def _do_share(plugin_info: dict, display_name: str):
 
         run_on_ui_thread(show_spinner)
 
-        try:
-            from org.telegram.messenger import ApplicationLoader
-            ctx = ApplicationLoader.applicationContext
-            download_path = ctx.getCacheDir().getAbsolutePath()
-        except Exception:
-            download_path = "/data/data/com.exteragram.messenger/cache"
-
         url_filename = link.rstrip("/").rsplit("/", 1)[-1].split("?", 1)[0]
         _, url_ext = os.path.splitext(url_filename)
         filename = f"{plugin_id}{url_ext}" if url_ext else f"{plugin_id}.plugin"
 
-        os.makedirs(download_path, exist_ok=True)
-        file_path = os.path.join(download_path, filename)
+        # stage in EXTERNAL app cache — Telegram's isInternalUri() refuses to
+        # send files from internal storage (getCacheDir -> /data/user/0/...),
+        # which surfaced as "attachment not supported" or a silent no-op
+        from .paths import getShareCachePath
+        file_path = getShareCachePath(filename)
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
         logx(f"share: downloading {link} -> {file_path}", True)
 
         r = requests.get(link, timeout=30)
@@ -122,7 +120,7 @@ def _do_share(plugin_info: dict, display_name: str):
                                 from elyx import strings as _strings
                                 container = _frag.getParentActivity().getWindow().getDecorView()
                                 rp = _frag.getResourceProvider()
-                                BulletinFactory.of(container, rp).createSimpleBulletin(R_tg.raw.voip_invite, _strings["plugin_install_success"]).show()
+                                _pbf(container, rp).createSimpleBulletin(R_tg.raw.voip_invite, _strings["plugin_install_success"]).show()
                             except Exception as _be:
                                 logx(f"share.ShareDelegate.didShare: {_be}", True)
                         from android_utils import run_on_ui_thread as _run_ui

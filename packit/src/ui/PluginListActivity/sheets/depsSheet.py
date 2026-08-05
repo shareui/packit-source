@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ....utils.bulletins import factory as _pbf
 from android.view import View, Gravity
 from android.widget import LinearLayout, TextView, FrameLayout, ImageView
 from android.util import TypedValue
@@ -205,7 +206,7 @@ def show_deps_sheet(install_ui, plugin_info: dict, on_confirm, all_plugins: list
                         frag = get_last_fragment()
                         container = frag.getParentActivity().getWindow().getDecorView()
                         rp = frag.getResourceProvider()
-                        BulletinFactory.of(container, rp).createErrorBulletin(
+                        _pbf(container, rp).createErrorBulletin(
                             strings["deps_sheet_need_install"]
                         ).show()
                     except Exception as e:

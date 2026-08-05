@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ...utils.bulletins import factory as _pbf
 import ctypes
 from android_utils import run_on_ui_thread, OnClickListener
 
@@ -122,7 +123,7 @@ def _copy_to_clipboard(decor, label: str, text: str):
         from org.telegram.messenger import AndroidUtilities, R as R_tg
         from org.telegram.ui.Components import BulletinFactory
         AndroidUtilities.addToClipboard(text)
-        BulletinFactory.of(decor, None).createSimpleBulletin(
+        _pbf(decor, None).createSimpleBulletin(
             R_tg.raw.copy,
             str(strings["info_copied"]).format(label=label)
         ).show()

@@ -65,5 +65,15 @@ def _externalCacheDir() -> str:
     d = ApplicationLoader.applicationContext.getExternalCacheDir()
     return d.getAbsolutePath() if d else _cacheDir()
 
+def getShareCachePath(filename: str) -> str:
+    # Any file handed to ShareAlert / SendMessagesHelper MUST live in EXTERNAL
+    # app storage. Telegram's AndroidUtilities.isInternalUri() blocks sending
+    # any file whose path is under the app's internal data dir
+    # (/data/user/0/<pkg>/... incl. getCacheDir()) as a security measure — the
+    # send then shows "attachment not supported" or silently drops. External
+    # app-specific cache needs no runtime permission on any Android version and
+    # passes the check. Use this for every shared temp file in the project.
+    return _externalCacheDir() + "/" + filename
+
 def getLogShareCachePath() -> str:
-    return _externalCacheDir() + "/packit_latestlog.txt"
+    return getShareCachePath("packit_latestlog.txt")

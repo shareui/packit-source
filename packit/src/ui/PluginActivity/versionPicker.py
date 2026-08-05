@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ...utils.bulletins import factory as _pbf
 import threading
 from android_utils import run_on_ui_thread, OnClickListener, OnLongClickListener
 from client_utils import get_last_fragment
@@ -659,7 +660,7 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
                             from hook_utils import find_class as _fc2
                             R_tg = _fc2("org.telegram.messenger.R")
                             icon_raw = getattr(R_tg.raw, "copy", getattr(R_tg.raw, "msg_copy", 0))
-                            BulletinFactory.of(container, resource_provider).createSimpleBulletin(
+                            _pbf(container, resource_provider).createSimpleBulletin(
                                 icon_raw,
                                 str(strings["pp_version_link_copied"])
                             ).show()

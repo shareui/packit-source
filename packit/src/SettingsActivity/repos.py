@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ..utils.bulletins import factory as _pbf
 from ui.settings import Header, Input, Divider, Switch, Text
 try:
     from elyx import strings, settings
@@ -161,7 +162,7 @@ def _showAddRepoDialog(context, repoManager):
                             frag = get_last_fragment()
                             container = frag.getParentActivity().getWindow().getDecorView()
                             resourceProvider = frag.getResourceProvider()
-                            BulletinFactory.of(container, resourceProvider).createSimpleBulletin(
+                            _pbf(container, resourceProvider).createSimpleBulletin(
                                 R_tg.raw.shared_link_enter,
                                 str(strings.repository_added)
                             ).show()
@@ -277,7 +278,7 @@ class RepositoriesSettings:
                         frag = get_last_fragment()
                         container = frag.getParentActivity().getWindow().getDecorView()
                         resourceProvider = frag.getResourceProvider()
-                        BulletinFactory.of(container, resourceProvider).createSimpleBulletin(R_tg.raw.group_pip_delete_icon, strings.repositories_reset).show()
+                        _pbf(container, resourceProvider).createSimpleBulletin(R_tg.raw.group_pip_delete_icon, strings.repositories_reset).show()
                     except Exception as e:
                         logx(f"{e}", False)
                 
@@ -325,7 +326,7 @@ class RepositoriesSettings:
                         frag = get_last_fragment()
                         container = frag.getParentActivity().getWindow().getDecorView()
                         resourceProvider = frag.getResourceProvider()
-                        BulletinFactory.of(container, resourceProvider).createSimpleBulletin(R_tg.raw.utyan_cache, strings.repositories_cleared).show()
+                        _pbf(container, resourceProvider).createSimpleBulletin(R_tg.raw.utyan_cache, strings.repositories_cleared).show()
                     except Exception as e:
                         logx(f"{e}", False)
                 
@@ -462,7 +463,7 @@ class RepositoriesSettings:
                                 BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
                                 container = _fragment.getParentActivity().getWindow().getDecorView()
                                 rp = _fragment.getResourceProvider()
-                                BulletinFactory.of(container, rp).createSimpleBulletin(R_tg.raw.voip_invite, strings.repositories_exported).show()
+                                _pbf(container, rp).createSimpleBulletin(R_tg.raw.voip_invite, strings.repositories_exported).show()
                             except Exception as _be:
                                 logx(f"repos.export_repositories.ShareDelegate.didShare: {_be}", True)
                         run_on_ui_thread(_show_bulletin)
@@ -624,7 +625,7 @@ class RepositoriesSettings:
                                     BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
                                     container = _fragment.getParentActivity().getWindow().getDecorView()
                                     rp = _fragment.getResourceProvider()
-                                    BulletinFactory.of(container, rp).createSimpleBulletin(R_tg.raw.voip_invite, strings.repo_link_copied).show()
+                                    _pbf(container, rp).createSimpleBulletin(R_tg.raw.voip_invite, strings.repo_link_copied).show()
                                 except Exception as _be:
                                     logx(f"repos.ShareDelegate.didShare: {_be}", True)
                             run_on_ui_thread(_show_bulletin)

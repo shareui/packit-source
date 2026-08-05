@@ -3,6 +3,7 @@
 
 
 from packutil import logx
+from ..utils.bulletins import factory as _pbf
 try:
     from org.telegram.messenger import AndroidUtilities, R as R_tg
 except Exception as e:
@@ -28,11 +29,11 @@ def copy_share_link(plugin_info: dict, repo_title: str):
         container = fragment.getParentActivity().getWindow().getDecorView()
         resource_provider = fragment.getResourceProvider()
         if not plugin_id:
-            BulletinFactory.of(container, resource_provider).createErrorBulletin(strings["plugin_no_id"]).show()
+            _pbf(container, resource_provider).createErrorBulletin(strings["plugin_no_id"]).show()
             return
         share_link = f"tg://packit?install&repo={repo_title}&plugin={plugin_id}"
         AndroidUtilities.addToClipboard(share_link)
         plugin_name = plugin_info.get("name") or plugin_info.get("id") or "Unknown"
-        BulletinFactory.of(container, resource_provider).createSimpleBulletin(R_tg.raw.voip_invite, strings("plugin_link_copied", plugin_name)).show()
+        _pbf(container, resource_provider).createSimpleBulletin(R_tg.raw.voip_invite, strings("plugin_link_copied", plugin_name)).show()
     except Exception as e:
         logx(f"copy: failed to copy link: {e}", False)

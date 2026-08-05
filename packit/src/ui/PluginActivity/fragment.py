@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ...utils.bulletins import factory as _pbf
 import ctypes
 import threading
 from android.view import Gravity, View
@@ -545,7 +546,7 @@ def _show_plugin_menu(act, p, anchor_view, repo_id: str = ""):
                 except Exception:
                     pass
                 icon_raw = getattr(R_tg.raw, "copy", getattr(R_tg.raw, "msg_copy", 0))
-                BulletinFactory.of(container, resource_provider).createSimpleBulletin(
+                _pbf(container, resource_provider).createSimpleBulletin(
                     icon_raw,
                     str(strings["link_copied"])
                 ).show()
@@ -2389,7 +2390,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                             from hook_utils import find_class as _fc2
                             R_tg = _fc2("org.telegram.messenger.R")
                             icon_raw = getattr(R_tg.raw, "info", 0)
-                            BulletinFactory.of(container, resource_provider).createSimpleBulletin(
+                            _pbf(container, resource_provider).createSimpleBulletin(
                                 icon_raw,
                                 str(strings.pp_changelog_none_provided)
                             ).show()

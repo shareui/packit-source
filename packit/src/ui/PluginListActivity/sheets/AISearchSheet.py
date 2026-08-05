@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ....utils.bulletins import factory as _pbf
 import ctypes
 import json
 import base64
@@ -705,7 +706,7 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
                     frag = get_last_fragment()
                     container = frag.getParentActivity().getWindow().getDecorView()
                     rp = frag.getResourceProvider()
-                    BulletinFactory.of(container, rp).createErrorBulletin(
+                    _pbf(container, rp).createErrorBulletin(
                         str(strings.get("ai_search_no_key", "Add the API key in the settings"))
                     ).show()
                 except Exception as be:
@@ -771,7 +772,7 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
                             frag = get_last_fragment()
                             container = frag.getParentActivity().getWindow().getDecorView()
                             rp = frag.getResourceProvider()
-                            BulletinFactory.of(container, rp).createErrorBulletin(
+                            _pbf(container, rp).createErrorBulletin(
                                 str(strings.get("ai_search_quota", "Gemini API quota exceeded. Try again later."))
                             ).show()
                         except Exception as be:
@@ -786,7 +787,7 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
                             frag = get_last_fragment()
                             container = frag.getParentActivity().getWindow().getDecorView()
                             rp = frag.getResourceProvider()
-                            BulletinFactory.of(container, rp).createErrorBulletin(
+                            _pbf(container, rp).createErrorBulletin(
                                 str(strings.get("ai_search_geo_error", "Turn on VPN and try again"))
                             ).show()
                         except Exception as be:
@@ -802,7 +803,7 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
                             frag = get_last_fragment()
                             container = frag.getParentActivity().getWindow().getDecorView()
                             rp = frag.getResourceProvider()
-                            BulletinFactory.of(container, rp).createErrorBulletin(
+                            _pbf(container, rp).createErrorBulletin(
                                 str(strings.get("ai_search_error", "Search error. Check the logs."))
                             ).show()
                         except Exception as be:

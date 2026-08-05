@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ...utils.bulletins import factory as _pbf
 from ...utils.netQueue import run_io
 import json
 import threading
@@ -1855,7 +1856,7 @@ class InstallIconsUI:
                         except Exception:
                             pass
                         icon_raw = getattr(R_tg.raw, "copy", getattr(R_tg.raw, "msg_copy", 0))
-                        BulletinFactory.of(container, resource_provider).createSimpleBulletin(
+                        _pbf(container, resource_provider).createSimpleBulletin(
                             icon_raw,
                             str(strings["link_copied"])
                         ).show()

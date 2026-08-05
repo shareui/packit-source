@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ...utils.bulletins import factory as _pbf
 import ctypes
 from android.view import View, Gravity
 from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView, SeekBar
@@ -1396,7 +1397,7 @@ class PluginCardEditorPage:
                             if fragment and BulletinFactory:
                                 container = fragment.getParentActivity().getWindow().getDecorView()
                                 resource_provider = fragment.getResourceProvider()
-                                BulletinFactory.of(container, resource_provider).createErrorBulletin(strings["max_buttons_allowed"]).show()
+                                _pbf(container, resource_provider).createErrorBulletin(strings["max_buttons_allowed"]).show()
                         except Exception as e:
                             logx(f"PCE: Failed to show button limit popup: {e}", False)
                         return
@@ -1407,7 +1408,7 @@ class PluginCardEditorPage:
                             if fragment and BulletinFactory:
                                 container = fragment.getParentActivity().getWindow().getDecorView()
                                 resource_provider = fragment.getResourceProvider()
-                                BulletinFactory.of(container, resource_provider).createErrorBulletin(strings["max_buttons_allowed"]).show()
+                                _pbf(container, resource_provider).createErrorBulletin(strings["max_buttons_allowed"]).show()
                         except Exception as e:
                             logx(f"PCE: Failed to show button limit popup: {e}", False)
                         return
@@ -1448,7 +1449,7 @@ class PluginCardEditorPage:
                             if fragment and BulletinFactory:
                                 container = fragment.getParentActivity().getWindow().getDecorView()
                                 resource_provider = fragment.getResourceProvider()
-                                BulletinFactory.of(container, resource_provider).createErrorBulletin(strings["max_buttons_allowed"]).show()
+                                _pbf(container, resource_provider).createErrorBulletin(strings["max_buttons_allowed"]).show()
                         except Exception as e:
                             logx(f"PCE: Failed to show button limit popup: {e}", False)
                         return

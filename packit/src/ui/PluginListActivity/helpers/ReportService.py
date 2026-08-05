@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ....utils.bulletins import factory as _pbf
 from android_utils import run_on_ui_thread
 from client_utils import get_last_fragment
 
@@ -26,7 +27,7 @@ def report_plugin(plugin_info: dict, activity, repo_id: str = ""):
                 from org.telegram.ui.Components import BulletinFactory
                 decor = act.getWindow().getDecorView()
                 msg = str(strings["report_dialog_missing_field"]).replace("{field}", field)
-                BulletinFactory.of(decor, None).createErrorBulletin(msg).show()
+                _pbf(decor, None).createErrorBulletin(msg).show()
             except Exception as e:
                 logx(f"report_plugin: bulletin error: {e}", False)
 

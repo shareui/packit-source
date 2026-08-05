@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ..utils.bulletins import factory as _pbf
 import ctypes
 import json
 import os
@@ -173,7 +174,7 @@ def _submit_report(forum_username: str, topic_msg_id: int, plugin_name: str, plu
                 from elyx import strings
                 R_tg = find_class("org.telegram.messenger.R")
                 decor = act.getWindow().getDecorView()
-                BulletinFactory.of(decor, None).createSimpleBulletin(
+                _pbf(decor, None).createSimpleBulletin(
                     R_tg.raw.done,
                     str(strings["report_dialog_sent"])
                 ).show()
@@ -185,7 +186,7 @@ def _submit_report(forum_username: str, topic_msg_id: int, plugin_name: str, plu
                 from org.telegram.ui.Components import BulletinFactory
                 from elyx import strings
                 decor = act.getWindow().getDecorView()
-                BulletinFactory.of(decor, None).createErrorBulletin(
+                _pbf(decor, None).createErrorBulletin(
                     str(strings["report_dialog_failed"])
                 ).show()
             except Exception as e:

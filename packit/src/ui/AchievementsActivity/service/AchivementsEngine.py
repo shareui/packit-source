@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ....utils.bulletins import factory as _pbf
 import os
 import json
 import zlib
@@ -405,9 +406,9 @@ def _show_achievement_bulletin(achievement: dict, on_hide=None):
             container = _bulletin_container
             if container is not None:
                 rp = fragment.getResourceProvider()
-                factory = BulletinFactory.of(container, rp)
+                factory = _pbf(container, rp)
             else:
-                factory = BulletinFactory.of(fragment)
+                factory = _pbf(fragment)
 
             if drawable is not None:
                 bulletin = factory.createSimpleBulletin(drawable, strings.achiev_unlocked, title, strings.achiev_open, _Runnable(_open))

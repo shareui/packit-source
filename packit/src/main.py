@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from .utils.bulletins import factory as _pbf
 import time
 from typing import Any
 from .other import text as _text
@@ -338,7 +339,7 @@ def _check_update_notifications_bulletin(plugin):
                                 show_updates_fragment()
                             except Exception as _e:
                                 logx(f"PackIt: update bulletin open error: {_e}", True)
-                    factory = BulletinFactory.of(fragment)
+                    factory = _pbf(fragment)
                     bulletin = factory.createSimpleBulletin(
                         R_tg.raw.info, text, btn_text, _Runnable(_action)
                     )

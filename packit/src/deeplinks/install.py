@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ..utils.bulletins import factory as _pbf
 from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment, run_on_queue
 from android_utils import run_on_ui_thread
@@ -363,7 +364,7 @@ def _handleInstallPlugin(repo: dict, pluginId: str, versionId: str = ""):
                     resource_provider = frag.getResourceProvider()
                 except Exception:
                     pass
-                BulletinFactory.of(container, resource_provider).createSimpleBulletin(
+                _pbf(container, resource_provider).createSimpleBulletin(
                     R_tg.raw.chats_infotip,
                     str(strings["dl_install_version_loading"]).format(versionId)
                 ).show()

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ...utils.bulletins import factory as _pbf
 from android.view import Gravity, View
 from android.widget import FrameLayout, ImageView, LinearLayout, ScrollView, TextView
 from android.util import TypedValue
@@ -1683,7 +1684,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     try:
                         from org.telegram.ui.Components import BulletinFactory
                         decor = act.getWindow().getDecorView()
-                        BulletinFactory.of(decor, None).createErrorBulletin(
+                        _pbf(decor, None).createErrorBulletin(
                             "The first file should be .eaf/.plugin"
                         ).show()
                     except Exception as e:

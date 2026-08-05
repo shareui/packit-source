@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ...utils.bulletins import factory as _pbf
 from java import dynamic_proxy
 from android_utils import run_on_ui_thread, OnClickListener
 from client_utils import get_last_fragment, run_on_queue
@@ -159,11 +160,11 @@ def _show_bulletin(icon_raw_name, text, is_error=False):
             # fragment overload puts the bulletin inside the fragment's layout
             # container with native insets (above the nav bar), same as install
             # bulletins; the decorView overload pinned it under the nav bar
-            factory = BulletinFactory.of(frag)
+            factory = _pbf(frag)
         except Exception:
             container = frag.getParentActivity().getWindow().getDecorView()
             rp = frag.getResourceProvider()
-            factory = BulletinFactory.of(container, rp)
+            factory = _pbf(container, rp)
         if is_error:
             factory.createErrorBulletin(str(text)).show()
         else:
