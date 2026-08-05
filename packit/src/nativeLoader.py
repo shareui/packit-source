@@ -138,29 +138,40 @@ def showNativeErrorSheet(libName: str, error: str):
                 except Exception:
                     pass
 
+                # pack + index bound together: a prior edit bumped the index to
+                # 49 but left the guard at <= 27, so ss.documents.get(49) threw
+                # IndexOutOfBounds on packs with 28..49 stickers and the sticker
+                # never appeared. Keep both derived from the same constant, and
+                # query/load the same pack name (the fallback used a different
+                # name than the async load, so the load never warmed the set).
+                _STICKER_PACK = "wtffffffffffDD"
+                _STICKER_INDEX = 49
+
                 def _try_sticker():
                     try:
                         mdc = MediaDataController.getInstance(0)
                         ss = None
                         try:
-                            ss = mdc.getStickerSetByName("wtffffffffffDD")
+                            ss = mdc.getStickerSetByName(_STICKER_PACK)
                         except Exception:
                             pass
                         if not ss:
                             try:
-                                ss = mdc.getStickerSetByEmojiOrName("randomshareui")
+                                ss = mdc.getStickerSetByEmojiOrName(_STICKER_PACK)
                             except Exception:
                                 pass
                         if not ss:
                             try:
-                                mdc.loadStickersByEmojiOrName("wtffffffffffDD", False, False)
+                                mdc.loadStickersByEmojiOrName(_STICKER_PACK, False, False)
                             except Exception:
                                 pass
+                            logx("nativeLoader: sticker set not cached yet, load triggered", True)
                             return False
                         docs_count = ss.documents.size() if getattr(ss, "documents", None) else 0
-                        if docs_count <= 27:
+                        if docs_count <= _STICKER_INDEX:
+                            logx(f"nativeLoader: sticker index {_STICKER_INDEX} out of range (count={docs_count})", True)
                             return False
-                        doc = ss.documents.get(49)
+                        doc = ss.documents.get(_STICKER_INDEX)
                         iv.setImage(
                             ImageLocation.getForDocument(doc),
                             "100_100",
