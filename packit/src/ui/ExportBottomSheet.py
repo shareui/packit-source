@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ..utils.ripple import safe_ripple as _safe_ripple
 import os
 import ast
 import re
@@ -574,7 +575,7 @@ def show(plugins, on_export):
                     ripple_mask = GradientDrawable()
                     ripple_mask.setCornerRadius(AndroidUtilities.dp(18))
                     ripple_mask.setColor(Color.WHITE)
-                    ripple_drawable = RippleDrawable(ripple_color, btn_bg, ripple_mask)
+                    ripple_drawable = _safe_ripple(ripple_color, btn_bg, ripple_mask)
                     container.setBackground(ripple_drawable)
                 except Exception:
                     container.setBackground(btn_bg)
@@ -632,7 +633,7 @@ def show(plugins, on_export):
                 toggle_mask = GradientDrawable()
                 toggle_mask.setCornerRadius(AndroidUtilities.dp(18))
                 toggle_mask.setColor(Color.WHITE)
-                toggle_ripple = RippleDrawable(ripple_color, toggle_all_bg, toggle_mask)
+                toggle_ripple = _safe_ripple(ripple_color, toggle_all_bg, toggle_mask)
                 toggle_all_container.setBackground(toggle_ripple)
             except Exception:
                 toggle_all_container.setBackground(toggle_all_bg)

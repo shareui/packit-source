@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ...utils.ripple import safe_ripple as _safe_ripple
 from ...utils.bulletins import factory as _pbf
 import ctypes
 from android_utils import run_on_ui_thread, OnClickListener
@@ -154,7 +155,7 @@ def _make_row_bg(act, corner_dp: int):
         pressed_bg = GradientDrawable()
         pressed_bg.setCornerRadius(dp(corner_dp))
         pressed_bg.setColor(pressed_color)
-        return RippleDrawable(ripple_color, btn_bg, pressed_bg)
+        return _safe_ripple(ripple_color, btn_bg, pressed_bg)
     except Exception:
         try:
             return Theme.createSimpleSelectorRoundRectDrawable(dp(corner_dp), bg_color, pressed_color)

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ...utils.ripple import safe_ripple as _safe_ripple
 import os
 from android.view import View, Gravity, MotionEvent
 from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView, HorizontalScrollView
@@ -1013,7 +1014,7 @@ def _show_entry_menu(act, anchor_view, path, on_rename, on_delete, on_copy):
                     pressed_bg = GradientDrawable()
                     pressed_bg.setCornerRadius(AndroidUtilities.dp(10))
                     pressed_bg.setColor(pressed_color)
-                    item.setBackground(RippleDrawable(ripple_color, btn_bg, pressed_bg))
+                    item.setBackground(_safe_ripple(ripple_color, btn_bg, pressed_bg))
                 except Exception:
                     item.setBackground(btn_bg)
             except Exception:

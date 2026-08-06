@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ....utils.ripple import safe_ripple as _safe_ripple
 from ....utils.bulletins import factory as _pbf
 import ctypes
 import json
@@ -295,7 +296,7 @@ def _ripple_bg(base_drawable, ripple_color: int = 0x20000000, radius_dp: int = 0
             mask.setShape(GradientDrawable.RECTANGLE)
             mask.setCornerRadius(float(AndroidUtilities.dp(radius_dp)))
             mask.setColor(_c(0xFFFFFFFF))
-            return RippleDrawable(AColorStateList.valueOf(_c(ripple_color)), base_drawable, mask)
+            return _safe_ripple(AColorStateList.valueOf(_c(ripple_color)), base_drawable, mask)
         except Exception:
             pass
     return base_drawable

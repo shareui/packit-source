@@ -56,7 +56,8 @@ def _apply_ripple(view, corner_dp=12, bounded=True):
             except Exception:
                 pass
         existing = view.getBackground()
-        ripple = RippleDrawable(
+        from ...utils.ripple import safe_ripple as _safe_ripple
+        ripple = _safe_ripple(
             ColorStateList.valueOf(ripple_color),
             existing,
             mask

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ...utils.ripple import safe_ripple as _safe_ripple
 from ...utils.bulletins import factory as _pbf
 import threading
 from android_utils import run_on_ui_thread, OnClickListener, OnLongClickListener
@@ -162,7 +163,7 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
                 mask.setCornerRadius(AndroidUtilities.dp(corner))
                 mask.setColor(ACol.WHITE)
                 ripple_c = CslA.valueOf(ctypes.c_int32(0x33FFFFFF).value)
-                return RippleDrawable(ripple_c, base, mask)
+                return _safe_ripple(ripple_c, base, mask)
             except Exception:
                 return _make_row_bg(color, corner, stroke_color)
 
