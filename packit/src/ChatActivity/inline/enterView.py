@@ -405,6 +405,23 @@ def _packit_show_matching_plugins(self, search_key):
         logx(f"Packit show matching plugins error: {e}", False)
 
 
+def _recycler_busy(list_view) -> bool:
+    # RecyclerView.assertNotInLayoutOrScroll() refuses adapter updates both
+    # while a layout pass is running and while scroll callbacks are being
+    # dispatched; checking only isComputingLayout() missed the second case and
+    # let "Cannot call this method while RecyclerView is computing a layout or
+    # scrolling" through.
+    try:
+        if list_view.isComputingLayout():
+            return True
+    except Exception:
+        pass
+    try:
+        return int(list_view.getScrollState()) != 0  # != SCROLL_STATE_IDLE
+    except Exception:
+        return False
+
+
 def _packit_show_plugins_popup(self, plugins):
     try:
         enter_view = self.packit_current_enter_view_ref() if self.packit_current_enter_view_ref else None
@@ -451,7 +468,7 @@ def _packit_show_plugins_popup(self, plugins):
         update_token = object()
         self._packit_popup_update_token = update_token
 
-        def apply_adapter_update():
+        def apply_adapter_update(attempt=0):
             try:
                 # Drop delayed results superseded by a newer search or hide.
                 if getattr(self, "_packit_popup_update_token", None) is not update_token:
@@ -460,8 +477,14 @@ def _packit_show_plugins_popup(self, plugins):
                 # afterTextChanged may run during RecyclerView's layout pass.
                 # Mutating its backing lists or notifying the adapter then can
                 # either crash or leave the popup with no bound rows.
-                if list_view.isComputingLayout():
-                    run_on_ui_thread(apply_adapter_update, delay=16)
+                # assertNotInLayoutOrScroll() rejects updates while the view is
+                # laying out *or* dispatching scroll callbacks, so both have to
+                # be waited out; give up after ~0.5s rather than retry forever.
+                if _recycler_busy(list_view):
+                    if attempt < 30:
+                        run_on_ui_thread(lambda: apply_adapter_update(attempt + 1), delay=16)
+                    else:
+                        logx("Packit popup: recycler stayed busy, skipping update", True)
                     return
 
                 new_result_field = bot_adapter.getClass().getDeclaredField("newResult")
@@ -493,7 +516,16 @@ def _packit_show_plugins_popup(self, plugins):
                     if new_result_ephemeral is not None:
                         new_result_ephemeral.add(False)
 
-                bot_adapter.notifyDataSetChanged()
+                try:
+                    bot_adapter.notifyDataSetChanged()
+                except Exception as notify_error:
+                    # the recycler became busy between the check and here —
+                    # retry on the next frame instead of losing the popup
+                    if attempt < 30:
+                        logx(f"Packit popup: notify refused, retrying: {notify_error}", True)
+                        run_on_ui_thread(lambda: apply_adapter_update(attempt + 1), delay=16)
+                        return
+                    raise
                 bot_container.requestLayout()
                 bot_container.show()
             except Exception as e:
