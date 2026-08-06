@@ -602,7 +602,7 @@ def make_plugin_card(self, p):
         translate_plugin(p)
 
     def do_report_relocated():
-        report_plugin(p, act, repo_id=self.repo_id)
+        report_plugin(p, act, repo_id=self.repo_id or str(p.get("_repo_id") or ""))
         try:
             from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
             increment_category("Reporting")
@@ -675,7 +675,7 @@ def make_plugin_card(self, p):
                 translate_plugin(p)
 
             def do_report():
-                report_plugin(p, act, repo_id=self.repo_id)
+                report_plugin(p, act, repo_id=self.repo_id or str(p.get("_repo_id") or ""))
                 try:
                     from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
                     increment_category("Reporting")
