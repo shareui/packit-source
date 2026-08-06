@@ -231,8 +231,10 @@ def _markdown_to_html(text: str) -> str:
     if not text:
         return ""
     try:
-        from markdown_utils import parse_markdown
-        parsed = parse_markdown(text)
+        from ...utils.markdown import parse as _md_parse
+        parsed = _md_parse(text)
+        if parsed is None:
+            return _html_escape(text)
         return _entities_to_html(parsed.text, parsed.entities)
     except Exception as e:
         logx(f"inlineBtns: markdown->html failed, escaping raw: {e}", False)
