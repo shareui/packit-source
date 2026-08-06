@@ -153,142 +153,25 @@ def _get_random_pending_text():
         return "Translating..."
 
 
-def _html_escape(s: str) -> str:
-    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-
-
-def _html_tags_for(name: str, tl):
-    # maps a TLRPC message-entity type to its (open, close) HTML tags, or
-    # (None, None) for entity kinds we don't render inline
-    if name == "TL_messageEntityBold":
-        return "<b>", "</b>"
-    if name == "TL_messageEntityItalic":
-        return "<i>", "</i>"
-    if name == "TL_messageEntityUnderline":
-        return "<u>", "</u>"
-    if name in ("TL_messageEntityStrike", "TL_messageEntityStrikethrough"):
-        return "<s>", "</s>"
-    if name == "TL_messageEntityCode":
-        return "<code>", "</code>"
-    if name == "TL_messageEntityPre":
-        return "<pre>", "</pre>"
-    if name == "TL_messageEntitySpoiler":
-        return "<tg-spoiler>", "</tg-spoiler>"
-    if name == "TL_messageEntityBlockquote":
-        return "<blockquote>", "</blockquote>"
-    if name == "TL_messageEntityTextUrl":
-        url = str(getattr(tl, "url", "") or "").replace('"', "%22")
-        return f'<a href="{url}">', "</a>"
-    return None, None
-
-
-def _entities_to_html(text: str, entities) -> str:
-    # serializes host markdown entities (offset/length spans) back into HTML so
-    # the translated description formats exactly like the original send, whose
-    # entities came from the same parse_markdown. Offsets are treated as python
-    # string indices (BMP text), matching how the initial send in enterView.py
-    # applies them.
-    spans = []
-    for ent in (entities or []):
-        try:
-            tl = ent.to_tlrpc_object()
-        except Exception:
-            continue
-        o = int(getattr(ent, "offset", 0))
-        l = int(getattr(ent, "length", 0) or getattr(tl, "length", 0) or 0)
-        if l <= 0:
-            continue
-        open_tag, close_tag = _html_tags_for(type(tl).__name__, tl)
-        if open_tag is None:
-            continue
-        spans.append((o, o + l, open_tag, close_tag))
-
-    open_at = {}
-    close_at = {}
-    for s, e, ot, ct in spans:
-        open_at.setdefault(s, []).append(ot)
-        close_at.setdefault(e, []).append(ct)
-
-    out = []
-    n = len(text)
-    for i in range(n + 1):
-        if i in close_at:
-            # close in reverse open order so nested spans unwind correctly
-            for ct in reversed(close_at[i]):
-                out.append(ct)
-        if i < n and i in open_at:
-            for ot in open_at[i]:
-                out.append(ot)
-        if i < n:
-            out.append(_html_escape(text[i]))
-    return "".join(out)
-
-
-def _markdown_to_html(text: str) -> str:
-    # turns the plugin's markdown description (**bold**, `code`, links, ...)
-    # into HTML so parse_mode=HTML renders it instead of showing raw markers.
-    # Reuses the host parser so it matches the non-translated send byte for byte.
-    if not text:
-        return ""
-    try:
-        from ...utils.markdown import parse as _md_parse
-        parsed = _md_parse(text)
-        if parsed is None:
-            return _html_escape(text)
-        return _entities_to_html(parsed.text, parsed.entities)
-    except Exception as e:
-        logx(f"inlineBtns: markdown->html failed, escaping raw: {e}", False)
-        return _html_escape(text)
-
-
-def _build_plugin_message_html(params, translated_desc: str) -> str:
-    # rebuilds the full plugin message as HTML using stored params and a translated description
-    # params may be a Java HashMap — always use single-arg .get()
+def _build_plugin_message(params, translated_desc: str):
+    # rebuilds the full plugin message from stored params and the translated
+    # description, using the same builder as the original send so the result is
+    # formatted identically. params may be a Java HashMap — single-arg .get().
 
     def _p(key):
         v = params.get(key)
         return str(v) if v is not None else ""
 
-    name = _p("packit_name")
-    version = _p("packit_version")
-    author = _p("packit_author")
-    plugin_id = _p("packit_plugin_id")
-    repo_id = _p("packit_repo_id")
-    output_type = _p("packit_output_type") or None
-    show_version = _p("packit_show_version") != "0"
-    show_author = _p("packit_show_author") != "0"
-    show_description = _p("packit_show_description") != "0"
-    show_install = _p("packit_show_install") != "0"
-
-    plugin_link = f"tg://packit?plugin={plugin_id}&repo={repo_id}"
-    parts = []
-
-    if output_type == "release":
-        parts.append(f'<a href="{plugin_link}"><b>{name}</b></a> has been released!')
-    elif output_type == "update":
-        parts.append(f'<a href="{plugin_link}"><b>{name}</b></a><b> updated to </b>{version}')
-    else:
-        header = f'<a href="{plugin_link}"><b>{name}</b></a>'
-        if show_version and version:
-            header += f" (v{version})"
-        parts.append(header)
-
-    parts.append("\n")
-
-    if show_author and author:
-        parts.append(f"by {author}\n")
-
-    if show_description and translated_desc:
-        desc_html = _markdown_to_html(translated_desc)
-        parts.append(f"<blockquote>{desc_html}\n</blockquote>")
-
-    if show_install:
-        install_link = f"tg://packit?install&repo={repo_id}&plugin={plugin_id}"
-        if version:
-            install_link += f"&version={version}"
-        parts.append(f'<a href="{install_link}">Install</a> via <a href="https://t.me/packitX">PackIt</a>')
-
-    return "".join(parts)
+    from .messageBuilder import build_plugin_message
+    return build_plugin_message(
+        _p("packit_name"), _p("packit_version"), _p("packit_author"),
+        _p("packit_plugin_id"), _p("packit_repo_id"), translated_desc,
+        output_type=_p("packit_output_type") or None,
+        show_version=_p("packit_show_version") != "0",
+        show_author=_p("packit_show_author") != "0",
+        show_description=_p("packit_show_description") != "0",
+        show_install=_p("packit_show_install") != "0",
+    )
 
 
 def _do_translate_inline(message_object):
@@ -331,12 +214,15 @@ def _do_translate_inline(message_object):
         translated_desc = _translate_text(raw_desc, target_lang)
         logx(f"inlineBtns: translation done, len={len(translated_desc)}", True)
 
-        rebuilt = _build_plugin_message_html(msg_params, translated_desc)
-        logx(f"inlineBtns: rebuilt message html, len={len(rebuilt)}", True)
+        rebuilt_text, rebuilt_entities = _build_plugin_message(msg_params, translated_desc)
+        logx(f"inlineBtns: rebuilt message, len={len(rebuilt_text)} entities={len(rebuilt_entities)}", True)
 
         def set_translated():
             try:
-                edit_message(message_object, text=rebuilt, parse_mode="HTML")
+                from .messageBuilder import edit_message_with_entities
+                if not edit_message_with_entities(message_object, rebuilt_text, rebuilt_entities):
+                    # last resort: at least put the translated text in place
+                    edit_message(message_object, text=rebuilt_text)
                 logx("inlineBtns: translated message set", True)
             except Exception as e:
                 logx(f"inlineBtns: set_translated error: {e}", False)
