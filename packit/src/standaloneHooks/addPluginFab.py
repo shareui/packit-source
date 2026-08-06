@@ -125,11 +125,67 @@ def _inject_fab(plugin, frag_view):
         frag_view.addView(fab, fab_lp)
         fab.bringToFront()
 
+        _keep_above_navigation_bar(fab, fab_margin)
         _attach_scroll_listener(frag_view, fab, fab_lp, fab_margin, state_ref)
 
         logx("addPluginFab: FAB injected into PluginsActivity", True)
     except Exception as e:
         logx(f"addPluginFab: _inject_fab error: {e}", False)
+
+
+def _nav_bar_inset(insets) -> int:
+    # bottom inset taken from the navigation bars only: with 3-button
+    # navigation that is the full bar height, with gesture navigation just the
+    # thin handle — so the FAB lifts exactly as much as it has to
+    if insets is None:
+        return 0
+    try:
+        from android.view import WindowInsets
+        return int(insets.getInsets(WindowInsets.Type.navigationBars()).bottom)
+    except Exception:
+        pass
+    try:
+        return int(insets.getSystemWindowInsetBottom())
+    except Exception:
+        return 0
+
+
+def _keep_above_navigation_bar(fab, base_margin):
+    # the FAB is injected into the fragment root, which does not lay it out
+    # against the system bars, so with 3-button navigation it ended up behind
+    # the bar. Track the real inset instead of hardcoding a lift: it updates
+    # when the navigation mode changes or the device rotates.
+    def _apply(insets):
+        try:
+            lp = fab.getLayoutParams()
+            if lp is None:
+                return
+            lp.bottomMargin = base_margin + _nav_bar_inset(insets)
+            fab.setLayoutParams(lp)
+        except Exception as e:
+            logx(f"addPluginFab: apply inset error: {e}", False)
+
+    try:
+        from android.view import View
+        from java import dynamic_proxy
+        OnApplyWindowInsetsListener = find_class("android.view.View$OnApplyWindowInsetsListener")
+
+        class _InsetsListener(dynamic_proxy(OnApplyWindowInsetsListener)):
+            def onApplyWindowInsets(self, v, insets):
+                _apply(insets)
+                return insets
+
+        fab.setOnApplyWindowInsetsListener(_InsetsListener())
+    except Exception as e:
+        logx(f"addPluginFab: insets listener error: {e}", False)
+
+    # apply straight away: the parent may have already dispatched insets before
+    # the FAB existed, in which case the listener alone would never fire
+    try:
+        _apply(fab.getRootWindowInsets())
+        fab.requestApplyInsets()
+    except Exception as e:
+        logx(f"addPluginFab: initial inset error: {e}", False)
 
 
 def _attach_scroll_listener(frag_view, fab, fab_lp, fab_margin, state_ref):
