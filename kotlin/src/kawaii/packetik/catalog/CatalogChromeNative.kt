@@ -86,7 +86,12 @@ object CatalogChromeNative {
         val icon = ImageView(ctx)
         if (iconRes != 0) icon.setImageResource(iconRes)
         icon.setColorFilter(iconTint)
-        icon.scaleType = ImageView.ScaleType.CENTER
+        // CENTER draws the drawable at its intrinsic size and clips it to the
+        // view: the host's action icons are 24dp and this slot is 20dp, so 2dp
+        // was shaved off every side. msg_list survives it (its strokes sit well
+        // inside the canvas) but msg_smile_status draws its circle 1dp from the
+        // edge, and the rim came out flattened on all four sides.
+        icon.scaleType = ImageView.ScaleType.CENTER_INSIDE
         btn.addView(icon, FrameLayout.LayoutParams(dp(ctx, 20f), dp(ctx, 20f), Gravity.CENTER))
         return btn
     }
