@@ -683,7 +683,7 @@ def make_plugin_card(self, p):
                     pass
 
             show_plugin_context_menu(anchor_view.getRootView(), anchor_view, [
-                {"icon": "msg_download_remix", "text": str(strings["pp_install"]), "action": do_install, "show": is_available},
+                {"icon": "msg_download_remix", "text": str(strings["pp_install"]), "action": do_install, "show": is_available and not getattr(self, "_s_relocate_install", False)},
                 {"icon": "msg_copy",      "text": str(strings["copy_link"]), "action": do_copy,      "show": not getattr(self, "_s_relocate_copy",      False)},
                 {"icon": "msg_share",     "text": str(strings["share"]),     "action": do_share,     "show": not getattr(self, "_s_relocate_share",     False)},
                 {"icon": "msg_view_file", "text": str(strings["code"]),      "action": do_code,      "show": not getattr(self, "_s_relocate_code",      False)},
