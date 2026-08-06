@@ -125,6 +125,39 @@ def _readPluginMeta(filepath):
     return meta
 
 
+def _jstr(value) -> str:
+    try:
+        return "" if value is None else str(value)
+    except Exception:
+        return ""
+
+
+def _hostPluginsByFile() -> dict:
+    # The host keeps a Plugin per installed id, filled by the engine from the
+    # plugin's own metadata, and exposes the icon as "pack/index" (Plugin.getIcon).
+    # We only read the first 5 KB of the file, so a header that sits further in —
+    # or a plugin whose file is not python source at all — leaves us without an
+    # icon; the registry has it either way. Keyed by file name so it lines up
+    # with the directory listing below.
+    index = {}
+    try:
+        from com.exteragram.messenger.plugins import PluginsController
+        controller = PluginsController.getInstance()
+        for entry in controller.getPlugins().entrySet():
+            try:
+                plugin_id = _jstr(entry.getKey())
+                plugin = entry.getValue()
+                if plugin is None or not plugin_id:
+                    continue
+                path = _jstr(controller.getPluginPath(plugin_id))
+                index[os.path.basename(path) if path else f"{plugin_id}.plugin"] = plugin
+            except Exception:
+                continue
+    except Exception as e:
+        logx(f"ExportBottomSheet._hostPluginsByFile: {e}", False)
+    return index
+
+
 def loadPlugins():
     # returns list of (filename, name, version, icon)
     try:
@@ -140,6 +173,7 @@ def loadPlugins():
             return []
 
     result = []
+    host = _hostPluginsByFile()
     try:
         for fname in sorted(os.listdir(plugins_dir)):
             if not fname.endswith((".py", ".plugin")):
@@ -151,6 +185,14 @@ def loadPlugins():
             name = meta.get("__name__") or os.path.splitext(fname)[0]
             version = meta.get("__version__") or ""
             icon = meta.get("__icon__") or ""
+            plugin = host.get(fname)
+            if plugin is not None:
+                if not icon:
+                    icon = _jstr(plugin.getIcon())
+                if not meta.get("__name__"):
+                    name = _jstr(plugin.getName()) or name
+                if not version:
+                    version = _jstr(plugin.getVersion())
             result.append((fname, name, version, icon))
     except Exception as e:
         logx(f"ExportBottomSheet.loadPlugins: {e}\n{traceback.format_exc()}", False)
