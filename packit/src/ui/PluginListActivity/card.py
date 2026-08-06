@@ -319,7 +319,8 @@ def make_plugin_card(self, p):
             try:
                 from ..PluginActivity.fragment import show_plugin_profile
                 show_plugin_profile(plugin, self.install_ui, self.plugins,
-                                    repo_id=self.repo_id or str(plugin.get("_repo_id") or ""))
+                                    repo_id=self.repo_id or str(plugin.get("_repo_id") or ""),
+                                    scroll_to_tags=True)
             except Exception:
                 pass
 

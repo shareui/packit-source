@@ -143,6 +143,30 @@ def _resolve_icon(name):
         return 0
 
 
+def _scroll_to_child(scroll, target):
+    # smooth-scrolls `scroll` so `target` (nested any number of levels below it)
+    # sits just under the action bar
+    try:
+        if scroll is None or target is None:
+            return
+        y = 0
+        view = target
+        for _ in range(8):
+            y += view.getTop()
+            parent = view.getParent()
+            if parent is None:
+                break
+            try:
+                if parent == scroll:
+                    break
+            except Exception:
+                pass
+            view = parent
+        scroll.smoothScrollTo(0, max(0, y - AndroidUtilities.dp(12)))
+    except Exception as e:
+        logx(f"pluginProfile: scroll to child error: {e}", False)
+
+
 def _make_chip(act, text, color_key):
     try:
         color = Theme.getColor(getattr(Theme, color_key))
@@ -537,7 +561,8 @@ def _show_plugin_menu(act, p, anchor_view, repo_id: str = ""):
 class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
     _MENU_ID = 1001
 
-    def __init__(self, plugin: dict, install_ui, all_plugins: list, repo_id: str = ""):
+    def __init__(self, plugin: dict, install_ui, all_plugins: list, repo_id: str = "",
+                 scroll_to_tags: bool = False):
         super().__init__()
         self.plugin = plugin
         self.install_ui = install_ui
@@ -547,6 +572,10 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         self._alive = [True]  # shared ref for sticker retry timers
         self._fragment_ref = [None]  # filled after presentFragment
         self._anchor_ref = [None]   # filled after menu button is created
+        # set when opened from a card's "+N" tag chip: jump to the tags card
+        self._scroll_to_tags = bool(scroll_to_tags)
+        self._scroll_ref = [None]     # the vertical ScrollView
+        self._tags_card_ref = [None]  # the tags card inside it
         logx(f"pluginProfile: init plugin={plugin.get('id')}", True)
 
     def onFragmentCreate(self, *_):
@@ -690,6 +719,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         scroll.setVerticalScrollBarEnabled(False)
         scroll.setOverScrollMode(ScrollView.OVER_SCROLL_IF_CONTENT_SCROLLS)
         scroll.setClipToPadding(False)
+        self._scroll_ref[0] = scroll
         self.content_view.addView(scroll, FrameLayout.LayoutParams(-1, -1))
 
         root = LinearLayout(act)
@@ -2935,6 +2965,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             if chips_row_tags.getChildCount() > 0:
                 tags_card.addView(tags_chips_scroll, LayoutHelper.createLinear(-1, -2))
                 desc_extra.addView(tags_card, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
+                self._tags_card_ref[0] = tags_card
 
         # dependencies
         if deps:
@@ -3228,7 +3259,15 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             fab = getattr(self, '_fab_ref', None)
             if fab is not None:
                 fab.bringToFront()
-        
+
+        # opened from a card's "+N" chip -> land on the tags card. Posted after
+        # the open animation so the view tree is laid out and the scroll is
+        # visible to the user rather than happening off-screen.
+        if self._scroll_to_tags:
+            def _jump_to_tags():
+                _scroll_to_child(self._scroll_ref[0], self._tags_card_ref[0])
+            run_on_ui_thread(_jump_to_tags, 320)
+
         return self.content_view
 
     def _get_localized_description(self, plugin):
@@ -3393,14 +3432,16 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         return row
 
 
-def show_plugin_profile(plugin: dict, install_ui, all_plugins: list = None, repo_id: str = ""):
+def show_plugin_profile(plugin: dict, install_ui, all_plugins: list = None, repo_id: str = "",
+                        scroll_to_tags: bool = False):
     try:
         fragment = get_last_fragment()
         if not fragment:
             logx("pluginProfile: no fragment", True)
             return
         logx(f"pluginProfile: show_plugin_profile plugin={plugin.get('id')}", True)
-        delegate = PluginProfileFragment(plugin, install_ui, all_plugins or [], repo_id=repo_id)
+        delegate = PluginProfileFragment(plugin, install_ui, all_plugins or [], repo_id=repo_id,
+                                         scroll_to_tags=scroll_to_tags)
         new_fragment = UniversalFragment(delegate)
         fragment.presentFragment(new_fragment)
         logx(f"pluginProfile: presentFragment done", True)
