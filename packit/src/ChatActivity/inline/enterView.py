@@ -405,6 +405,23 @@ def _packit_show_matching_plugins(self, search_key):
         logx(f"Packit show matching plugins error: {e}", False)
 
 
+def _recycler_busy(list_view) -> bool:
+    # RecyclerView.assertNotInLayoutOrScroll() refuses adapter updates both
+    # while a layout pass is running and while scroll callbacks are being
+    # dispatched; checking only isComputingLayout() missed the second case and
+    # let "Cannot call this method while RecyclerView is computing a layout or
+    # scrolling" through.
+    try:
+        if list_view.isComputingLayout():
+            return True
+    except Exception:
+        pass
+    try:
+        return int(list_view.getScrollState()) != 0  # != SCROLL_STATE_IDLE
+    except Exception:
+        return False
+
+
 def _packit_show_plugins_popup(self, plugins):
     try:
         enter_view = self.packit_current_enter_view_ref() if self.packit_current_enter_view_ref else None
@@ -440,7 +457,10 @@ def _packit_show_plugins_popup(self, plugins):
         
         for plugin in plugins[:10]:
             name = plugin.get("name", "Unknown")
-            description = plugin.get("description", "")
+            # the popup rows are plain java Strings, so entities can't be
+            # attached — drop the markdown markers instead of showing them raw
+            description = _strip_markdown(plugin.get("description", ""))
+            name = _strip_markdown(name)
             cmd = description[:25] + "..." if len(description) > 25 else description
             desc = name[:15] + "..." if len(name) > 15 else name
             commands.append(cmd)
@@ -451,7 +471,7 @@ def _packit_show_plugins_popup(self, plugins):
         update_token = object()
         self._packit_popup_update_token = update_token
 
-        def apply_adapter_update():
+        def apply_adapter_update(attempt=0):
             try:
                 # Drop delayed results superseded by a newer search or hide.
                 if getattr(self, "_packit_popup_update_token", None) is not update_token:
@@ -460,8 +480,14 @@ def _packit_show_plugins_popup(self, plugins):
                 # afterTextChanged may run during RecyclerView's layout pass.
                 # Mutating its backing lists or notifying the adapter then can
                 # either crash or leave the popup with no bound rows.
-                if list_view.isComputingLayout():
-                    run_on_ui_thread(apply_adapter_update, delay=16)
+                # assertNotInLayoutOrScroll() rejects updates while the view is
+                # laying out *or* dispatching scroll callbacks, so both have to
+                # be waited out; give up after ~0.5s rather than retry forever.
+                if _recycler_busy(list_view):
+                    if attempt < 30:
+                        run_on_ui_thread(lambda: apply_adapter_update(attempt + 1), delay=16)
+                    else:
+                        logx("Packit popup: recycler stayed busy, skipping update", True)
                     return
 
                 new_result_field = bot_adapter.getClass().getDeclaredField("newResult")
@@ -493,7 +519,16 @@ def _packit_show_plugins_popup(self, plugins):
                     if new_result_ephemeral is not None:
                         new_result_ephemeral.add(False)
 
-                bot_adapter.notifyDataSetChanged()
+                try:
+                    bot_adapter.notifyDataSetChanged()
+                except Exception as notify_error:
+                    # the recycler became busy between the check and here —
+                    # retry on the next frame instead of losing the popup
+                    if attempt < 30:
+                        logx(f"Packit popup: notify refused, retrying: {notify_error}", True)
+                        run_on_ui_thread(lambda: apply_adapter_update(attempt + 1), delay=16)
+                        return
+                    raise
                 bot_container.requestLayout()
                 bot_container.show()
             except Exception as e:
@@ -677,6 +712,27 @@ def _packit_hide_popup(self):
         logx(f"Packit hide popup error: {e}", False)
 
 
+def _u16len(text) -> int:
+    # Telegram message entities are offset and sized in UTF-16 code units, not
+    # python code points. Counting with len() drifted as soon as anything above
+    # the BMP (an emoji in the plugin name, author or description) appeared
+    # earlier in the message: every following entity landed on the wrong range
+    # and the client dropped it — the markdown markers were gone (the parser
+    # strips them) but nothing was bold.
+    try:
+        from markdown_utils import to_utf16_len
+        return to_utf16_len(str(text))
+    except Exception:
+        return len(str(text).encode("utf-16-le")) // 2
+
+
+def _strip_markdown(text) -> str:
+    # plain text for places that cannot render entities (the autocomplete popup
+    # binds its rows to java Strings), so markers don't show up raw
+    from ...utils.markdown import to_plain
+    return to_plain(text)
+
+
 def _packit_send_plugin_info(self, plugin_data):
     try:
         frag = get_last_fragment()
@@ -788,17 +844,17 @@ def _packit_send_plugin_info(self, plugin_data):
             message_parts.append(name_text)
             entity_name = TLRPC.TL_messageEntityTextUrl()
             entity_name.offset = current_offset
-            entity_name.length = len(name_text)
+            entity_name.length = _u16len(name_text)
             entity_name.url = plugin_link
             entities.append(entity_name)
             entity_name_bold = TLRPC.TL_messageEntityBold()
             entity_name_bold.offset = current_offset
-            entity_name_bold.length = len(name_text)
+            entity_name_bold.length = _u16len(name_text)
             entities.append(entity_name_bold)
-            current_offset += len(name_text)
+            current_offset += _u16len(name_text)
             suffix = " has been released!"
             message_parts.append(suffix)
-            current_offset += len(suffix)
+            current_offset += _u16len(suffix)
 
         elif output_type == "update":
             # "{name} updated to {version}" — name is link+bold, "updated to" is bold, version is plain
@@ -806,24 +862,24 @@ def _packit_send_plugin_info(self, plugin_data):
             message_parts.append(name_text)
             entity_name = TLRPC.TL_messageEntityTextUrl()
             entity_name.offset = current_offset
-            entity_name.length = len(name_text)
+            entity_name.length = _u16len(name_text)
             entity_name.url = plugin_link
             entities.append(entity_name)
             entity_name_bold = TLRPC.TL_messageEntityBold()
             entity_name_bold.offset = current_offset
-            entity_name_bold.length = len(name_text)
+            entity_name_bold.length = _u16len(name_text)
             entities.append(entity_name_bold)
-            current_offset += len(name_text)
+            current_offset += _u16len(name_text)
             updated_text = " updated to "
             message_parts.append(updated_text)
             entity_upd = TLRPC.TL_messageEntityBold()
             entity_upd.offset = current_offset
-            entity_upd.length = len(updated_text)
+            entity_upd.length = _u16len(updated_text)
             entities.append(entity_upd)
-            current_offset += len(updated_text)
+            current_offset += _u16len(updated_text)
             ver_text = version if version else "?"
             message_parts.append(ver_text)
-            current_offset += len(ver_text)
+            current_offset += _u16len(ver_text)
 
         else:
             # default: "{name} (v{version})"
@@ -831,18 +887,18 @@ def _packit_send_plugin_info(self, plugin_data):
             message_parts.append(name_text)
             entity_name = TLRPC.TL_messageEntityTextUrl()
             entity_name.offset = current_offset
-            entity_name.length = len(name_text)
+            entity_name.length = _u16len(name_text)
             entity_name.url = plugin_link
             entities.append(entity_name)
             entity_name_bold = TLRPC.TL_messageEntityBold()
             entity_name_bold.offset = current_offset
-            entity_name_bold.length = len(name_text)
+            entity_name_bold.length = _u16len(name_text)
             entities.append(entity_name_bold)
-            current_offset += len(name_text)
+            current_offset += _u16len(name_text)
             if show_version and version:
                 version_text = f" (v{version})"
                 message_parts.append(version_text)
-                current_offset += len(version_text)
+                current_offset += _u16len(version_text)
 
         message_parts.append("\n")
         current_offset += 1
@@ -850,17 +906,18 @@ def _packit_send_plugin_info(self, plugin_data):
         if show_author and author:
             by_text = "by "
             message_parts.append(by_text)
-            current_offset += len(by_text)
+            current_offset += _u16len(by_text)
             author_text = author
             message_parts.append(author_text)
-            current_offset += len(author_text)
+            current_offset += _u16len(author_text)
             message_parts.append("\n")
             current_offset += 1
 
         desc_quote_start = current_offset
 
         if show_description and description:
-            parsed_desc = parse_markdown(description)
+            from ...utils.markdown import parse as _md_parse
+            parsed_desc = _md_parse(description) or parse_markdown(description)
             desc_text = parsed_desc.text
 
             for ent in parsed_desc.entities:
@@ -869,7 +926,7 @@ def _packit_send_plugin_info(self, plugin_data):
                 entities.append(tl_entity)
 
             message_parts.append(desc_text)
-            current_offset += len(desc_text)
+            current_offset += _u16len(desc_text)
             message_parts.append("\n")
             current_offset += 1
 
@@ -887,25 +944,33 @@ def _packit_send_plugin_info(self, plugin_data):
             message_parts.append(install_text)
             entity_install = TLRPC.TL_messageEntityTextUrl()
             entity_install.offset = current_offset
-            entity_install.length = len(install_text)
+            entity_install.length = _u16len(install_text)
             entity_install.url = install_link
             entities.append(entity_install)
-            current_offset += len(install_text)
+            current_offset += _u16len(install_text)
 
             via_sep = " via "
             message_parts.append(via_sep)
-            current_offset += len(via_sep)
+            current_offset += _u16len(via_sep)
 
             packit_text = "PackIt"
             message_parts.append(packit_text)
             entity_via = TLRPC.TL_messageEntityTextUrl()
             entity_via.offset = current_offset
-            entity_via.length = len(packit_text)
+            entity_via.length = _u16len(packit_text)
             entity_via.url = "https://t.me/packitX"
             entities.append(entity_via)
 
         message_text = "".join(message_parts)
-        
+
+        # entities must be ordered by offset, with a container (the description
+        # blockquote) ahead of what it wraps; we append them in build order, so
+        # sort before handing the message over
+        try:
+            entities.sort(key=lambda e: (int(e.offset), -int(e.length)))
+        except Exception as e:
+            logx(f"Packit send: entity sort skipped: {e}", True)
+
         try:
             from client_utils import send_message
             message_data = {

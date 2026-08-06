@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ...utils.bulletins import factory as _pbf
 from android.view import Gravity, View
 from android.widget import FrameLayout, ImageView, LinearLayout, ScrollView, TextView
 from android.util import TypedValue
@@ -55,7 +56,8 @@ def _apply_ripple(view, corner_dp=12, bounded=True):
             except Exception:
                 pass
         existing = view.getBackground()
-        ripple = RippleDrawable(
+        from ...utils.ripple import safe_ripple as _safe_ripple
+        ripple = _safe_ripple(
             ColorStateList.valueOf(ripple_color),
             existing,
             mask
@@ -1196,51 +1198,8 @@ def _make_forked_popup(act, plugins: list, on_select):
                 icon_lp = LL.LayoutParams(icon_size_px, icon_size_px)
                 icon_lp.rightMargin = dp(12)
                 row.addView(icon_view, icon_lp)
-
-                def _try_load(iv=icon_view, s=icon_str):
-                    try:
-                        pack_name, index_str = s.split("/", 1)
-                        idx = int(index_str)
-                        mdc = MediaDataController.getInstance(0)
-                        ss = None
-                        try:
-                            ss = mdc.getStickerSetByName(pack_name)
-                        except Exception:
-                            pass
-                        if not ss:
-                            try:
-                                ss = mdc.getStickerSetByEmojiOrName(pack_name)
-                            except Exception:
-                                pass
-                        if ss and getattr(ss, "documents", None) and ss.documents.size() > idx:
-                            doc = ss.documents.get(idx)
-                            iv.setImage(
-                                ImageLocation.getForDocument(doc),
-                                f"{icon_size_dp}_{icon_size_dp}",
-                                None, None, 0, 1
-                            )
-                            return True
-                        return False
-                    except Exception:
-                        return False
-
-                if not _try_load():
-                    try:
-                        pack_name = icon_str.split("/", 1)[0]
-                        MediaDataController.getInstance(0).loadStickersByEmojiOrName(pack_name, False, False)
-                    except Exception:
-                        pass
-                    import threading
-                    def _retry(iv=icon_view, loader=_try_load):
-                        import time
-                        for d in (0.5, 1.0, 2.0):
-                            time.sleep(d)
-                            try:
-                                run_on_ui_thread(loader)
-                                return
-                            except Exception:
-                                pass
-                    threading.Thread(target=_retry, daemon=True).start()
+                from ...utils.stickers import load_sticker
+                load_sticker(icon_view, icon_str, icon_size_dp)
             except Exception as e:
                 logx(f"suggest: popup icon error: {e}", False)
                 _add_stub_icon(act, row, icon_size_dp, dp)
@@ -1683,7 +1642,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     try:
                         from org.telegram.ui.Components import BulletinFactory
                         decor = act.getWindow().getDecorView()
-                        BulletinFactory.of(decor, None).createErrorBulletin(
+                        _pbf(decor, None).createErrorBulletin(
                             "The first file should be .eaf/.plugin"
                         ).show()
                     except Exception as e:
@@ -2976,52 +2935,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     icon_lp = LinearLayout.LayoutParams(icon_size_px, icon_size_px)
                     icon_lp.rightMargin = dp(10)
                     card.addView(icon_view, icon_lp)
-
-                    def _try_load(iv=icon_view, s=icon_str):
-                        try:
-                            from org.telegram.messenger import ImageLocation
-                            pack_name, index_str = s.split("/", 1)
-                            idx = int(index_str)
-                            mdc = MediaDataController.getInstance(0)
-                            ss = None
-                            try:
-                                ss = mdc.getStickerSetByName(pack_name)
-                            except Exception:
-                                pass
-                            if not ss:
-                                try:
-                                    ss = mdc.getStickerSetByEmojiOrName(pack_name)
-                                except Exception:
-                                    pass
-                            if ss and getattr(ss, "documents", None) and ss.documents.size() > idx:
-                                doc = ss.documents.get(idx)
-                                iv.setImage(
-                                    ImageLocation.getForDocument(doc),
-                                    f"{icon_size_dp}_{icon_size_dp}",
-                                    None, None, 0, 1
-                                )
-                                return True
-                            return False
-                        except Exception:
-                            return False
-
-                    if not _try_load():
-                        try:
-                            pack_name = icon_str.split("/", 1)[0]
-                            MediaDataController.getInstance(0).loadStickersByEmojiOrName(pack_name, False, False)
-                        except Exception:
-                            pass
-                        import threading
-                        def _retry(iv=icon_view, loader=_try_load):
-                            import time
-                            for d in (0.5, 1.0, 2.0):
-                                time.sleep(d)
-                                try:
-                                    run_on_ui_thread(loader)
-                                    return
-                                except Exception:
-                                    pass
-                        threading.Thread(target=_retry, daemon=True).start()
+                    from ...utils.stickers import load_sticker
+                    load_sticker(icon_view, icon_str, icon_size_dp)
                 except Exception as e:
                     logx(f"suggest: forked selected icon error: {e}", False)
                     _add_stub_icon(act, card, icon_size_dp, dp)
@@ -3593,24 +3508,14 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                             extra_paths.append(p)
                             logx(f"suggest._task: extra_path={p}", True)
 
-                # collect paths that live in filesDir (blocked by isInternalUri)
-                files_dir_marker = "/files/"
-                hook_paths = set()
-                if files_dir_marker in main_path:
-                    hook_paths.add(main_path)
-                for p in extra_paths:
-                    if files_dir_marker in p:
-                        hook_paths.add(p)
-
-                # hook isInternalUri to allow our draft paths through
-                uri_hook = None
-                if hook_paths and self_ref._plugin is not None:
-                    logx(f"suggest._task: hooking isInternalUri for {len(hook_paths)} path(s)", True)
-                    uri_hook = _hook_is_internal_uri(self_ref._plugin, hook_paths)
-
-                # copy draft files to cache dir so upload thread can read them
+                # copy draft files out of filesDir so the upload thread can read
+                # them. The staging dir is probed for writability: the external
+                # app cache is preferred (isInternalUri lets those through), but
+                # some ROMs deny writes there — get_cache_dir() pointed straight
+                # at it and the whole submit died with EACCES.
                 import shutil, tempfile
-                from file_utils import get_cache_dir
+                from ...utils.paths import getStagingDir, isInternalPath
+                staging_dir = getStagingDir()
 
                 def _stage_for_upload(src: str, display_name: str) -> str:
                     suffix = ""
@@ -3619,7 +3524,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         suffix = display_name[dot:]
                     tmp = tempfile.NamedTemporaryFile(
                         delete=False, suffix=suffix,
-                        dir=get_cache_dir()
+                        dir=staging_dir
                     )
                     tmp.close()
                     shutil.copy2(src, tmp.name)
@@ -3629,11 +3534,11 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 staged_main = None
                 staged_extras = []
 
-                if files_dir_marker in main_path:
+                if isInternalPath(main_path):
                     staged_main = _stage_for_upload(main_path, main_name)
                 staged_extras = []
                 for i, p in enumerate(extra_paths):
-                    if files_dir_marker in p:
+                    if isInternalPath(p):
                         name_s = (self_ref._extra_uris[i][1] or "") if i < len(self_ref._extra_uris) else ""
                         staged_extras.append(_stage_for_upload(p, name_s))
                     else:
@@ -3644,6 +3549,19 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     staged_extras[i] if staged_extras[i] else extra_paths[i]
                     for i in range(len(extra_paths))
                 ]
+
+                # hook isInternalUri for every path we actually hand over that
+                # still sits in private storage — that now includes the staged
+                # copies themselves when staging fell back to the internal cache
+                hook_paths = set()
+                for p in [send_main_path] + list(send_extra_paths):
+                    if p and isInternalPath(p):
+                        hook_paths.add(p)
+
+                uri_hook = None
+                if hook_paths and self_ref._plugin is not None:
+                    logx(f"suggest._task: hooking isInternalUri for {len(hook_paths)} path(s)", True)
+                    uri_hook = _hook_is_internal_uri(self_ref._plugin, hook_paths)
 
                 def _cleanup():
                     if uri_hook is not None:
@@ -3660,8 +3578,10 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                             logx(f"suggest: cleaned up staged {p}", True)
                         except Exception as ex:
                             logx(f"suggest: cleanup staged error {p}: {ex}", True)
+                    # drafts live in filesDir and must survive; anything else is
+                    # a temp copy made for this submit
                     for p in [main_path] + extra_paths:
-                        if files_dir_marker not in p:
+                        if "/files/" not in p:
                             try:
                                 os.unlink(p)
                                 logx(f"suggest: cleaned up temp {p}", True)

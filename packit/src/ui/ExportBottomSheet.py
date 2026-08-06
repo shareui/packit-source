@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ..utils.ripple import safe_ripple as _safe_ripple
 import os
 import ast
 import re
@@ -90,52 +91,6 @@ def _resolveIcon(name):
         return getattr(R.drawable, name)
     except Exception:
         return None
-
-
-def _tryLoadSticker(iv, icon_str: str, size_dp: int) -> bool:
-    try:
-        if not icon_str or "/" not in icon_str:
-            return False
-        pack_name, index_str = icon_str.split("/", 1)
-        sticker_index = int(index_str)
-        mdc = MediaDataController.getInstance(0)
-        ss = None
-        try:
-            ss = mdc.getStickerSetByName(pack_name)
-        except Exception:
-            pass
-        if not ss:
-            try:
-                ss = mdc.getStickerSetByEmojiOrName(pack_name)
-            except Exception:
-                pass
-        if ss and getattr(ss, "documents", None) and ss.documents.size() > sticker_index:
-            doc = ss.documents.get(sticker_index)
-            iv.setImage(
-                ImageLocation.getForDocument(doc),
-                f"{size_dp}_{size_dp}",
-                None, None, 0, 1
-            )
-            return True
-        try:
-            mdc.loadStickersByEmojiOrName(pack_name, False, False)
-        except Exception:
-            pass
-        return False
-    except Exception as e:
-        logx(f"ExportBottomSheet._tryLoadSticker: {e}\n{traceback.format_exc()}", False)
-        return False
-
-
-def _scheduleStickerRetry(iv, icon_str: str, size_dp: int):
-    import threading
-    import time
-
-    def _retry():
-        time.sleep(2.0)
-        run_on_ui_thread(lambda: _tryLoadSticker(iv, icon_str, size_dp))
-
-    threading.Thread(target=_retry, daemon=True).start()
 
 
 def _readPluginMeta(filepath):
@@ -291,9 +246,8 @@ def _createCheckRow(act, label, version_str, icon_str, checked, on_change):
             except Exception:
                 pass
             row.addView(icon_view, LayoutHelper.createLinear(icon_size_dp, icon_size_dp, Gravity.CENTER_VERTICAL, 0, 0, 10, 0))
-            loaded = _tryLoadSticker(icon_view, icon_str, icon_size_dp)
-            if not loaded:
-                _scheduleStickerRetry(icon_view, icon_str, icon_size_dp)
+            from ..utils.stickers import load_sticker
+            load_sticker(icon_view, icon_str, icon_size_dp)
         except Exception as e:
             logx(f"ExportBottomSheet._createCheckRow: icon error: {e}\n{traceback.format_exc()}", False)
 
@@ -616,7 +570,12 @@ def show(plugins, on_export):
                 btn_bg.setColor(bg_color)
                 try:
                     ripple_color = ColorStateList.valueOf(Color.parseColor("#40000000"))
-                    ripple_drawable = RippleDrawable(ripple_color, btn_bg, None)
+                    # explicit mask: a null one sends the patterned-ripple path
+                    # on Android 12+ ROMs into a draw-time crash
+                    ripple_mask = GradientDrawable()
+                    ripple_mask.setCornerRadius(AndroidUtilities.dp(18))
+                    ripple_mask.setColor(Color.WHITE)
+                    ripple_drawable = _safe_ripple(ripple_color, btn_bg, ripple_mask)
                     container.setBackground(ripple_drawable)
                 except Exception:
                     container.setBackground(btn_bg)
@@ -671,7 +630,10 @@ def show(plugins, on_export):
             toggle_all_bg.setColor(toggle_bg_color)
             try:
                 ripple_color = ColorStateList.valueOf(Color.parseColor("#40000000"))
-                toggle_ripple = RippleDrawable(ripple_color, toggle_all_bg, None)
+                toggle_mask = GradientDrawable()
+                toggle_mask.setCornerRadius(AndroidUtilities.dp(18))
+                toggle_mask.setColor(Color.WHITE)
+                toggle_ripple = _safe_ripple(ripple_color, toggle_all_bg, toggle_mask)
                 toggle_all_container.setBackground(toggle_ripple)
             except Exception:
                 toggle_all_container.setBackground(toggle_all_bg)

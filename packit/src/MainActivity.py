@@ -149,30 +149,8 @@ class SettingsBuilder:
             imageView = BackupImageView(context)
             imageView.setRoundRadius(AndroidUtilities.dp(45))
 
-            def try_load_sticker(img):
-                try:
-                    icon_parts = __icon__.split("/")
-                    if len(icon_parts) == 2:
-                        sticker_set_name = icon_parts[0]
-                        sticker_index = int(icon_parts[1])
-                        ss = MediaDataController.getInstance(0).getStickerSetByName(sticker_set_name) or MediaDataController.getInstance(
-                            0).getStickerSetByEmojiOrName(sticker_set_name)
-                        if ss and ss.documents and ss.documents.size() > sticker_index:
-                            img.setImage(ImageLocation.getForDocument(ss.documents.get(sticker_index)), "130_130", None, None, 0, 1)
-                            return True
-                except:
-                    pass
-                return False
-
-            if not try_load_sticker(imageView):
-                try:
-                    icon_parts = __icon__.split("/")
-                    if len(icon_parts) == 2:
-                        sticker_set_name = icon_parts[0]
-                        MediaDataController.getInstance(0).loadStickersByEmojiOrName(sticker_set_name, False, False)
-                        run_on_ui_thread(lambda: try_load_sticker(imageView), 1500)
-                except:
-                    pass
+            from .utils.stickers import load_sticker
+            load_sticker(imageView, __icon__, 130)
 
             def _on_sticker_long_click():
                 try:

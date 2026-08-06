@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ...utils.bulletins import factory as _pbf
 import ctypes
 import threading
 from android.view import Gravity, View
@@ -134,10 +135,6 @@ except Exception:
 
 
 
-_STICKER_RETRY_DELAY = 1.5
-_STICKER_MAX_RETRIES = 5
-
-
 def _resolve_icon(name):
     try:
         R_tg = find_class("org.telegram.messenger.R")
@@ -146,53 +143,28 @@ def _resolve_icon(name):
         return 0
 
 
-def _try_load_sticker(iv, icon_str, size_dp):
+def _scroll_to_child(scroll, target):
+    # smooth-scrolls `scroll` so `target` (nested any number of levels below it)
+    # sits just under the action bar
     try:
-        if not icon_str or "/" not in str(icon_str):
-            return False
-        pack_name, index_str = str(icon_str).split("/", 1)
-        sticker_index = int(index_str)
-        mdc = MediaDataController.getInstance(0)
-        ss = None
-        try:
-            ss = mdc.getStickerSetByName(pack_name)
-        except Exception:
-            pass
-        if not ss:
+        if scroll is None or target is None:
+            return
+        y = 0
+        view = target
+        for _ in range(8):
+            y += view.getTop()
+            parent = view.getParent()
+            if parent is None:
+                break
             try:
-                ss = mdc.getStickerSetByEmojiOrName(pack_name)
+                if parent == scroll:
+                    break
             except Exception:
                 pass
-        if ss and getattr(ss, "documents", None) and ss.documents.size() > sticker_index:
-            doc = ss.documents.get(sticker_index)
-            iv.setImage(
-                ImageLocation.getForDocument(doc),
-                f"{size_dp}_{size_dp}",
-                None, None, 0, 1
-            )
-            return True
-        try:
-            mdc.loadStickersByEmojiOrName(pack_name, False, False)
-        except Exception:
-            pass
-        return False
+            view = parent
+        scroll.smoothScrollTo(0, max(0, y - AndroidUtilities.dp(12)))
     except Exception as e:
-        logx(f"pluginProfile: _try_load_sticker error: {e}", False)
-        return False
-
-
-def _schedule_sticker_retry(iv, icon_str, size_dp, alive_ref, attempt=0):
-    if attempt >= _STICKER_MAX_RETRIES:
-        return
-
-    def _retry():
-        if not alive_ref[0]:
-            return
-        loaded = _try_load_sticker(iv, icon_str, size_dp)
-        if not loaded:
-            _schedule_sticker_retry(iv, icon_str, size_dp, alive_ref, attempt + 1)
-
-    threading.Timer(_STICKER_RETRY_DELAY, lambda: run_on_ui_thread(_retry)).start()
+        logx(f"pluginProfile: scroll to child error: {e}", False)
 
 
 def _make_chip(act, text, color_key):
@@ -211,6 +183,8 @@ def _make_chip(act, text, color_key):
     bg.setColor(fill)
     tv = TextView(act)
     tv.setText(text)
+    tv.setSingleLine(True)
+    tv.setMaxLines(1)
     tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
     tv.setTextColor(text_color)
     tv.setBackground(bg)
@@ -545,7 +519,7 @@ def _show_plugin_menu(act, p, anchor_view, repo_id: str = ""):
                 except Exception:
                     pass
                 icon_raw = getattr(R_tg.raw, "copy", getattr(R_tg.raw, "msg_copy", 0))
-                BulletinFactory.of(container, resource_provider).createSimpleBulletin(
+                _pbf(container, resource_provider).createSimpleBulletin(
                     icon_raw,
                     str(strings["link_copied"])
                 ).show()
@@ -587,7 +561,8 @@ def _show_plugin_menu(act, p, anchor_view, repo_id: str = ""):
 class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
     _MENU_ID = 1001
 
-    def __init__(self, plugin: dict, install_ui, all_plugins: list, repo_id: str = ""):
+    def __init__(self, plugin: dict, install_ui, all_plugins: list, repo_id: str = "",
+                 scroll_to_tags: bool = False):
         super().__init__()
         self.plugin = plugin
         self.install_ui = install_ui
@@ -597,6 +572,10 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         self._alive = [True]  # shared ref for sticker retry timers
         self._fragment_ref = [None]  # filled after presentFragment
         self._anchor_ref = [None]   # filled after menu button is created
+        # set when opened from a card's "+N" tag chip: jump to the tags card
+        self._scroll_to_tags = bool(scroll_to_tags)
+        self._scroll_ref = [None]     # the vertical ScrollView
+        self._tags_card_ref = [None]  # the tags card inside it
         logx(f"pluginProfile: init plugin={plugin.get('id')}", True)
 
     def onFragmentCreate(self, *_):
@@ -740,6 +719,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         scroll.setVerticalScrollBarEnabled(False)
         scroll.setOverScrollMode(ScrollView.OVER_SCROLL_IF_CONTENT_SCROLLS)
         scroll.setClipToPadding(False)
+        self._scroll_ref[0] = scroll
         self.content_view.addView(scroll, FrameLayout.LayoutParams(-1, -1))
 
         root = LinearLayout(act)
@@ -780,8 +760,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             )
             iv_lp.rightMargin = AndroidUtilities.dp(14)
             top_row.addView(iv, iv_lp)
-            if not _try_load_sticker(iv, icon_str, sticker_size):
-                _schedule_sticker_retry(iv, icon_str, sticker_size, self._alive)
+            from ...utils.stickers import load_sticker
+            load_sticker(iv, icon_str, sticker_size)
 
         info_col = LinearLayout(act)
         info_col.setOrientation(LinearLayout.VERTICAL)
@@ -1023,9 +1003,15 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             install_label_container.addView(install_icon, LayoutHelper.createLinear(22, 22, Gravity.CENTER))
             install_btn.addView(install_label_container, FrameLayout.LayoutParams(circle_size, circle_size))
 
+            # hoisted out of the is_available guard: onInstallClickFab captures
+            # these as default args at def time, and the FAB block that defines
+            # it runs unconditionally (the button is built even when the plugin
+            # is unavailable), so they must always exist or def raises
+            # UnboundLocalError
+            _install_ui_ref = self.install_ui
+            _all_plugins_ref = self.all_plugins
+
             if is_available:
-                _install_ui_ref = self.install_ui
-                _all_plugins_ref = self.all_plugins
 
                 def _set_loading(_btn, _label, _btn_text_color, _act, isLoading):
                     try:
@@ -1236,7 +1222,10 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                                          lambda: _set_loading_fab(_btn, _label, _btn_text_color, _act, False)
                                      ), repo_id=self.repo_id)
 
-            install_btn.setOnClickListener(OnClickListener(onInstallClickFab))
+            # only wire the install action when the plugin is installable;
+            # an unavailable plugin's FAB is left disabled (set above)
+            if is_available:
+                install_btn.setOnClickListener(OnClickListener(onInstallClickFab))
             self.content_view.addView(install_btn, fab_lp)
             self._fab_ref = install_btn
 
@@ -2380,7 +2369,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                             from hook_utils import find_class as _fc2
                             R_tg = _fc2("org.telegram.messenger.R")
                             icon_raw = getattr(R_tg.raw, "info", 0)
-                            BulletinFactory.of(container, resource_provider).createSimpleBulletin(
+                            _pbf(container, resource_provider).createSimpleBulletin(
                                 icon_raw,
                                 str(strings.pp_changelog_none_provided)
                             ).show()
@@ -2955,8 +2944,15 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 LayoutHelper.createLinear(-2, -2, 0, 0, 0, 0, 8)
             )
 
+            # scrollable single row (matches the languages/clients chip rows):
+            # chips never split and the card height stays fixed
+            tags_chips_scroll = HorizontalScrollView(act)
+            tags_chips_scroll.setHorizontalScrollBarEnabled(False)
+            tags_chips_scroll.setHorizontalFadingEdgeEnabled(True)
+            tags_chips_scroll.setFadingEdgeLength(AndroidUtilities.dp(16))
             chips_row_tags = LinearLayout(act)
             chips_row_tags.setOrientation(LinearLayout.HORIZONTAL)
+            tags_chips_scroll.addView(chips_row_tags, LayoutHelper.createScroll(-2, -2, Gravity.CENTER_VERTICAL))
 
             for tag in tags:
                 if not isinstance(tag, (list, tuple)) or len(tag) < 2:
@@ -2967,8 +2963,9 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 chips_row_tags.addView(chip, chip_lp)
 
             if chips_row_tags.getChildCount() > 0:
-                tags_card.addView(chips_row_tags, LayoutHelper.createLinear(-2, -2))
+                tags_card.addView(tags_chips_scroll, LayoutHelper.createLinear(-1, -2))
                 desc_extra.addView(tags_card, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
+                self._tags_card_ref[0] = tags_card
 
         # dependencies
         if deps:
@@ -3042,8 +3039,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     )
                     iv_lp.rightMargin = AndroidUtilities.dp(10)
                     dep_row.addView(dep_iv, iv_lp)
-                    if not _try_load_sticker(dep_iv, dep_icon_str, icon_size_dp):
-                        _schedule_sticker_retry(dep_iv, dep_icon_str, icon_size_dp, self._alive)
+                    from ...utils.stickers import load_sticker
+                    load_sticker(dep_iv, dep_icon_str, icon_size_dp)
 
                 # status icon: msg_select green / msg_cancel red
                 installed = False
@@ -3262,7 +3259,15 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             fab = getattr(self, '_fab_ref', None)
             if fab is not None:
                 fab.bringToFront()
-        
+
+        # opened from a card's "+N" chip -> land on the tags card. Posted after
+        # the open animation so the view tree is laid out and the scroll is
+        # visible to the user rather than happening off-screen.
+        if self._scroll_to_tags:
+            def _jump_to_tags():
+                _scroll_to_child(self._scroll_ref[0], self._tags_card_ref[0])
+            run_on_ui_thread(_jump_to_tags, 320)
+
         return self.content_view
 
     def _get_localized_description(self, plugin):
@@ -3311,8 +3316,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             except Exception:
                 pass
             col.addView(iv, icon_container_lp)
-            if not _try_load_sticker(iv, icon_str, size_dp):
-                _schedule_sticker_retry(iv, icon_str, size_dp, self._alive)
+            from ...utils.stickers import load_sticker
+            load_sticker(iv, icon_str, size_dp)
         else:
             # same placeholder as ImportBottomSheet: circle with plugins_filled icon
             try:
@@ -3378,8 +3383,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             iv_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(size_dp), AndroidUtilities.dp(size_dp))
             iv_lp.rightMargin = AndroidUtilities.dp(12)
             row.addView(iv, iv_lp)
-            if not _try_load_sticker(iv, icon_str, size_dp):
-                _schedule_sticker_retry(iv, icon_str, size_dp, self._alive)
+            from ...utils.stickers import load_sticker
+            load_sticker(iv, icon_str, size_dp)
 
         info = LinearLayout(act)
         info.setOrientation(LinearLayout.VERTICAL)
@@ -3427,14 +3432,16 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         return row
 
 
-def show_plugin_profile(plugin: dict, install_ui, all_plugins: list = None, repo_id: str = ""):
+def show_plugin_profile(plugin: dict, install_ui, all_plugins: list = None, repo_id: str = "",
+                        scroll_to_tags: bool = False):
     try:
         fragment = get_last_fragment()
         if not fragment:
             logx("pluginProfile: no fragment", True)
             return
         logx(f"pluginProfile: show_plugin_profile plugin={plugin.get('id')}", True)
-        delegate = PluginProfileFragment(plugin, install_ui, all_plugins or [], repo_id=repo_id)
+        delegate = PluginProfileFragment(plugin, install_ui, all_plugins or [], repo_id=repo_id,
+                                         scroll_to_tags=scroll_to_tags)
         new_fragment = UniversalFragment(delegate)
         fragment.presentFragment(new_fragment)
         logx(f"pluginProfile: presentFragment done", True)

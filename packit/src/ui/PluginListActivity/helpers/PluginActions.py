@@ -3,6 +3,7 @@
 
 
 from packutil import logx
+from ....utils.bulletins import factory as _pbf
 from client_utils import get_last_fragment
 from hook_utils import find_class
 from .ReportService import report_plugin
@@ -42,12 +43,12 @@ def copy_plugin_link(plugin_info: dict, repo_title: str, sound_path: str = None)
         container = fragment.getParentActivity().getWindow().getDecorView()
         resource_provider = fragment.getResourceProvider()
         if not plugin_id:
-            BulletinFactory.of(container, resource_provider).createErrorBulletin(strings["plugin_no_id"]).show()
+            _pbf(container, resource_provider).createErrorBulletin(strings["plugin_no_id"]).show()
             return
         share_link = f"tg://packit?install&repo={repo_title}&plugin={plugin_id}"
         AndroidUtilities.addToClipboard(share_link)
         plugin_name = plugin_info.get("name") or plugin_info.get("id") or "Unknown"
-        BulletinFactory.of(container, resource_provider).createSimpleBulletin(R_tg.raw.voip_invite, strings("plugin_link_copied", plugin_name)).show()
+        _pbf(container, resource_provider).createSimpleBulletin(R_tg.raw.voip_invite, strings("plugin_link_copied", plugin_name)).show()
         try:
             from ....ui.AchievementsActivity.service.AchivementsEngine import increment_category
             increment_category("Copying links")
@@ -99,7 +100,7 @@ def download_plugin_file(plugin_info: dict):
             fragment = _get_frag()
             if fragment:
                 BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
-                BulletinFactory.of(fragment.getParentActivity().getWindow().getDecorView(), fragment.getResourceProvider()).createErrorBulletin(strings["plugin_no_download_link"]).show()
+                _pbf(fragment.getParentActivity().getWindow().getDecorView(), fragment.getResourceProvider()).createErrorBulletin(strings["plugin_no_download_link"]).show()
             return
 
         dest_dir = settings.get("download_path", "/storage/emulated/0/Download")
@@ -177,7 +178,7 @@ def download_plugin_file(plugin_info: dict):
                 rp = fragment.getResourceProvider()
                 BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
                 folder = str(dest_dir).rstrip("/").rsplit("/", 1)[-1]
-                BulletinFactory.of(container, rp).createSimpleBulletin(
+                _pbf(container, rp).createSimpleBulletin(
                     find_class("org.telegram.messenger.R").raw.ic_download,
                     strings("download_saved", folder=folder)
                 ).show()
@@ -197,7 +198,7 @@ def download_plugin_file(plugin_info: dict):
                 container = fragment.getParentActivity().getWindow().getDecorView()
                 rp = fragment.getResourceProvider()
                 BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
-                BulletinFactory.of(container, rp).createErrorBulletin(strings("download_failed", msg=msg)).show()
+                _pbf(container, rp).createErrorBulletin(strings("download_failed", msg=msg)).show()
             except Exception as e:
                 logx(f"download: show error error: {e}", False)
 
@@ -210,7 +211,7 @@ def view_plugin_code(plugin_info: dict, activity):
     try:
         plugin_url = plugin_info.get("link") or plugin_info.get("raw")
         if not plugin_url:
-            BulletinFactory.of(activity.getWindow().getDecorView(), None).createErrorBulletin(strings["plugin_no_link"]).show()
+            _pbf(activity.getWindow().getDecorView(), None).createErrorBulletin(strings["plugin_no_link"]).show()
             return
 
         plugin_url = _convert_raw_github_url(plugin_url)
@@ -231,7 +232,7 @@ def view_plugin_code(plugin_info: dict, activity):
                 logx(f"Opening plugin URL via Intent: {plugin_url}", True)
             except Exception as e:
                 logx(f"Failed to open URL via Intent: {e}", False)
-                BulletinFactory.of(activity.getWindow().getDecorView(), None).createErrorBulletin(strings["failed_to_open_url"]).show()
+                _pbf(activity.getWindow().getDecorView(), None).createErrorBulletin(strings["failed_to_open_url"]).show()
                 return
         try:
             from ....ui.AchievementsActivity.service.AchivementsEngine import increment_category
@@ -242,6 +243,6 @@ def view_plugin_code(plugin_info: dict, activity):
     except Exception as e:
         logx(f"Error opening plugin URL: {e}", False)
         try:
-            BulletinFactory.of(activity.getWindow().getDecorView(), None).createErrorBulletin(strings["failed_to_open_plugin_url"]).show()
+            _pbf(activity.getWindow().getDecorView(), None).createErrorBulletin(strings["failed_to_open_plugin_url"]).show()
         except Exception:
             pass

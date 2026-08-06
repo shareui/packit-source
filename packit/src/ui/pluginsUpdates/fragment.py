@@ -1271,52 +1271,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 icon_lp = LinearLayout.LayoutParams(dp(icon_size_dp), dp(icon_size_dp))
                 icon_lp.rightMargin = dp(12)
                 top_row.addView(icon_view, icon_lp)
-
-                def try_load_icon(view=icon_view, istr=icon_str, size=icon_size_dp):
-                    try:
-                        pack_name, index_str = istr.split("/", 1)
-                        sticker_index = int(index_str)
-                        mdc = MediaDataController.getInstance(0)
-                        ss = None
-                        try:
-                            ss = mdc.getStickerSetByName(pack_name)
-                        except Exception:
-                            ss = None
-                        if not ss:
-                            try:
-                                ss = mdc.getStickerSetByEmojiOrName(pack_name)
-                            except Exception:
-                                ss = None
-                        if ss and getattr(ss, "documents", None) and ss.documents.size() > sticker_index:
-                            doc = ss.documents.get(sticker_index)
-                            view.setImage(
-                                ImageLocation.getForDocument(doc),
-                                f"{size}_{size}",
-                                None, None, 0, 1
-                            )
-                            return True
-                        return False
-                    except Exception:
-                        return False
-
-                if not try_load_icon():
-                    try:
-                        pack_name = icon_str.split("/", 1)[0]
-                        MediaDataController.getInstance(0).loadStickersByEmojiOrName(pack_name, False, False)
-                    except Exception:
-                        pass
-
-                    def _retry_load(loader=try_load_icon):
-                        import time
-                        for delay in (0.5, 1.0, 2.0, 3.0):
-                            time.sleep(delay)
-                            try:
-                                if run_on_ui_thread(loader):
-                                    return
-                            except Exception:
-                                pass
-
-                    threading.Thread(target=_retry_load, daemon=True).start()
+                from ...utils.stickers import load_sticker
+                load_sticker(icon_view, icon_str, icon_size_dp)
             except Exception as e:
                 logx(f"pluginsUpdates: icon init error for '{pid}': {e}", False)
 

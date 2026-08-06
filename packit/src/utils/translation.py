@@ -3,6 +3,7 @@
 
 
 from packutil import logx
+from ..utils.bulletins import factory as _pbf
 from client_utils import get_last_fragment
 from hook_utils import find_class
 from java import dynamic_proxy
@@ -111,7 +112,7 @@ def translate_plugin(plugin_info: dict, text_override: str = None):
 
             description = text_override if text_override is not None else _get_localized_description(plugin_info)
             if not description.strip():
-                run_on_ui_thread(lambda: BulletinFactory.of(get_last_fragment().getParentActivity().getWindow().getDecorView(), None).createErrorBulletin(strings["no_description_to_translate"]).show())
+                run_on_ui_thread(lambda: _pbf(get_last_fragment().getParentActivity().getWindow().getDecorView(), None).createErrorBulletin(strings["no_description_to_translate"]).show())
                 return
 
             fragment = get_last_fragment()
@@ -148,7 +149,7 @@ def translate_plugin(plugin_info: dict, text_override: str = None):
         except Exception as e:
             logx(f"translate: error: {e}", False)
             try:
-                run_on_ui_thread(lambda: BulletinFactory.of(get_last_fragment().getParentActivity().getWindow().getDecorView(), None).createErrorBulletin(strings["translation_failed"]).show())
+                run_on_ui_thread(lambda: _pbf(get_last_fragment().getParentActivity().getWindow().getDecorView(), None).createErrorBulletin(strings["translation_failed"]).show())
             except Exception:
                 pass
 

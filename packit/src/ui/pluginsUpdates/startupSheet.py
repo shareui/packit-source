@@ -35,51 +35,6 @@ from .fragment import (
     _ignore_until_next, _ignore_forever,
 )
 
-_STICKER_RETRY_DELAY = 2.0
-
-
-def _try_load_sticker(iv, icon_str: str, size_dp: int) -> bool:
-    try:
-        if not icon_str or "/" not in icon_str:
-            return False
-        pack_name, index_str = icon_str.split("/", 1)
-        sticker_index = int(index_str)
-        mdc = MediaDataController.getInstance(0)
-        ss = None
-        try:
-            ss = mdc.getStickerSetByName(pack_name)
-        except Exception:
-            pass
-        if not ss:
-            try:
-                ss = mdc.getStickerSetByEmojiOrName(pack_name)
-            except Exception:
-                pass
-        if ss and getattr(ss, "documents", None) and ss.documents.size() > sticker_index:
-            doc = ss.documents.get(sticker_index)
-            iv.setImage(
-                ImageLocation.getForDocument(doc),
-                f"{size_dp}_{size_dp}",
-                None, None, 0, 1
-            )
-            return True
-        try:
-            mdc.loadStickersByEmojiOrName(pack_name, False, False)
-        except Exception:
-            pass
-        return False
-    except Exception as e:
-        logx(f"startupSheet: _try_load_sticker error: {e}", False)
-        return False
-
-
-def _schedule_sticker_retry(iv, icon_str: str, size_dp: int):
-    def _retry():
-        time.sleep(_STICKER_RETRY_DELAY)
-        run_on_ui_thread(lambda: _try_load_sticker(iv, icon_str, size_dp))
-    threading.Thread(target=_retry, daemon=True).start()
-
-
 def _make_state_chip(act, state: str):
     import ctypes
     _STATE_COLOR_KEYS = {
@@ -172,9 +127,8 @@ def _make_item_card(act, item: dict, plugin_ref, on_action):
             icon_lp = LinearLayout.LayoutParams(dp(icon_size_dp), dp(icon_size_dp))
             icon_lp.rightMargin = dp(12)
             header_row.addView(icon_view, icon_lp)
-            loaded = _try_load_sticker(icon_view, icon_str, icon_size_dp)
-            if not loaded:
-                _schedule_sticker_retry(icon_view, icon_str, icon_size_dp)
+            from ...utils.stickers import load_sticker
+            load_sticker(icon_view, icon_str, icon_size_dp)
         except Exception as e:
             logx(f"startupSheet: icon error for '{pid}': {e}", False)
 

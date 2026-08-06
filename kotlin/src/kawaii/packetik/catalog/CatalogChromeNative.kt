@@ -3,6 +3,7 @@ package kawaii.packetik.catalog
 
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.Canvas
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
@@ -40,10 +41,34 @@ object CatalogChromeNative {
         return d
     }
 
+    /**
+     * RippleDrawable can throw from draw() deep inside the framework (seen as
+     * NPE in ColorStateList.getColorForState via RippleDrawable.drawPatterned
+     * on Android 12+ ripple styles), which kills the whole render pass. The
+     * host guards against exactly this with BaseCell.RippleDrawableSafe and
+     * uses it for every selector it builds; ours are self-built, so they need
+     * the same guard.
+     */
+    private class SafeRipple(color: ColorStateList, content: Drawable?, mask: Drawable?) :
+        RippleDrawable(color, content, mask) {
+        override fun draw(canvas: Canvas) {
+            val save = canvas.save()
+            try {
+                super.draw(canvas)
+            } catch (t: Throwable) {
+                // swallow: a missing ripple is better than a crashed frame
+            } finally {
+                canvas.restoreToCount(save)
+            }
+        }
+    }
+
     private fun selector(base: Int, pressed: Int, radiusPx: Float): Drawable {
         val content = rounded(base, radiusPx)
         return try {
-            RippleDrawable(ColorStateList.valueOf(pressed), content, null)
+            // explicit mask, like the host's selector helpers
+            val mask = rounded(0xFFFFFFFF.toInt(), radiusPx)
+            SafeRipple(ColorStateList.valueOf(pressed), content, mask)
         } catch (t: Throwable) {
             content
         }

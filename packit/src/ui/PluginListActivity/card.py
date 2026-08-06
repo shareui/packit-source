@@ -42,7 +42,7 @@ except Exception:
     Browser = None
 
 from .helpers.PluginActions import copy_plugin_link, share_plugin_file, view_plugin_code, report_plugin, download_plugin_file, translate_plugin
-from .filter.tagLayoutListener import _TagsLayoutListener
+from .filter.tagLayoutListener import _TagsOverflowListener
 from .helpers.utils import _check_app_version
 from ..viewUtils import highlightQuery as _highlight_query
 
@@ -148,59 +148,10 @@ def make_plugin_card(self, p):
             else:
                 self.install_ui._apply_press_scale_on_target(icon_view, row)
 
-            def try_load_icon():
-                try:
-                    if "/" not in str(icon_str):
-                        return False
-                    pack_name, index_str = str(icon_str).split("/", 1)
-                    sticker_index = int(index_str)
-                    mdc = MediaDataController.getInstance(0)
-                    ss = None
-                    try:
-                        ss = mdc.getStickerSetByName(pack_name)
-                    except Exception:
-                        ss = None
-                    if not ss:
-                        try:
-                            ss = mdc.getStickerSetByEmojiOrName(pack_name)
-                        except Exception:
-                            ss = None
-                    if ss and getattr(ss, 'documents', None) and ss.documents.size() > sticker_index:
-                        doc = ss.documents.get(sticker_index)
-                        icon_view.setImage(
-                            ImageLocation.getForDocument(doc),
-                            f"{icon_size_dp}_{icon_size_dp}",
-                            None, None, 0, 1
-                        )
-                        return True
-                    return False
-                except Exception as e:
-                    return False
-
-            def _attempt_icon_load():
-                if try_load_icon():
-                    return
-                try:
-                    pack_name = str(icon_str).split("/", 1)[0]
-                    MediaDataController.getInstance(0).loadStickersByEmojiOrName(pack_name, False, False)
-                except Exception:
-                    pass
-
-                def _retry_load(view=icon_view, loader=try_load_icon):
-                    import time
-                    for delay in (0.5, 1.0, 2.0, 3.0):
-                        time.sleep(delay)
-                        try:
-                            if run_on_ui_thread(loader):
-                                return
-                        except Exception:
-                            pass
-
-                threading.Thread(target=_retry_load, daemon=True).start()
-
             # make_plugin_card runs off the UI thread (_load_initial_batch worker),
             # MediaDataController and BackupImageView.setImage must run on the UI thread
-            run_on_ui_thread(_attempt_icon_load)
+            from ...utils.stickers import load_sticker
+            run_on_ui_thread(lambda: load_sticker(icon_view, icon_str, icon_size_dp))
         except Exception as e:
             pass
 
@@ -301,6 +252,8 @@ def make_plugin_card(self, p):
             tag_bg.setColor(fill_color)
             tag_tv = TextView(act)
             tag_tv.setText(tag_name)
+            tag_tv.setSingleLine(True)
+            tag_tv.setMaxLines(1)
             tag_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
             tag_tv.setTextColor(text_color)
             tag_tv.setBackground(tag_bg)
@@ -333,8 +286,50 @@ def make_plugin_card(self, p):
             tag_lp.rightMargin = AndroidUtilities.dp(5)
             tags_row.addView(tag_tv, tag_lp)
 
-        # hide tags that don't fit in a single line — keep only the first visible one
-        tags_row.addOnLayoutChangeListener(_TagsLayoutListener())
+        # trailing "+N" chip: tags that don't fit on the single line are cut
+        # from the card and counted here — the full list lives on the plugin
+        # profile, which this chip opens. Muted styling so it reads as a
+        # counter, not as another tag.
+        plus_tv = TextView(act)
+        plus_tv.setSingleLine(True)
+        plus_tv.setMaxLines(1)
+        plus_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
+        try:
+            plus_color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+        except Exception:
+            plus_color = self.install_ui._get_theme_colors()["secondary_text_color"]
+        pr = (plus_color >> 16) & 0xFF
+        pg = (plus_color >> 8) & 0xFF
+        pb = plus_color & 0xFF
+        plus_bg = GradientDrawable()
+        plus_bg.setShape(GradientDrawable.RECTANGLE)
+        plus_bg.setCornerRadius(AndroidUtilities.dp(6))
+        plus_bg.setColor(ctypes.c_int32((0x26 << 24) | (pr << 16) | (pg << 8) | pb).value)
+        plus_tv.setTextColor(ctypes.c_int32((0xFF << 24) | (pr << 16) | (pg << 8) | pb).value)
+        plus_tv.setBackground(plus_bg)
+        plus_tv.setPadding(
+            AndroidUtilities.dp(7), AndroidUtilities.dp(2),
+            AndroidUtilities.dp(7), AndroidUtilities.dp(2)
+        )
+        plus_tv.setVisibility(View.GONE)
+        plus_tv.setClickable(True)
+        plus_tv.setFocusable(True)
+
+        def onPlusClick(v, plugin=p):
+            try:
+                from ..PluginActivity.fragment import show_plugin_profile
+                show_plugin_profile(plugin, self.install_ui, self.plugins,
+                                    repo_id=self.repo_id or str(plugin.get("_repo_id") or ""),
+                                    scroll_to_tags=True)
+            except Exception:
+                pass
+
+        plus_tv.setOnClickListener(OnClickListener(onPlusClick))
+        self.install_ui._apply_press_scale(plus_tv)
+        tags_row.addView(plus_tv, LinearLayout.LayoutParams(-2, -2))
+
+        # drop tags that overflow the line and summarise them in the "+N" chip
+        tags_row.addOnLayoutChangeListener(_TagsOverflowListener(plus_tv))
         col.addView(tags_row, LayoutHelper.createLinear(-1, -2))
 
     top_row.addView(col, LayoutHelper.createLinear(0, -2, 1.0))
@@ -607,7 +602,7 @@ def make_plugin_card(self, p):
         translate_plugin(p)
 
     def do_report_relocated():
-        report_plugin(p, act, repo_id=self.repo_id)
+        report_plugin(p, act, repo_id=self.repo_id or str(p.get("_repo_id") or ""))
         try:
             from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
             increment_category("Reporting")
@@ -680,7 +675,7 @@ def make_plugin_card(self, p):
                 translate_plugin(p)
 
             def do_report():
-                report_plugin(p, act, repo_id=self.repo_id)
+                report_plugin(p, act, repo_id=self.repo_id or str(p.get("_repo_id") or ""))
                 try:
                     from ...ui.AchievementsActivity.service.AchivementsEngine import increment_category
                     increment_category("Reporting")
@@ -688,7 +683,7 @@ def make_plugin_card(self, p):
                     pass
 
             show_plugin_context_menu(anchor_view.getRootView(), anchor_view, [
-                {"icon": "msg_download_remix", "text": str(strings["pp_install"]), "action": do_install, "show": is_available},
+                {"icon": "msg_download_remix", "text": str(strings["pp_install"]), "action": do_install, "show": is_available and not getattr(self, "_s_relocate_install", False)},
                 {"icon": "msg_copy",      "text": str(strings["copy_link"]), "action": do_copy,      "show": not getattr(self, "_s_relocate_copy",      False)},
                 {"icon": "msg_share",     "text": str(strings["share"]),     "action": do_share,     "show": not getattr(self, "_s_relocate_share",     False)},
                 {"icon": "msg_view_file", "text": str(strings["code"]),      "action": do_code,      "show": not getattr(self, "_s_relocate_code",      False)},

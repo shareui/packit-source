@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ....utils.ripple import safe_ripple as _safe_ripple
+from ....utils.bulletins import factory as _pbf
 import ctypes
 import json
 import base64
@@ -284,10 +286,17 @@ def _rounded_bg(color: int, radius_dp: int, stroke_color: int = None, stroke_dp:
     return bg
 
 
-def _ripple_bg(base_drawable, ripple_color: int = 0x20000000):
+def _ripple_bg(base_drawable, ripple_color: int = 0x20000000, radius_dp: int = 0):
+    # always give the ripple an explicit mask (the host's own selector helpers
+    # do the same): with a null mask the patterned-ripple path on Android 12+
+    # ROMs crashed inside RippleDrawable.updateRipplePaint while drawing
     if RippleDrawable is not None and AColorStateList is not None:
         try:
-            return RippleDrawable(AColorStateList.valueOf(_c(ripple_color)), base_drawable, None)
+            mask = GradientDrawable()
+            mask.setShape(GradientDrawable.RECTANGLE)
+            mask.setCornerRadius(float(AndroidUtilities.dp(radius_dp)))
+            mask.setColor(_c(0xFFFFFFFF))
+            return _safe_ripple(AColorStateList.valueOf(_c(ripple_color)), base_drawable, mask)
         except Exception:
             pass
     return base_drawable
@@ -316,7 +325,7 @@ def _icon_btn(act, install_ui, icon_name: str, size_dp: int = 20, btn_size_dp: i
     try:
         surface = _alpha(Theme.getColor(Theme.key_dialogTextBlack), 0x14)
         bg = _rounded_bg(surface, radius_dp)
-        btn.setBackground(_ripple_bg(bg, 0x20000000))
+        btn.setBackground(_ripple_bg(bg, 0x20000000, radius_dp))
     except Exception as e:
         logx(f"AISearchSheet: _icon_btn bg failed: {e}", False)
     icon = ImageView(act)
@@ -470,6 +479,18 @@ def _make_input_field(act):
     return container, container_lp, search_input
 
 
+def _add_icon_balance_spacer(act, inner):
+    # right-side spacer equal to the leading icon block (icon width + its right
+    # margin) so the "Найти" label ends up dead-centre of the button instead of
+    # being pushed to the right by the search icon on its left
+    try:
+        inner.addView(View(act), LinearLayout.LayoutParams(
+            AndroidUtilities.dp(20) + AndroidUtilities.dp(8), AndroidUtilities.dp(1)
+        ))
+    except Exception:
+        pass
+
+
 def _make_search_button(act, install_ui):
     btn = FrameLayout(act)
     btn.setClickable(True)
@@ -518,6 +539,7 @@ def _make_search_button(act, install_ui):
     except Exception as e:
         logx(f"AISearchSheet: search_btn label color failed: {e}", False)
     inner.addView(label, LinearLayout.LayoutParams(-2, -2))
+    _add_icon_balance_spacer(act, inner)
 
     btn.addView(inner, FrameLayout.LayoutParams(-2, -2, Gravity.CENTER))
     install_ui._apply_press_scale(btn)
@@ -569,6 +591,7 @@ def _set_btn_loading(btn, loading: bool, install_ui):
             except Exception:
                 pass
             inner.addView(label, LinearLayout.LayoutParams(-2, -2))
+            _add_icon_balance_spacer(act, inner)
     except Exception as e:
         logx(f"AISearchSheet: _set_btn_loading error: {e}", False)
 
@@ -691,7 +714,7 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
                     frag = get_last_fragment()
                     container = frag.getParentActivity().getWindow().getDecorView()
                     rp = frag.getResourceProvider()
-                    BulletinFactory.of(container, rp).createErrorBulletin(
+                    _pbf(container, rp).createErrorBulletin(
                         str(strings.get("ai_search_no_key", "Add the API key in the settings"))
                     ).show()
                 except Exception as be:
@@ -757,7 +780,7 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
                             frag = get_last_fragment()
                             container = frag.getParentActivity().getWindow().getDecorView()
                             rp = frag.getResourceProvider()
-                            BulletinFactory.of(container, rp).createErrorBulletin(
+                            _pbf(container, rp).createErrorBulletin(
                                 str(strings.get("ai_search_quota", "Gemini API quota exceeded. Try again later."))
                             ).show()
                         except Exception as be:
@@ -772,7 +795,7 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
                             frag = get_last_fragment()
                             container = frag.getParentActivity().getWindow().getDecorView()
                             rp = frag.getResourceProvider()
-                            BulletinFactory.of(container, rp).createErrorBulletin(
+                            _pbf(container, rp).createErrorBulletin(
                                 str(strings.get("ai_search_geo_error", "Turn on VPN and try again"))
                             ).show()
                         except Exception as be:
@@ -788,7 +811,7 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
                             frag = get_last_fragment()
                             container = frag.getParentActivity().getWindow().getDecorView()
                             rp = frag.getResourceProvider()
-                            BulletinFactory.of(container, rp).createErrorBulletin(
+                            _pbf(container, rp).createErrorBulletin(
                                 str(strings.get("ai_search_error", "Search error. Check the logs."))
                             ).show()
                         except Exception as be:

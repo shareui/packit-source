@@ -25,7 +25,6 @@ except Exception as e:
     import android_utils as _au; _au.log(f"updateSheet: import strings failed: {e}")
 
 INTERNAL_CFG_URL = "https://raw.githubusercontent.com/shareui/packit/main/configs/internal_cfg.json"
-_STICKER_RETRY_DELAY = 2.0
 SHOWUPD = True
 
 
@@ -88,62 +87,6 @@ def _save_dismissed_ver(ver: str):
         logx(f"updateSheet: _save_dismissed_ver error: {e}", False)
 
 
-def _try_load_sticker(iv, icon_str: str, size_dp: int) -> bool:
-    try:
-        if "/" not in icon_str:
-            logx(f"updateSheet: sticker bad format '{icon_str}'", True)
-            return False
-        pack_name, index_str = icon_str.split("/", 1)
-        sticker_index = int(index_str)
-        logx(f"updateSheet: trying sticker pack='{pack_name}' index={sticker_index}", True)
-        mdc = MediaDataController.getInstance(0)
-        ss = None
-        try:
-            ss = mdc.getStickerSetByName(pack_name)
-            logx(f"updateSheet: getStickerSetByName -> {ss}", True)
-        except Exception as e:
-            logx(f"updateSheet: getStickerSetByName error: {e}", False)
-        if not ss:
-            try:
-                ss = mdc.getStickerSetByEmojiOrName(pack_name)
-                logx(f"updateSheet: getStickerSetByEmojiOrName -> {ss}", True)
-            except Exception as e:
-                logx(f"updateSheet: getStickerSetByEmojiOrName error: {e}", False)
-        if not ss:
-            logx(f"updateSheet: sticker set '{pack_name}' not in cache, triggering load", True)
-            try:
-                mdc.loadStickersByEmojiOrName(pack_name, False, False)
-            except Exception as e:
-                logx(f"updateSheet: loadStickersByEmojiOrName error: {e}", False)
-            return False
-        docs_count = ss.documents.size() if getattr(ss, "documents", None) else 0
-        logx(f"updateSheet: sticker set found, docs count={docs_count}", True)
-        if docs_count <= sticker_index:
-            logx(f"updateSheet: index {sticker_index} out of range ({docs_count})", True)
-            return False
-        doc = ss.documents.get(sticker_index)
-        logx(f"updateSheet: got doc={doc}, calling setImage", True)
-        iv.setImage(
-            ImageLocation.getForDocument(doc),
-            f"{size_dp}_{size_dp}",
-            None, None, 0, 1
-        )
-        logx("updateSheet: sticker loaded ok", True)
-        return True
-    except Exception as e:
-        logx(f"updateSheet: _try_load_sticker error: {e}", False)
-        return False
-
-
-def _schedule_sticker_retry(iv, icon_str: str, size_dp: int):
-    def _retry():
-        import time
-        time.sleep(_STICKER_RETRY_DELAY)
-        logx(f"updateSheet: retry sticker load for '{icon_str}'", True)
-        run_on_ui_thread(lambda: _try_load_sticker(iv, icon_str, size_dp))
-    threading.Thread(target=_retry, daemon=True).start()
-
-
 def _show_update_sheet(new_ver: str, changelog: str, sticker: str, download_url: str):
     try:
         from client_utils import get_last_fragment
@@ -184,9 +127,8 @@ def _show_update_sheet(new_ver: str, changelog: str, sticker: str, download_url:
             iv.getImageReceiver().setCrossfadeWithOldImage(True)
         except Exception as e:
             logx(f"updateSheet: setCrossfadeWithOldImage error: {e}", False)
-        loaded = _try_load_sticker(iv, sticker, sticker_size_dp)
-        if not loaded:
-            _schedule_sticker_retry(iv, sticker, sticker_size_dp)
+        from ..utils.stickers import load_sticker
+        load_sticker(iv, sticker, sticker_size_dp)
         linear.addView(iv, LayoutHelper.createLinear(
             sticker_size_dp, sticker_size_dp, Gravity.CENTER_HORIZONTAL, 0, 16, 0, 0
         ))

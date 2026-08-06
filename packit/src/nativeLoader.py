@@ -138,45 +138,10 @@ def showNativeErrorSheet(libName: str, error: str):
                 except Exception:
                     pass
 
-                def _try_sticker():
-                    try:
-                        mdc = MediaDataController.getInstance(0)
-                        ss = None
-                        try:
-                            ss = mdc.getStickerSetByName("wtffffffffffDD")
-                        except Exception:
-                            pass
-                        if not ss:
-                            try:
-                                ss = mdc.getStickerSetByEmojiOrName("randomshareui")
-                            except Exception:
-                                pass
-                        if not ss:
-                            try:
-                                mdc.loadStickersByEmojiOrName("wtffffffffffDD", False, False)
-                            except Exception:
-                                pass
-                            return False
-                        docs_count = ss.documents.size() if getattr(ss, "documents", None) else 0
-                        if docs_count <= 27:
-                            return False
-                        doc = ss.documents.get(49)
-                        iv.setImage(
-                            ImageLocation.getForDocument(doc),
-                            "100_100",
-                            None, None, 0, 1
-                        )
-                        return True
-                    except Exception as _e:
-                        logx(f"nativeLoader: showNativeErrorSheet sticker error: {_e}", True)
-                        return False
-
-                if not _try_sticker():
-                    def _retry():
-                        import time
-                        time.sleep(2.0)
-                        run_on_ui_thread(_try_sticker)
-                    threading.Thread(target=_retry, daemon=True).start()
+                # index 49 of the error pack; the shared loader binds it now if
+                # cached, else on diceStickersDidLoad (no polling)
+                from .utils.stickers import load_sticker
+                load_sticker(iv, "wtffffffffffDD/49", 100)
 
                 linear.addView(iv, LayoutHelper.createLinear(
                     100, 100, Gravity.CENTER_HORIZONTAL, 0, 20, 0, 0

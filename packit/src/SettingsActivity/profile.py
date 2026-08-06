@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ..utils.bulletins import factory as _pbf
 from ui.settings import Header, Text, Divider, Custom
 from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment
@@ -230,7 +231,7 @@ class ProfileSettings:
                                     BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
                                     container = _fragment.getParentActivity().getWindow().getDecorView()
                                     rp = _fragment.getResourceProvider()
-                                    BulletinFactory.of(container, rp).createSimpleBulletin(R_tg.raw.voip_invite, strings["export_db_done_share"]).show()
+                                    _pbf(container, rp).createSimpleBulletin(R_tg.raw.voip_invite, strings["export_db_done_share"]).show()
                                 except Exception as _be:
                                     logx(f"profile.ShareDelegate.didShare: {_be}", True)
                             run_on_ui_thread(_show_bulletin)

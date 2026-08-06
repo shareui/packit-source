@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ...utils.bulletins import factory as _pbf
 from ...utils.netQueue import run_io
 import json
 import threading
@@ -464,19 +465,35 @@ class InstallIconsUI:
             pass
 
     def _parse_github_url(self, url):
+        # returns (owner, repo) for github OR gitlab urls (repo / raw / api
+        # forms) so the repo picker shows "<owner> • <repo>" for both. owner is
+        # the org/user (top namespace) nickname; gitlab groups/subgroups are
+        # supported too.
         try:
             if not url:
                 return None, None
-            patterns = [
+            github_patterns = [
                 r'github\.com/([^/]+)/([^/]+?)(?:\.git)?/?$',
                 r'raw\.githubusercontent\.com/([^/]+)/([^/]+)/',
                 r'api\.github\.com/repos/([^/]+)/([^/]+)',
             ]
-            for pattern in patterns:
+            for pattern in github_patterns:
                 match = re.search(pattern, url)
                 if match:
                     owner = match.group(1)
                     repo = match.group(2).replace('.git', '')
+                    return owner, repo
+            # gitlab: the namespace may be nested (groups/subgroups); the ref
+            # path is split off by '/-/' (…/-/raw/…, …/-/blob/…, …/-/tree/…)
+            gl = re.search(r'gitlab\.com/(.+)', url)
+            if gl:
+                path = re.split(r'/-/', gl.group(1))[0].strip('/')
+                segs = [s for s in path.split('/') if s]
+                if len(segs) >= 2 and segs[0] not in (
+                    'api', 'dashboard', 'explore', 'groups', 'users', 'projects'
+                ):
+                    owner = segs[0]
+                    repo = segs[-1].replace('.git', '')
                     return owner, repo
             return None, None
         except Exception:
@@ -1839,7 +1856,7 @@ class InstallIconsUI:
                         except Exception:
                             pass
                         icon_raw = getattr(R_tg.raw, "copy", getattr(R_tg.raw, "msg_copy", 0))
-                        BulletinFactory.of(container, resource_provider).createSimpleBulletin(
+                        _pbf(container, resource_provider).createSimpleBulletin(
                             icon_raw,
                             str(strings["link_copied"])
                         ).show()

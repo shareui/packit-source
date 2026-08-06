@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ...utils.bulletins import factory as _pbf
 import os
 import json
 import zipfile
@@ -252,7 +253,7 @@ def buildArchive(selected_files: list, export_settings: bool, export_locally: bo
                                         BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
                                         container = _fragment.getParentActivity().getWindow().getDecorView()
                                         rp = _fragment.getResourceProvider()
-                                        BulletinFactory.of(container, rp).createSimpleBulletin(R_tg.raw.voip_invite, strings["utilities_afp_shared"]).show()
+                                        _pbf(container, rp).createSimpleBulletin(R_tg.raw.voip_invite, strings["utilities_afp_shared"]).show()
                                     except Exception as e:
                                         logx(f"pluginsExport.ShareDelegate.didShare: {e}", False)
                                 run_on_ui_thread(_show_bulletin)

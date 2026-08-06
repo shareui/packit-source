@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ..utils.bulletins import factory as _pbf
 from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment, run_on_queue
 from android_utils import run_on_ui_thread, OnClickListener
@@ -83,7 +84,7 @@ def handle(url, repoManager):
             frag = get_last_fragment()
             container = frag.getParentActivity().getWindow().getDecorView()
             resourceProvider = frag.getResourceProvider()
-            BulletinFactory.of(container, resourceProvider).createSimpleBulletin(
+            _pbf(container, resourceProvider).createSimpleBulletin(
                 R_tg.raw.camera_flip,
                 strings.repo_add_fetching
             ).show()

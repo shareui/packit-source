@@ -32,7 +32,11 @@ jobs:
           python-version: "3.11"
 
       - name: Install ElyxBuilder
-        run: pip install ElyxBuilder
+        # pinned: 0.6.3 regressed compileSourceFiles with a broken import
+        # ("from cmds.obfuscate import applyObfuscationPipeline" -> No module
+        # named 'cmds'), which aborts every compiled (-c) build. 0.6.1 is the
+        # version used locally and imports elyb.cmds.obfuscate correctly.
+        run: pip install ElyxBuilder==0.6.1
 
       - name: Build plugin
         run: elyb build -c 2 -v -nf
