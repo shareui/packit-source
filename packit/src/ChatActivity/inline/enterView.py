@@ -831,145 +831,15 @@ def _packit_send_plugin_info(self, plugin_data):
         except Exception:
             show_version = show_author = show_description = show_install = True
 
-        entities = []
-        message_parts = []
-        current_offset = 0
-
         output_type = getattr(self, "_packit_output_type", None)
-        plugin_link = f"tg://packit?plugin={plugin_id}&repo={repo_id}"
 
-        if output_type == "release":
-            # "{name} has been released" — name is a link+bold, rest is plain
-            name_text = name
-            message_parts.append(name_text)
-            entity_name = TLRPC.TL_messageEntityTextUrl()
-            entity_name.offset = current_offset
-            entity_name.length = _u16len(name_text)
-            entity_name.url = plugin_link
-            entities.append(entity_name)
-            entity_name_bold = TLRPC.TL_messageEntityBold()
-            entity_name_bold.offset = current_offset
-            entity_name_bold.length = _u16len(name_text)
-            entities.append(entity_name_bold)
-            current_offset += _u16len(name_text)
-            suffix = " has been released!"
-            message_parts.append(suffix)
-            current_offset += _u16len(suffix)
-
-        elif output_type == "update":
-            # "{name} updated to {version}" — name is link+bold, "updated to" is bold, version is plain
-            name_text = name
-            message_parts.append(name_text)
-            entity_name = TLRPC.TL_messageEntityTextUrl()
-            entity_name.offset = current_offset
-            entity_name.length = _u16len(name_text)
-            entity_name.url = plugin_link
-            entities.append(entity_name)
-            entity_name_bold = TLRPC.TL_messageEntityBold()
-            entity_name_bold.offset = current_offset
-            entity_name_bold.length = _u16len(name_text)
-            entities.append(entity_name_bold)
-            current_offset += _u16len(name_text)
-            updated_text = " updated to "
-            message_parts.append(updated_text)
-            entity_upd = TLRPC.TL_messageEntityBold()
-            entity_upd.offset = current_offset
-            entity_upd.length = _u16len(updated_text)
-            entities.append(entity_upd)
-            current_offset += _u16len(updated_text)
-            ver_text = version if version else "?"
-            message_parts.append(ver_text)
-            current_offset += _u16len(ver_text)
-
-        else:
-            # default: "{name} (v{version})"
-            name_text = name
-            message_parts.append(name_text)
-            entity_name = TLRPC.TL_messageEntityTextUrl()
-            entity_name.offset = current_offset
-            entity_name.length = _u16len(name_text)
-            entity_name.url = plugin_link
-            entities.append(entity_name)
-            entity_name_bold = TLRPC.TL_messageEntityBold()
-            entity_name_bold.offset = current_offset
-            entity_name_bold.length = _u16len(name_text)
-            entities.append(entity_name_bold)
-            current_offset += _u16len(name_text)
-            if show_version and version:
-                version_text = f" (v{version})"
-                message_parts.append(version_text)
-                current_offset += _u16len(version_text)
-
-        message_parts.append("\n")
-        current_offset += 1
-
-        if show_author and author:
-            by_text = "by "
-            message_parts.append(by_text)
-            current_offset += _u16len(by_text)
-            author_text = author
-            message_parts.append(author_text)
-            current_offset += _u16len(author_text)
-            message_parts.append("\n")
-            current_offset += 1
-
-        desc_quote_start = current_offset
-
-        if show_description and description:
-            from ...utils.markdown import parse as _md_parse
-            parsed_desc = _md_parse(description) or parse_markdown(description)
-            desc_text = parsed_desc.text
-
-            for ent in parsed_desc.entities:
-                tl_entity = ent.to_tlrpc_object()
-                tl_entity.offset = current_offset + ent.offset
-                entities.append(tl_entity)
-
-            message_parts.append(desc_text)
-            current_offset += _u16len(desc_text)
-            message_parts.append("\n")
-            current_offset += 1
-
-            entity_blockquote = TLRPC.TL_messageEntityBlockquote()
-            entity_blockquote.offset = desc_quote_start
-            entity_blockquote.length = current_offset - desc_quote_start
-            entities.append(entity_blockquote)
-
-        if show_install:
-            install_text = "Install"
-            install_link = f"tg://packit?install&repo={repo_id}&plugin={plugin_id}"
-            if version:
-                install_link += f"&version={version}"
-
-            message_parts.append(install_text)
-            entity_install = TLRPC.TL_messageEntityTextUrl()
-            entity_install.offset = current_offset
-            entity_install.length = _u16len(install_text)
-            entity_install.url = install_link
-            entities.append(entity_install)
-            current_offset += _u16len(install_text)
-
-            via_sep = " via "
-            message_parts.append(via_sep)
-            current_offset += _u16len(via_sep)
-
-            packit_text = "PackIt"
-            message_parts.append(packit_text)
-            entity_via = TLRPC.TL_messageEntityTextUrl()
-            entity_via.offset = current_offset
-            entity_via.length = _u16len(packit_text)
-            entity_via.url = "https://t.me/packitX"
-            entities.append(entity_via)
-
-        message_text = "".join(message_parts)
-
-        # entities must be ordered by offset, with a container (the description
-        # blockquote) ahead of what it wraps; we append them in build order, so
-        # sort before handing the message over
-        try:
-            entities.sort(key=lambda e: (int(e.offset), -int(e.length)))
-        except Exception as e:
-            logx(f"Packit send: entity sort skipped: {e}", True)
+        from .messageBuilder import build_plugin_message
+        message_text, entities = build_plugin_message(
+            name, version, author, plugin_id, repo_id, description,
+            output_type=output_type,
+            show_version=show_version, show_author=show_author,
+            show_description=show_description, show_install=show_install,
+        )
 
         try:
             from client_utils import send_message
