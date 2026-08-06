@@ -218,6 +218,7 @@ class _IconsSearchTextWatcher(dynamic_proxy(TextWatcher)):
                             outer.visible_icons = []
                             outer._card_registry = []
                             outer._ticker_started = False
+                            outer._ticker_gen += 1
                             outer._preview_epoch += 1
                             if hasattr(outer, "subtitle"):
                                 outer.subtitle.setText(strings["icons_count"].format(len(filtered)))
@@ -922,6 +923,9 @@ class InstallIconsUI:
             # registry of (iv, loaded_list) for the global swap ticker
             self._card_registry = []
             self._ticker_started = False
+            # bumped with the registry: a ticker whose generation is stale stops
+            # instead of animating cards from a discarded list forever
+            self._ticker_gen = 0
             self._live_search_spinner = None
             # bumped on every list rebuild; preview tasks captured with an
             # older epoch abort instead of downloading for discarded cards
@@ -1416,6 +1420,7 @@ class InstallIconsUI:
             self.lazy_load_queue.clear()
             self._card_registry = []
             self._ticker_started = False
+            self._ticker_gen += 1
             self._preview_epoch += 1
 
             if not q:
@@ -1586,13 +1591,55 @@ class InstallIconsUI:
             import random
             Runnable = find_class("java.lang.Runnable")
             registry = self._card_registry
+            delegate = self
+            # the ticker used to re-post itself on the first card's view: a
+            # detached view queues the runnable until it is attached again, so
+            # the ticker could stall — and a card left mid-crossfade then stays
+            # invisible forever. The heartbeat now runs on the main handler,
+            # which no view can hold up, and every tick heals stranded cards.
+            gen = self._ticker_gen
             ticker_runnable = [None]
+            # keeps runnables handed to java alive until they fire
+            pending = []
             # track last swapped card and bitmap to prevent consecutive repeats
             last_iv = [None]
             last_bmp = [None]
 
+            def _runnable(fn):
+                class _R(dynamic_proxy(Runnable)):
+                    def __init__(self):
+                        super().__init__()
+                    def run(self):
+                        try:
+                            fn()
+                        finally:
+                            try:
+                                pending.remove(self)
+                            except Exception:
+                                pass
+                r = _R()
+                pending.append(r)
+                if len(pending) > 64:
+                    del pending[:len(pending) - 64]
+                return r
+
+            def _post(fn, delay):
+                AndroidUtilities.runOnUIThread(_runnable(fn), delay)
+
+            def _restore_alpha(v):
+                # a crossfade that gets interrupted leaves the preview at alpha
+                # 0 — the card then shows its name and count with an empty icon,
+                # exactly like a preview that never loaded
+                try:
+                    if v.getAlpha() < 1.0:
+                        v.setAlpha(1.0)
+                except Exception:
+                    pass
+
             def tick():
                 try:
+                    if delegate._ticker_gen != gen or delegate._card_registry is not registry:
+                        return  # the list was rebuilt; a newer ticker owns it
                     candidates = [(iv, bitmaps) for iv, bitmaps in registry if len(bitmaps) >= 1]
                     if candidates:
                         # exclude last card if other options exist
@@ -1605,48 +1652,56 @@ class InstallIconsUI:
                         bmp = random.choice(other_bmps if other_bmps else bitmaps)
                         last_iv[0] = iv
                         last_bmp[0] = bmp
+
                         def do_swap(v=iv, b=bmp):
                             try:
-                                fade_out_done = make_end_action(lambda: (
-                                    v.setImageBitmap(b),
-                                    v.animate().alpha(1.0).setDuration(200).start()
-                                ))
-                                v.animate().alpha(0.0).setDuration(200).withEndAction(fade_out_done).start()
+                                # heal anything a previous interrupted fade left
+                                # behind, including the card we are about to use
+                                for other_iv, _ in registry:
+                                    if other_iv is not v:
+                                        _restore_alpha(other_iv)
+                                try:
+                                    v.animate().cancel()
+                                except Exception:
+                                    pass
+                                v.setAlpha(1.0)
+
+                                def _swap_in():
+                                    try:
+                                        v.setImageBitmap(b)
+                                        v.animate().alpha(1.0).setDuration(200).start()
+                                    except Exception:
+                                        pass
+                                    # the fade-in can be interrupted too, so pin
+                                    # the end state instead of trusting it
+                                    _post(lambda: _restore_alpha(v), 260)
+
+                                v.animate().alpha(0.0).setDuration(200).start()
+                                # driven by time, not by withEndAction: a cancelled
+                                # animation drops its end action and the swap with it
+                                _post(_swap_in, 210)
                             except Exception:
                                 try:
                                     v.setImageBitmap(b)
+                                    v.setAlpha(1.0)
                                 except Exception:
                                     pass
+
                         run_on_ui_thread(do_swap)
-                    try:
-                        if registry:
-                            registry[0][0].postDelayed(ticker_runnable[0], 2000)
-                    except Exception:
-                        pass
+                    else:
+                        for iv, _ in registry:
+                            _restore_alpha(iv)
+                    AndroidUtilities.runOnUIThread(ticker_runnable[0], 2000)
                 except Exception as ex:
                     logx(f"icons ticker: tick error: {ex}", True)
 
-            class _TickerRunnable(dynamic_proxy(Runnable)):
-                def __init__(self):
-                    super().__init__()
-                def run(self):
-                    tick()
-
-            # helper: wrap lambda as Runnable for withEndAction
-            def make_end_action(fn):
-                class _R(dynamic_proxy(Runnable)):
-                    def __init__(self):
-                        super().__init__()
-                    def run(self):
-                        fn()
-                return _R()
-
-            ticker_runnable[0] = _TickerRunnable()
+            ticker_runnable[0] = _runnable(tick)
+            # _runnable drops its ref once it fires, but the heartbeat is reused
+            pending.append(ticker_runnable[0])
 
             def post_start():
                 try:
-                    if registry:
-                        registry[0][0].postDelayed(ticker_runnable[0], 2000)
+                    AndroidUtilities.runOnUIThread(ticker_runnable[0], 2000)
                 except Exception as ex:
                     logx(f"icons ticker: post_start error: {ex}", True)
             run_on_ui_thread(post_start)
@@ -1680,6 +1735,19 @@ class InstallIconsUI:
             iv_lp = LinearLayout.LayoutParams(icon_size_px, icon_size_px)
             iv_lp.bottomMargin = AndroidUtilities.dp(8)
             inner.addView(iv, iv_lp)
+            # neutral block until the first preview decodes, so a card that is
+            # still downloading reads as loading instead of as broken
+            try:
+                _ph_color = Theme.getColor(Theme.key_emptyListPlaceholder)
+                _ph = GradientDrawable()
+                _ph.setShape(GradientDrawable.RECTANGLE)
+                _ph.setCornerRadius(AndroidUtilities.dp(10))
+                _ph.setColor(ctypes.c_int32(
+                    (0x33 << 24) | (_ph_color & 0xFFFFFF)
+                ).value)
+                iv.setBackground(_ph)
+            except Exception:
+                pass
 
             name_tv = TextView(act)
             try:
@@ -1811,7 +1879,15 @@ class InstallIconsUI:
                     if bmp is not None:
                         loaded.append(bmp)
 
-            def fetch_first(urls=all_urls):
+            def _bind_preview(b):
+                try:
+                    iv.setImageBitmap(b)
+                    iv.setBackground(None)
+                    iv.setAlpha(1.0)
+                except Exception:
+                    pass
+
+            def fetch_first(urls=all_urls, attempt=0):
                 # phase 1: get any single preview on screen ASAP
                 for i, url in enumerate(urls):
                     if delegate._preview_epoch != epoch:
@@ -1820,11 +1896,19 @@ class InstallIconsUI:
                     if bmp is not None:
                         loaded.append(bmp)
                         if delegate._preview_epoch == epoch:
-                            run_on_ui_thread(lambda b=bmp: iv.setImageBitmap(b))
+                            run_on_ui_thread(lambda b=bmp: _bind_preview(b))
                         rest = urls[i + 1:]
                         if rest:
                             _preview_pool_submit(lambda: fetch_rest(rest))
                         return
+                # every preview of this pack failed — a card used to stay empty
+                # for the rest of the session over one network blip, with no
+                # retry and nothing to tell it apart from a loaded card
+                if attempt == 0 and urls and delegate._preview_epoch == epoch:
+                    logx(f"icons: no preview loaded for '{_display_name}', retrying", False)
+                    threading.Timer(
+                        3.0, lambda: _preview_pool_submit(lambda: fetch_first(urls, 1))
+                    ).start()
 
             _preview_pool_submit(fetch_first)
 
