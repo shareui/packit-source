@@ -42,6 +42,7 @@ except Exception:
     Browser = None
 
 from .helpers.PluginActions import copy_plugin_link, share_plugin_file, view_plugin_code, report_plugin, download_plugin_file, translate_plugin
+from .filter.tagLayoutListener import _TagsOverflowListener
 from .helpers.utils import _check_app_version
 from ..viewUtils import highlightQuery as _highlight_query
 
@@ -285,15 +286,50 @@ def make_plugin_card(self, p):
             tag_lp.rightMargin = AndroidUtilities.dp(5)
             tags_row.addView(tag_tv, tag_lp)
 
-        # all tags on one horizontally-scrollable row: chips never split, none
-        # are hidden, and the card height stays fixed — overflow reached by
-        # swiping, with fading edges like the plugin-name row above
-        tags_scroll = HorizontalScrollView(act)
-        tags_scroll.setHorizontalScrollBarEnabled(False)
-        tags_scroll.setHorizontalFadingEdgeEnabled(True)
-        tags_scroll.setFadingEdgeLength(AndroidUtilities.dp(16))
-        tags_scroll.addView(tags_row, FrameLayout.LayoutParams(-2, -2))
-        col.addView(tags_scroll, LayoutHelper.createLinear(-1, -2))
+        # trailing "+N" chip: tags that don't fit on the single line are cut
+        # from the card and counted here — the full list lives on the plugin
+        # profile, which this chip opens. Muted styling so it reads as a
+        # counter, not as another tag.
+        plus_tv = TextView(act)
+        plus_tv.setSingleLine(True)
+        plus_tv.setMaxLines(1)
+        plus_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
+        try:
+            plus_color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
+        except Exception:
+            plus_color = self.install_ui._get_theme_colors()["secondary_text_color"]
+        pr = (plus_color >> 16) & 0xFF
+        pg = (plus_color >> 8) & 0xFF
+        pb = plus_color & 0xFF
+        plus_bg = GradientDrawable()
+        plus_bg.setShape(GradientDrawable.RECTANGLE)
+        plus_bg.setCornerRadius(AndroidUtilities.dp(6))
+        plus_bg.setColor(ctypes.c_int32((0x26 << 24) | (pr << 16) | (pg << 8) | pb).value)
+        plus_tv.setTextColor(ctypes.c_int32((0xFF << 24) | (pr << 16) | (pg << 8) | pb).value)
+        plus_tv.setBackground(plus_bg)
+        plus_tv.setPadding(
+            AndroidUtilities.dp(7), AndroidUtilities.dp(2),
+            AndroidUtilities.dp(7), AndroidUtilities.dp(2)
+        )
+        plus_tv.setVisibility(View.GONE)
+        plus_tv.setClickable(True)
+        plus_tv.setFocusable(True)
+
+        def onPlusClick(v, plugin=p):
+            try:
+                from ..PluginActivity.fragment import show_plugin_profile
+                show_plugin_profile(plugin, self.install_ui, self.plugins,
+                                    repo_id=self.repo_id or str(plugin.get("_repo_id") or ""))
+            except Exception:
+                pass
+
+        plus_tv.setOnClickListener(OnClickListener(onPlusClick))
+        self.install_ui._apply_press_scale(plus_tv)
+        tags_row.addView(plus_tv, LinearLayout.LayoutParams(-2, -2))
+
+        # drop tags that overflow the line and summarise them in the "+N" chip
+        tags_row.addOnLayoutChangeListener(_TagsOverflowListener(plus_tv))
+        col.addView(tags_row, LayoutHelper.createLinear(-1, -2))
 
     top_row.addView(col, LayoutHelper.createLinear(0, -2, 1.0))
 
