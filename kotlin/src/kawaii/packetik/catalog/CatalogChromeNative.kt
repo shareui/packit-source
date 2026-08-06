@@ -43,7 +43,11 @@ object CatalogChromeNative {
     private fun selector(base: Int, pressed: Int, radiusPx: Float): Drawable {
         val content = rounded(base, radiusPx)
         return try {
-            RippleDrawable(ColorStateList.valueOf(pressed), content, null)
+            // pass an explicit mask, like the host's own selector helpers do:
+            // with a null mask the patterned-ripple path used on Android 12+
+            // ROMs crashed inside RippleDrawable.updateRipplePaint while drawing
+            val mask = rounded(0xFFFFFFFF.toInt(), radiusPx)
+            RippleDrawable(ColorStateList.valueOf(pressed), content, mask)
         } catch (t: Throwable) {
             content
         }

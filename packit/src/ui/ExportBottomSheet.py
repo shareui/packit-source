@@ -569,7 +569,12 @@ def show(plugins, on_export):
                 btn_bg.setColor(bg_color)
                 try:
                     ripple_color = ColorStateList.valueOf(Color.parseColor("#40000000"))
-                    ripple_drawable = RippleDrawable(ripple_color, btn_bg, None)
+                    # explicit mask: a null one sends the patterned-ripple path
+                    # on Android 12+ ROMs into a draw-time crash
+                    ripple_mask = GradientDrawable()
+                    ripple_mask.setCornerRadius(AndroidUtilities.dp(18))
+                    ripple_mask.setColor(Color.WHITE)
+                    ripple_drawable = RippleDrawable(ripple_color, btn_bg, ripple_mask)
                     container.setBackground(ripple_drawable)
                 except Exception:
                     container.setBackground(btn_bg)
@@ -624,7 +629,10 @@ def show(plugins, on_export):
             toggle_all_bg.setColor(toggle_bg_color)
             try:
                 ripple_color = ColorStateList.valueOf(Color.parseColor("#40000000"))
-                toggle_ripple = RippleDrawable(ripple_color, toggle_all_bg, None)
+                toggle_mask = GradientDrawable()
+                toggle_mask.setCornerRadius(AndroidUtilities.dp(18))
+                toggle_mask.setColor(Color.WHITE)
+                toggle_ripple = RippleDrawable(ripple_color, toggle_all_bg, toggle_mask)
                 toggle_all_container.setBackground(toggle_ripple)
             except Exception:
                 toggle_all_container.setBackground(toggle_all_bg)

@@ -285,10 +285,17 @@ def _rounded_bg(color: int, radius_dp: int, stroke_color: int = None, stroke_dp:
     return bg
 
 
-def _ripple_bg(base_drawable, ripple_color: int = 0x20000000):
+def _ripple_bg(base_drawable, ripple_color: int = 0x20000000, radius_dp: int = 0):
+    # always give the ripple an explicit mask (the host's own selector helpers
+    # do the same): with a null mask the patterned-ripple path on Android 12+
+    # ROMs crashed inside RippleDrawable.updateRipplePaint while drawing
     if RippleDrawable is not None and AColorStateList is not None:
         try:
-            return RippleDrawable(AColorStateList.valueOf(_c(ripple_color)), base_drawable, None)
+            mask = GradientDrawable()
+            mask.setShape(GradientDrawable.RECTANGLE)
+            mask.setCornerRadius(float(AndroidUtilities.dp(radius_dp)))
+            mask.setColor(_c(0xFFFFFFFF))
+            return RippleDrawable(AColorStateList.valueOf(_c(ripple_color)), base_drawable, mask)
         except Exception:
             pass
     return base_drawable
@@ -317,7 +324,7 @@ def _icon_btn(act, install_ui, icon_name: str, size_dp: int = 20, btn_size_dp: i
     try:
         surface = _alpha(Theme.getColor(Theme.key_dialogTextBlack), 0x14)
         bg = _rounded_bg(surface, radius_dp)
-        btn.setBackground(_ripple_bg(bg, 0x20000000))
+        btn.setBackground(_ripple_bg(bg, 0x20000000, radius_dp))
     except Exception as e:
         logx(f"AISearchSheet: _icon_btn bg failed: {e}", False)
     icon = ImageView(act)
