@@ -285,13 +285,36 @@ def _rebuild_keyboard_without_send_file(message_object):
         logx(f"inlineBtns: _rebuild_keyboard_without_send_file error: {e}", False)
 
 
+def _resolve_topic_message(dialog_id):
+    # topic start message of the chat currently open, or None outside forums —
+    # sending needs it as replyToTopMsg or the message lands in General
+    try:
+        from client_utils import get_last_fragment
+        frag = get_last_fragment()
+        if frag is None or not getattr(frag, "isTopic", False):
+            return None
+        topic_id = frag.getTopicId()
+        if not topic_id:
+            return None
+        from org.telegram.messenger import MessageObject as MsgObj
+        topic = frag.getMessagesController().getTopicsController().findTopic(-dialog_id, topic_id)
+        if topic is None or topic.topicStartMessage is None:
+            return None
+        topic_msg = MsgObj(frag.getCurrentAccount(), topic.topicStartMessage, False, False)
+        topic_msg.isTopicMainMessage = True
+        return topic_msg
+    except Exception as e:
+        logx(f"inlineBtns: topic resolve error: {e}", False)
+        return None
+
+
 def _do_send_file_inline(message_object, plugin_ref):
     # background thread: resolves plugin link, downloads, sends as document, removes button
     try:
         import os
         import requests as _req
         from android_utils import run_on_ui_thread as _run
-        from client_utils import send_document, get_last_fragment
+        from client_utils import get_last_fragment
         from ui.alert import AlertDialogBuilder
 
         owner = message_object.messageOwner
@@ -388,13 +411,22 @@ def _do_send_file_inline(message_object, plugin_ref):
             f.write(r.content)
         logx(f"inlineBtns: downloaded {len(r.content)} bytes to {file_path}", True)
 
-        # send document to current dialog
+        # send document to the current dialog — and, in a forum, to the topic
+        # the message lives in. send_document() only takes a peer, so the file
+        # always landed in the General topic; send_message() carries
+        # replyToTopMsg the same way the inline message send does.
         try:
             dialog_id = message_object.getDialogId()
-            send_document(dialog_id, file_path)
-            logx(f"inlineBtns: sent document to dialog_id={dialog_id}", True)
+            params = {"peer": dialog_id, "path": file_path}
+            topic_msg_obj = _resolve_topic_message(dialog_id)
+            if topic_msg_obj is not None:
+                params["replyToMsg"] = topic_msg_obj
+                params["replyToTopMsg"] = topic_msg_obj
+            from client_utils import send_message
+            send_message(params)
+            logx(f"inlineBtns: sent document to dialog_id={dialog_id} topic={topic_msg_obj is not None}", True)
         except Exception as e:
-            logx(f"inlineBtns: send_document error: {e}", False)
+            logx(f"inlineBtns: send document error: {e}", False)
             _run(dismiss_loading)
             _run(lambda: _show_send_file_error(strings["send_as_file_failed"]))
             return

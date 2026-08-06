@@ -1065,6 +1065,13 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                                 pass
                         if on_finish_override:
                             run_on_ui_thread(lambda: on_finish_override(ok))
+                        elif not ok:
+                            # nothing was installed (deps sheet cancelled, or the
+                            # install failed): only the download path stops the
+                            # spinner, so without this the button span forever
+                            run_on_ui_thread(
+                                lambda: _set_loading(_btn, _label, _btn_text_color, _act, False)
+                            )
 
                     def _on_downloaded():
                         if succ_download:
@@ -1247,6 +1254,13 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                             pass
                     if on_finish_override:
                         run_on_ui_thread(lambda: on_finish_override(ok))
+                    elif not ok:
+                        # nothing was installed (deps sheet cancelled, or the
+                        # install failed): only the download path stops the
+                        # spinner, so without this the FAB span forever
+                        run_on_ui_thread(
+                            lambda: _set_loading_fab(_btn, _label, _btn_text_color, _act, False)
+                        )
 
                 def _on_downloaded():
                     if succ_download:
