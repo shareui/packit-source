@@ -159,6 +159,8 @@ def _make_chip(act, text, color_key):
     bg.setColor(fill)
     tv = TextView(act)
     tv.setText(text)
+    tv.setSingleLine(True)
+    tv.setMaxLines(1)
     tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
     tv.setTextColor(text_color)
     tv.setBackground(bg)
@@ -2912,8 +2914,15 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 LayoutHelper.createLinear(-2, -2, 0, 0, 0, 0, 8)
             )
 
+            # scrollable single row (matches the languages/clients chip rows):
+            # chips never split and the card height stays fixed
+            tags_chips_scroll = HorizontalScrollView(act)
+            tags_chips_scroll.setHorizontalScrollBarEnabled(False)
+            tags_chips_scroll.setHorizontalFadingEdgeEnabled(True)
+            tags_chips_scroll.setFadingEdgeLength(AndroidUtilities.dp(16))
             chips_row_tags = LinearLayout(act)
             chips_row_tags.setOrientation(LinearLayout.HORIZONTAL)
+            tags_chips_scroll.addView(chips_row_tags, LayoutHelper.createScroll(-2, -2, Gravity.CENTER_VERTICAL))
 
             for tag in tags:
                 if not isinstance(tag, (list, tuple)) or len(tag) < 2:
@@ -2924,7 +2933,7 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 chips_row_tags.addView(chip, chip_lp)
 
             if chips_row_tags.getChildCount() > 0:
-                tags_card.addView(chips_row_tags, LayoutHelper.createLinear(-2, -2))
+                tags_card.addView(tags_chips_scroll, LayoutHelper.createLinear(-1, -2))
                 desc_extra.addView(tags_card, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
 
         # dependencies

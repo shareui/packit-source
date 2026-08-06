@@ -42,7 +42,6 @@ except Exception:
     Browser = None
 
 from .helpers.PluginActions import copy_plugin_link, share_plugin_file, view_plugin_code, report_plugin, download_plugin_file, translate_plugin
-from .filter.tagLayoutListener import _TagsLayoutListener
 from .helpers.utils import _check_app_version
 from ..viewUtils import highlightQuery as _highlight_query
 
@@ -252,6 +251,8 @@ def make_plugin_card(self, p):
             tag_bg.setColor(fill_color)
             tag_tv = TextView(act)
             tag_tv.setText(tag_name)
+            tag_tv.setSingleLine(True)
+            tag_tv.setMaxLines(1)
             tag_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
             tag_tv.setTextColor(text_color)
             tag_tv.setBackground(tag_bg)
@@ -284,9 +285,15 @@ def make_plugin_card(self, p):
             tag_lp.rightMargin = AndroidUtilities.dp(5)
             tags_row.addView(tag_tv, tag_lp)
 
-        # hide tags that don't fit in a single line — keep only the first visible one
-        tags_row.addOnLayoutChangeListener(_TagsLayoutListener())
-        col.addView(tags_row, LayoutHelper.createLinear(-1, -2))
+        # all tags on one horizontally-scrollable row: chips never split, none
+        # are hidden, and the card height stays fixed — overflow reached by
+        # swiping, with fading edges like the plugin-name row above
+        tags_scroll = HorizontalScrollView(act)
+        tags_scroll.setHorizontalScrollBarEnabled(False)
+        tags_scroll.setHorizontalFadingEdgeEnabled(True)
+        tags_scroll.setFadingEdgeLength(AndroidUtilities.dp(16))
+        tags_scroll.addView(tags_row, FrameLayout.LayoutParams(-2, -2))
+        col.addView(tags_scroll, LayoutHelper.createLinear(-1, -2))
 
     top_row.addView(col, LayoutHelper.createLinear(0, -2, 1.0))
 
