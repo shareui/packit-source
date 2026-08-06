@@ -15,16 +15,25 @@
 #     per-site polling with time.sleep()/postDelayed, which showed the sticker
 #     late (fixed delay) or never (a single retry that raced the download).
 #
-# A single global diceStickersDidLoad observer serves every pending view; views
-# are held weakly, so nothing leaks and dead views drop themselves on the next
-# event. All sites call load_sticker(view, "pack/index", size_dp).
+# A single global diceStickersDidLoad observer serves every pending view, and a
+# neutral block stands in underneath until the set arrives — the same idea as
+# the placeholder a chat sticker shows while its media downloads.
+# All sites call load_sticker(view, "pack/index", size_dp).
 
 from packutil import logx
-import weakref
 
-# pending binds waiting for their set to load: each is
-# (weakref(view), pack, index, size_dp). Served by the single global observer.
+# Views waiting for their set to load: [view, pack, index, size_dp]. Served by
+# the single global diceStickersDidLoad observer.
+#
+# These are STRONG references on purpose. A weakref here points at the chaquopy
+# wrapper, not at the java view: the wrapper dies as soon as the caller's local
+# goes out of scope, even though the view is alive on screen — so the pending
+# entry was dropped and the icon only appeared after leaving and re-entering the
+# page (by then the set is cached and binds instantly). Entries are removed the
+# moment they bind, and the list is capped so a set that never loads cannot
+# grow it without bound.
 _pending = []
+_PENDING_CAP = 256
 _global_obs = None
 
 
@@ -60,6 +69,35 @@ def _resolve_set(mdc, pack):
     return ss
 
 
+def _set_placeholder(view, size_dp):
+    # A chat sticker shows its document's svg thumb while the media downloads.
+    # Before the set is loaded we have no document and therefore no thumb, so
+    # paint the same kind of neutral block underneath until one arrives.
+    try:
+        import ctypes
+        from org.telegram.messenger import AndroidUtilities
+        from org.telegram.ui.ActionBar import Theme
+        from android.graphics.drawable import GradientDrawable
+        color = Theme.getColor(Theme.key_emptyListPlaceholder)
+        r = (color >> 16) & 0xFF
+        g = (color >> 8) & 0xFF
+        b = color & 0xFF
+        block = GradientDrawable()
+        block.setShape(GradientDrawable.RECTANGLE)
+        block.setCornerRadius(float(AndroidUtilities.dp(max(4, int(size_dp) // 6))))
+        block.setColor(ctypes.c_int32((0x33 << 24) | (r << 16) | (g << 8) | b).value)
+        view.setBackground(block)
+    except Exception as e:
+        logx(f"stickers: placeholder error: {e}", False)
+
+
+def _clear_placeholder(view):
+    try:
+        view.setBackground(None)
+    except Exception:
+        pass
+
+
 def _apply_now(view, pack, idx, size_dp) -> bool:
     # binds the sticker if its set is cached; returns True on success
     from org.telegram.messenger import MediaDataController, ImageLocation, DocumentObject
@@ -82,25 +120,29 @@ def _apply_now(view, pack, idx, size_dp) -> bool:
         f"{size_dp}_{size_dp}",
         "tgs", svg, ss,
     )
+    # from here the image receiver owns the visuals (svg thumb first, sticker
+    # once downloaded), so our stand-in has to go
+    _clear_placeholder(view)
     return True
 
 
 def _flush(name):
-    # re-bind every pending view whose set just loaded; prune bound/dead ones
+    # bind every pending view whose set just loaded; drop the ones that bound
     survivors = []
-    for ref, pack, idx, size_dp in _pending:
-        view = ref()
-        if view is None:
-            continue  # view gone -> drop
+    for entry in _pending:
+        view, pack, idx, size_dp = entry
         if name is not None and pack != name:
-            survivors.append((ref, pack, idx, size_dp))
+            survivors.append(entry)
             continue
         try:
             if not _apply_now(view, pack, idx, size_dp):
-                survivors.append((ref, pack, idx, size_dp))
+                survivors.append(entry)
         except Exception as e:
             logx(f"stickers: flush apply error: {e}", False)
+    bound = len(_pending) - len(survivors)
     _pending[:] = survivors
+    if bound:
+        logx(f"stickers: bound {bound} pending view(s) for '{name}'", True)
 
 
 def _ensure_observer():
@@ -140,12 +182,16 @@ def load_sticker(view, icon_str, size_dp=130):
             return
         if _apply_now(view, pack, idx, size_dp):
             return
+        # set isn't cached: show a stand-in and wait for the load notification
+        _set_placeholder(view, size_dp)
         try:
             from org.telegram.messenger import MediaDataController
             MediaDataController.getInstance(_account()).loadStickersByEmojiOrName(pack, False, True)
         except Exception as e:
             logx(f"stickers: loadStickersByEmojiOrName error: {e}", False)
-        _pending.append((weakref.ref(view), pack, idx, size_dp))
+        _pending.append([view, pack, idx, size_dp])
+        if len(_pending) > _PENDING_CAP:
+            del _pending[:len(_pending) - _PENDING_CAP]
         _ensure_observer()
     except Exception as e:
         logx(f"stickers: load_sticker error: {e}", False)
