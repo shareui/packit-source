@@ -3508,24 +3508,14 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                             extra_paths.append(p)
                             logx(f"suggest._task: extra_path={p}", True)
 
-                # collect paths that live in filesDir (blocked by isInternalUri)
-                files_dir_marker = "/files/"
-                hook_paths = set()
-                if files_dir_marker in main_path:
-                    hook_paths.add(main_path)
-                for p in extra_paths:
-                    if files_dir_marker in p:
-                        hook_paths.add(p)
-
-                # hook isInternalUri to allow our draft paths through
-                uri_hook = None
-                if hook_paths and self_ref._plugin is not None:
-                    logx(f"suggest._task: hooking isInternalUri for {len(hook_paths)} path(s)", True)
-                    uri_hook = _hook_is_internal_uri(self_ref._plugin, hook_paths)
-
-                # copy draft files to cache dir so upload thread can read them
+                # copy draft files out of filesDir so the upload thread can read
+                # them. The staging dir is probed for writability: the external
+                # app cache is preferred (isInternalUri lets those through), but
+                # some ROMs deny writes there — get_cache_dir() pointed straight
+                # at it and the whole submit died with EACCES.
                 import shutil, tempfile
-                from file_utils import get_cache_dir
+                from ...utils.paths import getStagingDir, isInternalPath
+                staging_dir = getStagingDir()
 
                 def _stage_for_upload(src: str, display_name: str) -> str:
                     suffix = ""
@@ -3534,7 +3524,7 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         suffix = display_name[dot:]
                     tmp = tempfile.NamedTemporaryFile(
                         delete=False, suffix=suffix,
-                        dir=get_cache_dir()
+                        dir=staging_dir
                     )
                     tmp.close()
                     shutil.copy2(src, tmp.name)
@@ -3544,11 +3534,11 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 staged_main = None
                 staged_extras = []
 
-                if files_dir_marker in main_path:
+                if isInternalPath(main_path):
                     staged_main = _stage_for_upload(main_path, main_name)
                 staged_extras = []
                 for i, p in enumerate(extra_paths):
-                    if files_dir_marker in p:
+                    if isInternalPath(p):
                         name_s = (self_ref._extra_uris[i][1] or "") if i < len(self_ref._extra_uris) else ""
                         staged_extras.append(_stage_for_upload(p, name_s))
                     else:
@@ -3559,6 +3549,19 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     staged_extras[i] if staged_extras[i] else extra_paths[i]
                     for i in range(len(extra_paths))
                 ]
+
+                # hook isInternalUri for every path we actually hand over that
+                # still sits in private storage — that now includes the staged
+                # copies themselves when staging fell back to the internal cache
+                hook_paths = set()
+                for p in [send_main_path] + list(send_extra_paths):
+                    if p and isInternalPath(p):
+                        hook_paths.add(p)
+
+                uri_hook = None
+                if hook_paths and self_ref._plugin is not None:
+                    logx(f"suggest._task: hooking isInternalUri for {len(hook_paths)} path(s)", True)
+                    uri_hook = _hook_is_internal_uri(self_ref._plugin, hook_paths)
 
                 def _cleanup():
                     if uri_hook is not None:
@@ -3575,8 +3578,10 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                             logx(f"suggest: cleaned up staged {p}", True)
                         except Exception as ex:
                             logx(f"suggest: cleanup staged error {p}: {ex}", True)
+                    # drafts live in filesDir and must survive; anything else is
+                    # a temp copy made for this submit
                     for p in [main_path] + extra_paths:
-                        if files_dir_marker not in p:
+                        if "/files/" not in p:
                             try:
                                 os.unlink(p)
                                 logx(f"suggest: cleaned up temp {p}", True)

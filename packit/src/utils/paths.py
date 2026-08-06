@@ -65,15 +65,50 @@ def _externalCacheDir() -> str:
     d = ApplicationLoader.applicationContext.getExternalCacheDir()
     return d.getAbsolutePath() if d else _cacheDir()
 
+_stagingDir = None
+
+def _isWritableDir(path: str) -> bool:
+    if not path:
+        return False
+    try:
+        import os
+        os.makedirs(path, exist_ok=True)
+        probe = os.path.join(path, ".packit_write_probe")
+        with open(probe, "wb") as f:
+            f.write(b"1")
+        os.remove(probe)
+        return True
+    except Exception as e:
+        log(f"paths: {path} not writable: {e}")
+        return False
+
+def getStagingDir() -> str:
+    # Directory for files we hand to Telegram (share sheet, suggestion upload).
+    #
+    # External app cache first: AndroidUtilities.isInternalUri() refuses to send
+    # anything under the app's internal data dir, so a file staged there shows
+    # "attachment not supported" or silently drops. But the external path is not
+    # always usable either — some ROMs deny writes to
+    # /storage/emulated/0/Android/data/<pkg>/... outright (EACCES), so probe it
+    # instead of assuming, and fall back to the internal cache. Callers that
+    # send a file from the fallback must hook isInternalUri for that path.
+    global _stagingDir
+    if _stagingDir is None:
+        for candidate in (_externalCacheDir(), _cacheDir()):
+            if _isWritableDir(candidate):
+                _stagingDir = candidate
+                break
+        else:
+            _stagingDir = _cacheDir()
+        log(f"paths: staging dir = {_stagingDir}")
+    return _stagingDir
+
+def isInternalPath(path: str) -> bool:
+    # matches what isInternalUri() rejects: the app's own private storage
+    return bool(path) and (str(path).startswith("/data/") or "/files/" in str(path))
+
 def getShareCachePath(filename: str) -> str:
-    # Any file handed to ShareAlert / SendMessagesHelper MUST live in EXTERNAL
-    # app storage. Telegram's AndroidUtilities.isInternalUri() blocks sending
-    # any file whose path is under the app's internal data dir
-    # (/data/user/0/<pkg>/... incl. getCacheDir()) as a security measure — the
-    # send then shows "attachment not supported" or silently drops. External
-    # app-specific cache needs no runtime permission on any Android version and
-    # passes the check. Use this for every shared temp file in the project.
-    return _externalCacheDir() + "/" + filename
+    return getStagingDir() + "/" + filename
 
 def getLogShareCachePath() -> str:
     return getShareCachePath("packit_latestlog.txt")
