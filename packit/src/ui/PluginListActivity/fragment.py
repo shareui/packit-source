@@ -112,7 +112,7 @@ from . import card as _card
 
 from .helpers.utils import (
     _count_active_repos, _plural_form, _format_plural, _build_stats_label,
-    _build_plugin_count_label, _is_filtered, _parse_version, _check_app_version,
+    _build_plugin_count_label, _parse_version, _check_app_version,
     _filter_unavailable,
 )
 
@@ -434,10 +434,13 @@ class InstallUI:
             self.is_loading = False
             self.scroll_listener = None
             self.current_sort_type = "alpha_az"
-            self.selected_tags = set()
-            self.selected_authors = set()
-            self.selected_app_versions = set()
-            self.selected_saved = {"saved", "unsaved"}
+            # None = untouched (no filter). A set is what the drawer applied,
+            # and an empty one means "nothing selected" — which shows nothing,
+            # not everything.
+            self.selected_tags = None
+            self.selected_authors = None
+            self.selected_app_versions = None
+            self.selected_saved = None
             self._active_drawer = None
             self.batch_size = 10
             self._ai_result_active = False
@@ -680,35 +683,45 @@ class InstallUI:
                 scored.sort(key=lambda x: x[0])
                 filtered = [p for _, p in scored]
 
-            if self.selected_tags:
-                filtered = tag_mod.filter_by_tags(filtered, self.selected_tags)
+            # None = section never filtered. An empty selection is deliberate
+            # and matches nothing — the drawer no longer rewrites it to "all".
+            if self.selected_tags is not None:
+                filtered = tag_mod.filter_by_tags(filtered, self.selected_tags) if self.selected_tags else []
 
-            if self.selected_authors:
+            if self.selected_authors is not None:
                 all_authors = set(
                     str(p.get("author") or "").strip()
                     for p in self.plugins
                     if str(p.get("author") or "").strip() and str(p.get("author") or "").strip().lower() != "unknown"
                 )
-                # no filter if all selected
-                if self.selected_authors < all_authors:
+                # everything selected is the same as no filter; anything less
+                # filters (">=" and not "<": a selection holding a stale name
+                # is still a filter, a strict-subset test called it none)
+                if not self.selected_authors:
+                    filtered = []
+                elif not (self.selected_authors >= all_authors):
                     filtered = [
                         p for p in filtered
                         if str(p.get("author") or "").strip() in self.selected_authors
                     ]
 
-            if self.selected_app_versions:
+            if self.selected_app_versions is not None:
                 all_versions = set(
                     str(p.get("app_version") or "").strip()
                     for p in self.plugins
                     if str(p.get("app_version") or "").strip() and str(p.get("app_version") or "").strip().lower() != "unknown"
                 )
-                if self.selected_app_versions < all_versions:
+                if not self.selected_app_versions:
+                    filtered = []
+                elif not (self.selected_app_versions >= all_versions):
                     filtered = [
                         p for p in filtered
                         if str(p.get("app_version") or "").strip() in self.selected_app_versions
                     ]
 
-            if hasattr(self, 'selected_saved') and self.selected_saved != {"saved", "unsaved"}:
+            if getattr(self, "selected_saved", None) is not None and not self.selected_saved:
+                filtered = []
+            elif getattr(self, "selected_saved", None) is not None and self.selected_saved != {"saved", "unsaved"}:
                 try:
                     from ..PluginActivity.fragment import _read_saved_plugins
                     saved_ids = set(_read_saved_plugins())
@@ -732,7 +745,11 @@ class InstallUI:
             self.filtered_plugins = filtered
             if hasattr(self, 'subtitle'):
                 total = len(self.plugins)
-                if _is_filtered(self):
+                # straight from the two lists. Asking a helper whether a filter
+                # "is active" meant the header could disagree with what the list
+                # actually holds: its tag universe left out the untagged bucket,
+                # so filtering by "Unsorted" (12 of 43) kept the header on 43.
+                if len(filtered) != total:
                     self.subtitle.setText(f"{len(filtered)}/{_build_plugin_count_label(total)}")
                 else:
                     self.subtitle.setText(_build_plugin_count_label(total))
