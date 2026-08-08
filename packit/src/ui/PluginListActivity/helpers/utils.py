@@ -74,28 +74,6 @@ def _build_plugin_count_label(plugin_count: int) -> str:
     except Exception:
         return strings("plugin_many", plugin_count)
 
-def _is_filtered(self_obj) -> bool:
-    # true if any filter reduces the full plugin set
-    all_tags = set()
-    all_authors = set()
-    all_versions = set()
-    for p in self_obj.plugins:
-        for t in (p.get("tags") or []):
-            if isinstance(t, list) and t:
-                all_tags.add(t[0])
-        a = str(p.get("author") or "").strip()
-        if a and a.lower() != "unknown":
-            all_authors.add(a)
-        v = str(p.get("app_version") or "").strip()
-        if v and v.lower() != "unknown":
-            all_versions.add(v)
-
-    tags_filtered = bool(self_obj.selected_tags) and self_obj.selected_tags < all_tags
-    authors_filtered = bool(self_obj.selected_authors) and self_obj.selected_authors < all_authors
-    versions_filtered = bool(self_obj.selected_app_versions) and self_obj.selected_app_versions < all_versions
-    saved_filtered = hasattr(self_obj, 'selected_saved') and self_obj.selected_saved != {"saved", "unsaved"}
-    return tags_filtered or authors_filtered or versions_filtered or saved_filtered
-
 def _parse_version(v_str):
     try:
         return tuple(int(x) for x in str(v_str).strip().split("."))

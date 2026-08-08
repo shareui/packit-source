@@ -6,8 +6,17 @@ from java import dynamic_proxy
 
 
 def _chip_extent(child) -> int:
-    # laid-out width plus the trailing margin the row adds after it
-    w = child.getWidth()
+    # The width the chip WANTS, plus the trailing margin the row adds after it.
+    #
+    # Not getWidth(): once the chips overrun the row the last one is laid out
+    # squeezed into whatever is left, so reading its width back makes the total
+    # add up to exactly the row width. Overflow then looked like a perfect fit,
+    # "+N" stayed hidden and the squeezed chip remained on the card as a sliver
+    # — visible on cards with four tags once the search-match badge narrows the
+    # row.
+    w = _measure_width(child)
+    if w <= 0:
+        w = child.getWidth()
     try:
         w += child.getLayoutParams().rightMargin
     except Exception:
@@ -16,8 +25,9 @@ def _chip_extent(child) -> int:
 
 
 def _measure_width(view) -> int:
-    # the "+N" chip starts GONE, so it has no laid-out width yet — measure it
-    # unconstrained to learn how much room it needs
+    # unconstrained measure: the natural width of a chip, ignoring how the row
+    # ended up laying it out (and the only way to size the "+N" chip, which
+    # starts GONE and therefore has no laid-out width at all)
     try:
         spec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
         view.measure(spec, spec)

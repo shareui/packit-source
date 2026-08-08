@@ -156,7 +156,12 @@ class SortDrawer:
         self.on_apply = on_apply
 
         self._is_open = False
-        self._current_selected = set(selected_tags) if selected_tags else set()
+        # None means the section was never touched: it opens with everything
+        # selected, which is the same thing as no filter. An empty set is a
+        # real choice — every chip switched off — and has to stay empty
+        # instead of quietly flipping back to all-on, which looked like the
+        # filters resetting themselves.
+        self._current_selected = set(selected_tags) if selected_tags is not None else None
         self._tags_summary = {}
         self._tag_rows = {}     # tag_name -> (row_view, border_drawable)
         self._tags_expanded = False
@@ -164,17 +169,17 @@ class SortDrawer:
         self._authors_summary = {}
         self._author_rows = {}
         self._authors_expanded = False
-        self._current_authors = set(selected_authors) if selected_authors else set()
+        self._current_authors = set(selected_authors) if selected_authors is not None else None
 
         self._app_versions_summary = {}
         self._app_version_rows = {}
         self._app_versions_expanded = False
-        self._current_app_versions = set(selected_app_versions) if selected_app_versions else set()
+        self._current_app_versions = set(selected_app_versions) if selected_app_versions is not None else None
 
         # saved filter: set of "saved" and/or "unsaved", both active by default
         self._saved_rows = {}
         self._saved_expanded = False
-        self._current_saved = set(selected_saved) if selected_saved else {"saved", "unsaved"}
+        self._current_saved = set(selected_saved) if selected_saved is not None else None
 
         self._overlay = None
         self._drawer = None
@@ -649,11 +654,16 @@ class SortDrawer:
             self._refresh_rows()
 
         def on_apply(v):
+            # a section that never populated stays None (= untouched), so it
+            # keeps meaning "no filter" instead of "nothing selected"
+            def _snapshot(sel):
+                return set(sel) if sel is not None else None
+
             self.on_apply(
-                set(self._current_selected),
-                set(self._current_authors),
-                set(self._current_app_versions),
-                set(self._current_saved),
+                _snapshot(self._current_selected),
+                _snapshot(self._current_authors),
+                _snapshot(self._current_app_versions),
+                _snapshot(self._current_saved),
             )
             self.close()
 
@@ -837,7 +847,7 @@ class SortDrawer:
                 self._authors_list.removeAllViews()
                 self._author_rows.clear()
                 self._authors_summary = _collect_authors(self.plugins)
-                if not self._current_authors:
+                if self._current_authors is None:
                     self._current_authors = set(self._authors_summary.keys())
                 summary = self._authors_summary
                 current_sel = self._current_authors
@@ -858,7 +868,7 @@ class SortDrawer:
                     }
                 except Exception:
                     pass
-                if not self._current_saved:
+                if self._current_saved is None:
                     self._current_saved = {"saved", "unsaved"}
                 for key, label in saved_items.items():
                     is_sel = key in self._current_saved
@@ -883,7 +893,7 @@ class SortDrawer:
                 self._app_versions_list.removeAllViews()
                 self._app_version_rows.clear()
                 self._app_versions_summary = _collect_app_versions(self.plugins)
-                if not self._current_app_versions:
+                if self._current_app_versions is None:
                     self._current_app_versions = set(self._app_versions_summary.keys())
                 summary = self._app_versions_summary
                 current_sel = self._current_app_versions
@@ -918,7 +928,7 @@ class SortDrawer:
             self._tag_rows.clear()
             self._tags_summary = filterEngine.collect_tags(self.plugins)
 
-            if not self._current_selected:
+            if self._current_selected is None:
                 self._current_selected = set(self._tags_summary.keys())
 
             for tag_name, count in self._tags_summary.items():
@@ -953,14 +963,19 @@ class SortDrawer:
             logx(f"SortDrawer._populate_tags error: {e}", False)
 
     def _refresh_rows(self):
+        # a section can still be None here if its populate failed
+        tags = self._current_selected or set()
+        authors = self._current_authors or set()
+        versions = self._current_app_versions or set()
+        saved = self._current_saved or set()
         for tag_name, (row, border, name_tv) in self._tag_rows.items():
-            self._update_row_style(border, name_tv, tag_name in self._current_selected)
+            self._update_row_style(border, name_tv, tag_name in tags)
         for key, (row, border, name_tv) in self._author_rows.items():
-            self._update_row_style(border, name_tv, key in self._current_authors)
+            self._update_row_style(border, name_tv, key in authors)
         for key, (row, border, name_tv) in self._app_version_rows.items():
-            self._update_row_style(border, name_tv, key in self._current_app_versions)
+            self._update_row_style(border, name_tv, key in versions)
         for key, (row, border, name_tv) in self._saved_rows.items():
-            self._update_row_style(border, name_tv, key in self._current_saved)
+            self._update_row_style(border, name_tv, key in saved)
 
     def _register_back_callback(self):
         try:
@@ -992,7 +1007,7 @@ class SortDrawer:
 
     def open(self, selected_tags, selected_authors=None, selected_app_versions=None, selected_saved=None):
         try:
-            self._current_selected = set(selected_tags) if selected_tags else set()
+            self._current_selected = set(selected_tags) if selected_tags is not None else None
             if selected_authors is not None:
                 self._current_authors = set(selected_authors)
             if selected_app_versions is not None:

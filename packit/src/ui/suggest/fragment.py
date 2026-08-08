@@ -3513,23 +3513,16 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 # app cache is preferred (isInternalUri lets those through), but
                 # some ROMs deny writes there — get_cache_dir() pointed straight
                 # at it and the whole submit died with EACCES.
-                import shutil, tempfile
-                from ...utils.paths import getStagingDir, isInternalPath
-                staging_dir = getStagingDir()
+                from ...utils.paths import stageFileForUpload, isInternalPath
 
                 def _stage_for_upload(src: str, display_name: str) -> str:
                     suffix = ""
                     dot = display_name.rfind(".")
                     if dot >= 0:
                         suffix = display_name[dot:]
-                    tmp = tempfile.NamedTemporaryFile(
-                        delete=False, suffix=suffix,
-                        dir=staging_dir
-                    )
-                    tmp.close()
-                    shutil.copy2(src, tmp.name)
-                    logx(f"suggest._task: staged {src} -> {tmp.name}", True)
-                    return tmp.name
+                    dst = stageFileForUpload(src, suffix)
+                    logx(f"suggest._task: staged {src} -> {dst}", True)
+                    return dst
 
                 staged_main = None
                 staged_extras = []
