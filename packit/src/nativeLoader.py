@@ -141,7 +141,7 @@ def showNativeErrorSheet(libName: str, error: str):
                 # index 49 of the error pack; the shared loader binds it now if
                 # the set is in memory, else as soon as it arrives
                 from .utils.stickers import load_sticker
-                load_sticker(iv, "wtffffffffffDD/49", 100)
+                load_sticker(iv, "randomshareui/54", 100)
 
                 linear.addView(iv, LayoutHelper.createLinear(
                     100, 100, Gravity.CENTER_HORIZONTAL, 0, 20, 0, 0
