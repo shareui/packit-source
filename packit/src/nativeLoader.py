@@ -139,7 +139,7 @@ def showNativeErrorSheet(libName: str, error: str):
                     pass
 
                 # index 49 of the error pack; the shared loader binds it now if
-                # cached, else on diceStickersDidLoad (no polling)
+                # the set is in memory, else as soon as it arrives
                 from .utils.stickers import load_sticker
                 load_sticker(iv, "wtffffffffffDD/49", 100)
 
