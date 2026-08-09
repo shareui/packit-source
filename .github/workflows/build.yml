@@ -21,6 +21,10 @@ jobs:
   build:
     name: Compiled build
     runs-on: ubuntu-latest
+    permissions:
+      # the build is published as a prerelease so there is a link to the .eaf
+      # itself; an Actions artifact can only ever be downloaded as a zip
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -44,9 +48,94 @@ jobs:
       - name: List build output
         run: ls -la builds/
 
+      - name: Verify the archive is installable
+        # the client resolves a plugin through refmap.yml -> metainfo, and says
+        # "Metainfo not found or must be empty!" when it cannot. Check that here
+        # instead of shipping an archive nobody can install.
+        run: |
+          python3 - <<'PY'
+          import glob, sys, zipfile, yaml
+          builds = glob.glob("builds/*.eaf")
+          if len(builds) != 1:
+              sys.exit(f"expected exactly one .eaf in builds/, found {builds}")
+          with zipfile.ZipFile(builds[0]) as z:
+              names = set(z.namelist())
+              if "refmap.yml" not in names:
+                  sys.exit(f"{builds[0]}: no refmap.yml at the archive root")
+              refmap = yaml.safe_load(z.read("refmap.yml")) or {}
+              meta_path = refmap.get("metainfo")
+              if not meta_path:
+                  sys.exit(f"{builds[0]}: refmap.yml has no metainfo key")
+              if meta_path not in names:
+                  sys.exit(f"{builds[0]}: metainfo {meta_path} missing from the archive")
+              meta = yaml.safe_load(z.read(meta_path)) or {}
+              missing = [k for k in ("id", "name", "version") if not meta.get(k)]
+              if missing:
+                  sys.exit(f"{builds[0]}: {meta_path} is missing {missing}")
+          print(f"{builds[0]}: ok — {meta['name']} {meta['version']} ({meta['id']})")
+          PY
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: PackIt-compiled
           path: builds/*.eaf
           if-no-files-found: error
+
+      - name: Publish the build for download
+        # Actions hands out artifacts as a zip *around* the file, and that
+        # wrapper is not a plugin: installing it fails with "Metainfo not found
+        # or must be empty!". So the .eaf also goes to a rolling prerelease per
+        # branch, which gives a link straight to the file.
+        # Skipped for pull requests from forks — their token cannot write.
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          set -euo pipefail
+          eaf=$(ls builds/*.eaf | head -n1)
+          name=$(basename "$eaf")
+          slug=$(printf '%s' "$BRANCH" | tr '/_' '--' | tr -cd '[:alnum:].-' | cut -c1-60)
+          tag="ci-$slug"
+
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" \
+              --prerelease \
+              --target "$HEAD_SHA" \
+              --title "CI build — $BRANCH" \
+              --notes "Latest automatic build of \`$BRANCH\`. Download the \`.eaf\` below and install it as a plugin. Every new build of this branch replaces it."
+          fi
+
+          # keep exactly one asset, so the link always points at the newest build
+          for old in $(gh release view "$tag" --json assets --jq '.assets[].name'); do
+            if [ "$old" != "$name" ]; then
+              gh release delete-asset "$tag" "$old" --yes
+            fi
+          done
+          gh release upload "$tag" "$eaf" --clobber
+
+          url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/download/${tag}/${name}"
+          {
+            echo "## Download"
+            echo
+            echo "[\`$name\`]($url) — install this file."
+            echo
+            echo "Built from \`$BRANCH\` at \`${HEAD_SHA:0:7}\`."
+            echo
+            echo "> The \`PackIt-compiled\` artifact on this page is the same build inside a zip"
+            echo "> that Actions puts around every artifact. Installing that zip fails with"
+            echo "> \"Metainfo not found or must be empty!\" — unpack it first, or use the link above."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Explain the artifact
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+        run: |
+          {
+            echo "## Download"
+            echo
+            echo "Only the \`PackIt-compiled\` artifact is available for a build from a fork."
+            echo "It is a zip Actions puts around the \`.eaf\`; unpack it and install the file"
+            echo "inside — installing the zip itself fails with \"Metainfo not found or must be empty!\"."
+          } >> "$GITHUB_STEP_SUMMARY"
