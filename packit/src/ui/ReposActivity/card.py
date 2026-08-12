@@ -160,7 +160,7 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict):
         # narrower than the 31dp track Switch.onDraw centres in it, so the track
         # is clipped by the view bounds — which is what turned the pill into a
         # rectangle with square corners.
-        sw_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(37), AndroidUtilities.dp(20))
+        sw_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(37), AndroidUtilities.dp(40))
         sw_lp.gravity = Gravity.CENTER_VERTICAL
         sw_lp.leftMargin = AndroidUtilities.dp(10)
         switch.setMinimumWidth(AndroidUtilities.dp(37))
@@ -262,17 +262,23 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict):
 
 
 def _build_switch(ctx, checked: bool):
-    # The host's own switch — the same widget every settings row and the client's
-    # own plugin cards draw, so it matches the rest of the app for free.
+    # Set up exactly the way the client sets up the switch in its own plugin
+    # card (PluginCell): the same colour keys, and the same 37x40 box.
     #
-    # Its colours are already set by the constructor from the theme. Passing
-    # setColors("key_switchTrack", …) looked right but hands Theme.getColor the
-    # name of the constant instead of its value, so nothing resolved and the
-    # track came out in whatever the fallback palette had — which is what made
-    # the toggle look square and off-colour.
+    # The height matters. Switch.onDraw centres a 14dp track and then a 20dp
+    # thumb circle at the middle of the view, so at a 20dp-tall box the circle
+    # spans the full height and its top and bottom are shaved off by the view
+    # bounds — which is most of what made the toggle look square.
     try:
         from org.telegram.ui.Components import Switch as TgSwitch
         sw = TgSwitch(ctx)
+        try:
+            sw.setColors(
+                Theme.key_switchTrack, Theme.key_switchTrackChecked,
+                Theme.key_windowBackgroundWhite, Theme.key_windowBackgroundWhite,
+            )
+        except Exception as e:
+            logx(f"repos card: switch colors unavailable: {e}", True)
         sw.setChecked(checked, False)
         # taps are handled by the whole card, the switch only reflects state
         sw.setClickable(False)
