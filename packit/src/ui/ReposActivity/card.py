@@ -243,24 +243,24 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict):
 
 
 def _build_switch(ctx, checked: bool):
-    # the host's own switch, the one it draws in its plugin cards
+    # The host's own switch — the same widget every settings row and the client's
+    # own plugin cards draw, so it matches the rest of the app for free.
+    #
+    # Its colours are already set by the constructor from the theme. Passing
+    # setColors("key_switchTrack", …) looked right but hands Theme.getColor the
+    # name of the constant instead of its value, so nothing resolved and the
+    # track came out in whatever the fallback palette had — which is what made
+    # the toggle look square and off-colour.
     try:
         from org.telegram.ui.Components import Switch as TgSwitch
         sw = TgSwitch(ctx)
         sw.setChecked(checked, False)
-        try:
-            sw.setColors(
-                "key_switchTrack", "key_switchTrackChecked",
-                "key_switchThumb", "key_switchThumbChecked",
-            )
-        except Exception:
-            pass
         # taps are handled by the whole card, the switch only reflects state
         sw.setClickable(False)
         sw.setFocusable(False)
         return sw
     except Exception as e:
-        logx(f"repos card: switch unavailable ({e}), falling back to a chip", True)
+        logx(f"repos card: switch unavailable: {e}", False)
         return None
 
 
