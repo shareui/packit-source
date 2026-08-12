@@ -88,13 +88,15 @@ def _round_icon_button(ctx, icon_name: str, tint: int, on_click,
 
 
 def _card_background(enabled: bool):
+    # Filled, no outline. The border was there to set these cards apart from the
+    # plugin ones, but a 1dp divider-coloured stroke reads as a stray line
+    # rather than as a container — the fill against key_windowBackgroundGray is
+    # what the client's own cards do and it is enough on its own.
     surface = _theme("key_windowBackgroundWhite")
-    outline = _theme("key_divider")
     bg = GradientDrawable()
     bg.setShape(GradientDrawable.RECTANGLE)
     bg.setCornerRadius(float(AndroidUtilities.dp(16)))
     bg.setColor(surface if enabled else _alpha(surface, 0x80))
-    bg.setStroke(AndroidUtilities.dp(1), _alpha(outline, 0xFF if enabled else 0x66))
     return bg
 
 
@@ -181,19 +183,23 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
 
     header.addView(col, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
 
-    switch = _build_switch(ctx, enabled)
+    # _toggle is defined further down; the lambda resolves it when tapped
+    switch = _build_switch(ctx, enabled, lambda: _toggle())
     if switch is not None:
-        # Explicit params, not LayoutHelper.createLinear(37, 20, gravity, …):
-        # that call has a (w, h, float weight, …) twin, and picking it gives the
+        # Explicit params, not LayoutHelper.createLinear(w, h, gravity, …): that
+        # call has a (w, h, float weight, …) twin, and picking it gives the
         # switch a weight instead of a gravity. In a row that already has a
         # weighted column the switch then absorbs the overflow and is measured
-        # narrower than the 31dp track Switch.onDraw centres in it, so the track
-        # is clipped by the view bounds — which is what turned the pill into a
+        # narrower than the track Switch.onDraw centres in it, so the track is
+        # clipped by the view bounds — which is what turned the pill into a
         # rectangle with square corners.
-        sw_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(37), AndroidUtilities.dp(40))
+        #
+        # 56x48 rather than the client's 37x40: the switch is the touch target
+        # now that the card no longer toggles, and the box has to cover the
+        # whole pill the new switch style draws, not just the middle of it.
+        sw_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(56), AndroidUtilities.dp(48))
         sw_lp.gravity = Gravity.CENTER_VERTICAL
-        sw_lp.leftMargin = AndroidUtilities.dp(10)
-        switch.setMinimumWidth(AndroidUtilities.dp(37))
+        sw_lp.leftMargin = AndroidUtilities.dp(6)
         header.addView(switch, sw_lp)
 
     card.addView(header, LayoutHelper.createLinear(-1, -2))
@@ -289,9 +295,10 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
 
     card.addView(footer, LayoutHelper.createLinear(-1, -2, 0, 10, 0, 0))
 
-    # tapping the card flips the switch — it is the only stateful control here,
-    # everything else lives behind explicit buttons
+    # the card opens the source's sheet; the switch beside it is what turns the
+    # source on and off, so a tap meant for one is never the other
     on_toggle = callbacks.get("on_toggle")
+    on_open_card = callbacks.get("on_open_card")
     state = {"enabled": enabled, "info": info, "repo": repo, "icon_url": icon_url}
 
     def _apply_enabled(is_on, animate):
@@ -355,7 +362,9 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
         except Exception as e:
             logx(f"repos card: update error: {e}", False)
 
-    card.setOnClickListener(OnClickListener(_toggle))
+    card.setOnClickListener(OnClickListener(
+        lambda _v: on_open_card(state["repo"], state["info"]) if on_open_card else None
+    ))
     apply_press_scale_on_target(card, card)
     _apply_enabled(enabled, False)
     if isinstance(handle, dict):
@@ -364,14 +373,10 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
     return card
 
 
-def _build_switch(ctx, checked: bool):
-    # Set up exactly the way the client sets up the switch in its own plugin
-    # card (PluginCell): the same colour keys, and the same 37x40 box.
-    #
-    # The height matters. Switch.onDraw centres a 14dp track and then a 20dp
-    # thumb circle at the middle of the view, so at a 20dp-tall box the circle
-    # spans the full height and its top and bottom are shaved off by the view
-    # bounds — which is most of what made the toggle look square.
+def _build_switch(ctx, checked: bool, on_toggle):
+    # Coloured the way the client colours the switch in its own plugin card
+    # (PluginCell). Unlike that one it takes its own taps: the card opens a
+    # sheet now, so turning a source on and off is the switch's job alone.
     try:
         from org.telegram.ui.Components import Switch as TgSwitch
         sw = TgSwitch(ctx)
@@ -383,9 +388,30 @@ def _build_switch(ctx, checked: bool):
         except Exception as e:
             logx(f"repos card: switch colors unavailable: {e}", True)
         sw.setChecked(checked, False)
-        # taps are handled by the whole card, the switch only reflects state
-        sw.setClickable(False)
-        sw.setFocusable(False)
+        sw.setClickable(True)
+        sw.setFocusable(True)
+        sw.setOnClickListener(OnClickListener(lambda v: on_toggle()))
+
+        # Switch has no touch handling of its own — the cells that host it drive
+        # its ripple from their own setPressed. Nothing overrides setPressed
+        # here, so the press is forwarded by hand, and the listener returns
+        # False so the click still goes through the normal path.
+        try:
+            from java import dynamic_proxy
+            from android.view import View as _View
+
+            class _Press(dynamic_proxy(_View.OnTouchListener)):
+                def onTouch(self, v, event):
+                    action = event.getActionMasked()
+                    if action == 0:            # DOWN
+                        sw.setDrawRipple(True)
+                    elif action in (1, 3):     # UP, CANCEL
+                        sw.setDrawRipple(False)
+                    return False
+
+            sw.setOnTouchListener(_Press())
+        except Exception as e:
+            logx(f"repos card: switch ripple unavailable: {e}", True)
         return sw
     except Exception as e:
         logx(f"repos card: switch unavailable: {e}", False)

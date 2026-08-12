@@ -196,7 +196,12 @@ class ReposFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             return "Repositories"
 
     def onBackPressed(self):
-        return True
+        # UniversalFragment negates this before deciding: it does
+        # `return !delegate.onBackPressed()` and only calls finishFragment when
+        # that is true. Returning True here therefore swallowed both the button
+        # and the gesture. False means "nothing to handle, go ahead and close",
+        # which is what every other fragment in the plugin returns.
+        return False
 
     def fillItems(self, items, adapter):
         pass
@@ -338,10 +343,15 @@ class ReposFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
         def _on_menu(anchor, current):
             actions.show_card_menu(act, self, current, anchor)
 
+        def _on_open_card(current, info):
+            from .repoSheet import show_repo_sheet
+            show_repo_sheet(act, current, info)
+
         def _on_open(url):
             actions.open_url(act, url)
 
-        return {"on_toggle": _on_toggle, "on_menu": _on_menu, "on_open": _on_open}
+        return {"on_toggle": _on_toggle, "on_menu": _on_menu, "on_open": _on_open,
+                "on_open_card": _on_open_card}
 
     # ------------------------------------------------------------------ pieces
     def _build_summary_row(self, act):
