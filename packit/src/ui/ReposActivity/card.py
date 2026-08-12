@@ -115,11 +115,21 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
     card.setPadding(*(AndroidUtilities.dp(16),) * 4)
     card.setClickable(True)
     card.setFocusable(True)
+    # PluginCell does both of these on itself, and this is why: with exteraGram's
+    # new switch style the toggle is an md3 pill wider than the 37dp box it is
+    # laid out in, and Switch centres it, so it hangs over both edges by design.
+    # Every cell in the client that hosts one stops clipping — copying the box
+    # and the colours without this is what sheared the ends off ours. The 16dp
+    # padding has room to spare for the overhang.
+    card.setClipChildren(False)
+    card.setClipToPadding(False)
 
     # ---- header: avatar | name + maintainer | switch
     header = LinearLayout(ctx)
     header.setOrientation(LinearLayout.HORIZONTAL)
     header.setGravity(Gravity.CENTER_VERTICAL)
+    header.setClipChildren(False)
+    header.setClipToPadding(False)
 
     def _icon_lp():
         lp = LinearLayout.LayoutParams(AndroidUtilities.dp(48), AndroidUtilities.dp(48))
