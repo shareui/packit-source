@@ -37,6 +37,7 @@ from ...SettingsActivity.service.AddKeyDialog import (
     _attach_keyboard_listener, _detach_keyboard_listener,
 )
 from ...utils.bulletins import factory as _pbf
+from ...RepositoryManager import REPO_NAME_MAX
 
 # addRepositoryWithUrl answers in lowercase english; the user gets their own
 # language and, where possible, a hint at what to do about it
@@ -92,7 +93,7 @@ def _localize_reason(reason: str) -> str:
     return _s("repo_err_http", "{0}").replace("{0}", text)
 
 
-def _make_field(act, label: str, hint: str, value: str, uri: bool):
+def _make_field(act, label: str, hint: str, value: str, uri: bool, max_length: int = 0):
     from android.util import TypedValue
     from android.text import InputType, TextUtils
     from android.view import View
@@ -115,6 +116,15 @@ def _make_field(act, label: str, hint: str, value: str, uri: bool):
     edit.setInputType(
         InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI if uri else InputType.TYPE_CLASS_TEXT
     )
+    if max_length > 0:
+        # storage clamps the name anyway; the filter is so the field stops
+        # taking characters instead of quietly dropping them on save
+        try:
+            from java import jarray
+            from android.text import InputFilter
+            edit.setFilters(jarray(InputFilter)([InputFilter.LengthFilter(max_length)]))
+        except Exception as e:
+            logx(f"repos addSheet: length filter unavailable: {e}", True)
     if value:
         edit.setText(value)
         # cursor stays at the start: putting it at the end scrolls a long url so
@@ -158,7 +168,7 @@ def _make_field(act, label: str, hint: str, value: str, uri: bool):
 
 def _show_form_dialog(act, title: str, subtitle: str, fields: list, button_text: str, on_submit):
     """
-    fields   — [{"label","hint","value","uri"}]
+    fields   — [{"label","hint","value","uri","max_length"}]
     on_submit(values: list[str], ui) — ui.error(text) / ui.loading(bool) / ui.dismiss()
     """
     try:
@@ -242,7 +252,8 @@ def _show_form_dialog(act, title: str, subtitle: str, fields: list, button_text:
         for i, spec in enumerate(fields):
             outline, edit = _make_field(
                 act, spec.get("label", ""), spec.get("hint", ""),
-                spec.get("value", ""), bool(spec.get("uri"))
+                spec.get("value", ""), bool(spec.get("uri")),
+                int(spec.get("max_length") or 0)
             )
             card.addView(outline, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 10))
             edits.append(edit)
@@ -493,7 +504,8 @@ def show_edit_repo_dialog(act, delegate, repo: dict):
         _s("repo_sheet_edit_sub", "Name and link"),
         [
             {"label": str(strings.repo_name), "hint": str(strings.repo_name),
-             "value": str(repo.get("name") or ""), "uri": False},
+             "value": str(repo.get("name") or ""), "uri": False,
+             "max_length": REPO_NAME_MAX},
             {"label": str(strings.repo_url), "hint": "https://…/repomap.json",
              "value": str(repo.get("url") or ""), "uri": True},
         ],

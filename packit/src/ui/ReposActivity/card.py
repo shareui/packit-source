@@ -13,6 +13,7 @@ import ctypes
 
 from android.widget import LinearLayout, TextView, FrameLayout, ImageView
 from android.view import View, Gravity
+from android.text import TextUtils
 from android.util import TypedValue
 from android.graphics.drawable import GradientDrawable
 from android_utils import OnClickListener
@@ -138,6 +139,10 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
     name_tv.setText(str(repo.get("name") or strings.unnamed))
     name_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 17)
     name_tv.setSingleLine(True)
+    # setSingleLine on its own only clips, and it clips mid-glyph: a name that
+    # is within the stored limit but still too wide for a narrow screen has to
+    # end in an ellipsis, not in half a letter
+    name_tv.setEllipsize(TextUtils.TruncateAt.END)
     name_tv.setTextColor(_theme("key_windowBackgroundWhiteBlackText"))
     try:
         name_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
@@ -153,6 +158,7 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
     sub_tv = TextView(ctx)
     sub_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
     sub_tv.setSingleLine(True)
+    sub_tv.setEllipsize(TextUtils.TruncateAt.END)
     sub_tv.setTextColor(_theme("key_windowBackgroundWhiteGrayText"))
     col.addView(sub_tv, LayoutHelper.createLinear(-1, -2, 0, 2, 0, 0))
 

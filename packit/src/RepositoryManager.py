@@ -24,6 +24,25 @@ _HEADERS = {"User-Agent": "PackIt/1.0 (Android; github.com/shareui/packit)"}
 
 OFFICIAL_REPO_URL = "https://raw.githubusercontent.com/shareui/packit/refs/heads/main/configs/repomap.json"
 
+# A repository name is a label, not a document. It is drawn on one line in the
+# source card, in both repository pickers and in the plugin list, and it arrives
+# from a remote repomap that is free to put anything at all in rm_name — so the
+# limit belongs here, on the way into storage, and not on each screen that has
+# to render whatever it finds. Thirty-two is about what the card fits at 17sp on
+# a narrow phone, and comfortably more than any real name so far ("exteraGram
+# Utilities" is twenty).
+REPO_NAME_MAX = 32
+
+
+def clampRepoName(value) -> str:
+    text = str(value or "")
+    # the name is single-line everywhere it appears, so a newline or a tab in it
+    # is only ever a way to break someone's layout
+    text = " ".join(text.split())
+    if len(text) > REPO_NAME_MAX:
+        text = text[:REPO_NAME_MAX - 1].rstrip() + "…"
+    return text
+
 
 def _get_cache_dir() -> str:
     from .utils.paths import getReposCacheDir
@@ -40,11 +59,22 @@ class RepositoryManager:
             repos = json.loads(reposJson)
             if not isinstance(repos, list):
                 return []
+            # also on the way out: names stored before the limit existed are
+            # already on disk, and nothing rewrites them until the list changes
+            for repo in repos:
+                if isinstance(repo, dict) and "name" in repo:
+                    repo["name"] = clampRepoName(repo.get("name"))
             return repos
         except Exception:
             return []
     
     def setRepositories(self, repos):
+        # every write lands here — the add sheet, the edit dialog, the repo=add
+        # deeplink, the startup cache refresh — so the name limit is applied
+        # once, in place, and the caller's list matches what was stored
+        for repo in repos:
+            if isinstance(repo, dict) and "name" in repo:
+                repo["name"] = clampRepoName(repo.get("name"))
         settings.set("repositories", json.dumps(repos), reload_settings=True)
         try:
             fragment = get_last_fragment()
