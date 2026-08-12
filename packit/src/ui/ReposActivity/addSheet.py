@@ -453,8 +453,13 @@ def _added(delegate):
 
 def show_edit_repo_dialog(act, delegate, repo: dict):
     def _submit(values, ui):
-        name = values[0]
+        name = " ".join(str(values[0] or "").split())
         url = _normalize_url(values[1]) if len(values) > 1 else ""
+        if not name:
+            # a source saved without one showed up everywhere as "unnamed", and
+            # there is nothing here to fall back to — say so instead of storing it
+            ui.error(_s("repo_err_name_empty", "Enter a name"))
+            return
         if not url:
             ui.error(_s("repo_err_empty", "Enter a link"))
             return

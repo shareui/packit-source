@@ -1186,6 +1186,7 @@
   "repo_sheet_edit_title": "Змяніць крыніцу",
   "repo_sheet_edit_sub": "Назва і спасылка",
   "repo_err_empty": "Увядзіце спасылку",
+  "repo_err_name_empty": "Увядзіце назву",
   "repo_err_scheme": "Спасылка мусіць пачынацца з https://",
   "repo_err_duplicate": "Гэтая крыніца ўжо дададзена",
   "repo_err_not_found": "Файл не знойдзены",

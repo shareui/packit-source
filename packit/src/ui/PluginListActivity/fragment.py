@@ -198,9 +198,12 @@ class InstallUI:
                 try:
                     if not r or not r.get("enabled"):
                         continue
-                    name = str(r.get("name") or "").strip()
+                    # the url is what makes a repository usable; the name is a
+                    # label, and requiring one meant a source someone had
+                    # renamed to nothing dropped out of the catalogue — with
+                    # every source nameless, the screen refused to open at all
                     url = str(r.get("url") or "").strip()
-                    if name and url:
+                    if url:
                         repos.append(r)
                 except Exception:
                     continue

@@ -1186,6 +1186,7 @@
   "repo_sheet_edit_title": "Изменить источник",
   "repo_sheet_edit_sub": "Название и ссылка",
   "repo_err_empty": "Введите ссылку",
+  "repo_err_name_empty": "Введите название",
   "repo_err_scheme": "Ссылка должна начинаться с https://",
   "repo_err_duplicate": "Этот источник уже добавлен",
   "repo_err_not_found": "Файл не найден",

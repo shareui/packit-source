@@ -309,9 +309,10 @@ def _icons_show_repo_menu(self, act):
         for r in (self.install_ui.plugin.repoManager.getRepositories() or []):
             if not r or not r.get("enabled"):
                 continue
-            name = str(r.get("name") or "").strip()
+            # url only: a nameless source still serves icons, and the sheet
+            # already labels it "unnamed"
             url = str(r.get("url") or "").strip()
-            if name and url:
+            if url:
                 repos.append(r)
     except Exception:
         pass
@@ -629,10 +630,10 @@ class InstallIconsUI:
                     if not r.get("enabled"):
                         logx(f"IconList.open: skipping disabled repo '{name}'", True)
                         continue
-                    if name and url:
+                    if url:
                         repos.append(r)
                     else:
-                        logx(f"IconList.open: skipping repo with empty name or url: name='{name}' url='{url}'", True)
+                        logx(f"IconList.open: skipping repo with empty url: name='{name}'", True)
                 except Exception as e:
                     logx(f"IconList.open: error processing repo: {e}", False)
                     continue

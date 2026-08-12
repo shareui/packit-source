@@ -1186,6 +1186,7 @@
   "repo_sheet_edit_title": "Edit source",
   "repo_sheet_edit_sub": "Name and link",
   "repo_err_empty": "Enter a link",
+  "repo_err_name_empty": "Enter a name",
   "repo_err_scheme": "The link must start with https://",
   "repo_err_duplicate": "This source is already added",
   "repo_err_not_found": "File not found",

@@ -438,6 +438,16 @@ class RepositoryManager:
                             changed = True
                             logx(f"updateAllCaches: set id='{rm_rid}' for repo '{repo.get('name')}'", True)
 
+                        # a repository left without a name shows up as "unnamed"
+                        # everywhere; the repomap has one, and this runs on every
+                        # start, so take it back rather than leave it that way
+                        if not str(repo.get("name") or "").strip():
+                            rm_name = str(repometa.get("rm_name") or "").strip()
+                            if rm_name:
+                                repos[i]["name"] = rm_name
+                                changed = True
+                                logx(f"updateAllCaches: restored name '{rm_name}' for '{rm_rid}'", True)
+
                         cache_path = os.path.join(cache_dir, f"{rm_rid}.json")
                         with open(cache_path, "w", encoding="utf-8") as f:
                             json.dump(data, f, indent=2, ensure_ascii=False)
