@@ -112,7 +112,7 @@ def show_repo_sheet(act, repo: dict, info: dict = None):
                     from com.exteragram.messenger.utils.text import LocaleUtils
                     from android.text.method import LinkMovementMethod
                     sub.setText(LocaleUtils.fullyFormatText(sub_text))
-                    sub.setLinkTextColor(_theme("key_dialogTextBlue"))
+                    sub.setLinkTextColor(_theme("key_windowBackgroundWhiteBlueText"))
                     sub.setMovementMethod(LinkMovementMethod.getInstance())
                 except Exception as e:
                     logx(f"repoSheet: maintainer format unavailable: {e}", True)

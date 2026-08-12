@@ -1204,8 +1204,6 @@
   "repo_err_unknown": "Unbekannter Fehler: {0}",
   "repos_empty_title": "Noch nichts da",
   "repos_empty_text": "Füge eine Quelle hinzu, um Plugins zu installieren",
-  "repos_footnote": "Plugins und Icon-Pakete stammen aus Quellen. Eine aktivierte Quelle erscheint im Katalog, eine deaktivierte nicht.",
-  "repos_footnote_installed": "Davon sind {0} installiert, aus {1} aktivierten Quellen.",
   "retry": "Erneut versuchen",
   "repo_default_already": "Die Standardquelle ist bereits vorhanden",
   "repo_link_shared": "Link zur Quelle gesendet"

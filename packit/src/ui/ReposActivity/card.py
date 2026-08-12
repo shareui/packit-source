@@ -17,6 +17,7 @@ from android.text import TextUtils
 from android.util import TypedValue
 from android.graphics.drawable import GradientDrawable
 from android_utils import OnClickListener
+from java import dynamic_proxy
 
 try:
     from org.telegram.messenger import AndroidUtilities
@@ -35,8 +36,28 @@ except Exception as e:
 
 from . import repoIcon
 from ..PluginListActivity.helpers.uiHelpers import (
-    make_info_chip, apply_press_scale_on_target, resolve_icon,
+    apply_press_scale_on_target, resolve_icon,
 )
+
+
+def _chip(ctx, text: str, tint: int):
+    # uiHelpers.make_info_chip fills at a third alpha and paints the label in a
+    # palette colour. Both are wrong here: the fill has to be solid, and the
+    # colour has to be the theme's, not a green borrowed from the avatar
+    # palette that no other pixel on the screen is using.
+    surface = _theme("key_windowBackgroundWhite")
+    bg = GradientDrawable()
+    bg.setShape(GradientDrawable.RECTANGLE)
+    bg.setCornerRadius(float(AndroidUtilities.dp(8)))
+    bg.setColor(repoIcon.tonal(tint, surface, 0.16))
+    tv = TextView(ctx)
+    tv.setText(text)
+    tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
+    tv.setTextColor(_alpha(tint, 0xFF))
+    tv.setBackground(bg)
+    tv.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(3),
+                  AndroidUtilities.dp(8), AndroidUtilities.dp(3))
+    return tv
 
 
 def _c(color: int) -> int:
@@ -55,17 +76,27 @@ def _theme(key: str, fallback: int = 0):
 
 
 def _round_icon_button(ctx, icon_name: str, tint: int, on_click,
-                       size_dp: int = 32, icon_dp: int = 16):
+                       size_dp: int = 32, icon_dp: int = 16, translucent: bool = False):
+    # Opaque by default: a fill of accent-at-8-percent takes its colour from
+    # whatever happens to be behind the button, which on an animating card is
+    # not one thing. The overflow is the exception — it is a neutral grey on the
+    # card and is meant to sit back.
     btn = FrameLayout(ctx)
     btn.setClickable(True)
     btn.setFocusable(True)
+    if translucent:
+        fill, pressed = _alpha(tint, 0x14), _alpha(tint, 0x28)
+    else:
+        surface = _theme("key_windowBackgroundWhite")
+        fill = repoIcon.tonal(tint, surface, 0.16)
+        pressed = repoIcon.tonal(tint, surface, 0.30)
     bg = GradientDrawable()
     bg.setShape(GradientDrawable.RECTANGLE)
     bg.setCornerRadius(float(AndroidUtilities.dp(size_dp) / 2))
-    bg.setColor(_alpha(tint, 0x14))
+    bg.setColor(fill)
     try:
         btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-            AndroidUtilities.dp(size_dp) // 2, _alpha(tint, 0x14), _alpha(tint, 0x28)
+            AndroidUtilities.dp(size_dp) // 2, fill, pressed
         ))
     except Exception:
         btn.setBackground(bg)
@@ -176,16 +207,17 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
 
     def _fill_sub(r, i):
         text = str(i.get("maintainer") or "").strip() or _host_of(r.get("url"))
-        # rm_maintainer is free text from the repomap and reads like a message —
-        # "@name", "ROBOT (список от @name)" — so it goes through the client's
-        # own formatter, which resolves mentions, emoji and markdown.
-        #
-        # No LinkMovementMethod here on purpose: it makes a TextView clickable,
-        # and this one sits inside a card whose tap opens the source's sheet. A
-        # tappable mention belongs in that sheet, where nothing competes for it.
+        # Set up exactly the way the plugin catalogue sets up its author line
+        # (PluginListActivity/card.py): fullyFormatText, grey body,
+        # windowBackgroundWhiteBlueText for the mention, LinkMovementMethod.
+        # Left to itself the formatter paints mentions in its own colour, which
+        # is why these came out a teal that appears nowhere else on the screen.
         try:
             from com.exteragram.messenger.utils.text import LocaleUtils
+            from android.text.method import LinkMovementMethod
             sub_tv.setText(LocaleUtils.fullyFormatText(text))
+            sub_tv.setLinkTextColor(_theme("key_windowBackgroundWhiteBlueText"))
+            sub_tv.setMovementMethod(LinkMovementMethod.getInstance())
         except Exception as e:
             logx(f"repos card: maintainer format unavailable: {e}", True)
             sub_tv.setText(text)
@@ -195,24 +227,52 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
 
     header.addView(col, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
 
-    # _toggle is defined further down; the lambda resolves it when tapped
-    switch = _build_switch(ctx, enabled, lambda: _toggle())
+    switch = _build_switch(ctx, enabled)
     if switch is not None:
+        # Switch draws itself to the size of its view, so the box is not a
+        # matter of taste: at 56x48 the pill came out half again as big as the
+        # one the client draws everywhere else. It gets the client's own 37x40
+        # back, and the larger touch target moves to a wrapper around it —
+        # 37x40 is under the 48dp a control should answer to, and this switch
+        # takes its own taps now.
+        #
         # Explicit params, not LayoutHelper.createLinear(w, h, gravity, …): that
         # call has a (w, h, float weight, …) twin, and picking it gives the
         # switch a weight instead of a gravity. In a row that already has a
         # weighted column the switch then absorbs the overflow and is measured
-        # narrower than the track Switch.onDraw centres in it, so the track is
-        # clipped by the view bounds — which is what turned the pill into a
-        # rectangle with square corners.
-        #
-        # 56x48 rather than the client's 37x40: the switch is the touch target
-        # now that the card no longer toggles, and the box has to cover the
-        # whole pill the new switch style draws, not just the middle of it.
+        # narrower than its own track, which shears the ends off the pill.
+        sw_wrap = FrameLayout(ctx)
+        sw_wrap.setClipChildren(False)
+        sw_wrap.setClickable(True)
+        sw_wrap.setFocusable(True)
+        sw_wrap.setOnClickListener(OnClickListener(lambda v: _toggle()))
+        # Switch has no touch handling of its own — the cells that host it drive
+        # its ripple from their own setPressed, so the wrapper does the same.
+        # The listener returns False, leaving the click to the normal path.
+        try:
+            from android.view import View as _View
+
+            class _Press(dynamic_proxy(_View.OnTouchListener)):
+                def onTouch(self, v, event):
+                    action = event.getActionMasked()
+                    if action == 0:            # DOWN
+                        switch.setDrawRipple(True)
+                    elif action in (1, 3):     # UP, CANCEL
+                        switch.setDrawRipple(False)
+                    return False
+
+            sw_wrap.setOnTouchListener(_Press())
+        except Exception as e:
+            logx(f"repos card: switch ripple unavailable: {e}", True)
+
+        sw_inner = FrameLayout.LayoutParams(AndroidUtilities.dp(37), AndroidUtilities.dp(40))
+        sw_inner.gravity = Gravity.CENTER
+        sw_wrap.addView(switch, sw_inner)
+
         sw_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(56), AndroidUtilities.dp(48))
         sw_lp.gravity = Gravity.CENTER_VERTICAL
         sw_lp.leftMargin = AndroidUtilities.dp(6)
-        header.addView(switch, sw_lp)
+        header.addView(sw_wrap, sw_lp)
 
     card.addView(header, LayoutHelper.createLinear(-1, -2))
 
@@ -228,31 +288,31 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
         # A source whose repomap never downloaded still gets a chip, because
         # nothing else on the card says that — it is switched on and gives
         # nothing, which the switch cannot show.
+        chip_lp = LayoutHelper.createLinear(-2, -2, 0, 0, 6, 0)
         if is_on and str(i.get("status") or "") == "missing":
+            # the one chip that is not the accent: this is a fault, and the
+            # theme has a colour for those
             chips.addView(
-                make_info_chip(ctx, str(getattr(strings, "repo_card_status_missing", "Not loaded")),
-                               "key_text_RedBold"),
-                LayoutHelper.createLinear(-2, -2, 0, 0, 6, 0))
+                _chip(ctx, str(getattr(strings, "repo_card_status_missing", "Not loaded")),
+                      _theme("key_text_RedBold")), chip_lp)
 
         plugins = i.get("plugins")
         if isinstance(plugins, int):
             chips.addView(
-                make_info_chip(ctx, str(strings.repo_card_plugins).replace("{0}", str(plugins)),
-                               "key_windowBackgroundWhiteBlueText"),
+                _chip(ctx, str(strings.repo_card_plugins).replace("{0}", str(plugins)), accent),
                 LayoutHelper.createLinear(-2, -2, 0, 0, 6, 0))
         icons_n = i.get("icons")
         if isinstance(icons_n, int):
             chips.addView(
-                make_info_chip(ctx, str(strings.repo_card_icons).replace("{0}", str(icons_n)),
-                               "key_avatar_backgroundViolet"),
+                _chip(ctx, str(strings.repo_card_icons).replace("{0}", str(icons_n)), accent),
                 LayoutHelper.createLinear(-2, -2, 0, 0, 6, 0))
         # how much of this source the user is actually running, off the
         # installer's own per-repository index
         installed = i.get("installed")
         if isinstance(installed, int) and installed > 0:
             chips.addView(
-                make_info_chip(ctx, str(getattr(strings, "repo_card_installed", "{0} installed"))
-                               .replace("{0}", str(installed)), "key_avatar_backgroundGreen"),
+                _chip(ctx, str(getattr(strings, "repo_card_installed", "{0} installed"))
+                      .replace("{0}", str(installed)), accent),
                 LayoutHelper.createLinear(-2, -2, 0, 0, 6, 0))
         # a source nobody has opened yet has nothing to put here; GONE takes the
         # row's top margin with it instead of leaving a gap
@@ -318,7 +378,8 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
         ctx, "ic_ab_other", _theme("key_windowBackgroundWhiteGrayText"),
         # state["repo"] and not the dict this card was built from: a repaint
         # hands over a freshly parsed one, and the menu prefills its dialogs
-        lambda: on_menu(menu_holder[0], state["repo"]) if on_menu else None
+        lambda: on_menu(menu_holder[0], state["repo"]) if on_menu else None,
+        translucent=True
     )
     menu_holder = [menu_btn]
     footer.addView(menu_btn, _btn_lp(0))
@@ -404,10 +465,11 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
     return card
 
 
-def _build_switch(ctx, checked: bool, on_toggle):
+def _build_switch(ctx, checked: bool):
     # Coloured the way the client colours the switch in its own plugin card
-    # (PluginCell). Unlike that one it takes its own taps: the card opens a
-    # sheet now, so turning a source on and off is the switch's job alone.
+    # (PluginCell), and given that cell's box. The card opens a sheet now, so
+    # the tap that turns a source on and off belongs to the switch — but it
+    # arrives through the wrapper, which is big enough to aim at.
     try:
         from org.telegram.ui.Components import Switch as TgSwitch
         sw = TgSwitch(ctx)
@@ -419,30 +481,10 @@ def _build_switch(ctx, checked: bool, on_toggle):
         except Exception as e:
             logx(f"repos card: switch colors unavailable: {e}", True)
         sw.setChecked(checked, False)
-        sw.setClickable(True)
-        sw.setFocusable(True)
-        sw.setOnClickListener(OnClickListener(lambda v: on_toggle()))
-
-        # Switch has no touch handling of its own — the cells that host it drive
-        # its ripple from their own setPressed. Nothing overrides setPressed
-        # here, so the press is forwarded by hand, and the listener returns
-        # False so the click still goes through the normal path.
-        try:
-            from java import dynamic_proxy
-            from android.view import View as _View
-
-            class _Press(dynamic_proxy(_View.OnTouchListener)):
-                def onTouch(self, v, event):
-                    action = event.getActionMasked()
-                    if action == 0:            # DOWN
-                        sw.setDrawRipple(True)
-                    elif action in (1, 3):     # UP, CANCEL
-                        sw.setDrawRipple(False)
-                    return False
-
-            sw.setOnTouchListener(_Press())
-        except Exception as e:
-            logx(f"repos card: switch ripple unavailable: {e}", True)
+        # the wrapper around it takes the taps; the switch keeps the client's
+        # box so it keeps the client's proportions
+        sw.setClickable(False)
+        sw.setFocusable(False)
         return sw
     except Exception as e:
         logx(f"repos card: switch unavailable: {e}", False)

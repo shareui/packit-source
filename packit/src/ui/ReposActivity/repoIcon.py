@@ -38,17 +38,6 @@ _MEM_CAP = 64
 _mem = OrderedDict()
 _mem_lock = None
 
-_PALETTE = (
-    "key_avatar_backgroundBlue",
-    "key_avatar_backgroundViolet",
-    "key_avatar_backgroundGreen",
-    "key_avatar_backgroundOrange",
-    "key_avatar_backgroundPink",
-    "key_avatar_backgroundCyan",
-    "key_avatar_backgroundRed",
-)
-
-
 def _c(color: int) -> int:
     # java setColor(int) rejects python ints >= 0x80000000
     return ctypes.c_int32(color).value
@@ -56,6 +45,24 @@ def _c(color: int) -> int:
 
 def _alpha(color: int, a: int) -> int:
     return _c((a << 24) | (color & 0xFFFFFF))
+
+
+def tonal(accent: int, surface: int, fraction: float) -> int:
+    """An opaque container colour: accent mixed into the surface behind it.
+
+    Not accent-at-low-alpha. A translucent fill picks up whatever is under it —
+    the card, then the window, then anything the card is animating over — so
+    two identical chips on different backgrounds come out different colours,
+    and overlapping ones stack. Mixing the two colours here gives the same look
+    as one solid value that owes nothing to what is behind it.
+    """
+    fraction = max(0.0, min(1.0, float(fraction)))
+    out = 0xFF000000
+    for shift in (16, 8, 0):
+        a = (accent >> shift) & 0xFF
+        b = (surface >> shift) & 0xFF
+        out |= int(round(b + (a - b) * fraction)) << shift
+    return _c(out)
 
 
 def _lock():
@@ -74,37 +81,21 @@ def _seed(repo: dict) -> int:
     return total
 
 
-_harmonized = {}
-
-
-def _harmonize(color: int) -> int:
-    # The client ships MonetUtils for exactly this: on Android 12+ it pulls a
-    # colour towards the system palette (MaterialColors.harmonize against
-    # system_accent1_600), which is what keeps a fixed palette from clashing
-    # with a Monet theme. Below 12, and on themes without it, it hands the
-    # colour back unchanged.
-    if color in _harmonized:
-        return _harmonized[color]
-    result = color
-    try:
-        from com.exteragram.messenger.utils.ui import MonetUtils
-        result = _c(int(MonetUtils.harmonize(color)))
-    except Exception:
-        result = color
-    _harmonized[color] = result
-    return result
-
-
 def accent_for(repo: dict) -> int:
-    # deterministic colour so a repository keeps its look between launches
-    try:
-        name = _PALETTE[_seed(repo) % len(_PALETTE)]
-        return _harmonize(Theme.getColor(getattr(Theme, name)))
-    except Exception:
+    """The theme's accent. The repository does not get a say any more.
+
+    This used to pick a colour per repository out of the avatar palette, so
+    that a source kept its own look. On a theme built from one accent — which
+    is every Monet theme, and the client's own — a violet or an orange dropped
+    into it is simply the wrong colour on the screen, however stable it is.
+    The argument stays so the call sites read the same.
+    """
+    for key in ("key_featuredStickers_addButton", "key_windowBackgroundWhiteBlueText"):
         try:
-            return Theme.getColor(Theme.key_featuredStickers_addButton)
+            return _c(int(Theme.getColor(getattr(Theme, key))))
         except Exception:
-            return _c(0xFF2AABEE)
+            continue
+    return _c(0xFF2AABEE)
 
 
 def _letter(repo: dict) -> str:
@@ -253,6 +244,11 @@ def build_icon_view(ctx, repo: dict, size_dp: int = 48, radius_dp: int = 14, url
 
     holder = FrameLayout(ctx)
 
+    try:
+        surface = _c(int(Theme.getColor(Theme.key_windowBackgroundWhite)))
+    except Exception:
+        surface = _c(0xFF1C1C1E)
+
     mono = TextView(ctx)
     mono.setText(_letter(repo))
     mono.setGravity(Gravity.CENTER)
@@ -268,7 +264,7 @@ def build_icon_view(ctx, repo: dict, size_dp: int = 48, radius_dp: int = 14, url
     bg = GradientDrawable()
     bg.setShape(GradientDrawable.RECTANGLE)
     bg.setCornerRadius(float(AndroidUtilities.dp(radius_dp)))
-    bg.setColor(_alpha(accent, 0x1C))
+    bg.setColor(tonal(accent, surface, 0.16))
     mono.setBackground(bg)
     holder.addView(mono, FrameLayout.LayoutParams(size_px, size_px))
 

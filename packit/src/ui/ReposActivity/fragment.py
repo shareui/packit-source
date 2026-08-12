@@ -131,7 +131,6 @@ class ReposFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
         self._first_build = True
         self._handles = []
         self._signature_shown = None
-        self._footnote = None
 
     # ---------------------------------------------------------------- delegate
     def onFragmentCreate(self, *_):
@@ -192,16 +191,6 @@ class ReposFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             self._handles = []
             self._signature_shown = None
             content.addView(self._list, LayoutHelper.createLinear(-1, -2))
-
-            # The client ends every settings section with a grey caption saying
-            # what the section is for, and this screen — a short list on a tall
-            # page — has the room for one. It also carries the one number no
-            # single card can: how much of what is installed came from here.
-            self._footnote = TextView(act)
-            self._footnote.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
-            self._footnote.setTextColor(_theme("key_windowBackgroundWhiteGrayText"))
-            self._footnote.setLineSpacing(float(AndroidUtilities.dp(2)), 1.0)
-            content.addView(self._footnote, LayoutHelper.createLinear(-1, -2, 9, 14, 9, 0))
 
             scroll.addView(content, ScrollView.LayoutParams(-1, -2))
             root.addView(scroll, FrameLayout.LayoutParams(-1, -1))
@@ -282,7 +271,6 @@ class ReposFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
 
     def _render(self, act, repos, infos):
         self._summary.setText(self._summary_text(len(repos)))
-        self._set_footnote(repos, infos)
 
         # A repaint is not a rebuild. Flipping a switch writes the list back
         # through RepositoryManager, which notifies this screen, which used to
@@ -322,28 +310,6 @@ class ReposFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
 
         self._first_build = False
         applyFontToTree(self._root)
-
-    def _set_footnote(self, repos, infos):
-        if self._footnote is None:
-            return
-        try:
-            if not repos:
-                # the empty state already explains the screen; two captions
-                # saying the same thing on an otherwise blank page is worse
-                self._footnote.setVisibility(8)
-                return
-            parts = [str(getattr(strings, "repos_footnote", ""))]
-            installed = sum(int(i.get("installed") or 0) for i in infos)
-            if installed > 0:
-                enabled = sum(1 for r in repos if r.get("enabled", True))
-                parts.append(
-                    str(getattr(strings, "repos_footnote_installed", ""))
-                    .replace("{0}", str(installed)).replace("{1}", str(enabled)))
-            text = "\n\n".join(p for p in parts if p)
-            self._footnote.setText(text)
-            self._footnote.setVisibility(0 if text else 8)
-        except Exception as e:
-            logx(f"repos fragment: footnote error: {e}", True)
 
     def _summary_text(self, count: int) -> str:
         try:
