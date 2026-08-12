@@ -334,7 +334,9 @@ class ReposFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
 
         menu_btn = _round_icon_button(
             act, "msg_customize", _theme("key_windowBackgroundWhiteGrayText"), _menu, 34)
-        row.addView(menu_btn, LayoutHelper.createLinear(34, 34, Gravity.CENTER_VERTICAL))
+        menu_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(34), AndroidUtilities.dp(34))
+        menu_lp.gravity = Gravity.CENTER_VERTICAL
+        row.addView(menu_btn, menu_lp)
         return row
 
     def _build_add_button(self, act):
@@ -360,7 +362,10 @@ class ReposFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             icon.setColorFilter(_theme("key_featuredStickers_buttonText"))
         except Exception:
             pass
-        btn.addView(icon, LayoutHelper.createLinear(20, 20, Gravity.CENTER_VERTICAL, 0, 0, 8, 0))
+        icon_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
+        icon_lp.gravity = Gravity.CENTER_VERTICAL
+        icon_lp.rightMargin = AndroidUtilities.dp(8)
+        btn.addView(icon, icon_lp)
 
         label = TextView(act)
         try:
@@ -399,7 +404,10 @@ class ReposFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             icon.setColorFilter(_alpha(_theme("key_windowBackgroundWhiteGrayText"), 0x66))
         except Exception:
             pass
-        box.addView(icon, LayoutHelper.createLinear(56, 56, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 14))
+        stub_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(56), AndroidUtilities.dp(56))
+        stub_lp.gravity = Gravity.CENTER_HORIZONTAL
+        stub_lp.bottomMargin = AndroidUtilities.dp(14)
+        box.addView(icon, stub_lp)
 
         title = TextView(act)
         try:

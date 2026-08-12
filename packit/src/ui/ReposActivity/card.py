@@ -118,7 +118,10 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict):
     header.setGravity(Gravity.CENTER_VERTICAL)
 
     icon_view = repoIcon.build_icon_view(ctx, repo, 48, 14)
-    header.addView(icon_view, LayoutHelper.createLinear(48, 48, Gravity.CENTER_VERTICAL, 0, 0, 12, 0))
+    icon_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(48), AndroidUtilities.dp(48))
+    icon_lp.gravity = Gravity.CENTER_VERTICAL
+    icon_lp.rightMargin = AndroidUtilities.dp(12)
+    header.addView(icon_view, icon_lp)
 
     col = LinearLayout(ctx)
     col.setOrientation(LinearLayout.VERTICAL)
@@ -150,7 +153,18 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict):
 
     switch = _build_switch(ctx, enabled)
     if switch is not None:
-        header.addView(switch, LayoutHelper.createLinear(37, 20, Gravity.CENTER_VERTICAL, 8, 0, 0, 0))
+        # Explicit params, not LayoutHelper.createLinear(37, 20, gravity, …):
+        # that call has a (w, h, float weight, …) twin, and picking it gives the
+        # switch a weight instead of a gravity. In a row that already has a
+        # weighted column the switch then absorbs the overflow and is measured
+        # narrower than the 31dp track Switch.onDraw centres in it, so the track
+        # is clipped by the view bounds — which is what turned the pill into a
+        # rectangle with square corners.
+        sw_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(37), AndroidUtilities.dp(20))
+        sw_lp.gravity = Gravity.CENTER_VERTICAL
+        sw_lp.leftMargin = AndroidUtilities.dp(10)
+        switch.setMinimumWidth(AndroidUtilities.dp(37))
+        header.addView(switch, sw_lp)
 
     card.addView(header, LayoutHelper.createLinear(-1, -2))
 
@@ -193,14 +207,19 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict):
     src_url = str(info.get("source") or "").strip()
     on_open = callbacks.get("on_open") or (lambda _u: None)
 
+    def _btn_lp(right_margin_dp=8):
+        lp = LinearLayout.LayoutParams(AndroidUtilities.dp(36), AndroidUtilities.dp(36))
+        lp.rightMargin = AndroidUtilities.dp(right_margin_dp)
+        return lp
+
     if tg_url:
         footer.addView(
             _round_icon_button(ctx, "msg_channel", accent, lambda u=tg_url: on_open(u)),
-            LayoutHelper.createLinear(36, 36, 0, 0, 8, 0))
+            _btn_lp())
     if src_url:
         footer.addView(
             _round_icon_button(ctx, "msg_link", accent, lambda u=src_url: on_open(u)),
-            LayoutHelper.createLinear(36, 36, 0, 0, 8, 0))
+            _btn_lp())
 
     spacer = View(ctx)
     footer.addView(spacer, LayoutHelper.createLinear(0, 0, 1.0))
@@ -211,7 +230,7 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict):
         lambda: on_menu(menu_holder[0]) if on_menu else None
     )
     menu_holder = [menu_btn]
-    footer.addView(menu_btn, LayoutHelper.createLinear(36, 36))
+    footer.addView(menu_btn, _btn_lp(0))
 
     card.addView(footer, LayoutHelper.createLinear(-1, -2, 0, 10, 0, 0))
 
