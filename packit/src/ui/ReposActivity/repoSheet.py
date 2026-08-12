@@ -103,10 +103,20 @@ def show_repo_sheet(act, repo: dict, info: dict = None):
             sub_text = str(info.get("maintainer") or "").strip() or _host_of(repo.get("url"))
             if sub_text:
                 sub = TextView(act)
-                sub.setText(sub_text)
                 sub.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
                 sub.setTextColor(_theme("key_dialogTextGray2"))
                 sub.setSingleLine(True)
+                # here the mention can be tapped: unlike on the card, nothing
+                # else in this row wants the touch
+                try:
+                    from com.exteragram.messenger.utils.text import LocaleUtils
+                    from android.text.method import LinkMovementMethod
+                    sub.setText(LocaleUtils.fullyFormatText(sub_text))
+                    sub.setLinkTextColor(_theme("key_dialogTextBlue"))
+                    sub.setMovementMethod(LinkMovementMethod.getInstance())
+                except Exception as e:
+                    logx(f"repoSheet: maintainer format unavailable: {e}", True)
+                    sub.setText(sub_text)
                 col.addView(sub, LayoutHelper.createLinear(-1, -2, 0, 3, 0, 0))
 
             header.addView(col, LayoutHelper.createLinear(-1, -2))

@@ -165,7 +165,9 @@ class ReposFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             content.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(8),
                                AndroidUtilities.dp(12), AndroidUtilities.dp(96))
 
-            content.addView(self._build_summary_row(act), LayoutHelper.createLinear(-1, -2))
+            # 44dp, the same strip height the catalogue's toolbar uses
+            content.addView(self._build_summary_row(act),
+                            LayoutHelper.createLinear(-1, 44, 0, 2, 0, 6))
 
             self._list = LinearLayout(act)
             self._list.setOrientation(LinearLayout.VERTICAL)
@@ -355,29 +357,58 @@ class ReposFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
 
     # ------------------------------------------------------------------ pieces
     def _build_summary_row(self, act):
-        # the bulk actions the old screen kept under "Дополнительно" live behind
-        # the button on the right of this row
-        row = LinearLayout(act)
-        row.setOrientation(LinearLayout.HORIZONTAL)
-        row.setGravity(Gravity.CENTER_VERTICAL)
-        row.setPadding(AndroidUtilities.dp(6), 0, 0, AndroidUtilities.dp(8))
+        # Built the way the plugin catalogue builds its own toolbar
+        # (listView.py): a 44dp frame, the count centred in a 16dp-radius pill
+        # on the card surface, icon buttons of the same shape on the right. A
+        # loose grey caption over a floating circle did not read as a control
+        # strip at all — this is the same component the rest of the plugin uses.
+        from ..PluginListActivity.helpers.uiHelpers import get_theme_colors, apply_press_scale_on_target
+        colors = get_theme_colors()
+        card_bg = colors.get("card_bg_color")
+        card_pressed = colors.get("card_pressed_color")
+        text_color = colors.get("text_color")
+
+        row = FrameLayout(act)
 
         self._summary = TextView(act)
-        self._summary.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
-        self._summary.setTextColor(_theme("key_windowBackgroundWhiteGrayText"))
-        row.addView(self._summary, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+        self._summary.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
+        self._summary.setGravity(Gravity.CENTER)
+        self._summary.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(7),
+                                 AndroidUtilities.dp(12), AndroidUtilities.dp(7))
+        self._summary.setTextColor(text_color)
+        try:
+            self._summary.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                AndroidUtilities.dp(16), card_bg, card_bg))
+        except Exception as e:
+            logx(f"repos fragment: summary pill background error: {e}", True)
+        row.addView(self._summary, FrameLayout.LayoutParams(-2, -2, Gravity.CENTER))
 
-        from .card import _round_icon_button
-
-        def _menu():
+        # the bulk actions the old screen kept under "Дополнительно"
+        def _menu(v=None):
             from . import actions
             actions.show_bulk_menu(act, self, menu_btn)
 
-        menu_btn = _round_icon_button(
-            act, "msg_customize", _theme("key_windowBackgroundWhiteGrayText"), _menu, 34)
-        menu_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(34), AndroidUtilities.dp(34))
-        menu_lp.gravity = Gravity.CENTER_VERTICAL
-        row.addView(menu_btn, menu_lp)
+        menu_btn = FrameLayout(act)
+        menu_btn.setClickable(True)
+        menu_btn.setFocusable(True)
+        try:
+            menu_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                AndroidUtilities.dp(16), card_bg, card_pressed))
+        except Exception:
+            pass
+        menu_btn.setPadding(*(AndroidUtilities.dp(8),) * 4)
+        menu_icon = ImageView(act)
+        try:
+            menu_icon.setImageResource(getattr(R_tg.drawable, "msg_customize"))
+            menu_icon.setColorFilter(text_color)
+        except Exception:
+            pass
+        menu_btn.addView(menu_icon, FrameLayout.LayoutParams(
+            AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
+        menu_btn.setOnClickListener(OnClickListener(_menu))
+        apply_press_scale_on_target(menu_btn, menu_btn)
+        row.addView(menu_btn, FrameLayout.LayoutParams(
+            -2, -2, Gravity.RIGHT | Gravity.CENTER_VERTICAL))
         return row
 
     def _build_add_button(self, act):

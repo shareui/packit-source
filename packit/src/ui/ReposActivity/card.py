@@ -176,7 +176,19 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
 
     def _fill_sub(r, i):
         text = str(i.get("maintainer") or "").strip() or _host_of(r.get("url"))
-        sub_tv.setText(text)
+        # rm_maintainer is free text from the repomap and reads like a message —
+        # "@name", "ROBOT (список от @name)" — so it goes through the client's
+        # own formatter, which resolves mentions, emoji and markdown.
+        #
+        # No LinkMovementMethod here on purpose: it makes a TextView clickable,
+        # and this one sits inside a card whose tap opens the source's sheet. A
+        # tappable mention belongs in that sheet, where nothing competes for it.
+        try:
+            from com.exteragram.messenger.utils.text import LocaleUtils
+            sub_tv.setText(LocaleUtils.fullyFormatText(text))
+        except Exception as e:
+            logx(f"repos card: maintainer format unavailable: {e}", True)
+            sub_tv.setText(text)
         sub_tv.setVisibility(0 if text else 8)  # VISIBLE / GONE
 
     _fill_sub(repo, info)
@@ -211,24 +223,16 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
 
     def _fill_chips(is_on, i):
         chips.removeAllViews()
-        # The chip answers "is this source in use", which is the one thing the
-        # switch beside it is about — it used to report the age of the cache
-        # instead, so a source the reader had just turned off still said "up to
-        # date". A source whose repomap never downloaded is called out
-        # separately, because that one is on and still gives nothing.
-        if not is_on:
-            status = "disabled"
-        elif str(i.get("status") or "") == "missing":
-            status = "missing"
-        else:
-            status = "enabled"
-        status_text, status_key = {
-            "enabled": (getattr(strings, "repo_card_status_enabled", "Enabled"), "key_avatar_backgroundGreen"),
-            "missing": (getattr(strings, "repo_card_status_missing", "Not loaded"), "key_text_RedBold"),
-            "disabled": (getattr(strings, "repo_card_status_disabled", "Disabled"), "key_windowBackgroundWhiteGrayText"),
-        }.get(status, (status, "key_windowBackgroundWhiteGrayText"))
-        chips.addView(make_info_chip(ctx, str(status_text), status_key),
-                      LayoutHelper.createLinear(-2, -2, 0, 0, 6, 0))
+        # No on/off chip. It said in words what the switch an inch away says by
+        # being on or off, and two controls reporting one fact is one too many.
+        # A source whose repomap never downloaded still gets a chip, because
+        # nothing else on the card says that — it is switched on and gives
+        # nothing, which the switch cannot show.
+        if is_on and str(i.get("status") or "") == "missing":
+            chips.addView(
+                make_info_chip(ctx, str(getattr(strings, "repo_card_status_missing", "Not loaded")),
+                               "key_text_RedBold"),
+                LayoutHelper.createLinear(-2, -2, 0, 0, 6, 0))
 
         plugins = i.get("plugins")
         if isinstance(plugins, int):
@@ -242,6 +246,9 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
                 make_info_chip(ctx, str(strings.repo_card_icons).replace("{0}", str(icons_n)),
                                "key_avatar_backgroundViolet"),
                 LayoutHelper.createLinear(-2, -2, 0, 0, 6, 0))
+        # with the on/off chip gone most sources have nothing to put here; GONE
+        # takes the row's top margin with it instead of leaving a gap
+        chips.setVisibility(0 if chips.getChildCount() > 0 else 8)
 
     # filled by the first _apply_enabled below, together with the rest of the
     # state that depends on the switch
