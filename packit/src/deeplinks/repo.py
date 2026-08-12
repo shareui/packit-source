@@ -35,6 +35,7 @@ except Exception as e:
 from urllib.parse import urlparse, parse_qs
 import requests
 import json
+from ..utils import jsonx as _jsonx
 import os
 
 BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
@@ -97,7 +98,7 @@ def handle(url, repoManager):
             try:
                 response = requests.get(link, timeout=10)
                 if response.status_code == 200:
-                    data = response.json()
+                    data = _jsonx.loads(response.text)
                     repometa = data.get("repometa")
 
                     if repometa and repometa.get("rm_rid"):
@@ -116,7 +117,7 @@ def handle(url, repoManager):
                         try:
                             pr = requests.get(plugins_url, timeout=10)
                             if pr.status_code == 200:
-                                pdata = pr.json()
+                                pdata = _jsonx.loads(pr.text)
                                 plugins = pdata.get("plugins", [])
                                 pluginCount = len(plugins) if isinstance(plugins, (list, dict)) else 0
                         except Exception as e:

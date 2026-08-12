@@ -5,6 +5,7 @@ from packutil import logx
 from .utils.netQueue import run_serial_io
 import os
 import json
+from .utils import jsonx as _jsonx
 import requests
 from client_utils import get_last_fragment, run_on_queue
 try:
@@ -66,7 +67,7 @@ class RepositoryManager:
             if r.status_code != 200:
                 logx(f"repom: failed to fetch repomap from '{url}': HTTP {r.status_code}", True)
                 return None
-            data = r.json()
+            data = _jsonx.loads(r.text)
             repometa = data.get("repometa")
             if not repometa:
                 logx(f"repom: no 'repometa' key in response from '{url}'", True)
@@ -158,7 +159,7 @@ class RepositoryManager:
         # validate
         try:
             with open(temp_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
+                data = _jsonx.loads(f.read())
         except Exception as e:
             logx(f"repom: addRepositoryWithUrl: json parse error: {e}", False)
             self._cleanup_temp_dir()
@@ -352,7 +353,7 @@ class RepositoryManager:
                         if r.status_code != 200:
                             logx(f"updateAllCaches: HTTP {r.status_code} for {url}", True)
                             continue
-                        data = r.json()
+                        data = _jsonx.loads(r.text)
                         repometa = data.get("repometa")
                         rm_rid = repometa.get("rm_rid") if repometa else None
 

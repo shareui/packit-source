@@ -18,6 +18,7 @@ except Exception as e:
 from urllib.parse import urlparse, parse_qs
 import requests
 import json
+from ..utils import jsonx as _jsonx
 import os
 
 
@@ -45,7 +46,7 @@ def _run_update(repoManager):
                     if r.status_code != 200:
                         logx(f"update deeplink: HTTP {r.status_code} for {url}", True)
                         continue
-                    data = r.json()
+                    data = _jsonx.loads(r.text)
                     repometa = data.get("repometa")
                     rmRid = repometa.get("rm_rid") if repometa else None
 
@@ -110,7 +111,7 @@ def _run_update_single(repoManager, repoId: str):
                     logx(f"update deeplink: HTTP {r.status_code} for {url}", True)
                     run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings("dl_update_repo_http_error", code=r.status_code))))
                     return
-                data = r.json()
+                data = _jsonx.loads(r.text)
                 repometa = data.get("repometa")
                 rmRid = repometa.get("rm_rid") if repometa else None
 
