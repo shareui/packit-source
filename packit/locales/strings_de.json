@@ -1206,5 +1206,6 @@
   "repos_empty_title": "Noch nichts da",
   "repos_empty_text": "Füge eine Quelle hinzu, um Plugins zu installieren",
   "retry": "Erneut versuchen",
-  "repo_default_already": "Die Standardquelle ist bereits vorhanden"
+  "repo_default_already": "Die Standardquelle ist bereits vorhanden",
+  "repo_link_shared": "Link zur Quelle gesendet"
 }

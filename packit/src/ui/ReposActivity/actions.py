@@ -102,9 +102,12 @@ def share_repository(act, repo: dict):
                 super().__init__()
 
             def didShare(self):
-                run_on_ui_thread(lambda: _bulletin("voip_invite", strings.repo_link_copied))
+                # the link went to a chat — saying it is in the clipboard, which
+                # is what this reported before, describes the other button
+                run_on_ui_thread(lambda: _bulletin("voip_invite", strings.repo_link_shared))
 
             def didCopy(self):
+                # false: ShareAlert copies and reports it itself
                 return False
 
         alert = ShareAlert(act, None, share_url, True, share_url, False)
