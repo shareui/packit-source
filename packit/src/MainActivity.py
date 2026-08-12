@@ -8,7 +8,6 @@ try:
 except Exception as e:
     import android_utils as _au; _au.log(f"import elyx import strings, metainfo failed: {e}")
     from .utils.importFailed import showImportFailedAlert as _sifa; _sifa()
-from .SettingsActivity.repos import RepositoriesSettings
 from .SettingsActivity.deeplinks import DeeplinksSettings
 from .SettingsActivity.settings import OtherSettings
 from .SettingsActivity.docs import DocumentationSettings
@@ -71,7 +70,6 @@ class SettingsBuilder:
     def __init__(self, repoManager, plugin):
         self.repoManager = repoManager
         self.plugin = plugin
-        self.repositoriesSettings = RepositoriesSettings(repoManager)
         self.deeplinksSettings = DeeplinksSettings()
         self.otherSettings = OtherSettings(plugin.chatUI, plugin)
         self.documentationSettings = DocumentationSettings()
@@ -201,6 +199,13 @@ class SettingsBuilder:
             
             logx(f"MainActivity: _check_updates error: {e}", False)
     
+    def _open_repositories(self, view):
+        try:
+            from .ui.ReposActivity import show_repos_fragment
+            show_repos_fragment(self.repoManager)
+        except Exception as e:
+            logx(f"MainActivity: _open_repositories error: {e}", False)
+
     def _install_icons(self, view):
         try:
             install_icons_ui = InstallIconsUI(self.plugin)
@@ -290,7 +295,7 @@ class SettingsBuilder:
             Text(
                 text=strings.repositories,
                 icon="msg_folders",
-                create_sub_fragment=self.repositoriesSettings.build,
+                on_click=self._open_repositories,
                 link_alias="repositories"
             ),
             

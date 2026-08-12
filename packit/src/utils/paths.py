@@ -51,6 +51,16 @@ def getIconPackTmpPath(packId: str) -> str:
 def getClassesCachePath() -> str:
     return _filesDir() + "/packit/.cache/classes/icons.json"
 
+def getRepoIconCacheDir() -> str:
+    return _filesDir() + "/packit/.cache/repoIcons"
+
+def getRepoIconCachePath(url: str) -> str:
+    # repomap declares rm_icon as a plain image url, so the file name is a hash
+    # of it: the url can be any length and carries query strings
+    import hashlib
+    digest = hashlib.sha1(str(url).encode("utf-8", "ignore")).hexdigest()[:20]
+    return getRepoIconCacheDir() + f"/{digest}.img"
+
 def getKeysDir() -> str:
     return _filesDir() + "/packit/.secret/keys"
 

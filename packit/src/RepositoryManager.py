@@ -51,6 +51,13 @@ class RepositoryManager:
                 fragment.rebuildAllItems()
         except Exception:
             pass
+        # the sources screen is a plain fragment with no adapter, so
+        # rebuildAllItems never reaches it — it listens here instead
+        try:
+            from .ui.ReposActivity import notify_repos_changed
+            notify_repos_changed()
+        except Exception:
+            pass
     
     def _fetch_and_save_repomap(self, url: str) -> dict | None:
         """Fetch repomap.json from url, save to packit/{rm_rid}.json, return repometa dict."""

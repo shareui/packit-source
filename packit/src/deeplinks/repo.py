@@ -160,15 +160,20 @@ def _show_confirm_sheet(repometa, pluginCount, name, link, icon, repoManager):
         linear.setOrientation(LinearLayout.VERTICAL)
         frame.addView(linear)
 
-        # icon centered
+        # icon centered — rm_icon is an image url in current repomaps and a
+        # R.drawable name in older ones, so both have to work here
         try:
             icon_view = ImageView(act)
-            icon_id = getattr(R_tg.drawable, rm_icon, 0)
-            if not icon_id:
-                icon_id = getattr(R_tg.drawable, "msg_folders", 0)
-            if icon_id:
-                icon_view.setImageResource(icon_id)
-            icon_view.setColorFilter(Theme.getColor(Theme.key_featuredStickers_addButton))
+            if str(rm_icon).lower().startswith(("http://", "https://")):
+                from ..ui.ReposActivity.repoIcon import load_url_into
+                load_url_into(icon_view, rm_icon, 48)
+            else:
+                icon_id = getattr(R_tg.drawable, rm_icon, 0)
+                if not icon_id:
+                    icon_id = getattr(R_tg.drawable, "msg_folders", 0)
+                if icon_id:
+                    icon_view.setImageResource(icon_id)
+                icon_view.setColorFilter(Theme.getColor(Theme.key_featuredStickers_addButton))
             linear.addView(icon_view, LayoutHelper.createLinear(48, 48, Gravity.CENTER_HORIZONTAL, 0, 20, 0, 0))
         except Exception as e:
             logx(f"repo deeplink: icon error: {e}", False)
