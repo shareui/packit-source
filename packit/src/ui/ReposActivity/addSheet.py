@@ -254,31 +254,42 @@ def _show_form_dialog(act, title: str, subtitle: str, fields: list, button_text:
         error_tv.setVisibility(8)  # GONE
         card.addView(error_tv, LayoutHelper.createLinear(-1, -2, 4, 0, 4, 6))
 
-        button_box = FrameLayout(act)
-        button_box.setClickable(True)
-        button_box.setFocusable(True)
+        # the client's own button: setLoading() swaps the label for a spinner
+        # itself, so there is nothing to stack on top of the text
+        button = None
         try:
-            button_box.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
-                dp(12), accent, _theme("key_featuredStickers_addButtonPressed", accent)))
-        except Exception:
-            pass
+            frag = get_last_fragment()
+            from org.telegram.ui.Stories.recorder import ButtonWithCounterView
+            button = ButtonWithCounterView(act, True, frag.getResourceProvider() if frag else None)
+            button.setRound()
+            button.setText(button_text, False)
+            card.addView(button, LayoutHelper.createLinear(-1, 48, 0, 6, 0, 0))
+        except Exception as e:
+            logx(f"repos dialog: counter button unavailable: {e}", True)
+            button = None
 
-        button_tv = TextView(act)
-        button_tv.setText(button_text)
-        button_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
-        button_tv.setGravity(Gravity.CENTER)
-        button_tv.setPadding(dp(16), dp(14), dp(16), dp(14))
-        button_tv.setTextColor(_theme("key_featuredStickers_buttonText"))
-        try:
-            button_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
-        except Exception:
-            pass
-        button_box.addView(button_tv, FrameLayout.LayoutParams(-1, -2))
-
-        spinner_holder = FrameLayout(act)
-        spinner_holder.setVisibility(8)
-        button_box.addView(spinner_holder, FrameLayout.LayoutParams(-1, -1))
-        card.addView(button_box, LayoutHelper.createLinear(-1, -2, 0, 6, 0, 0))
+        button_tv = None
+        if button is None:
+            button = FrameLayout(act)
+            button.setClickable(True)
+            button.setFocusable(True)
+            try:
+                button.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                    dp(12), accent, _theme("key_featuredStickers_addButtonPressed", accent)))
+            except Exception:
+                pass
+            button_tv = TextView(act)
+            button_tv.setText(button_text)
+            button_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+            button_tv.setGravity(Gravity.CENTER)
+            button_tv.setPadding(dp(16), dp(14), dp(16), dp(14))
+            button_tv.setTextColor(_theme("key_featuredStickers_buttonText"))
+            try:
+                button_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+            except Exception:
+                pass
+            button.addView(button_tv, FrameLayout.LayoutParams(-1, -2))
+            card.addView(button, LayoutHelper.createLinear(-1, -2, 0, 6, 0, 0))
 
         class _Ui:
             def error(self, text):
@@ -300,17 +311,11 @@ def _show_form_dialog(act, title: str, subtitle: str, fields: list, button_text:
 
                 def _apply():
                     try:
-                        button_box.setEnabled(not value)
-                        button_tv.setAlpha(0.35 if value else 1.0)
-                        if value and spinner_holder.getChildCount() == 0:
-                            try:
-                                from ..PluginListActivity.helpers.uiHelpers import create_circular_loading
-                                spin = create_circular_loading(act, 20)
-                                spinner_holder.addView(spin, FrameLayout.LayoutParams(
-                                    AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
-                            except Exception as e:
-                                logx(f"repos dialog: spinner unavailable: {e}", True)
-                        spinner_holder.setVisibility(0 if value else 8)
+                        button.setEnabled(not value)
+                        if button_tv is None:
+                            button.setLoading(bool(value))
+                        else:
+                            button_tv.setAlpha(0.4 if value else 1.0)
                     except Exception as e:
                         logx(f"repos dialog: loading paint failed: {e}", False)
                 run_on_ui_thread(_apply)
@@ -343,7 +348,7 @@ def _show_form_dialog(act, title: str, subtitle: str, fields: list, button_text:
                 ui.loading(False)
                 ui.error(_s("repo_err_unknown", "{0}").replace("{0}", str(e)))
 
-        button_box.setOnClickListener(OnClickListener(_submit))
+        button.setOnClickListener(OnClickListener(_submit))
 
         overlay.setAlpha(0.0)
         card.setAlpha(0.0)
