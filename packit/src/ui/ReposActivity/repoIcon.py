@@ -74,11 +74,32 @@ def _seed(repo: dict) -> int:
     return total
 
 
+_harmonized = {}
+
+
+def _harmonize(color: int) -> int:
+    # The client ships MonetUtils for exactly this: on Android 12+ it pulls a
+    # colour towards the system palette (MaterialColors.harmonize against
+    # system_accent1_600), which is what keeps a fixed palette from clashing
+    # with a Monet theme. Below 12, and on themes without it, it hands the
+    # colour back unchanged.
+    if color in _harmonized:
+        return _harmonized[color]
+    result = color
+    try:
+        from com.exteragram.messenger.utils.ui import MonetUtils
+        result = _c(int(MonetUtils.harmonize(color)))
+    except Exception:
+        result = color
+    _harmonized[color] = result
+    return result
+
+
 def accent_for(repo: dict) -> int:
     # deterministic colour so a repository keeps its look between launches
     try:
         name = _PALETTE[_seed(repo) % len(_PALETTE)]
-        return Theme.getColor(getattr(Theme, name))
+        return _harmonize(Theme.getColor(getattr(Theme, name)))
     except Exception:
         try:
             return Theme.getColor(Theme.key_featuredStickers_addButton)
