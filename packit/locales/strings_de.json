@@ -1205,5 +1205,6 @@
   "repo_err_unknown": "Unbekannter Fehler: {0}",
   "repos_empty_title": "Noch nichts da",
   "repos_empty_text": "Füge eine Quelle hinzu, um Plugins zu installieren",
-  "retry": "Erneut versuchen"
+  "retry": "Erneut versuchen",
+  "repo_default_already": "Die Standardquelle ist bereits vorhanden"
 }

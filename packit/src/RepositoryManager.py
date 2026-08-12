@@ -289,23 +289,54 @@ class RepositoryManager:
             repos[idx][field] = value
             self.setRepositories(repos)
     
-    def restoreDefaultRepository(self):
+    def restoreDefaultRepository(self, on_done=None):
+        # "restore" means make sure the official repository is there and usable,
+        # not append another copy of it: it used to append unconditionally, so
+        # pressing the item twice left two identical entries, and again a third.
         def task():
             repometa = self._fetch_and_save_repomap(OFFICIAL_REPO_URL)
-            newRepo = {
-                "id": repometa.get("rm_rid") if repometa else "shareui_official",
-                "name": repometa.get("rm_name", strings.official_repository) if repometa else strings.official_repository,
-                "url": OFFICIAL_REPO_URL,
-                "enabled": True,
-                "collapsed": False,
-                "icon": "chats_pin"
-            }
+            rm_rid = repometa.get("rm_rid") if repometa else "shareui_official"
+            rm_name = repometa.get("rm_name", strings.official_repository) if repometa else strings.official_repository
+
             repos = self.getRepositories()
-            repos.append(newRepo)
+            existing = -1
+            for i, repo in enumerate(repos):
+                if str(repo.get("id") or "") == str(rm_rid):
+                    existing = i
+                    break
+                if str(repo.get("url") or "").strip() == OFFICIAL_REPO_URL:
+                    existing = i
+                    break
+
+            if existing >= 0:
+                # already present: repair it instead — that is what someone
+                # reaching for "restore" after disabling or renaming it wants
+                repos[existing]["id"] = rm_rid
+                repos[existing]["url"] = OFFICIAL_REPO_URL
+                repos[existing]["enabled"] = True
+                if not str(repos[existing].get("name") or "").strip():
+                    repos[existing]["name"] = rm_name
+                restored = False
+            else:
+                repos.append({
+                    "id": rm_rid,
+                    "name": rm_name,
+                    "url": OFFICIAL_REPO_URL,
+                    "enabled": True,
+                    "collapsed": False,
+                    "icon": "chats_pin",
+                })
+                restored = True
+
             self.setRepositories(repos)
             fragment = get_last_fragment()
             if fragment and hasattr(fragment, "rebuildAllItems"):
                 fragment.rebuildAllItems()
+            if on_done:
+                try:
+                    on_done(restored)
+                except Exception as e:
+                    logx(f"repom: restoreDefaultRepository on_done error: {e}", False)
         run_serial_io(task)
     
     def resetRepositories(self):

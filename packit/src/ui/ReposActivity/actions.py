@@ -190,9 +190,17 @@ def restore_default(delegate):
     if len(repos) >= 10:
         BulletinHelper.show_error(str(strings.max_repositories_allowed))
         return
-    delegate.repoManager.restoreDefaultRepository()
-    BulletinHelper.show_success(str(strings.default_repo_restored))
-    delegate.reload()
+
+    def _done(restored):
+        def _ui():
+            if restored:
+                BulletinHelper.show_success(str(strings.default_repo_restored))
+            else:
+                BulletinHelper.show_info(str(strings.repo_default_already))
+            delegate.reload()
+        run_on_ui_thread(_ui)
+
+    delegate.repoManager.restoreDefaultRepository(on_done=_done)
 
 
 def _easter_egg(act, message):
