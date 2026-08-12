@@ -86,12 +86,25 @@ def _round_icon_button(ctx, icon_name: str, tint: int, on_click,
     return btn
 
 
-def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict):
+def _card_background(enabled: bool):
+    surface = _theme("key_windowBackgroundWhite")
+    outline = _theme("key_divider")
+    bg = GradientDrawable()
+    bg.setShape(GradientDrawable.RECTANGLE)
+    bg.setCornerRadius(float(AndroidUtilities.dp(16)))
+    bg.setColor(surface if enabled else _alpha(surface, 0x80))
+    bg.setStroke(AndroidUtilities.dp(1), _alpha(outline, 0xFF if enabled else 0x66))
+    return bg
+
+
+def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = None):
     """
     repo      — the stored dict (id / name / url / enabled)
     info      — read off the ui thread from reposCache: maintainer, telegram,
-                source, plugins, icons, status ("ok"/"stale"/"missing")
-    callbacks — on_toggle(bool), on_menu(anchor), on_open(url)
+                source, icon_url, plugins, icons, status ("loaded"/"missing")
+    callbacks — on_toggle(bool, repo), on_menu(anchor, repo), on_open(url)
+    handle    — filled with {"view", "update"}; call update(repo, info) to
+                repaint this card in place instead of building another one
     """
     enabled = bool(repo.get("enabled", True))
     accent = repoIcon.accent_for(repo)
@@ -101,28 +114,22 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict):
     card.setPadding(*(AndroidUtilities.dp(16),) * 4)
     card.setClickable(True)
     card.setFocusable(True)
-    try:
-        surface = _theme("key_windowBackgroundWhite")
-        outline = _theme("key_divider")
-        bg = GradientDrawable()
-        bg.setShape(GradientDrawable.RECTANGLE)
-        bg.setCornerRadius(float(AndroidUtilities.dp(16)))
-        bg.setColor(surface if enabled else _alpha(surface, 0x80))
-        bg.setStroke(AndroidUtilities.dp(1), _alpha(outline, 0xFF if enabled else 0x66))
-        card.setBackground(bg)
-    except Exception as e:
-        logx(f"repos card: background error: {e}", False)
 
     # ---- header: avatar | name + maintainer | switch
     header = LinearLayout(ctx)
     header.setOrientation(LinearLayout.HORIZONTAL)
     header.setGravity(Gravity.CENTER_VERTICAL)
 
-    icon_view = repoIcon.build_icon_view(ctx, repo, 48, 14)
-    icon_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(48), AndroidUtilities.dp(48))
-    icon_lp.gravity = Gravity.CENTER_VERTICAL
-    icon_lp.rightMargin = AndroidUtilities.dp(12)
-    header.addView(icon_view, icon_lp)
+    def _icon_lp():
+        lp = LinearLayout.LayoutParams(AndroidUtilities.dp(48), AndroidUtilities.dp(48))
+        lp.gravity = Gravity.CENTER_VERTICAL
+        lp.rightMargin = AndroidUtilities.dp(12)
+        return lp
+
+    icon_url = str(info.get("icon_url") or "")
+    icon_view = repoIcon.build_icon_view(ctx, repo, 48, 14, icon_url)
+    icon_holder = [icon_view]  # the avatar is swapped only when its url changes
+    header.addView(icon_view, _icon_lp())
 
     col = LinearLayout(ctx)
     col.setOrientation(LinearLayout.VERTICAL)
@@ -141,14 +148,20 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict):
             pass
     col.addView(name_tv, LayoutHelper.createLinear(-1, -2))
 
-    sub = str(info.get("maintainer") or "").strip() or _host_of(repo.get("url"))
-    if sub:
-        sub_tv = TextView(ctx)
-        sub_tv.setText(sub)
-        sub_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
-        sub_tv.setSingleLine(True)
-        sub_tv.setTextColor(_theme("key_windowBackgroundWhiteGrayText"))
-        col.addView(sub_tv, LayoutHelper.createLinear(-1, -2, 0, 2, 0, 0))
+    # always built, hidden when there is nothing to say: the card is repainted
+    # in place, and a row that only exists sometimes cannot be
+    sub_tv = TextView(ctx)
+    sub_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+    sub_tv.setSingleLine(True)
+    sub_tv.setTextColor(_theme("key_windowBackgroundWhiteGrayText"))
+    col.addView(sub_tv, LayoutHelper.createLinear(-1, -2, 0, 2, 0, 0))
+
+    def _fill_sub(r, i):
+        text = str(i.get("maintainer") or "").strip() or _host_of(r.get("url"))
+        sub_tv.setText(text)
+        sub_tv.setVisibility(0 if text else 8)  # VISIBLE / GONE
+
+    _fill_sub(repo, info)
 
     header.addView(col, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
 
@@ -174,38 +187,42 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict):
     chips.setOrientation(LinearLayout.HORIZONTAL)
     chips.setGravity(Gravity.CENTER_VERTICAL)
 
-    # The chip answers "is this source in use", which is the one thing the
-    # switch beside it is about — it used to report the age of the cache
-    # instead, so a source the reader had just turned off still said "up to
-    # date". A source whose repomap never downloaded is called out separately,
-    # because that one is on and still gives nothing.
-    if not enabled:
-        status = "disabled"
-    elif str(info.get("status") or "") == "missing":
-        status = "missing"
-    else:
-        status = "enabled"
-    status_text, status_key = {
-        "enabled": (getattr(strings, "repo_card_status_enabled", "Enabled"), "key_avatar_backgroundGreen"),
-        "missing": (getattr(strings, "repo_card_status_missing", "Not loaded"), "key_text_RedBold"),
-        "disabled": (getattr(strings, "repo_card_status_disabled", "Disabled"), "key_windowBackgroundWhiteGrayText"),
-    }.get(status, (status, "key_windowBackgroundWhiteGrayText"))
-    chips.addView(make_info_chip(ctx, str(status_text), status_key),
-                  LayoutHelper.createLinear(-2, -2, 0, 0, 6, 0))
+    def _fill_chips(is_on, i):
+        chips.removeAllViews()
+        # The chip answers "is this source in use", which is the one thing the
+        # switch beside it is about — it used to report the age of the cache
+        # instead, so a source the reader had just turned off still said "up to
+        # date". A source whose repomap never downloaded is called out
+        # separately, because that one is on and still gives nothing.
+        if not is_on:
+            status = "disabled"
+        elif str(i.get("status") or "") == "missing":
+            status = "missing"
+        else:
+            status = "enabled"
+        status_text, status_key = {
+            "enabled": (getattr(strings, "repo_card_status_enabled", "Enabled"), "key_avatar_backgroundGreen"),
+            "missing": (getattr(strings, "repo_card_status_missing", "Not loaded"), "key_text_RedBold"),
+            "disabled": (getattr(strings, "repo_card_status_disabled", "Disabled"), "key_windowBackgroundWhiteGrayText"),
+        }.get(status, (status, "key_windowBackgroundWhiteGrayText"))
+        chips.addView(make_info_chip(ctx, str(status_text), status_key),
+                      LayoutHelper.createLinear(-2, -2, 0, 0, 6, 0))
 
-    plugins = info.get("plugins")
-    if isinstance(plugins, int):
-        chips.addView(
-            make_info_chip(ctx, str(strings.repo_card_plugins).replace("{0}", str(plugins)),
-                           "key_windowBackgroundWhiteBlueText"),
-            LayoutHelper.createLinear(-2, -2, 0, 0, 6, 0))
-    icons_n = info.get("icons")
-    if isinstance(icons_n, int):
-        chips.addView(
-            make_info_chip(ctx, str(strings.repo_card_icons).replace("{0}", str(icons_n)),
-                           "key_avatar_backgroundViolet"),
-            LayoutHelper.createLinear(-2, -2, 0, 0, 6, 0))
+        plugins = i.get("plugins")
+        if isinstance(plugins, int):
+            chips.addView(
+                make_info_chip(ctx, str(strings.repo_card_plugins).replace("{0}", str(plugins)),
+                               "key_windowBackgroundWhiteBlueText"),
+                LayoutHelper.createLinear(-2, -2, 0, 0, 6, 0))
+        icons_n = i.get("icons")
+        if isinstance(icons_n, int):
+            chips.addView(
+                make_info_chip(ctx, str(strings.repo_card_icons).replace("{0}", str(icons_n)),
+                               "key_avatar_backgroundViolet"),
+                LayoutHelper.createLinear(-2, -2, 0, 0, 6, 0))
 
+    # filled by the first _apply_enabled below, together with the rest of the
+    # state that depends on the switch
     card.addView(chips, LayoutHelper.createLinear(-1, -2, 0, 12, 0, 0))
 
     # ---- footer: telegram / source, overflow on the right
@@ -213,8 +230,6 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict):
     footer.setOrientation(LinearLayout.HORIZONTAL)
     footer.setGravity(Gravity.CENTER_VERTICAL)
 
-    tg_url = str(info.get("telegram") or "").strip()
-    src_url = str(info.get("source") or "").strip()
     on_open = callbacks.get("on_open") or (lambda _u: None)
 
     def _btn_lp(right_margin_dp=6):
@@ -222,14 +237,26 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict):
         lp.rightMargin = AndroidUtilities.dp(right_margin_dp)
         return lp
 
-    if tg_url:
-        footer.addView(
-            _round_icon_button(ctx, "msg_channel", accent, lambda u=tg_url: on_open(u)),
-            _btn_lp())
-    if src_url:
-        footer.addView(
-            _round_icon_button(ctx, "msg_link", accent, lambda u=src_url: on_open(u)),
-            _btn_lp())
+    # own container so a repaint can refill it without touching the overflow
+    links = LinearLayout(ctx)
+    links.setOrientation(LinearLayout.HORIZONTAL)
+    links.setGravity(Gravity.CENTER_VERTICAL)
+
+    def _fill_links(i):
+        links.removeAllViews()
+        tg_url = str(i.get("telegram") or "").strip()
+        src_url = str(i.get("source") or "").strip()
+        if tg_url:
+            links.addView(
+                _round_icon_button(ctx, "msg_channel", accent, lambda u=tg_url: on_open(u)),
+                _btn_lp())
+        if src_url:
+            links.addView(
+                _round_icon_button(ctx, "msg_link", accent, lambda u=src_url: on_open(u)),
+                _btn_lp())
+
+    _fill_links(info)
+    footer.addView(links, LayoutHelper.createLinear(-2, -2))
 
     spacer = View(ctx)
     footer.addView(spacer, LayoutHelper.createLinear(0, 0, 1.0))
@@ -237,7 +264,9 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict):
     on_menu = callbacks.get("on_menu")
     menu_btn = _round_icon_button(
         ctx, "ic_ab_other", _theme("key_windowBackgroundWhiteGrayText"),
-        lambda: on_menu(menu_holder[0]) if on_menu else None
+        # state["repo"] and not the dict this card was built from: a repaint
+        # hands over a freshly parsed one, and the menu prefills its dialogs
+        lambda: on_menu(menu_holder[0], state["repo"]) if on_menu else None
     )
     menu_holder = [menu_btn]
     footer.addView(menu_btn, _btn_lp(0))
@@ -247,27 +276,75 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict):
     # tapping the card flips the switch — it is the only stateful control here,
     # everything else lives behind explicit buttons
     on_toggle = callbacks.get("on_toggle")
-    state = {"enabled": enabled}
+    state = {"enabled": enabled, "info": info, "repo": repo, "icon_url": icon_url}
 
-    def _toggle(_v=None):
-        state["enabled"] = not state["enabled"]
+    def _apply_enabled(is_on, animate):
+        state["enabled"] = is_on
+        try:
+            card.setBackground(_card_background(is_on))
+        except Exception as e:
+            logx(f"repos card: background repaint error: {e}", False)
         try:
             if switch is not None:
-                switch.setChecked(state["enabled"], True)
+                switch.setChecked(is_on, animate)
         except Exception:
             pass
+        _fill_chips(is_on, state["info"])
+        target = 1.0 if is_on else 0.55
+        for view in (icon_holder[0], col, chips):
+            try:
+                if animate:
+                    view.animate().alpha(target).setDuration(160).start()
+                else:
+                    view.setAlpha(target)
+            except Exception:
+                pass
+
+    def _toggle(_v=None):
+        _apply_enabled(not state["enabled"], True)
         if on_toggle:
-            on_toggle(state["enabled"])
+            on_toggle(state["enabled"], state["repo"])
+
+    def _update(new_repo, new_info):
+        # Repaint, do not rebuild. The avatar in particular survives: rebuilding
+        # the card meant a fresh ImageView with nothing in it, so flipping a
+        # switch made every icon on screen blink.
+        state["repo"] = new_repo
+        state["info"] = new_info or {}
+        try:
+            name_tv.setText(str(new_repo.get("name") or strings.unnamed))
+            _fill_sub(new_repo, state["info"])
+            _fill_links(state["info"])
+            new_url = str(state["info"].get("icon_url") or "")
+            if new_url != state["icon_url"]:
+                # only an updated repomap can do this, and then it really is a
+                # different picture — swap the whole avatar
+                state["icon_url"] = new_url
+                try:
+                    header.removeView(icon_holder[0])
+                except Exception:
+                    pass
+                replacement = repoIcon.build_icon_view(ctx, new_repo, 48, 14, new_url)
+                replacement.setAlpha(1.0 if state["enabled"] else 0.55)
+                header.addView(replacement, 0, _icon_lp())
+                icon_holder[0] = replacement
+            now = bool(new_repo.get("enabled", True))
+            if now != state["enabled"]:
+                _apply_enabled(now, False)
+            else:
+                # the card is already showing this value — most repaints arrive
+                # right after its own tap, and re-setting alpha mid-animation
+                # would snap it
+                _fill_chips(now, state["info"])
+        except Exception as e:
+            logx(f"repos card: update error: {e}", False)
 
     card.setOnClickListener(OnClickListener(_toggle))
     apply_press_scale_on_target(card, card)
-    if not enabled:
-        try:
-            icon_view.setAlpha(0.55)
-            col.setAlpha(0.55)
-            chips.setAlpha(0.55)
-        except Exception:
-            pass
+    _apply_enabled(enabled, False)
+    if isinstance(handle, dict):
+        handle["view"] = card
+        handle["update"] = _update
     return card
 
 

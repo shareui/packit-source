@@ -135,13 +135,33 @@ def icon_url_for(repo: dict):
         return None
 
 
+def peek_bitmap(url: str, px: int):
+    # The already-decoded answer, or None. Card rebuilds go through here first:
+    # routing a known bitmap through the worker pool costs a hop to the pool and
+    # back to the ui thread, and in those two frames the card shows its
+    # monogram — which is what made an avatar blink every time the list was
+    # rebuilt after a toggle.
+    if not url:
+        return None
+    key = _mem_key(url, px)
+    with _lock():
+        bmp = _mem.get(key)
+        if bmp is not None:
+            _mem.move_to_end(key)
+        return bmp
+
+
+def _mem_key(url: str, px: int) -> str:
+    # px is part of the key: the same icon is decoded at different sizes for the
+    # card and for the deeplink sheet, and the smaller decode looks soft blown up
+    return f"{url}|{px}"
+
+
 def _load_bitmap(url: str, px: int):
     # memory -> disk -> network, decoded to a px-sized bitmap
-    with _lock():
-        bmp = _mem.get(url)
-        if bmp is not None:
-            _mem.move_to_end(url)
-            return bmp
+    bmp = peek_bitmap(url, px)
+    if bmp is not None:
+        return bmp
 
     import os
     path = getRepoIconCachePath(url)
@@ -173,7 +193,7 @@ def _load_bitmap(url: str, px: int):
             pass
         return None
     with _lock():
-        _mem[url] = bmp
+        _mem[_mem_key(url, px)] = bmp
         while len(_mem) > _MEM_CAP:
             _mem.popitem(last=False)
     return bmp
@@ -190,6 +210,18 @@ def load_url_into(image_view, url: str, size_dp: int = 48):
         image_view.setTag(want)
     except Exception:
         pass
+
+    cached = peek_bitmap(url, size_px)
+    if cached is not None:
+        try:
+            image_view.setImageBitmap(cached)
+            try:
+                image_view.setColorFilter(None)
+            except Exception:
+                pass
+            return
+        except Exception as e:
+            logx(f"repoIcon: cached url bind error: {e}", False)
 
     def _task():
         bmp = _load_bitmap(url, size_px)
@@ -213,8 +245,9 @@ def load_url_into(image_view, url: str, size_dp: int = 48):
     imagePool.submit(_task)
 
 
-def build_icon_view(ctx, repo: dict, size_dp: int = 48, radius_dp: int = 14):
-    # monogram now, real icon when it arrives
+def build_icon_view(ctx, repo: dict, size_dp: int = 48, radius_dp: int = 14, url=None):
+    # monogram now, real icon when it arrives — unless it has already arrived
+    # once, in which case it is on screen before the card is
     size_px = AndroidUtilities.dp(size_dp)
     accent = accent_for(repo)
 
@@ -249,14 +282,25 @@ def build_icon_view(ctx, repo: dict, size_dp: int = 48, radius_dp: int = 14):
         pass
     holder.addView(image, FrameLayout.LayoutParams(size_px, size_px))
 
-    url = None
-    try:
-        url = repo.get("_icon_url")  # resolved by the caller when it read the cache
-    except Exception:
-        url = None
-
     want = f"packit_repoicon_{_seed(repo)}"
     holder.setTag(want)
+
+    if url is not None and not str(url).strip():
+        # the caller read the cache and there is no icon in it — an empty string
+        # is an answer, unlike None, so no worker goes and reads it again
+        return holder
+
+    cached = peek_bitmap(str(url or ""), size_px)
+    if cached is not None:
+        # straight onto the view, no fade: the icon was already on screen a
+        # moment ago and fading it back in is exactly what reads as a blink
+        try:
+            image.setImageBitmap(cached)
+            image.setVisibility(0)  # VISIBLE
+            mono.setVisibility(8)
+            return holder
+        except Exception as e:
+            logx(f"repoIcon: cached bind error: {e}", False)
 
     def _task():
         target = url if url else icon_url_for(repo)

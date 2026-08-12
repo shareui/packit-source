@@ -65,7 +65,7 @@ def _theme(key: str, fallback: int = 0):
 
 def read_repo_info(repo: dict) -> dict:
     """Everything the card needs, straight out of the cached repomap."""
-    info = {"maintainer": "", "telegram": "", "source": "",
+    info = {"maintainer": "", "telegram": "", "source": "", "icon_url": "",
             "plugins": None, "icons": None, "status": "missing"}
     repo_id = str(repo.get("id") or "")
     if not repo_id:
@@ -84,6 +84,9 @@ def read_repo_info(repo: dict) -> dict:
     info["maintainer"] = str(meta.get("rm_maintainer") or "")
     info["telegram"] = str(meta.get("rm_telegram") or "")
     info["source"] = str(meta.get("rm_source") or "")
+    icon_url = str(meta.get("rm_icon") or "").strip()
+    # older repositories put an R.drawable name in rm_icon; only a link is an icon
+    info["icon_url"] = icon_url if icon_url.lower().startswith(("http://", "https://")) else ""
     # the chip reports whether the source is in use, not how old its cache is:
     # every start refreshes the caches anyway, so an age reading only ever told
     # the reader that they had been offline for a day
@@ -110,6 +113,8 @@ class ReposFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
         self._alive = [True]
         self._fragment = [None]
         self._first_build = True
+        self._handles = []
+        self._signature_shown = None
 
     # ---------------------------------------------------------------- delegate
     def onFragmentCreate(self, *_):
@@ -118,6 +123,8 @@ class ReposFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
     def onFragmentDestroy(self, *_):
         self._alive[0] = False
         unregister(self)
+        self._handles = []
+        self._signature_shown = None
         try:
             if self._root is not None:
                 parent = self._root.getParent()
@@ -162,6 +169,9 @@ class ReposFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
 
             self._list = LinearLayout(act)
             self._list.setOrientation(LinearLayout.VERTICAL)
+            # the container is new, so nothing is on screen to repaint
+            self._handles = []
+            self._signature_shown = None
             content.addView(self._list, LayoutHelper.createLinear(-1, -2))
 
             scroll.addView(content, ScrollView.LayoutParams(-1, -2))
@@ -233,10 +243,31 @@ class ReposFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
 
         run_on_queue(_work)
 
-    def _render(self, act, repos, infos):
-        self._list.removeAllViews()
+    def _signature(self, repos):
+        return [(str(r.get("id") or ""), str(r.get("url") or "")) for r in repos]
 
+    def _render(self, act, repos, infos):
         self._summary.setText(self._summary_text(len(repos)))
+
+        # A repaint is not a rebuild. Flipping a switch writes the list back
+        # through RepositoryManager, which notifies this screen, which used to
+        # throw every card away and build it again — and a fresh card starts
+        # with an empty avatar, so every icon on screen blinked. When the same
+        # sources are still there in the same order, hand each card its new
+        # values and let it repaint itself.
+        signature = self._signature(repos)
+        if signature and signature == self._signature_shown and len(self._handles) == len(repos):
+            for idx, repo in enumerate(repos):
+                update = self._handles[idx].get("update")
+                if update:
+                    update(repo, infos[idx] if idx < len(infos) else {})
+            # a repaint makes fresh chip labels, and those have no font yet
+            applyFontToTree(self._list)
+            return
+
+        self._list.removeAllViews()
+        self._handles = []
+        self._signature_shown = signature
 
         if not repos:
             self._list.addView(self._build_empty_state(act), LayoutHelper.createLinear(-1, -2))
@@ -246,7 +277,9 @@ class ReposFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
 
         for idx, repo in enumerate(repos):
             info = infos[idx] if idx < len(infos) else {}
-            card = make_repo_card(act, repo, info, self._callbacks_for(act, repo))
+            handle = {}
+            card = make_repo_card(act, repo, info, self._callbacks_for(act, repo), handle)
+            self._handles.append(handle)
             lp = LayoutHelper.createLinear(-1, -2, 0, 0, 0, 8)
             self._list.addView(card, lp)
             if self._first_build:
@@ -292,16 +325,18 @@ class ReposFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
     def _callbacks_for(self, act, repo):
         from . import actions
 
-        def _on_toggle(value):
-            idx, _ = self._index_of(repo)
+        # the card passes its own repo dict back: a repaint replaces the one
+        # captured here with the freshly parsed entry
+        def _on_toggle(value, current):
+            idx, _ = self._index_of(current)
             if idx < 0:
                 self.reload()
                 return
-            repo["enabled"] = value
+            current["enabled"] = value
             self.repoManager.updateRepoField(idx, "enabled", value)
 
-        def _on_menu(anchor):
-            actions.show_card_menu(act, self, repo, anchor)
+        def _on_menu(anchor, current):
+            actions.show_card_menu(act, self, current, anchor)
 
         def _on_open(url):
             actions.open_url(act, url)
