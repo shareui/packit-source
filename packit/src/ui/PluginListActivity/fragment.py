@@ -309,6 +309,13 @@ class InstallUI:
                         for item in plugins_raw:
                             if isinstance(item, dict) and item.get("id"):
                                 plugins.append(item)
+                    # the sources screen has no other way to know how big a
+                    # source is: repomap only points at this file by url
+                    try:
+                        from ...utils import repoStats
+                        repoStats.remember(repo_id, plugins=len(plugins))
+                    except Exception as e:
+                        logx(f"InstallUI: repo stats write failed: {e}", True)
                     run_on_ui_thread(lambda: self._update_current_fragment_plugins(plugins))
             except Exception as e:
                 BulletinHelper.show_error(str(strings["pl_load_failed"]))

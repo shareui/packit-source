@@ -1175,6 +1175,7 @@
   "repo_card_status_missing": "Nicht geladen",
   "repo_card_plugins": "{0} Plugins",
   "repo_card_icons": "{0} Icon-Sets",
+  "repo_card_installed": "{0} installiert",
   "repo_edit": "Bearbeiten",
   "repo_copy_link": "Link kopieren",
   "repos_updating": "Quellen werden aktualisiert…",
@@ -1203,6 +1204,8 @@
   "repo_err_unknown": "Unbekannter Fehler: {0}",
   "repos_empty_title": "Noch nichts da",
   "repos_empty_text": "Füge eine Quelle hinzu, um Plugins zu installieren",
+  "repos_footnote": "Plugins und Icon-Pakete stammen aus Quellen. Eine aktivierte Quelle erscheint im Katalog, eine deaktivierte nicht.",
+  "repos_footnote_installed": "Davon sind {0} installiert, aus {1} aktivierten Quellen.",
   "retry": "Erneut versuchen",
   "repo_default_already": "Die Standardquelle ist bereits vorhanden",
   "repo_link_shared": "Link zur Quelle gesendet"

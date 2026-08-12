@@ -1175,6 +1175,7 @@
   "repo_card_status_missing": "Not loaded",
   "repo_card_plugins": "{0} plugins",
   "repo_card_icons": "{0} icon packs",
+  "repo_card_installed": "{0} installed",
   "repo_edit": "Edit",
   "repo_copy_link": "Copy link",
   "repos_updating": "Refreshing repositories…",
@@ -1203,6 +1204,8 @@
   "repo_err_unknown": "Unknown error: {0}",
   "repos_empty_title": "Nothing here yet",
   "repos_empty_text": "Add a source to install plugins",
+  "repos_footnote": "Plugins and icon packs come from sources. An enabled source shows up in the catalogue, a disabled one does not.",
+  "repos_footnote_installed": "{0} of them are installed, across {1} enabled sources.",
   "retry": "Retry",
   "repo_default_already": "The default repository is already there",
   "repo_link_shared": "Repository link sent"

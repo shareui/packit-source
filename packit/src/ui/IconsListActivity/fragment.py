@@ -800,6 +800,13 @@ class InstallIconsUI:
                             logx(f"IconList._open_repo_icons: skipping list item (no id or not dict): {item}", True)
 
                 logx(f"IconList._open_repo_icons: parsed icons count={len(icons)}", True)
+                # left behind for the sources screen: repomap points at this
+                # file by url and carries no count of its own
+                try:
+                    from ...utils import repoStats
+                    repoStats.remember(repo_id, icons=len(icons))
+                except Exception as e:
+                    logx(f"IconList._open_repo_icons: stats write failed: {e}", True)
                 # index build is heavy — run it here on the queue thread
                 prebuilt = search_mod.build_index(icons)
                 run_on_ui_thread(lambda: self._update_current_fragment_icons(icons, prebuilt))

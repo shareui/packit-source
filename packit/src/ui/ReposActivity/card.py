@@ -246,8 +246,16 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
                 make_info_chip(ctx, str(strings.repo_card_icons).replace("{0}", str(icons_n)),
                                "key_avatar_backgroundViolet"),
                 LayoutHelper.createLinear(-2, -2, 0, 0, 6, 0))
-        # with the on/off chip gone most sources have nothing to put here; GONE
-        # takes the row's top margin with it instead of leaving a gap
+        # how much of this source the user is actually running, off the
+        # installer's own per-repository index
+        installed = i.get("installed")
+        if isinstance(installed, int) and installed > 0:
+            chips.addView(
+                make_info_chip(ctx, str(getattr(strings, "repo_card_installed", "{0} installed"))
+                               .replace("{0}", str(installed)), "key_avatar_backgroundGreen"),
+                LayoutHelper.createLinear(-2, -2, 0, 0, 6, 0))
+        # a source nobody has opened yet has nothing to put here; GONE takes the
+        # row's top margin with it instead of leaving a gap
         chips.setVisibility(0 if chips.getChildCount() > 0 else 8)
 
     # filled by the first _apply_enabled below, together with the rest of the
@@ -265,6 +273,24 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
         lp = LinearLayout.LayoutParams(AndroidUtilities.dp(32), AndroidUtilities.dp(32))
         lp.rightMargin = AndroidUtilities.dp(right_margin_dp)
         return lp
+
+    # When a source declares neither a channel nor a repository the footer used
+    # to be one lone overflow button adrift on an empty row. The age of the
+    # cached repomap belongs on a screen about sources anyway — it is what the
+    # counts above it were read from.
+    updated_tv = TextView(ctx)
+    updated_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
+    updated_tv.setSingleLine(True)
+    updated_tv.setEllipsize(TextUtils.TruncateAt.END)
+    updated_tv.setTextColor(_theme("key_windowBackgroundWhiteGrayText"))
+
+    def _fill_updated(i):
+        text = _updated_label(i.get("updated_at"))
+        updated_tv.setText(text)
+        updated_tv.setVisibility(0 if text else 8)
+
+    _fill_updated(info)
+    footer.addView(updated_tv, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
 
     # own container so a repaint can refill it without touching the overflow
     links = LinearLayout(ctx)
@@ -286,9 +312,6 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
 
     _fill_links(info)
     footer.addView(links, LayoutHelper.createLinear(-2, -2))
-
-    spacer = View(ctx)
-    footer.addView(spacer, LayoutHelper.createLinear(0, 0, 1.0))
 
     on_menu = callbacks.get("on_menu")
     menu_btn = _round_icon_button(
@@ -345,6 +368,7 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
             name_tv.setText(str(new_repo.get("name") or strings.unnamed))
             _fill_sub(new_repo, state["info"])
             _fill_links(state["info"])
+            _fill_updated(state["info"])
             new_url = str(state["info"].get("icon_url") or "")
             if new_url != state["icon_url"]:
                 # only an updated repomap can do this, and then it really is a
@@ -423,6 +447,22 @@ def _build_switch(ctx, checked: bool, on_toggle):
     except Exception as e:
         logx(f"repos card: switch unavailable: {e}", False)
         return None
+
+
+def _updated_label(mtime) -> str:
+    # LocaleController already words "just now / N minutes ago / today at …" for
+    # the client's location updates, in every language it ships, and a repomap
+    # cache is the same kind of fact — so the wording comes from there rather
+    # than from four more locale keys of my own.
+    try:
+        seconds = int(float(mtime or 0))
+        if seconds <= 0:
+            return ""
+        from org.telegram.messenger import LocaleController
+        return str(LocaleController.formatLocationUpdateDate(seconds))
+    except Exception as e:
+        logx(f"repos card: updated label unavailable: {e}", True)
+        return ""
 
 
 def _host_of(url) -> str:

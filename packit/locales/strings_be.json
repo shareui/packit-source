@@ -1175,6 +1175,7 @@
   "repo_card_status_missing": "Не загружаны",
   "repo_card_plugins": "{0} плагінаў",
   "repo_card_icons": "{0} набораў",
+  "repo_card_installed": "Усталявана: {0}",
   "repo_edit": "Змяніць",
   "repo_copy_link": "Скапіяваць спасылку",
   "repos_updating": "Абнаўленне крыніц…",
@@ -1203,6 +1204,8 @@
   "repo_err_unknown": "Невядомая памылка: {0}",
   "repos_empty_title": "Пакуль пуста",
   "repos_empty_text": "Дадайце крыніцу, каб ставіць плагіны",
+  "repos_footnote": "Плагіны і наборы значкоў бяруцца з крыніц. Уключаная крыніца з'яўляецца ў каталогу, выключаная — не.",
+  "repos_footnote_installed": "З іх усталявана {0} — крыніц уключана: {1}.",
   "retry": "Паўтарыць",
   "repo_default_already": "Стандартная крыніца ўжо на месцы",
   "repo_link_shared": "Спасылка на крыніцу адпраўлена"
