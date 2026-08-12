@@ -15,7 +15,6 @@ from packutil import logx
 import ctypes
 import json
 import os
-import time
 
 from java import dynamic_proxy
 from android_utils import run_on_ui_thread, OnClickListener
@@ -47,8 +46,6 @@ from . import register, unregister
 from .card import make_repo_card
 from ..viewUtils import applyFontToTree
 from ...utils.paths import getRepoCachePath
-
-_STALE_AFTER = 24 * 60 * 60
 
 
 def _c(color: int) -> int:
@@ -87,11 +84,10 @@ def read_repo_info(repo: dict) -> dict:
     info["maintainer"] = str(meta.get("rm_maintainer") or "")
     info["telegram"] = str(meta.get("rm_telegram") or "")
     info["source"] = str(meta.get("rm_source") or "")
-    try:
-        age = time.time() - os.path.getmtime(path)
-        info["status"] = "stale" if age > _STALE_AFTER else "ok"
-    except Exception:
-        info["status"] = "ok"
+    # the chip reports whether the source is in use, not how old its cache is:
+    # every start refreshes the caches anyway, so an age reading only ever told
+    # the reader that they had been offline for a day
+    info["status"] = "loaded"
 
     # a repomap that is itself the plugin list carries the count; the usual
     # shape only points at it by url, and the screen does not go online to count

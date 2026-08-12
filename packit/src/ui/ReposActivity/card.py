@@ -53,7 +53,8 @@ def _theme(key: str, fallback: int = 0):
         return fallback
 
 
-def _round_icon_button(ctx, icon_name: str, tint: int, on_click, size_dp: int = 36):
+def _round_icon_button(ctx, icon_name: str, tint: int, on_click,
+                       size_dp: int = 32, icon_dp: int = 16):
     btn = FrameLayout(ctx)
     btn.setClickable(True)
     btn.setFocusable(True)
@@ -78,7 +79,7 @@ def _round_icon_button(ctx, icon_name: str, tint: int, on_click, size_dp: int = 
     except Exception:
         pass
     btn.addView(iv, FrameLayout.LayoutParams(
-        AndroidUtilities.dp(18), AndroidUtilities.dp(18), Gravity.CENTER
+        AndroidUtilities.dp(icon_dp), AndroidUtilities.dp(icon_dp), Gravity.CENTER
     ))
     btn.setOnClickListener(OnClickListener(lambda v: on_click()))
     apply_press_scale_on_target(btn, btn)
@@ -173,10 +174,19 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict):
     chips.setOrientation(LinearLayout.HORIZONTAL)
     chips.setGravity(Gravity.CENTER_VERTICAL)
 
-    status = "disabled" if not enabled else str(info.get("status") or "ok")
+    # The chip answers "is this source in use", which is the one thing the
+    # switch beside it is about — it used to report the age of the cache
+    # instead, so a source the reader had just turned off still said "up to
+    # date". A source whose repomap never downloaded is called out separately,
+    # because that one is on and still gives nothing.
+    if not enabled:
+        status = "disabled"
+    elif str(info.get("status") or "") == "missing":
+        status = "missing"
+    else:
+        status = "enabled"
     status_text, status_key = {
-        "ok": (getattr(strings, "repo_card_status_ok", "OK"), "key_avatar_backgroundGreen"),
-        "stale": (getattr(strings, "repo_card_status_stale", "Stale"), "key_windowBackgroundWhiteGrayText"),
+        "enabled": (getattr(strings, "repo_card_status_enabled", "Enabled"), "key_avatar_backgroundGreen"),
         "missing": (getattr(strings, "repo_card_status_missing", "Not loaded"), "key_text_RedBold"),
         "disabled": (getattr(strings, "repo_card_status_disabled", "Disabled"), "key_windowBackgroundWhiteGrayText"),
     }.get(status, (status, "key_windowBackgroundWhiteGrayText"))
@@ -207,8 +217,8 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict):
     src_url = str(info.get("source") or "").strip()
     on_open = callbacks.get("on_open") or (lambda _u: None)
 
-    def _btn_lp(right_margin_dp=8):
-        lp = LinearLayout.LayoutParams(AndroidUtilities.dp(36), AndroidUtilities.dp(36))
+    def _btn_lp(right_margin_dp=6):
+        lp = LinearLayout.LayoutParams(AndroidUtilities.dp(32), AndroidUtilities.dp(32))
         lp.rightMargin = AndroidUtilities.dp(right_margin_dp)
         return lp
 
