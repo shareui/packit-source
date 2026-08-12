@@ -73,13 +73,22 @@ def copy_link(repo: dict):
     BulletinHelper.show_error(str(strings.failed_to_copy))
 
 
+def _share_link(repo: dict) -> str:
+    # The link goes into a telegram message, so it has to survive that client's
+    # url detection: percent-encoding it whole made the message text look like
+    # a link but stopped resolving. Only the name is escaped, and only for the
+    # characters that would otherwise end or split the query.
+    name = str(repo.get("name") or "").strip()
+    for ch, esc in (("%", "%25"), ("&", "%26"), ("=", "%3D"), ("#", "%23"), (" ", "%20")):
+        name = name.replace(ch, esc)
+    url = str(repo.get("url") or "").strip()
+    icon = str(repo.get("icon") or "").strip()
+    return f"tg://packit?repo=add&name={name}&link={url}&icon={icon}"
+
+
 def share_repository(act, repo: dict):
     # the deeplink the other client will resolve back into a repository
-    from urllib.parse import quote
-    name = quote(str(repo.get("name") or "").strip(), safe="")
-    url = quote(str(repo.get("url") or "").strip(), safe="")
-    icon = quote(str(repo.get("icon") or "").strip(), safe="")
-    share_url = f"tg://packit?repo=add&name={name}&link={url}&icon={icon}"
+    share_url = _share_link(repo)
     try:
         from java import jclass, dynamic_proxy
         frag = get_last_fragment()
@@ -146,15 +155,11 @@ def refresh_all(delegate):
 
 def export_repositories(act, delegate):
     repos = delegate.repoManager.getRepositories()
-    from urllib.parse import quote
     links = []
     for repo in repos:
-        url = str(repo.get("url") or "").strip()
-        if not url:
+        if not str(repo.get("url") or "").strip():
             continue
-        name = quote(str(repo.get("name") or "").strip(), safe="")
-        icon = quote(str(repo.get("icon") or "").strip(), safe="")
-        links.append(f"tg://packit?repo=add&name={name}&link={quote(url, safe='')}&icon={icon}")
+        links.append(_share_link(repo))
     if not links:
         BulletinHelper.show_error(str(strings.no_repositories_to_export))
         return

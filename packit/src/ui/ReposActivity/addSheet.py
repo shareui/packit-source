@@ -117,8 +117,11 @@ def _make_field(act, label: str, hint: str, value: str, uri: bool):
     )
     if value:
         edit.setText(value)
+        # cursor stays at the start: putting it at the end scrolls a long url so
+        # that its tail is what you see, and the beginning is the part worth
+        # reading
         try:
-            edit.setSelection(len(value))
+            edit.setSelection(0)
         except Exception:
             pass
     try:
@@ -126,7 +129,7 @@ def _make_field(act, label: str, hint: str, value: str, uri: bool):
         edit.setCursorWidth(1.5)
     except Exception:
         pass
-    edit.setPadding(dp(16), dp(14), dp(16), dp(14))
+    edit.setPadding(dp(4), dp(14), dp(4), dp(14))
     try:
         edit.setEllipsize(TextUtils.TruncateAt.END)
     except Exception:
@@ -137,7 +140,18 @@ def _make_field(act, label: str, hint: str, value: str, uri: bool):
             outline.animateSelection(1 if hasFocus else 0)
 
     edit.setOnFocusChangeListener(_FocusListener())
-    outline.addView(edit, LayoutHelper.createFrame(-1, -2))
+
+    # A scrolled single-line TextView paints over its own padding, so a long url
+    # ran out from under the outline and over the border. The inset lives on a
+    # wrapper that clips to it instead, which the text cannot escape.
+    from android.widget import FrameLayout as _FrameLayout
+    holder = _FrameLayout(act)
+    holder.setPadding(dp(12), 0, dp(12), 0)
+    holder.setClipToPadding(True)
+    holder.setClipChildren(True)
+    holder.addView(edit, LayoutHelper.createFrame(-1, -2))
+
+    outline.addView(holder, LayoutHelper.createFrame(-1, -2))
     outline.attachEditText(edit)
     return outline, edit
 
