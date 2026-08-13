@@ -195,9 +195,9 @@ def _show_confirm_sheet(repometa, pluginCount, name, link, repoManager):
         try:
             from ..ui.ReposActivity.repoIcon import build_icon_view
             icon_view = build_icon_view(
-                act, {"id": rm_rid, "name": rm_name, "url": link}, 64, 18, rm_icon)
+                act, {"id": rm_rid, "name": rm_name, "url": link}, 76, 22, rm_icon)
             linear.addView(icon_view, LayoutHelper.createLinear(
-                64, 64, Gravity.CENTER_HORIZONTAL, 0, 22, 0, 0))
+                76, 76, Gravity.CENTER_HORIZONTAL, 0, 22, 0, 0))
         except Exception as e:
             logx(f"repo deeplink: icon error: {e}", False)
 
@@ -205,7 +205,7 @@ def _show_confirm_sheet(repometa, pluginCount, name, link, repoManager):
         # the buttons are for, and the name is the thing being decided about
         title_tv = TextView(act)
         title_tv.setGravity(Gravity.CENTER_HORIZONTAL)
-        title_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 21)
+        title_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 23)
         title_tv.setSingleLine(True)
         try:
             from android.text import TextUtils as _TextUtils
@@ -220,19 +220,26 @@ def _show_confirm_sheet(repometa, pluginCount, name, link, repoManager):
         title_tv.setTextColor(sheet.getThemedColor(Theme.key_windowBackgroundWhiteBlackText))
         linear.addView(title_tv, LayoutHelper.createFrame(-1, -2, 0, 21.0, 14.0, 21.0, 0.0))
 
-        # maintainer, with the mention live
+        # Maintainer, with the mention live. Medium weight and a size up on the
+        # disclaimer: both are centred grey paragraphs a few dp apart, and at
+        # the same weight the eye read them as one block of small print instead
+        # of as a subtitle belonging to the name above it.
         if rm_maintainer:
             sub_tv = TextView(act)
             sub_tv.setGravity(Gravity.CENTER_HORIZONTAL)
-            sub_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            sub_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
             sub_tv.setTextColor(sheet.getThemedColor(Theme.key_windowBackgroundWhiteGrayText))
+            try:
+                sub_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+            except Exception:
+                pass
             try:
                 sub_tv.setText(LocaleUtils.fullyFormatText(rm_maintainer))
                 sub_tv.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
                 sub_tv.setMovementMethod(LinkMovementMethod.getInstance())
             except Exception:
                 sub_tv.setText(rm_maintainer)
-            linear.addView(sub_tv, LayoutHelper.createFrame(-1, -2, 0, 21.0, 4.0, 21.0, 0.0))
+            linear.addView(sub_tv, LayoutHelper.createFrame(-1, -2, 0, 21.0, 5.0, 21.0, 0.0))
 
         # the facts as pills rather than as a sentence: how much is in there and
         # where it comes from
@@ -251,14 +258,17 @@ def _show_confirm_sheet(repometa, pluginCount, name, link, repoManager):
         except Exception as e:
             logx(f"repo deeplink: chips error: {e}", False)
 
-        # what is left of the disclaimer once the concrete facts are drawn above
+        # What is left of the disclaimer once the concrete facts are drawn
+        # above. It keeps the plain weight and stays the smallest thing here —
+        # that is what tells it apart from the subtitle — but it gains a dp and
+        # a wider gap above, because it was small enough to skip over.
         msg_tv = TextView(act)
         msg_tv.setGravity(Gravity.CENTER_HORIZONTAL)
-        msg_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+        msg_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
         msg_tv.setText(str(strings["repo_add_disclaimer_short"]))
         msg_tv.setTextColor(sheet.getThemedColor(Theme.key_windowBackgroundWhiteGrayText))
-        msg_tv.setLineSpacing(AndroidUtilities.dp(2), 1.0)
-        linear.addView(msg_tv, LayoutHelper.createFrame(-1, -2, 0, 24.0, 14.0, 24.0, 0.0))
+        msg_tv.setLineSpacing(AndroidUtilities.dp(3), 1.0)
+        linear.addView(msg_tv, LayoutHelper.createFrame(-1, -2, 0, 24.0, 18.0, 24.0, 0.0))
 
         # add button
         add_btn = ButtonWithCounterView(act, True, frag.getResourceProvider())
