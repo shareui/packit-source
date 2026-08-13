@@ -3,9 +3,10 @@
 
 # One repository card.
 #
-# Deliberately not the plugin card: that one is a filled surface with a 18dp
-# radius, this is an outlined 16dp container so the two lists read as different
-# places. Everything the card shows comes from the repomap already sitting in
+# A filled 16dp container, a header row and one row under it. It started out
+# outlined, to read as a different kind of thing from the plugin card, but a
+# hairline in the divider colour reads as a stray line and not as an edge.
+# Everything the card shows comes from the repomap already sitting in
 # reposCache — the card never touches the network.
 
 from packutil import logx
@@ -163,7 +164,11 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
 
     card = LinearLayout(ctx)
     card.setOrientation(LinearLayout.VERTICAL)
-    card.setPadding(*(AndroidUtilities.dp(16),) * 4)
+    # Tighter top and bottom than the sides. The rows below the header end in
+    # 32dp circles that already carry their own ring of empty pixels, so a
+    # square 16dp all round measured as more air than it looked like it needed.
+    card.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(14),
+                    AndroidUtilities.dp(16), AndroidUtilities.dp(12))
     card.setClickable(True)
     card.setFocusable(True)
     # PluginCell does both of these on itself, and this is why: with exteraGram's
@@ -343,7 +348,7 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
                 _chip_lp())
         chips.setVisibility(0 if chips.getChildCount() else 8)
 
-    card.addView(chips, LayoutHelper.createLinear(-1, -2, 0, 12, 0, 0))
+    card.addView(chips, LayoutHelper.createLinear(-1, -2, 0, 10, 0, 0))
 
     # ---- the one row: label, then the installed pill and the buttons
     footer = LinearLayout(ctx)
@@ -409,7 +414,7 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
     menu_holder = [menu_btn]
     footer.addView(menu_btn, _btn_lp(0))
 
-    card.addView(footer, LayoutHelper.createLinear(-1, -2, 0, 12, 0, 0))
+    card.addView(footer, LayoutHelper.createLinear(-1, -2, 0, 10, 0, 0))
 
     # the card opens the source's sheet; the switch beside it is what turns the
     # source on and off, so a tap meant for one is never the other

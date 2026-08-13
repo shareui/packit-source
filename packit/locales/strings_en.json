@@ -1204,6 +1204,7 @@
   "repo_err_unknown": "Unknown error: {0}",
   "repos_empty_title": "Nothing here yet",
   "repos_empty_text": "Add a source to install plugins",
+  "repos_manage": "Manage",
   "retry": "Retry",
   "repo_default_already": "The default repository is already there",
   "repo_link_shared": "Repository link sent"

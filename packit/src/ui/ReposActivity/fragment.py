@@ -386,25 +386,33 @@ class ReposFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
 
         row = FrameLayout(act)
 
+        # Left, not centred: a count centred over a left-aligned list has
+        # nothing under it to line up with, and the cards below all start at
+        # the same edge this now starts at.
         self._summary = TextView(act)
         self._summary.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
         self._summary.setGravity(Gravity.CENTER)
-        self._summary.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(7),
-                                 AndroidUtilities.dp(12), AndroidUtilities.dp(7))
+        self._summary.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(7),
+                                 AndroidUtilities.dp(14), AndroidUtilities.dp(7))
         self._summary.setTextColor(text_color)
         try:
             self._summary.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
                 AndroidUtilities.dp(16), card_bg, card_bg))
         except Exception as e:
             logx(f"repos fragment: summary pill background error: {e}", True)
-        row.addView(self._summary, FrameLayout.LayoutParams(-2, -2, Gravity.CENTER))
+        row.addView(self._summary, FrameLayout.LayoutParams(
+            -2, -2, Gravity.LEFT | Gravity.CENTER_VERTICAL))
 
-        # the bulk actions the old screen kept under "Дополнительно"
+        # the bulk actions the old screen kept under "Дополнительно". Labelled,
+        # not a bare icon: an icon on its own says nothing about what is behind
+        # it, and there is room on this row for the word.
         def _menu(v=None):
             from . import actions
             actions.show_bulk_menu(act, self, menu_btn)
 
-        menu_btn = FrameLayout(act)
+        menu_btn = LinearLayout(act)
+        menu_btn.setOrientation(LinearLayout.HORIZONTAL)
+        menu_btn.setGravity(Gravity.CENTER_VERTICAL)
         menu_btn.setClickable(True)
         menu_btn.setFocusable(True)
         try:
@@ -412,15 +420,28 @@ class ReposFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                 AndroidUtilities.dp(16), card_bg, card_pressed))
         except Exception:
             pass
-        menu_btn.setPadding(*(AndroidUtilities.dp(8),) * 4)
+        menu_btn.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(8),
+                            AndroidUtilities.dp(14), AndroidUtilities.dp(8))
         menu_icon = ImageView(act)
         try:
             menu_icon.setImageResource(getattr(R_tg.drawable, "msg_customize"))
             menu_icon.setColorFilter(text_color)
         except Exception:
             pass
-        menu_btn.addView(menu_icon, FrameLayout.LayoutParams(
-            AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
+        icon_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
+        icon_lp.rightMargin = AndroidUtilities.dp(6)
+        menu_btn.addView(menu_icon, icon_lp)
+
+        menu_label = TextView(act)
+        menu_label.setText(str(getattr(strings, "repos_manage", "Manage")))
+        menu_label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+        menu_label.setTextColor(text_color)
+        try:
+            menu_label.setTypeface(AndroidUtilities.bold())
+        except Exception:
+            pass
+        menu_btn.addView(menu_label, LinearLayout.LayoutParams(-2, -2))
+
         menu_btn.setOnClickListener(OnClickListener(_menu))
         apply_press_scale_on_target(menu_btn, menu_btn)
         row.addView(menu_btn, FrameLayout.LayoutParams(

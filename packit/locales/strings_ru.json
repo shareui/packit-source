@@ -1204,6 +1204,7 @@
   "repo_err_unknown": "Неизвестная ошибка: {0}",
   "repos_empty_title": "Пока пусто",
   "repos_empty_text": "Добавьте источник, чтобы ставить плагины",
+  "repos_manage": "Управление",
   "retry": "Повторить",
   "repo_default_already": "Стандартный источник уже на месте",
   "repo_link_shared": "Ссылка на источник отправлена"
