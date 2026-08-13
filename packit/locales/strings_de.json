@@ -169,6 +169,7 @@
   "repo_add_fetching": "Repository-Daten werden abgerufen...",
   "repo_add_fetch_failed": "Das Abrufen der Repository-Daten ist fehlgeschlagen.",
   "repo_add_disclaimer": "PackIt ist nicht für den Inhalt von {0} verantwortlich. Alle Rechte und Pflichten liegen beim Eigentümer {1}.\n\nPlugin-Anzahl: {2}",
+  "repo_add_disclaimer_short": "PackIt ist nicht für den Inhalt einer Quelle verantwortlich, sondern deren Besitzer.",
   "repo_add_no_repometa": "Das Repository verfügt über keine Metadaten. Trotzdem hinzufügen?\n\nPlugin-Anzahl: {0}",
   "sort_title": "Plugins sortieren",
   "sort_title_icons": "Symbolpakete sortieren",

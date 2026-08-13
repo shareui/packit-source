@@ -82,8 +82,10 @@ def _share_link(repo: dict) -> str:
     for ch, esc in (("%", "%25"), ("&", "%26"), ("=", "%3D"), ("#", "%23"), (" ", "%20")):
         name = name.replace(ch, esc)
     url = str(repo.get("url") or "").strip()
-    icon = str(repo.get("icon") or "").strip()
-    return f"tg://packit?repo=add&name={name}&link={url}&icon={icon}"
+    # no icon= any more: it carried an R.drawable name, and the other side now
+    # takes the picture from the repomap. Links already sent with one still
+    # work — the argument is accepted and ignored.
+    return f"tg://packit?repo=add&name={name}&link={url}"
 
 
 def share_repository(act, repo: dict):

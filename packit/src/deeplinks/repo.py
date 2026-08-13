@@ -6,7 +6,7 @@ from ..utils.bulletins import factory as _pbf
 from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment, run_on_queue
 from android_utils import run_on_ui_thread, OnClickListener
-from android.widget import LinearLayout, TextView, FrameLayout, ImageView, ScrollView
+from android.widget import LinearLayout, TextView, FrameLayout, ScrollView
 from android.util import TypedValue
 from android.view import Gravity
 from android.graphics.drawable import GradientDrawable
@@ -40,7 +40,13 @@ import os
 
 BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
 
-# repo=add: required: link — optional: name, icon
+# repo=add: required: link — optional: name
+#
+# "icon" stays in the accepted set and is read nowhere. It used to name an
+# R.drawable, which is not how a repository is pictured any more — the icon
+# comes out of the repomap the link points at. Links minted before that are
+# still in people's chats, so the argument has to be tolerated rather than
+# rejected; it is simply ignored.
 _REPO_ADD_REQUIRED = {"link"}
 _REPO_ADD_OPTIONAL = {"name", "icon"}
 _REPO_ADD_ALL = _REPO_ADD_REQUIRED | _REPO_ADD_OPTIONAL
@@ -49,6 +55,22 @@ _REPO_ADD_ALL = _REPO_ADD_REQUIRED | _REPO_ADD_OPTIONAL
 def _get_cache_dir() -> str:
     from ..utils.paths import getReposCacheDir
     return getReposCacheDir()
+
+
+def _sheet_chip(act, text: str):
+    # the same pill the source cards use, so the sheet that adds a source and
+    # the card it becomes are recognisably the same thing
+    from ..ui.ReposActivity.card import _chip
+    from ..ui.ReposActivity.repoIcon import accent_for
+    return _chip(act, text, accent_for({}))
+
+
+def _sheet_chip_lp(margin_dp=3):
+    from ..ui.ReposActivity.card import _ROW_H
+    lp = LinearLayout.LayoutParams(-2, AndroidUtilities.dp(_ROW_H))
+    lp.leftMargin = AndroidUtilities.dp(margin_dp)
+    lp.rightMargin = AndroidUtilities.dp(margin_dp)
+    return lp
 
 
 def handle(url, repoManager):
@@ -70,7 +92,6 @@ def handle(url, repoManager):
 
         name = query.get("name", [""])[0].strip()
         link = query.get("link", [""])[0].strip()
-        icon = query.get("icon", [""])[0].strip()
 
         if not link:
             BulletinHelper.show_error(strings.repo_add_invalid)
@@ -129,14 +150,14 @@ def handle(url, repoManager):
             except Exception as e:
                 logx(f"repo deeplink: fetch error: {e}", False)
 
-            run_on_ui_thread(lambda: _show_confirm_sheet(repometa, pluginCount, name, link, icon, repoManager))
+            run_on_ui_thread(lambda: _show_confirm_sheet(repometa, pluginCount, name, link, repoManager))
 
         run_on_queue(fetch_task)
     except Exception as e:
         logx(f"repo deeplink: handle error: {e}", False)
 
 
-def _show_confirm_sheet(repometa, pluginCount, name, link, icon, repoManager):
+def _show_confirm_sheet(repometa, pluginCount, name, link, repoManager):
     try:
         frag = get_last_fragment()
         act = frag.getParentActivity() if frag else None
@@ -147,11 +168,16 @@ def _show_confirm_sheet(repometa, pluginCount, name, link, icon, repoManager):
             BulletinHelper.show_error(str(strings["dl_repo_no_metadata"]))
             return
 
+        rm_rid = str(repometa.get("rm_rid") or "")
+        rm_name = str(repometa.get("rm_name") or name or "")
         rm_url = str(repometa.get("rm_url") or link)
-        rm_url_display = rm_url.removeprefix("https://").removeprefix("http://")
+        rm_url_display = rm_url.removeprefix("https://").removeprefix("http://").rstrip("/")
         rm_maintainer = str(repometa.get("rm_maintainer") or name)
-        rm_icon = icon if icon else str(repometa.get("rm_icon") or "msg_folders")
-        disclaimer_text = strings("repo_add_disclaimer", rm_url_display, rm_maintainer, pluginCount)
+        # only ever the repomap's own picture — the link's icon argument named an
+        # R.drawable, and a repository is not a glyph out of the client's sheet
+        rm_icon = str(repometa.get("rm_icon") or "").strip()
+        if not rm_icon.lower().startswith(("http://", "https://")):
+            rm_icon = ""
 
         sheet = BottomSheet(act, False, frag.getResourceProvider())
         sheet.fixNavigationBar()
@@ -161,49 +187,78 @@ def _show_confirm_sheet(repometa, pluginCount, name, link, icon, repoManager):
         linear.setOrientation(LinearLayout.VERTICAL)
         frame.addView(linear)
 
-        # icon centered — rm_icon is an image url in current repomaps and a
-        # R.drawable name in older ones, so both have to work here
+        # The source itself, drawn the way the sources screen draws it: the
+        # repomap's picture, falling back to a monogram on a tonal square. What
+        # used to be here was a folder glyph tinted with the accent — the same
+        # picture for every repository in existence, which told the reader
+        # nothing about the one they were about to add.
         try:
-            icon_view = ImageView(act)
-            if str(rm_icon).lower().startswith(("http://", "https://")):
-                from ..ui.ReposActivity.repoIcon import load_url_into
-                load_url_into(icon_view, rm_icon, 48)
-            else:
-                icon_id = getattr(R_tg.drawable, rm_icon, 0)
-                if not icon_id:
-                    icon_id = getattr(R_tg.drawable, "msg_folders", 0)
-                if icon_id:
-                    icon_view.setImageResource(icon_id)
-                icon_view.setColorFilter(Theme.getColor(Theme.key_featuredStickers_addButton))
-            linear.addView(icon_view, LayoutHelper.createLinear(48, 48, Gravity.CENTER_HORIZONTAL, 0, 20, 0, 0))
+            from ..ui.ReposActivity.repoIcon import build_icon_view
+            icon_view = build_icon_view(
+                act, {"id": rm_rid, "name": rm_name, "url": link}, 64, 18, rm_icon)
+            linear.addView(icon_view, LayoutHelper.createLinear(
+                64, 64, Gravity.CENTER_HORIZONTAL, 0, 22, 0, 0))
         except Exception as e:
             logx(f"repo deeplink: icon error: {e}", False)
 
-        # title
+        # the repository's name, not "Add repository?" — the question is what
+        # the buttons are for, and the name is the thing being decided about
         title_tv = TextView(act)
         title_tv.setGravity(Gravity.CENTER_HORIZONTAL)
-        title_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20)
+        title_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 21)
+        title_tv.setSingleLine(True)
+        try:
+            from android.text import TextUtils as _TextUtils
+            title_tv.setEllipsize(_TextUtils.TruncateAt.END)
+        except Exception:
+            pass
         try:
             title_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
         except Exception:
             title_tv.setTypeface(AndroidUtilities.bold())
-        title_tv.setText(strings.repo_add_title)
+        title_tv.setText(rm_name or str(strings.repo_add_title))
         title_tv.setTextColor(sheet.getThemedColor(Theme.key_windowBackgroundWhiteBlackText))
-        linear.addView(title_tv, LayoutHelper.createFrame(-1, -2, 0, 21.0, 16.0, 21.0, 0.0))
+        linear.addView(title_tv, LayoutHelper.createFrame(-1, -2, 0, 21.0, 14.0, 21.0, 0.0))
 
-        # disclaimer with accent links
+        # maintainer, with the mention live
+        if rm_maintainer:
+            sub_tv = TextView(act)
+            sub_tv.setGravity(Gravity.CENTER_HORIZONTAL)
+            sub_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+            sub_tv.setTextColor(sheet.getThemedColor(Theme.key_windowBackgroundWhiteGrayText))
+            try:
+                sub_tv.setText(LocaleUtils.fullyFormatText(rm_maintainer))
+                sub_tv.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
+                sub_tv.setMovementMethod(LinkMovementMethod.getInstance())
+            except Exception:
+                sub_tv.setText(rm_maintainer)
+            linear.addView(sub_tv, LayoutHelper.createFrame(-1, -2, 0, 21.0, 4.0, 21.0, 0.0))
+
+        # the facts as pills rather than as a sentence: how much is in there and
+        # where it comes from
+        try:
+            chips_row = LinearLayout(act)
+            chips_row.setOrientation(LinearLayout.HORIZONTAL)
+            chips_row.setGravity(Gravity.CENTER)
+            if pluginCount:
+                chips_row.addView(
+                    _sheet_chip(act, str(strings.repo_card_plugins).replace("{0}", str(pluginCount))),
+                    _sheet_chip_lp(3))
+            if rm_url_display:
+                chips_row.addView(_sheet_chip(act, rm_url_display), _sheet_chip_lp(3))
+            if chips_row.getChildCount():
+                linear.addView(chips_row, LayoutHelper.createFrame(-1, -2, 0, 16.0, 14.0, 16.0, 0.0))
+        except Exception as e:
+            logx(f"repo deeplink: chips error: {e}", False)
+
+        # what is left of the disclaimer once the concrete facts are drawn above
         msg_tv = TextView(act)
         msg_tv.setGravity(Gravity.CENTER_HORIZONTAL)
-        msg_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
-        try:
-            msg_tv.setText(LocaleUtils.fullyFormatText(disclaimer_text))
-            msg_tv.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
-            msg_tv.setMovementMethod(LinkMovementMethod.getInstance())
-        except Exception:
-            msg_tv.setText(disclaimer_text)
+        msg_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+        msg_tv.setText(str(strings["repo_add_disclaimer_short"]))
         msg_tv.setTextColor(sheet.getThemedColor(Theme.key_windowBackgroundWhiteGrayText))
         msg_tv.setLineSpacing(AndroidUtilities.dp(2), 1.0)
-        linear.addView(msg_tv, LayoutHelper.createFrame(-1, -2, 0, 21.0, 12.0, 21.0, 0.0))
+        linear.addView(msg_tv, LayoutHelper.createFrame(-1, -2, 0, 24.0, 14.0, 24.0, 0.0))
 
         # add button
         add_btn = ButtonWithCounterView(act, True, frag.getResourceProvider())
@@ -224,13 +279,14 @@ def _show_confirm_sheet(repometa, pluginCount, name, link, icon, repoManager):
                             sheet.dismiss()
                             return
 
+                    # no "icon": it held an R.drawable name and nothing reads
+                    # one any more — the picture comes from the repomap
                     newRepo = {
                         "id": rm_rid,
                         "name": repo_name,
                         "url": link,
                         "enabled": True,
                         "collapsed": False,
-                        "icon": icon if icon else "msg_folders"
                     }
                     currentRepos.append(newRepo)
                     repoManager.setRepositories(currentRepos)

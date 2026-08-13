@@ -190,52 +190,6 @@ def _load_bitmap(url: str, px: int):
     return bmp
 
 
-def load_url_into(image_view, url: str, size_dp: int = 48):
-    # for callers that already have their own ImageView (the repo=add deeplink
-    # sheet), no monogram layer involved
-    if not url:
-        return
-    size_px = AndroidUtilities.dp(size_dp)
-    want = f"packit_repoicon_url_{abs(hash(url))}"
-    try:
-        image_view.setTag(want)
-    except Exception:
-        pass
-
-    cached = peek_bitmap(url, size_px)
-    if cached is not None:
-        try:
-            image_view.setImageBitmap(cached)
-            try:
-                image_view.setColorFilter(None)
-            except Exception:
-                pass
-            return
-        except Exception as e:
-            logx(f"repoIcon: cached url bind error: {e}", False)
-
-    def _task():
-        bmp = _load_bitmap(url, size_px)
-        if bmp is None:
-            return
-
-        def _apply():
-            try:
-                if str(image_view.getTag() or "") != want:
-                    return
-                image_view.setImageBitmap(bmp)
-                try:
-                    image_view.setColorFilter(None)
-                except Exception:
-                    pass
-            except Exception as e:
-                logx(f"repoIcon: url bind error: {e}", False)
-
-        run_on_ui_thread(_apply)
-
-    imagePool.submit(_task)
-
-
 def build_icon_view(ctx, repo: dict, size_dp: int = 48, radius_dp: int = 14, url=None):
     # monogram now, real icon when it arrives — unless it has already arrived
     # once, in which case it is on screen before the card is
