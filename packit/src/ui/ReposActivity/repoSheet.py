@@ -45,6 +45,22 @@ def _theme(key: str, fallback: int = 0):
         return fallback
 
 
+def _updated_label(mtime) -> str:
+    # LocaleController already words "just now / N minutes ago / today at …" for
+    # the client's location updates, in every language it ships, and a repomap
+    # cache is the same kind of fact — so the wording comes from there rather
+    # than from four more locale keys of my own.
+    try:
+        seconds = int(float(mtime or 0))
+        if seconds <= 0:
+            return ""
+        from org.telegram.messenger import LocaleController
+        return str(LocaleController.formatLocationUpdateDate(seconds))
+    except Exception as e:
+        logx(f"repoSheet: updated label unavailable: {e}", True)
+        return ""
+
+
 def _handle(ctx):
     from android.graphics.drawable import GradientDrawable
     bar = TextView(ctx)
@@ -121,6 +137,16 @@ def show_repo_sheet(act, repo: dict, info: dict = None):
 
             header.addView(col, LayoutHelper.createLinear(-1, -2))
             root.addView(header, LayoutHelper.createLinear(-1, -2))
+
+            # off the card and in here, where a detail has room to be read in
+            # full instead of being squeezed to "обновлена т…"
+            updated = _updated_label(info.get("updated_at"))
+            if updated:
+                upd = TextView(act)
+                upd.setText(updated)
+                upd.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13)
+                upd.setTextColor(_theme("key_dialogTextGray2"))
+                root.addView(upd, LayoutHelper.createLinear(-1, -2, 0, 16, 0, 0))
 
             sheet.setCustomView(root)
             applyFontToTree(root)

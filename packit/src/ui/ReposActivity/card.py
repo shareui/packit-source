@@ -350,36 +350,34 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
 
     card.addView(chips, LayoutHelper.createLinear(-1, -2, 0, 10, 0, 0))
 
-    # ---- the one row: label, then the installed pill and the buttons
+    # ---- the one row: the installed pill on the left, the buttons on the right
+    #
+    # The fetch time used to hold this left side. It was the wrong thing to
+    # give a whole row to — the pill beside it kept squeezing it down to
+    # "обновлена т…", and no one opens this screen to read a timestamp. It
+    # moved into the sheet the card opens, which is where a detail belongs.
     footer = LinearLayout(ctx)
     footer.setOrientation(LinearLayout.HORIZONTAL)
     footer.setGravity(Gravity.CENTER_VERTICAL)
-
-    updated_tv = TextView(ctx)
-    updated_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
-    updated_tv.setSingleLine(True)
-    updated_tv.setEllipsize(TextUtils.TruncateAt.END)
-    updated_tv.setTextColor(_theme("key_windowBackgroundWhiteGrayText"))
-    # weighted: it is the only thing here that can afford to give up room, so a
-    # long pill shortens the label instead of pushing a button off the card
-    footer.addView(updated_tv, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
 
     installed_box = LinearLayout(ctx)
     installed_box.setOrientation(LinearLayout.HORIZONTAL)
     installed_box.setGravity(Gravity.CENTER_VERTICAL)
     footer.addView(installed_box, LayoutHelper.createLinear(-2, -2))
 
-    def _fill_updated(i):
-        text = _updated_label(i.get("updated_at"))
-        updated_tv.setText(text)
-        updated_tv.setVisibility(0 if text else 8)
+    footer.addView(View(ctx), LayoutHelper.createLinear(0, 0, 1.0))
 
+    def _fill_installed(i):
+        # always drawn, zero included: a source you have taken nothing from is
+        # a fact worth stating, and a pill that comes and goes makes the row
+        # jump around as the numbers change
         installed_box.removeAllViews()
         installed = i.get("installed")
-        if isinstance(installed, int) and installed > 0:
-            installed_box.addView(
-                _chip(ctx, str(getattr(strings, "repo_card_installed", "{0} installed"))
-                      .replace("{0}", str(installed)), accent), _chip_lp(8))
+        if not isinstance(installed, int) or installed < 0:
+            installed = 0
+        installed_box.addView(
+            _chip(ctx, str(getattr(strings, "repo_card_installed", "{0} installed"))
+                  .replace("{0}", str(installed)), accent), _chip_lp(8))
 
     # own container so a repaint can refill it without touching the overflow
     links = LinearLayout(ctx)
@@ -399,7 +397,7 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
                 _round_icon_button(ctx, "msg_link", accent, lambda u=src_url: on_open(u)),
                 _btn_lp())
 
-    _fill_updated(info)
+    _fill_installed(info)
     _fill_links(info)
     footer.addView(links, LayoutHelper.createLinear(-2, -2))
 
@@ -435,7 +433,7 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
             pass
         _fill_chips(is_on, state["info"])
         target = 1.0 if is_on else 0.55
-        for view in (icon_holder[0], col, chips, updated_tv, installed_box):
+        for view in (icon_holder[0], col, chips, installed_box):
             try:
                 if animate:
                     view.animate().alpha(target).setDuration(160).start()
@@ -459,7 +457,7 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
             name_tv.setText(str(new_repo.get("name") or strings.unnamed))
             _fill_sub(new_repo, state["info"])
             _fill_links(state["info"])
-            _fill_updated(state["info"])
+            _fill_installed(state["info"])
             new_url = str(state["info"].get("icon_url") or "")
             if new_url != state["icon_url"]:
                 # only an updated repomap can do this, and then it really is a
@@ -519,22 +517,6 @@ def _build_switch(ctx, checked: bool):
     except Exception as e:
         logx(f"repos card: switch unavailable: {e}", False)
         return None
-
-
-def _updated_label(mtime) -> str:
-    # LocaleController already words "just now / N minutes ago / today at …" for
-    # the client's location updates, in every language it ships, and a repomap
-    # cache is the same kind of fact — so the wording comes from there rather
-    # than from four more locale keys of my own.
-    try:
-        seconds = int(float(mtime or 0))
-        if seconds <= 0:
-            return ""
-        from org.telegram.messenger import LocaleController
-        return str(LocaleController.formatLocationUpdateDate(seconds))
-    except Exception as e:
-        logx(f"repos card: updated label unavailable: {e}", True)
-        return ""
 
 
 def _host_of(url) -> str:
