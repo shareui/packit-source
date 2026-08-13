@@ -40,24 +40,42 @@ from ..PluginListActivity.helpers.uiHelpers import (
 )
 
 
+_ROW_H = 32  # every pill on the card is this tall: chips and round buttons alike
+
+
 def _chip(ctx, text: str, tint: int):
     # uiHelpers.make_info_chip fills at a third alpha and paints the label in a
     # palette colour. Both are wrong here: the fill has to be solid, and the
     # colour has to be the theme's, not a green borrowed from the avatar
     # palette that no other pixel on the screen is using.
+    #
+    # The geometry is md3's assist chip — 32dp tall, fully rounded — which is
+    # also the size of the round buttons it shares a card with, so a chip and a
+    # button standing next to each other line up instead of nearly lining up.
     surface = _theme("key_windowBackgroundWhite")
     bg = GradientDrawable()
     bg.setShape(GradientDrawable.RECTANGLE)
-    bg.setCornerRadius(float(AndroidUtilities.dp(8)))
+    bg.setCornerRadius(float(AndroidUtilities.dp(_ROW_H) / 2))
     bg.setColor(repoIcon.tonal(tint, surface, 0.16))
     tv = TextView(ctx)
     tv.setText(text)
-    tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11)
+    tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
     tv.setTextColor(_alpha(tint, 0xFF))
+    tv.setSingleLine(True)
+    tv.setGravity(Gravity.CENTER)
     tv.setBackground(bg)
-    tv.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(3),
-                  AndroidUtilities.dp(8), AndroidUtilities.dp(3))
+    tv.setPadding(AndroidUtilities.dp(12), 0, AndroidUtilities.dp(12), 0)
+    try:
+        tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+    except Exception:
+        pass
     return tv
+
+
+def _chip_lp(right_margin_dp=6):
+    lp = LinearLayout.LayoutParams(-2, AndroidUtilities.dp(_ROW_H))
+    lp.rightMargin = AndroidUtilities.dp(right_margin_dp)
+    return lp
 
 
 def _c(color: int) -> int:
@@ -265,8 +283,13 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
         except Exception as e:
             logx(f"repos card: switch ripple unavailable: {e}", True)
 
+        # right-aligned inside the wrapper, not centred: the wrapper is 19dp
+        # wider than the switch purely to be easier to hit, and centring it
+        # pushed the pill 9dp in from the card's content edge — out of line with
+        # the overflow button directly below it. The slack goes leftward, which
+        # is the side a thumb arrives from anyway.
         sw_inner = FrameLayout.LayoutParams(AndroidUtilities.dp(37), AndroidUtilities.dp(40))
-        sw_inner.gravity = Gravity.CENTER
+        sw_inner.gravity = Gravity.RIGHT | Gravity.CENTER_VERTICAL
         sw_wrap.addView(switch, sw_inner)
 
         sw_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(56), AndroidUtilities.dp(48))
@@ -276,7 +299,59 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
 
     card.addView(header, LayoutHelper.createLinear(-1, -2))
 
-    # ---- chips: status and what the repository carries
+    # Two rows under the header, both 32dp and both anchored the same way: what
+    # the card knows on the left, what it offers on the right. Before this the
+    # numbers sat left and the buttons right on a row of their own, so the eye
+    # had to start in a different place on each line and the last row was often
+    # a single overflow button by itself.
+    on_open = callbacks.get("on_open") or (lambda _u: None)
+
+    def _btn_lp(right_margin_dp=6):
+        lp = LinearLayout.LayoutParams(AndroidUtilities.dp(_ROW_H), AndroidUtilities.dp(_ROW_H))
+        lp.rightMargin = AndroidUtilities.dp(right_margin_dp)
+        return lp
+
+    # ---- meta row: when it was fetched | how much of it is installed
+    meta = LinearLayout(ctx)
+    meta.setOrientation(LinearLayout.HORIZONTAL)
+    meta.setGravity(Gravity.CENTER_VERTICAL)
+
+    updated_tv = TextView(ctx)
+    updated_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
+    updated_tv.setSingleLine(True)
+    updated_tv.setEllipsize(TextUtils.TruncateAt.END)
+    updated_tv.setTextColor(_theme("key_windowBackgroundWhiteGrayText"))
+    # weighted, so a long "installed" chip eats into the label rather than
+    # pushing itself off the card
+    meta.addView(updated_tv, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
+
+    installed_box = LinearLayout(ctx)
+    installed_box.setOrientation(LinearLayout.HORIZONTAL)
+    installed_box.setGravity(Gravity.CENTER_VERTICAL)
+    meta.addView(installed_box, LayoutHelper.createLinear(-2, -2))
+
+    def _fill_meta(i):
+        text = _updated_label(i.get("updated_at"))
+        updated_tv.setText(text)
+        updated_tv.setVisibility(0 if text else 8)
+
+        installed_box.removeAllViews()
+        installed = i.get("installed")
+        if isinstance(installed, int) and installed > 0:
+            installed_box.addView(
+                _chip(ctx, str(getattr(strings, "repo_card_installed", "{0} installed"))
+                      .replace("{0}", str(installed)), accent), _chip_lp(0))
+        meta.setVisibility(0 if (text or installed_box.getChildCount()) else 8)
+
+    _fill_meta(info)
+    card.addView(meta, LayoutHelper.createLinear(-1, _ROW_H, 0, 12, 0, 0))
+
+    # ---- action row: what it carries on the left, what you can do on the right
+    footer = LinearLayout(ctx)
+    footer.setOrientation(LinearLayout.HORIZONTAL)
+    footer.setGravity(Gravity.CENTER_VERTICAL)
+
+    # own containers so a repaint can refill them without touching the overflow
     chips = LinearLayout(ctx)
     chips.setOrientation(LinearLayout.HORIZONTAL)
     chips.setGravity(Gravity.CENTER_VERTICAL)
@@ -288,71 +363,28 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
         # A source whose repomap never downloaded still gets a chip, because
         # nothing else on the card says that — it is switched on and gives
         # nothing, which the switch cannot show.
-        chip_lp = LayoutHelper.createLinear(-2, -2, 0, 0, 6, 0)
         if is_on and str(i.get("status") or "") == "missing":
             # the one chip that is not the accent: this is a fault, and the
             # theme has a colour for those
             chips.addView(
                 _chip(ctx, str(getattr(strings, "repo_card_status_missing", "Not loaded")),
-                      _theme("key_text_RedBold")), chip_lp)
-
+                      _theme("key_text_RedBold")), _chip_lp())
         plugins = i.get("plugins")
         if isinstance(plugins, int):
             chips.addView(
                 _chip(ctx, str(strings.repo_card_plugins).replace("{0}", str(plugins)), accent),
-                LayoutHelper.createLinear(-2, -2, 0, 0, 6, 0))
+                _chip_lp())
         icons_n = i.get("icons")
         if isinstance(icons_n, int):
             chips.addView(
                 _chip(ctx, str(strings.repo_card_icons).replace("{0}", str(icons_n)), accent),
-                LayoutHelper.createLinear(-2, -2, 0, 0, 6, 0))
-        # how much of this source the user is actually running, off the
-        # installer's own per-repository index
-        installed = i.get("installed")
-        if isinstance(installed, int) and installed > 0:
-            chips.addView(
-                _chip(ctx, str(getattr(strings, "repo_card_installed", "{0} installed"))
-                      .replace("{0}", str(installed)), accent),
-                LayoutHelper.createLinear(-2, -2, 0, 0, 6, 0))
-        # a source nobody has opened yet has nothing to put here; GONE takes the
-        # row's top margin with it instead of leaving a gap
-        chips.setVisibility(0 if chips.getChildCount() > 0 else 8)
+                _chip_lp())
 
-    # filled by the first _apply_enabled below, together with the rest of the
-    # state that depends on the switch
-    card.addView(chips, LayoutHelper.createLinear(-1, -2, 0, 12, 0, 0))
+    footer.addView(chips, LayoutHelper.createLinear(-2, -2))
 
-    # ---- footer: telegram / source, overflow on the right
-    footer = LinearLayout(ctx)
-    footer.setOrientation(LinearLayout.HORIZONTAL)
-    footer.setGravity(Gravity.CENTER_VERTICAL)
+    spacer = View(ctx)
+    footer.addView(spacer, LayoutHelper.createLinear(0, 0, 1.0))
 
-    on_open = callbacks.get("on_open") or (lambda _u: None)
-
-    def _btn_lp(right_margin_dp=6):
-        lp = LinearLayout.LayoutParams(AndroidUtilities.dp(32), AndroidUtilities.dp(32))
-        lp.rightMargin = AndroidUtilities.dp(right_margin_dp)
-        return lp
-
-    # When a source declares neither a channel nor a repository the footer used
-    # to be one lone overflow button adrift on an empty row. The age of the
-    # cached repomap belongs on a screen about sources anyway — it is what the
-    # counts above it were read from.
-    updated_tv = TextView(ctx)
-    updated_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
-    updated_tv.setSingleLine(True)
-    updated_tv.setEllipsize(TextUtils.TruncateAt.END)
-    updated_tv.setTextColor(_theme("key_windowBackgroundWhiteGrayText"))
-
-    def _fill_updated(i):
-        text = _updated_label(i.get("updated_at"))
-        updated_tv.setText(text)
-        updated_tv.setVisibility(0 if text else 8)
-
-    _fill_updated(info)
-    footer.addView(updated_tv, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
-
-    # own container so a repaint can refill it without touching the overflow
     links = LinearLayout(ctx)
     links.setOrientation(LinearLayout.HORIZONTAL)
     links.setGravity(Gravity.CENTER_VERTICAL)
@@ -384,7 +416,7 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
     menu_holder = [menu_btn]
     footer.addView(menu_btn, _btn_lp(0))
 
-    card.addView(footer, LayoutHelper.createLinear(-1, -2, 0, 10, 0, 0))
+    card.addView(footer, LayoutHelper.createLinear(-1, _ROW_H, 0, 8, 0, 0))
 
     # the card opens the source's sheet; the switch beside it is what turns the
     # source on and off, so a tap meant for one is never the other
@@ -405,7 +437,7 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
             pass
         _fill_chips(is_on, state["info"])
         target = 1.0 if is_on else 0.55
-        for view in (icon_holder[0], col, chips):
+        for view in (icon_holder[0], col, meta, chips):
             try:
                 if animate:
                     view.animate().alpha(target).setDuration(160).start()
@@ -429,7 +461,7 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
             name_tv.setText(str(new_repo.get("name") or strings.unnamed))
             _fill_sub(new_repo, state["info"])
             _fill_links(state["info"])
-            _fill_updated(state["info"])
+            _fill_meta(state["info"])
             new_url = str(state["info"].get("icon_url") or "")
             if new_url != state["icon_url"]:
                 # only an updated repomap can do this, and then it really is a
