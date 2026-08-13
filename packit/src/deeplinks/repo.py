@@ -73,6 +73,18 @@ def _sheet_chip_lp(margin_dp=3):
     return lp
 
 
+def _balance_lines(tv):
+    # Android breaks a paragraph greedily by default: it fills the first line to
+    # the margin and drops whatever is left onto the second, which for a
+    # centred two-line sentence leaves one word stranded under a full line.
+    # BALANCED asks the line breaker to even the lines out instead.
+    try:
+        from android.text import Layout
+        tv.setBreakStrategy(Layout.BREAK_STRATEGY_BALANCED)
+    except Exception as e:
+        logx(f"repo deeplink: balanced break unavailable: {e}", True)
+
+
 def handle(url, repoManager):
     try:
         if "repo=add" not in url:
@@ -205,7 +217,10 @@ def _show_confirm_sheet(repometa, pluginCount, name, link, repoManager):
         # the buttons are for, and the name is the thing being decided about
         title_tv = TextView(act)
         title_tv.setGravity(Gravity.CENTER_HORIZONTAL)
-        title_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 23)
+        # SP, not DIP: everything written on this sheet is prose, and prose is
+        # what the system font scale is for. The pills keep DIP — their height
+        # is fixed, so a label that grew would sit in a box that did not.
+        title_tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 23)
         title_tv.setSingleLine(True)
         try:
             from android.text import TextUtils as _TextUtils
@@ -227,8 +242,9 @@ def _show_confirm_sheet(repometa, pluginCount, name, link, repoManager):
         if rm_maintainer:
             sub_tv = TextView(act)
             sub_tv.setGravity(Gravity.CENTER_HORIZONTAL)
-            sub_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+            sub_tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15)
             sub_tv.setTextColor(sheet.getThemedColor(Theme.key_windowBackgroundWhiteGrayText))
+            _balance_lines(sub_tv)
             try:
                 sub_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
             except Exception:
@@ -264,10 +280,11 @@ def _show_confirm_sheet(repometa, pluginCount, name, link, repoManager):
         # a wider gap above, because it was small enough to skip over.
         msg_tv = TextView(act)
         msg_tv.setGravity(Gravity.CENTER_HORIZONTAL)
-        msg_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14)
+        msg_tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14)
         msg_tv.setText(str(strings["repo_add_disclaimer_short"]))
         msg_tv.setTextColor(sheet.getThemedColor(Theme.key_windowBackgroundWhiteGrayText))
         msg_tv.setLineSpacing(AndroidUtilities.dp(3), 1.0)
+        _balance_lines(msg_tv)
         linear.addView(msg_tv, LayoutHelper.createFrame(-1, -2, 0, 24.0, 18.0, 24.0, 0.0))
 
         # add button
