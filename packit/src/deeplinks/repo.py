@@ -36,6 +36,7 @@ from urllib.parse import urlparse, parse_qs
 import requests
 import json
 from ..network import Storage
+from ..utils import cachedRepos
 
 BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
 
@@ -130,9 +131,9 @@ def handle(url, repoManager):
                     repometa = data.get("repometa")
                     # cached now, so the sheet's avatar and everything the
                     # source screen shows are there the moment it is added
-                    Storage.write_repomap(repometa.get("rm_rid"), data)
+                    cachedRepos.write(repometa.get("rm_rid"), data)
 
-                    plugins_url = Storage.plugins_url(repometa.get("rm_rid"), link)
+                    plugins_url = cachedRepos.plugins_url(repometa.get("rm_rid"), link)
                     entries, list_error = Storage.fetch_plugins(plugins_url)
                     if list_error:
                         logx(f"repo deeplink: plugin count unavailable: {list_error}", True)

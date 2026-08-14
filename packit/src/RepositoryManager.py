@@ -4,6 +4,7 @@
 from packutil import logx
 from .utils.netQueue import run_serial_io
 from .network import Storage
+from .utils import cachedRepos
 import json
 from client_utils import get_last_fragment, run_on_queue
 try:
@@ -88,7 +89,7 @@ class RepositoryManager:
             logx(f"repom: cannot fetch repomap from '{url}': {error}", True)
             return None
         repometa = data.get("repometa")
-        if not Storage.write_repomap(repometa.get("rm_rid"), data):
+        if not cachedRepos.write(repometa.get("rm_rid"), data):
             return None
         return repometa
 
@@ -112,7 +113,7 @@ class RepositoryManager:
         if not rm_name:
             return None, "missing rm_name"
 
-        if not Storage.write_repomap(rm_rid, data):
+        if not cachedRepos.write(rm_rid, data):
             return None, "cache write failed"
 
         repos = self.getRepositories()
@@ -180,7 +181,7 @@ class RepositoryManager:
         logx(f"repom.removeRepository: removing idx={idx}, id={repr(repo_id)}, name={repr(repo.get('name'))}", True)
 
         if repo_id:
-            dropped = Storage.forget_repomap(repo_id)
+            dropped = cachedRepos.forget(repo_id)
             logx(f"repom.removeRepository: cache for '{repo_id}' "
                  f"{'deleted' if dropped else 'was not there'}", True)
 
@@ -322,7 +323,7 @@ class RepositoryManager:
                                 changed = True
                                 logx(f"updateAllCaches: restored name '{rm_name}' for '{rm_rid}'", True)
 
-                        Storage.write_repomap(rm_rid, data)
+                        cachedRepos.write(rm_rid, data)
                         logx(f"updateAllCaches: updated cache for '{rm_rid}'", True)
                     except Exception as e:
                         logx(f"updateAllCaches: error for {url}: {e}", False)

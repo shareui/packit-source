@@ -122,14 +122,14 @@ def _animate_out(overlay_ref, card, decor):
 
 
 def _load_reasons(repo_id: str) -> list:
-    from ..network import Storage
-    return Storage.reasons(repo_id)
+    from ..utils import cachedRepos
+    return cachedRepos.reasons(repo_id)
 
 
 def _load_report_settings(repo_id: str):
     # (forum_username, topic_msg_id), or (None, None)
-    from ..network import Storage
-    return Storage.report_settings(repo_id)
+    from ..utils import cachedRepos
+    return cachedRepos.report_settings(repo_id)
 
 
 def _submit_report(forum_username: str, topic_msg_id: int, plugin_name: str, plugin_id: str, repo_id: str, reason: str, description: str, act, on_done):

@@ -242,13 +242,14 @@ def _packit_attach_text_watcher(self, enter_view):
 
 def _packit_load_plugins_from_cache(self):
     from ...network import Storage
+    from ...utils import cachedRepos
     plugins_list = []
     try:
         for repo in self.repoManager.getRepositories():
             repo_id = repo.get("id")
             if not repo_id:
                 continue
-            plugins_url = Storage.plugins_url(repo)
+            plugins_url = cachedRepos.plugins_url(repo)
             if not plugins_url:
                 continue
             entries, error = Storage.fetch_plugins(plugins_url)

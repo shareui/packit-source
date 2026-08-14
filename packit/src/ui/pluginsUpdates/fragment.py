@@ -77,8 +77,8 @@ def _read_index(pkg: str, rm_rid: str) -> list:
 
 
 def _get_repo_plugins_url(pkg: str, rm_rid: str, fallback_url: str) -> str:
-    from ...network import Storage
-    return Storage.plugins_url(rm_rid, fallback_url)
+    from ...utils import cachedRepos
+    return cachedRepos.plugins_url(rm_rid, fallback_url)
 
 
 def _fetch_repo_plugins(url: str) -> dict:
@@ -1537,8 +1537,9 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             try:
                 from ...core import install_plugin
                 from ...network import Storage
+                from ...utils import cachedRepos
 
-                plugins_url = Storage.plugins_url(repo)
+                plugins_url = cachedRepos.plugins_url(repo)
                 if not plugins_url:
                     logx(f"pluginsUpdates: _install_update no plugins url for '{repo_id}'", True)
                     run_on_ui_thread(lambda: set_btn_state("idle"))
@@ -2013,10 +2014,11 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 from ...core import install_plugin_silent
                 from ...utils.paths import getPluginsDir
                 from ...network import Storage
+                from ...utils import cachedRepos
                 import requests as _requests
                 import os as _os
 
-                plugins_url = Storage.plugins_url(repo)
+                plugins_url = cachedRepos.plugins_url(repo)
                 if not plugins_url:
                     logx(f"pluginsUpdates: _install_update_silent no plugins url for '{repo_id}'", True)
                     run_on_ui_thread(lambda: set_btn_state("idle"))

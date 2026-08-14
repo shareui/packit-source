@@ -987,12 +987,13 @@ def _try_parse_plugin_meta(uri, act, suggest_config, on_description=None, on_upd
             repometa = None
             try:
                 from ...network import Storage
+                from ...utils import cachedRepos
 
                 # which repository carries this plugin is not recorded here, so
                 # every cached one is asked in turn
-                for rm_rid, _cached in Storage.all_cached():
+                for rm_rid, _cached in cachedRepos.all_cached():
                     try:
-                        plugins_url = Storage.plugins_url(rm_rid)
+                        plugins_url = cachedRepos.plugins_url(rm_rid)
                         if not plugins_url:
                             continue
                         entries, error = Storage.fetch_plugins(plugins_url)
@@ -1040,7 +1041,8 @@ def _load_forked_plugins(repo_data: dict) -> list:
         if not rm_rid:
             return []
         from ...network import Storage
-        plugins_url = Storage.plugins_url(rm_rid)
+        from ...utils import cachedRepos
+        plugins_url = cachedRepos.plugins_url(rm_rid)
         if not plugins_url:
             return []
         plugins, error = Storage.fetch_plugins(plugins_url)
@@ -1490,8 +1492,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 rm_rid = repometa.get("rm_rid")
             self._rm_rid = rm_rid or "default"
             if rm_rid:
-                from ...network import Storage
-                sp = Storage.suggest_config(rm_rid)
+                from ...utils import cachedRepos
+                sp = cachedRepos.suggest_config(rm_rid)
                 if sp is not None:
                     self._suggest_config = sp
                     logx(f"suggest: loaded suggest_plugins for {rm_rid}", True)

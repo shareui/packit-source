@@ -3,6 +3,7 @@
 
 from packutil import logx
 from ..network import Storage
+from ..utils import cachedRepos
 from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment, run_on_queue
 from android_utils import run_on_ui_thread
@@ -59,7 +60,7 @@ def _run_update(repoManager):
                         changed = True
                         logx(f"update deeplink: set id='{rmRid}' for repo '{repo.get('name')}'", True)
 
-                    Storage.write_repomap(rmRid, data)
+                    cachedRepos.write(rmRid, data)
                     logx(f"update deeplink: updated cache for '{rmRid}'", True)
                 except Exception as e:
                     logx(f"update deeplink: error for {url}: {e}", False)
@@ -104,7 +105,7 @@ def _run_update_single(repoManager, repoId: str):
                     return
                 repometa = data.get("repometa")
                 rmRid = repometa.get("rm_rid")
-                Storage.write_repomap(rmRid, data)
+                cachedRepos.write(rmRid, data)
                 logx(f"update deeplink: updated cache for '{rmRid}'", True)
 
                 idx = next((i for i, rp in enumerate(repos) if rp.get("id") == repoId), None)

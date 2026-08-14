@@ -32,6 +32,7 @@ except Exception as e:
 
 from ...utils import imagePool
 from ...network import Storage
+from ...utils import cachedRepos
 
 def _c(color: int) -> int:
     # java setColor(int) rejects python ints >= 0x80000000
@@ -93,7 +94,7 @@ def _letter(repo: dict) -> str:
 
 
 def icon_url_for(repo: dict):
-    return Storage.icon_url(repo) or None
+    return cachedRepos.icon_url(repo) or None
 
 
 def build_icon_view(ctx, repo: dict, size_dp: int = 48, radius_dp: int = 14, url=None):

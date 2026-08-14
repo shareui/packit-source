@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
-from ..network import Storage
+from ..utils import cachedRepos
 from urllib.parse import urlparse, parse_qs
 from android_utils import run_on_ui_thread
 from client_utils import get_last_fragment
@@ -16,7 +16,7 @@ import os
 
 
 def _load_repomap(rm_rid: str):
-    return Storage.read_repomap(rm_rid)
+    return cachedRepos.read(rm_rid)
 
 
 def _has_required_fields(data: dict) -> bool:

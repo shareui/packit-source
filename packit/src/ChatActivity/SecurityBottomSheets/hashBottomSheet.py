@@ -63,10 +63,10 @@ def _extractPluginId(filePath: str) -> str | None:
 
 def _loadCachedRepos() -> list:
     # [(name, pluginsUrl, repoId), …] for every repository with a usable cache
-    from ...network import Storage
+    from ...utils import cachedRepos
     result = []
-    for rm_rid, cached in Storage.all_cached():
-        pluginsUrl = Storage.plugins_url(rm_rid)
+    for rm_rid, cached in cachedRepos.all_cached():
+        pluginsUrl = cachedRepos.plugins_url(rm_rid)
         if not pluginsUrl:
             continue
         meta = cached.get("repometa") or {}
@@ -75,16 +75,15 @@ def _loadCachedRepos() -> list:
 
 
 def _getRepoPluginInfo(pluginId: str, pluginsUrl: str) -> dict | None:
-    import requests
-    r = requests.get(pluginsUrl, timeout=10)
-    if r.status_code != 200:
+    # this walked r.json()["plugins"] as a list, so it found nothing at all in a
+    # repository that keys its plugins by id — Storage answers in one shape
+    from ...network import Storage
+    entries, error = Storage.fetch_plugins(pluginsUrl)
+    if error:
         if DEBUG_LOGS:
-            logx(f"hashBottomSheet: HTTP {r.status_code} for {pluginsUrl}", True)
+            logx(f"hashBottomSheet: {error} for {pluginsUrl}", True)
         return None
-    for plugin in r.json().get("plugins", []):
-        if plugin.get("id") == pluginId:
-            return plugin
-    return None
+    return next((p for p in entries if p.get("id") == pluginId), None)
 
 
 def _installFromRepo(pluginId: str, pluginsUrl: str, repoManager, act):
@@ -117,17 +116,14 @@ def _installFromRepo(pluginId: str, pluginsUrl: str, repoManager, act):
 
     def task():
         try:
-            r = requests.get(pluginsUrl, timeout=15)
-            if r.status_code != 200:
+            from ...network import Storage
+            entries, error = Storage.fetch_plugins(pluginsUrl)
+            if error:
                 dismissDlg()
-                run_on_ui_thread(lambda: BulletinHelper.show_error(strings("sec_repo_load_failed", code=r.status_code)))
+                run_on_ui_thread(lambda e=error: BulletinHelper.show_error(strings("sec_repo_load_failed", code=e)))
                 return
 
-            plugin = None
-            for item in r.json().get("plugins", []):
-                if isinstance(item, dict) and item.get("id") == pluginId:
-                    plugin = item
-                    break
+            plugin = next((p for p in entries if p.get("id") == pluginId), None)
 
             if not plugin:
                 dismissDlg()

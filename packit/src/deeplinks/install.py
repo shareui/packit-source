@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
-from ..network import Storage
+from ..utils import cachedRepos
 from ..utils.bulletins import factory as _pbf
 from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment, run_on_queue
@@ -42,7 +42,7 @@ def _findRepo(repoManager, repoId: str) -> dict | None:
 
 
 def _resolvePluginsUrl(repo: dict) -> str:
-    return Storage.plugins_url(repo)
+    return cachedRepos.plugins_url(repo)
 
 
 def handle(url, repoManager):
@@ -360,7 +360,7 @@ def _handleInstallPlugin(repo: dict, pluginId: str, versionId: str = ""):
 
 
 def _resolveIconsUrl(repo: dict) -> str:
-    return Storage.icons_url(repo)
+    return cachedRepos.icons_url(repo)
 
 
 def _handleInstallIconPack(repo: dict, iconId: str):

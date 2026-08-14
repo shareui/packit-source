@@ -686,7 +686,8 @@ class InstallIconsUI:
                     logx(f"IconList._open_all_repos_icons: loading repo '{repo.get('name')}' id='{repo_id}' url='{repo_url}'", True)
                     try:
                         from ...network import Storage
-                        icons_url = Storage.icons_url(repo, repo_url)
+                        from ...utils import cachedRepos
+                        icons_url = cachedRepos.icons_url(repo, repo_url)
                         logx(f"IconList._open_all_repos_icons: fetching icons from '{icons_url}'", True)
                         entries, error = Storage.fetch_icons(icons_url)
                         if error:
@@ -740,7 +741,8 @@ class InstallIconsUI:
         def load_task():
             try:
                 from ...network import Storage
-                icons_url = Storage.icons_url(repo_id, repo_url)
+                from ...utils import cachedRepos
+                icons_url = cachedRepos.icons_url(repo_id, repo_url)
                 logx(f"IconList._open_repo_icons: fetching '{icons_url}'", True)
                 icons, error = Storage.fetch_icons(icons_url)
                 if error:

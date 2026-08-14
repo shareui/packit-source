@@ -246,8 +246,9 @@ class InstallUI:
                         if not repo_url: continue
                         try:
                             from ...network import Storage
+                            from ...utils import cachedRepos
                             entries, error = Storage.fetch_plugins(
-                                Storage.plugins_url(repo, repo_url))
+                                cachedRepos.plugins_url(repo, repo_url))
                             if error:
                                 continue
                             repo_name = repo.get("name", "Unknown")
@@ -262,7 +263,8 @@ class InstallUI:
                     repo = next((r for r in repos if r.get("id") == repo_id), None)
                     if not repo: return
                     from ...network import Storage
-                    plugins, error = Storage.fetch_plugins(Storage.plugins_url(repo))
+                    from ...utils import cachedRepos
+                    plugins, error = Storage.fetch_plugins(cachedRepos.plugins_url(repo))
                     if error:
                         raise Exception(error)
                     # the sources screen has no other way to know how big a

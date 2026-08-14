@@ -45,7 +45,7 @@ except Exception as e:
 from . import register, unregister
 from .card import make_repo_card
 from ..viewUtils import applyFontToTree
-from ...network import Storage
+from ...utils import cachedRepos
 
 
 def _c(color: int) -> int:
@@ -85,7 +85,7 @@ def read_repo_info(repo: dict) -> dict:
     except Exception as e:
         logx(f"repos: stats unavailable for '{repo_id}': {e}", True)
 
-    cached = Storage.read_repomap(repo_id)
+    cached = cachedRepos.read(repo_id)
     if not cached:
         return info
 
@@ -93,9 +93,9 @@ def read_repo_info(repo: dict) -> dict:
     info["maintainer"] = str(meta.get("rm_maintainer") or "")
     info["telegram"] = str(meta.get("rm_telegram") or "")
     info["source"] = str(meta.get("rm_source") or "")
-    info["icon_url"] = Storage.icon_url(repo_id)
+    info["icon_url"] = cachedRepos.icon_url(repo_id)
     info["status"] = "loaded"
-    info["updated_at"] = Storage.repomap_mtime(repo_id)
+    info["updated_at"] = cachedRepos.mtime(repo_id)
 
     # a repomap that is itself the plugin list carries the count inline; the
     # usual shape only points at it by url, and that count comes from repoStats
