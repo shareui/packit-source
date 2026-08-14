@@ -333,7 +333,7 @@ class NoInternetBanner:
             except Exception:
                 pass
             try:
-                from ..viewUtils import applyFont
+                from .ViewUtils import applyFont
                 applyFont(tv)
             except Exception:
                 pass

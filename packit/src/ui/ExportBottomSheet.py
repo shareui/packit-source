@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
-from ..utils.ripple import safe_ripple as _safe_ripple
+from ..utils.Ripple import safe_ripple as _safe_ripple
 import os
 import ast
 import re
@@ -288,7 +288,7 @@ def _createCheckRow(act, label, version_str, icon_str, checked, on_change):
             except Exception:
                 pass
             row.addView(icon_view, LayoutHelper.createLinear(icon_size_dp, icon_size_dp, Gravity.CENTER_VERTICAL, 0, 0, 10, 0))
-            from ..utils.stickers import load_sticker
+            from ..utils.Stickers import load_sticker
             load_sticker(icon_view, icon_str, icon_size_dp)
         except Exception as e:
             logx(f"ExportBottomSheet._createCheckRow: icon error: {e}\n{traceback.format_exc()}", False)
@@ -788,7 +788,7 @@ def show(plugins, on_export):
             sheet.setCustomView(outer)
 
             try:
-                from .viewUtils import applyFontToTree
+                from .ViewUtils import applyFontToTree
                 applyFontToTree(outer)
             except Exception:
                 pass

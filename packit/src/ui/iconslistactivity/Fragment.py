@@ -1,0 +1,1915 @@
+# pyright: reportMissingImports=false
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+from packutil import logx
+from ...utils.Bulletins import factory as _pbf
+from ...utils.NetQueue import run_io
+import json
+import threading
+import re
+from collections import deque
+from android.animation import ObjectAnimator
+from android.view import View, MotionEvent, Gravity
+from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView, ProgressBar
+from android.util import TypedValue
+from android.text import TextWatcher, InputType, TextUtils
+from android.view.inputmethod import EditorInfo
+from android.graphics.drawable import GradientDrawable
+from java import dynamic_proxy
+from hook_utils import find_class
+import requests
+from android_utils import run_on_ui_thread
+from client_utils import get_last_fragment, run_on_queue
+from ui.bulletin import BulletinHelper
+try:
+    from elyx import settings, strings
+except Exception as e:
+    import android_utils as _au; _au.log(f"import elyx import settings, strings failed: {e}")
+    from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from org.telegram.ui.ActionBar import Theme
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.ui.ActionBar import Theme failed: {e}")
+    from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from org.telegram.ui.Components import LayoutHelper, EditTextBoldCursor
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.ui.Components import LayoutHelper, EditTextBoldCursor failed: {e}")
+    from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
+try:
+    from org.telegram.messenger import AndroidUtilities, R as R_tg
+except Exception as e:
+    import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities, R as R_tg failed: {e}")
+    from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
+from android_utils import OnClickListener, OnLongClickListener
+try:
+    from com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment
+except Exception as e:
+    import android_utils as _au; _au.log(f"import com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment failed: {e}")
+    from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
+
+from .RepoBottomSheet import show_icon_repo_sheet
+from .SortBottomSheet import show_icon_sort_menu
+from ...utils import Search as search_mod
+
+
+def _count_active_repos(repoManager) -> int:
+    try:
+        repos = repoManager.getRepositories() or []
+        return sum(1 for r in repos if r and r.get("enabled", True) and str(r.get("url") or "").strip())
+    except Exception:
+        return 0
+
+
+# capped bitmap cache size (LRU eviction, see InstallIconsUI._preview_cache)
+_PREVIEW_CACHE_CAP = 384
+
+# shared preview download pool: one thread per card (15+ at once, each pulling
+# every preview of its pack) starves the CPU/network on entry; a small fixed
+# pool keeps decode work bounded while the UI thread stays free
+_PREVIEW_WORKERS = 4
+_preview_queue = None
+_preview_queue_lock = threading.Lock()
+
+
+def _preview_pool_submit(task):
+    global _preview_queue
+    with _preview_queue_lock:
+        if _preview_queue is None:
+            import queue
+            _preview_queue = queue.Queue()
+
+            def _worker():
+                while True:
+                    fn = _preview_queue.get()
+                    try:
+                        fn()
+                    except Exception as e:
+                        logx(f"icons preview worker error: {e}", True)
+                    finally:
+                        _preview_queue.task_done()
+
+            for _ in range(_PREVIEW_WORKERS):
+                threading.Thread(target=_worker, daemon=True).start()
+    _preview_queue.put(task)
+
+
+
+def _icons_perform_search(self, act):
+    try:
+        query = self.search.getText().toString()
+        if query != self.last_search_query:
+            self.last_search_query = query
+            self.build_list(query)
+        imm = act.getSystemService("input_method")
+        imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
+    except Exception:
+        pass
+
+
+class _IconsSearchTextWatcher(dynamic_proxy(TextWatcher)):
+    def __init__(self, outer, clear_btn_ref, act):
+        super().__init__()
+        self.outer = outer
+        self.clear_btn = clear_btn_ref
+        self._live_timer = None
+        self._act = act
+
+    def _show_live_spinner(self):
+        try:
+            if getattr(self.outer, '_live_search_spinner', None) is None:
+                from org.telegram.ui.Components import CircularProgressDrawable
+                _size = 122
+                _color = Theme.getColor(Theme.key_featuredStickers_addButton)
+                try:
+                    _d = CircularProgressDrawable(float(_size), float(AndroidUtilities.dp(8)), _color)
+                except Exception:
+                    _d = CircularProgressDrawable(_color)
+                    try:
+                        _d.size = float(_size)
+                        _d.thickness = float(AndroidUtilities.dp(8))
+                    except Exception:
+                        pass
+                _d.setBounds(0, 0, _size, _size)
+                _spinner_iv = ImageView(self._act)
+                _spinner_iv.setImageDrawable(_d)
+                _spinner_iv.setScaleType(ImageView.ScaleType.FIT_CENTER)
+                spinner_container = FrameLayout(self._act)
+                spinner_container.setLayoutParams(FrameLayout.LayoutParams(-1, -1))
+                _lp = FrameLayout.LayoutParams(_size, _size, Gravity.CENTER)
+                spinner_container.addView(_spinner_iv, _lp)
+                self.outer._live_search_spinner = spinner_container
+                self.outer.content_view.addView(spinner_container, FrameLayout.LayoutParams(-1, -1))
+            else:
+                self.outer._live_search_spinner.setAlpha(1.0)
+                self.outer._live_search_spinner.setVisibility(View.VISIBLE)
+            try:
+                self.outer.results_container.setVisibility(View.INVISIBLE)
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    def _hide_live_spinner(self):
+        try:
+            spinner = getattr(self.outer, '_live_search_spinner', None)
+            if spinner is None:
+                return
+            spinner.animate().alpha(0.0).setDuration(150).withEndAction(
+                lambda: spinner.setVisibility(View.GONE)
+            ).start()
+        except Exception:
+            pass
+        try:
+            self.outer.results_container.setVisibility(View.VISIBLE)
+        except Exception:
+            pass
+
+    def _schedule_live_search(self, query):
+        prev = self._live_timer
+        if prev is not None:
+            try:
+                prev.cancel()
+            except Exception:
+                pass
+        outer = self.outer
+
+        def _do_search():
+            # scoring runs on background thread after debounce
+            try:
+                if query != outer.last_search_query:
+                    q = query.strip()
+                    icons = outer.icons or []
+                    search_index = outer.search_index
+                    sort_type = outer.current_sort_type
+
+                    if not q:
+                        filtered = list(icons)
+                    else:
+                        isRussian = False
+                        try:
+                            from java.util import Locale
+                            isRussian = Locale.getDefault().getLanguage() == "ru"
+                        except Exception:
+                            pass
+                        fuzzy = settings.get("fuzzy_search", False)
+                        scored = []
+                        for icon in icons:
+                            s = search_mod.score(icon, q, search_index, isRussian, fuzzy)
+                            if s[0] < 6:
+                                scored.append((s, icon))
+                        scored.sort(key=lambda x: x[0])
+                        filtered = [icon for _, icon in scored]
+
+                    if not q:
+                        if sort_type == "alpha_az":
+                            filtered.sort(key=lambda i: str(i.get("name") or i.get("id") or "").lower())
+                        elif sort_type == "alpha_za":
+                            filtered.sort(key=lambda i: str(i.get("name") or i.get("id") or "").lower(), reverse=True)
+                        elif sort_type == "authors":
+                            filtered.sort(key=lambda i: str(i.get("author") or "").lower())
+
+                    def _ui(q=q, filtered=filtered):
+                        try:
+                            outer.last_search_query = q
+                            outer.filtered_icons = filtered
+                            outer.is_loading = True
+                            outer.results_container.removeAllViews()
+                            outer.visible_icons = []
+                            outer._card_registry = []
+                            outer._ticker_started = False
+                            outer._ticker_gen += 1
+                            outer._preview_epoch += 1
+                            if hasattr(outer, "subtitle"):
+                                outer.subtitle.setText(strings["icons_count"].format(len(filtered)))
+                            if not filtered:
+                                outer._show_empty_state()
+                            else:
+                                outer._load_initial_batch()
+                            self._hide_live_spinner()
+                        except Exception:
+                            pass
+                    run_on_ui_thread(_ui)
+                else:
+                    run_on_ui_thread(lambda: self._hide_live_spinner())
+            except Exception:
+                run_on_ui_thread(lambda: self._hide_live_spinner())
+
+        t = threading.Timer(0.3, _do_search)
+        self._live_timer = t
+        t.start()
+
+    def afterTextChanged(self, s):
+        text = s.toString()
+        if text and len(text) > 0:
+            self.clear_btn.setVisibility(View.VISIBLE)
+            try:
+                self.clear_btn.animate().alpha(1.0).setDuration(200).start()
+            except Exception:
+                pass
+        else:
+            try:
+                self.clear_btn.animate().alpha(0.0).setDuration(200).withEndAction(
+                    lambda: self.clear_btn.setVisibility(View.GONE)).start()
+            except Exception:
+                self.clear_btn.setVisibility(View.GONE)
+        try:
+            from elyx import settings as _s
+            # default must match the plugins catalog (True)
+            if _s.get("live_search", True):
+                self._show_live_spinner()
+                self._schedule_live_search(text)
+        except Exception:
+            pass
+
+    def beforeTextChanged(self, s, start, count, after):
+        pass
+    def onTextChanged(self, s, start, before, count):
+        pass
+
+
+def _icons_on_clear_click(self, act):
+    try:
+        from elyx import assets
+        from ...utils.Media import playSound
+        playSound(assets.sounds.clear_search.path_str, "sfx_clear_search")
+    except Exception:
+        pass
+    try:
+        self.search.setText("")
+        self.last_search_query = ""
+        self.build_list("")
+        imm = act.getSystemService("input_method")
+        imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
+    except Exception:
+        pass
+
+
+def _icons_on_search_btn_click(self, act):
+    try:
+        from elyx import assets
+        from ...utils.Media import playSound
+        playSound(assets.sounds.search_btn.path_str, "sfx_search")
+    except Exception:
+        pass
+    _icons_perform_search(self, act)
+
+
+def _icons_show_repo_menu(self, act):
+    try:
+        imm = act.getSystemService("input_method")
+        imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
+    except Exception:
+        pass
+    fragment = get_last_fragment()
+    if fragment:
+        fragment.finishFragment()
+    repos = []
+    try:
+        for r in (self.install_ui.plugin.repoManager.getRepositories() or []):
+            if not r or not r.get("enabled"):
+                continue
+            # url only: a nameless source still serves icons, and the sheet
+            # already labels it "unnamed"
+            url = str(r.get("url") or "").strip()
+            if url:
+                repos.append(r)
+    except Exception:
+        pass
+    show_icon_repo_sheet(self.install_ui, repos, on_select=self._handle_repo_select)
+
+
+def _icons_open_sort_menu(self, act):
+    try:
+        imm = act.getSystemService("input_method")
+        imm.hideSoftInputFromWindow(self.search.getWindowToken(), 0)
+    except Exception:
+        pass
+    def on_sort_selected(sort_type):
+        try:
+            current_q = self.search.getText().toString() if self.search else (self.last_search_query or "")
+        except Exception:
+            current_q = self.last_search_query or ""
+        self.build_list_with_sort(sort_type, current_q)
+    show_icon_sort_menu(self.install_ui, act, self.current_sort_type, on_sort_selected)
+
+
+
+def _icons_editor_listener(outer, act):
+    EditActionListener = find_class("android.widget.TextView$OnEditorActionListener")
+
+    class _L(dynamic_proxy(EditActionListener)):
+        def __init__(self):
+            super().__init__()
+
+        def onEditorAction(self, v, actionId, event):
+            if actionId in (EditorInfo.IME_ACTION_SEARCH, EditorInfo.IME_ACTION_DONE, 6, 3):
+                _icons_perform_search(outer, act)
+                return True
+            return False
+
+    return _L()
+
+
+def _icons_build_chrome_kotlin(self, act):
+    # java-side chrome skeleton (kawaii.packetik.catalog.CatalogChromeNative.
+    # createIconsChrome); returns (main_layout, scroll, clear_btn) or None ->
+    # the python fallback builder runs instead
+    from ...DexLoader import catalogIconsChromeCreate
+    live_search = bool(settings.get("live_search", True))
+    try:
+        accent = Theme.getColor(Theme.key_featuredStickers_addButton)
+        accent_pressed = Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
+        button_text = Theme.getColor(Theme.key_featuredStickers_buttonText)
+    except Exception:
+        accent = Theme.getColor(Theme.key_dialogTextBlue)
+        accent_pressed = accent
+        button_text = -1
+    subtitle_text = str(strings["total_plugins_unknown"]) if not self.icons else str(strings["icons_count"]).format(len(self.icons))
+    main_layout = catalogIconsChromeCreate(
+        act,
+        self.main_bg_color, self.card_bg_color, self.card_pressed_color, self.text_color,
+        accent, accent_pressed, button_text,
+        self.install_ui._resolve_icon("input_clear"),
+        self.install_ui._resolve_icon("ic_ab_search"),
+        self.install_ui._resolve_icon("msg_smile_status"),
+        self.install_ui._resolve_icon("msg_list"),
+        subtitle_text, (not live_search),
+    )
+    if main_layout is None:
+        return None
+    search_slot = main_layout.findViewWithTag("search_slot")
+    clear_btn = main_layout.findViewWithTag("clear_btn")
+    search_btn = main_layout.findViewWithTag("search_btn")
+    repo_btn = main_layout.findViewWithTag("repo_btn")
+    subtitle = main_layout.findViewWithTag("subtitle")
+    sort_btn = main_layout.findViewWithTag("sort_btn")
+    scroll = main_layout.findViewWithTag("scroll")
+    if None in (search_slot, clear_btn, search_btn, repo_btn, subtitle, sort_btn, scroll):
+        logx("icons: kotlin chrome missing tagged views, falling back", False)
+        return None
+
+    self.search = EditTextBoldCursor(act)
+    self.search.setHint(strings["icons_search_hint"])
+    self.search.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+    self.search.setSingleLine(True)
+    self.search.setInputType(InputType.TYPE_CLASS_TEXT)
+    self.search.setBackgroundColor(0)
+    self.search.setTextColor(self.text_color)
+    try:
+        self.search.setHintTextColor(self.hint_text_color)
+    except Exception:
+        pass
+    try:
+        self.search.setCursorColor(self.cursor_color)
+    except Exception:
+        pass
+    try:
+        self.search.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(10), AndroidUtilities.dp(8))
+    except Exception:
+        pass
+    try:
+        self.search.setOnEditorActionListener(_icons_editor_listener(self, act))
+    except Exception as ex:
+        logx(f"icons: setOnEditorActionListener failed: {ex}", True)
+    search_slot.addView(self.search, FrameLayout.LayoutParams(-1, -1))
+
+    clear_btn.setOnClickListener(OnClickListener(lambda v: _icons_on_clear_click(self, act)))
+    self.install_ui._apply_press_scale(clear_btn)
+    search_btn.setOnClickListener(OnClickListener(lambda v: _icons_on_search_btn_click(self, act)))
+    self.install_ui._apply_press_scale(search_btn)
+    repo_btn.setOnClickListener(OnClickListener(lambda v: _icons_show_repo_menu(self, act)))
+    self.install_ui._apply_press_scale(repo_btn)
+    sort_btn.setOnClickListener(OnClickListener(lambda v: _icons_open_sort_menu(self, act)))
+    self.install_ui._apply_press_scale(sort_btn)
+
+    self.subtitle = subtitle
+    logx("icons: chrome built via kotlin dex", True)
+    return (main_layout, scroll, clear_btn)
+
+
+class InstallIconsUI:
+    def __init__(self, plugin):
+        self.plugin = plugin
+        self.repoManager = plugin.repoManager
+        # LRU-capped: 64dp ARGB bitmaps are ~100-250KB each, an unbounded dict
+        # grows past 100MB on big catalogs and drives low-RAM devices into GC
+        from collections import OrderedDict
+        self._preview_cache = OrderedDict()
+        self._preview_cache_lock = threading.Lock()
+        # dedup for catalog loads: NoInternetBanner fires its "restored"
+        # callback immediately on registration (network is already up), which
+        # re-entered the loader ~1s after entry — second download, second
+        # build_list pass, tiles animating in twice (plugins catalog has the
+        # same guard in _reload_current_plugins)
+        self._loads_in_flight = set()
+
+    def _apply_press_scale(self, view):
+        try:
+            class _TouchListener(dynamic_proxy(View.OnTouchListener)):
+                def __init__(self, fn):
+                    super().__init__()
+                    self._fn = fn
+                def onTouch(self, v, event):
+                    return self._fn(v, event)
+            def _on_touch(v, event):
+                try:
+                    action = event.getActionMasked()
+                    if action == MotionEvent.ACTION_DOWN:
+                        v.animate().scaleX(0.94).scaleY(0.94).setDuration(100).start()
+                    elif action in (MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL):
+                        v.animate().scaleX(1.0).scaleY(1.0).setDuration(200).start()
+                except Exception:
+                    pass
+                return False
+            view.setOnTouchListener(_TouchListener(_on_touch))
+        except Exception:
+            pass
+
+    def _parse_github_url(self, url):
+        # returns (owner, repo) for github OR gitlab urls (repo / raw / api
+        # forms) so the repo picker shows "<owner> • <repo>" for both. owner is
+        # the org/user (top namespace) nickname; gitlab groups/subgroups are
+        # supported too.
+        try:
+            if not url:
+                return None, None
+            github_patterns = [
+                r'github\.com/([^/]+)/([^/]+?)(?:\.git)?/?$',
+                r'raw\.githubusercontent\.com/([^/]+)/([^/]+)/',
+                r'api\.github\.com/repos/([^/]+)/([^/]+)',
+            ]
+            for pattern in github_patterns:
+                match = re.search(pattern, url)
+                if match:
+                    owner = match.group(1)
+                    repo = match.group(2).replace('.git', '')
+                    return owner, repo
+            # gitlab: the namespace may be nested (groups/subgroups); the ref
+            # path is split off by '/-/' (…/-/raw/…, …/-/blob/…, …/-/tree/…)
+            gl = re.search(r'gitlab\.com/(.+)', url)
+            if gl:
+                path = re.split(r'/-/', gl.group(1))[0].strip('/')
+                segs = [s for s in path.split('/') if s]
+                if len(segs) >= 2 and segs[0] not in (
+                    'api', 'dashboard', 'explore', 'groups', 'users', 'projects'
+                ):
+                    owner = segs[0]
+                    repo = segs[-1].replace('.git', '')
+                    return owner, repo
+            return None, None
+        except Exception:
+            return None, None
+
+    def _create_close_button(self, act):
+        close_btn = FrameLayout(act)
+        try:
+            base_color = Theme.getColor(Theme.key_featuredStickers_addButton)
+        except Exception:
+            base_color = Theme.getColor(Theme.key_dialogTextBlue)
+        try:
+            pressed_color = Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
+        except Exception:
+            pressed_color = base_color
+        close_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+            AndroidUtilities.dp(28), base_color, pressed_color
+        ))
+        close_btn.setPadding(0, AndroidUtilities.dp(14), 0, AndroidUtilities.dp(14))
+        close_btn.setClickable(True)
+        close_btn.setFocusable(True)
+        close_text = TextView(act)
+        close_text.setText(strings["close_button"])
+        close_text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
+        close_text.setTypeface(AndroidUtilities.bold())
+        close_text.setGravity(Gravity.CENTER)
+        close_text.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
+        close_btn.addView(close_text, FrameLayout.LayoutParams(-1, -2))
+        return close_btn
+
+    def _setup_bottom_sheet(self, sheet):
+        for attr in ('setAllowNestedScroll', 'setResizeKeyboardArea', 'setUseSmoothKeyboard',
+                     'setUseSmoothKeyboardTransition', 'setAnimateKeyboard'):
+            try:
+                m = getattr(sheet, attr, None)
+                if m and attr in ('setUseSmoothKeyboard', 'setUseSmoothKeyboardTransition', 'setAnimateKeyboard'):
+                    if hasattr(sheet, attr):
+                        m(True)
+                elif m:
+                    m(True)
+            except Exception:
+                pass
+        sheet.setApplyBottomPadding(False)
+        sheet.setApplyTopPadding(False)
+
+    def _create_rounded_bg(self, color):
+        bg = GradientDrawable()
+        bg.setShape(GradientDrawable.RECTANGLE)
+        bg.setCornerRadii([
+            AndroidUtilities.dp(20), AndroidUtilities.dp(20),
+            AndroidUtilities.dp(20), AndroidUtilities.dp(20),
+            0, 0, 0, 0
+        ])
+        bg.setColor(color)
+        return bg
+
+    def _create_pill(self, act, background, pressed, padding_h=14, padding_v=8):
+        pill_btn = LinearLayout(act)
+        pill_btn.setOrientation(LinearLayout.HORIZONTAL)
+        pill_btn.setGravity(Gravity.CENTER_VERTICAL)
+        pill_btn.setPadding(AndroidUtilities.dp(padding_h), AndroidUtilities.dp(padding_v),
+                           AndroidUtilities.dp(padding_h), AndroidUtilities.dp(padding_v))
+        pill_btn.setClickable(True)
+        pill_btn.setFocusable(True)
+        pill_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+            AndroidUtilities.dp(18), background, pressed
+        ))
+        return pill_btn
+
+    def _resolve_icon(self, name):
+        try:
+            R = find_class("org.telegram.messenger.R")
+            return getattr(R.drawable, name)
+        except Exception:
+            return 0
+
+    def _get_theme_colors(self):
+        is_dark_theme = False
+        try:
+            is_dark_theme = Theme.isCurrentThemeDark()
+        except Exception:
+            try:
+                bg_color = Theme.getColor(Theme.key_dialogBackground)
+                is_dark_theme = (bg_color & 0x00FFFFFF) < 0x00808080
+            except Exception:
+                pass
+        from android.graphics import Color
+        cardBgColor = Theme.getColor(Theme.key_windowBackgroundWhite)
+        if is_dark_theme:
+            return {
+                "main_bg_color": Theme.getColor(Theme.key_windowBackgroundGray),
+                "card_bg_color": cardBgColor,
+                "card_pressed_color": Color.parseColor("#3C3C3C"),
+                "text_color": Color.WHITE,
+                "secondary_text_color": Color.parseColor("#CCCCCC"),
+                "hint_text_color": Color.parseColor("#999999"),
+                "cursor_color": Theme.getColor(Theme.key_chat_messagePanelCursor),
+                "search_border_color": Color.parseColor("#3C3C3C"),
+                "search_stroke_width": AndroidUtilities.dp(2),
+            }
+        return {
+            "main_bg_color": Theme.getColor(Theme.key_windowBackgroundGray),
+            "card_bg_color": cardBgColor,
+            "card_pressed_color": Color.parseColor("#f5f5f5"),
+            "text_color": Color.BLACK,
+            "secondary_text_color": Color.parseColor("#666666"),
+            "hint_text_color": Color.parseColor("#999999"),
+            "cursor_color": Theme.getColor(Theme.key_chat_messagePanelCursor),
+            "search_border_color": Color.parseColor("#e0e0e0"),
+            "search_stroke_width": 0,
+        }
+
+    def open(self):
+        logx("IconList.open: called", True)
+        fragment = get_last_fragment()
+        if not fragment:
+            logx("IconList.open: no fragment, aborting", True)
+            return
+        repos = []
+        try:
+            raw = self.repoManager.getRepositories() or []
+            logx(f"IconList.open: raw repos count={len(raw)}", True)
+            for r in raw:
+                try:
+                    if not r:
+                        logx("IconList.open: skipping null repo", True)
+                        continue
+                    enabled = r.get("enabled")
+                    name = str(r.get("name") or "").strip()
+                    url = str(r.get("url") or "").strip()
+                    logx(f"IconList.open: repo name='{name}' url='{url}' enabled={enabled}", True)
+                    if not r.get("enabled"):
+                        logx(f"IconList.open: skipping disabled repo '{name}'", True)
+                        continue
+                    if url:
+                        repos.append(r)
+                    else:
+                        logx(f"IconList.open: skipping repo with empty url: name='{name}'", True)
+                except Exception as e:
+                    logx(f"IconList.open: error processing repo: {e}", False)
+                    continue
+        except Exception as e:
+            logx(f"IconList.open: getRepositories failed: {e}", False)
+        logx(f"IconList.open: usable repos count={len(repos)}", True)
+        if not repos:
+            logx("IconList.open: no usable repos, showing error bulletin", True)
+            BulletinHelper.show_error(str(strings["il_no_repos"]))
+            return
+        skip_sel = settings.get("skip_repository_selection", False)
+        logx(f"IconList.open: skip_repository_selection={skip_sel}", True)
+        if skip_sel:
+            self._open_all_repos_icons()
+            return
+        if len(repos) == 1:
+            logx(f"IconList.open: single repo, opening directly: {repos[0].get('name')}", True)
+            self._open_repo_icons(repos[0])
+            return
+        logx("IconList.open: multiple repos, showing repo sheet", True)
+        show_icon_repo_sheet(self, repos)
+
+    def _open_all_repos_icons(self):
+        logx("IconList._open_all_repos_icons: called", True)
+        fragment = get_last_fragment()
+        if not fragment:
+            logx("IconList._open_all_repos_icons: no fragment, aborting", True)
+            return
+        load_key = "all"
+        if load_key in self._loads_in_flight:
+            logx("IconList._open_all_repos_icons: skipped, already in flight", True)
+            return
+        self._loads_in_flight.add(load_key)
+        self._show_icons_universal(strings["all_repositories"], [])
+
+        def load_task():
+            try:
+                repos = self.repoManager.getRepositories()
+                logx(f"IconList._open_all_repos_icons: total repos={len(repos) if repos else 0}", True)
+                all_icons = []
+                for repo in repos:
+                    if not repo.get("enabled"):
+                        logx(f"IconList._open_all_repos_icons: skipping disabled repo '{repo.get('name')}'", True)
+                        continue
+                    repo_id = (repo.get("id") or "").strip()
+                    repo_url = (repo.get("url") or "").strip()
+                    if not repo_url:
+                        logx(f"IconList._open_all_repos_icons: skipping repo '{repo.get('name')}' - empty url", True)
+                        continue
+                    logx(f"IconList._open_all_repos_icons: loading repo '{repo.get('name')}' id='{repo_id}' url='{repo_url}'", True)
+                    try:
+                        from ...network import Storage
+                        from ...utils import CachedRepos
+                        icons_url = CachedRepos.icons_url(repo, repo_url)
+                        logx(f"IconList._open_all_repos_icons: fetching icons from '{icons_url}'", True)
+                        entries, error = Storage.fetch_icons(icons_url)
+                        if error:
+                            logx(f"IconList._open_all_repos_icons: repo '{repo.get('name')}': {error}, skipping", True)
+                            continue
+                        logx(f"IconList._open_all_repos_icons: repo '{repo.get('name')}' icons={len(entries)}", True)
+                        repo_name = repo.get("name", "Unknown")
+                        for entry in entries:
+                            all_icons.append({"repo_name": repo_name, **entry})
+                    except Exception as e:
+                        logx(f"IconList._open_all_repos_icons: failed to load repo '{repo.get('name')}': {e}", False)
+
+                logx(f"IconList._open_all_repos_icons: total icons collected={len(all_icons)}", True)
+                # index build (json.dumps of the whole catalog + native call) is
+                # heavy — do it here on the queue thread, not on the UI thread
+                prebuilt = search_mod.build_index(all_icons)
+                run_on_ui_thread(lambda: self._update_current_fragment_icons(all_icons, prebuilt))
+            except Exception as e:
+                BulletinHelper.show_error(str(strings["il_load_failed"]))
+                logx(f"IconList._open_all_repos_icons: fatal error: {e}", False)
+                run_on_ui_thread(lambda: self._update_current_fragment_icons([]))
+            finally:
+                self._loads_in_flight.discard(load_key)
+        try:
+            run_io(load_task)
+        except Exception:
+            self._loads_in_flight.discard(load_key)
+            raise
+
+    def _open_repo_icons(self, repo):
+        repo_name = repo.get("name") or strings["unnamed"]
+        repo_url = (repo.get("url") or "").strip()
+        logx(f"IconList._open_repo_icons: repo='{repo_name}' url='{repo_url}'", True)
+        if not repo_url:
+            logx("IconList._open_repo_icons: empty url, aborting", True)
+            BulletinHelper.show_error(str(strings["il_repo_url_empty"]))
+            return
+        fragment = get_last_fragment()
+        if not fragment:
+            logx("IconList._open_repo_icons: no fragment, aborting", True)
+            return
+        repo_id = (repo.get("id") or "").strip()
+        logx(f"IconList._open_repo_icons: repo_id='{repo_id}'", True)
+        load_key = repo_id or repo_url
+        if load_key in self._loads_in_flight:
+            logx(f"IconList._open_repo_icons: skipped, already in flight for '{load_key}'", True)
+            return
+        self._loads_in_flight.add(load_key)
+        self._show_icons_universal(repo_name, [], repo_id=repo_id)
+
+        def load_task():
+            try:
+                from ...network import Storage
+                from ...utils import CachedRepos
+                icons_url = CachedRepos.icons_url(repo_id, repo_url)
+                logx(f"IconList._open_repo_icons: fetching '{icons_url}'", True)
+                icons, error = Storage.fetch_icons(icons_url)
+                if error:
+                    raise Exception(error)
+                logx(f"IconList._open_repo_icons: parsed icons count={len(icons)}", True)
+                # left behind for the sources screen: repomap points at this
+                # file by url and carries no count of its own
+                try:
+                    from ...utils import RepoStats
+                    RepoStats.remember(repo_id, icons=len(icons))
+                except Exception as e:
+                    logx(f"IconList._open_repo_icons: stats write failed: {e}", True)
+                # index build is heavy — run it here on the queue thread
+                prebuilt = search_mod.build_index(icons)
+                run_on_ui_thread(lambda: self._update_current_fragment_icons(icons, prebuilt))
+            except Exception as e:
+                BulletinHelper.show_error(str(strings["il_download_error"]))
+                logx(f"IconList._open_repo_icons: error for url='{repo_url}': {e}", False)
+                run_on_ui_thread(lambda: self._update_current_fragment_icons([]))
+            finally:
+                self._loads_in_flight.discard(load_key)
+        try:
+            run_io(load_task)
+        except Exception:
+            self._loads_in_flight.discard(load_key)
+            raise
+
+    def _update_current_fragment_icons(self, icons, prebuilt_index=None):
+        logx(f"IconList._update_current_fragment_icons: called with icons count={len(icons) if icons else 0}", True)
+        try:
+            fragment = get_last_fragment()
+            if not fragment:
+                logx("IconList._update_current_fragment_icons: no fragment", True)
+                return
+            has_delegate = hasattr(fragment, 'getDelegate')
+            logx(f"IconList._update_current_fragment_icons: hasDelegate={has_delegate}", True)
+            if has_delegate and fragment.getDelegate():
+                delegate = fragment.getDelegate()
+                has_icons_attr = hasattr(delegate, 'icons')
+                logx(f"IconList._update_current_fragment_icons: delegate={delegate} hasIcons={has_icons_attr}", True)
+                if has_icons_attr:
+                    delegate.icons = icons
+                    delegate.search_index = prebuilt_index if prebuilt_index is not None else search_mod.build_index(icons)
+                    logx(f"IconList._update_current_fragment_icons: search index built for {len(icons)} icons", True)
+                    delegate.filtered_icons = []
+                    delegate.visible_icons = []
+                    loading_started = getattr(delegate, '_loading_started', False)
+                    has_finish = callable(getattr(delegate, '_finish_loading', None))
+                    logx(f"IconList._update_current_fragment_icons: _loading_started={loading_started} _finish_loading callable={has_finish}", True)
+                    if loading_started and has_finish:
+                        delegate._loading_started = False
+                        logx("IconList._update_current_fragment_icons: calling _finish_loading via run_on_ui_thread", True)
+                        run_on_ui_thread(delegate._finish_loading)
+                    elif hasattr(delegate, 'results_container') and delegate.results_container:
+                        logx(f"IconList._update_current_fragment_icons: calling build_list_with_sort('{delegate.current_sort_type}')", True)
+                        delegate.build_list_with_sort(delegate.current_sort_type)
+                    else:
+                        # deferred chrome not built yet — flag it, the shell
+                        # wrapper applies the data right after _build_chrome
+                        delegate._data_ready_pending = True
+                        logx("IconList._update_current_fragment_icons: chrome not ready, data flagged as pending", True)
+            else:
+                logx("IconList._update_current_fragment_icons: fragment has no usable delegate", True)
+        except Exception as e:
+            logx(f"IconList._update_current_fragment_icons: error: {e}", False)
+
+    def _show_icons_universal(self, repo_name: str, icons: list, repo_id: str = ""):
+        fragment = get_last_fragment()
+        if not fragment:
+            return
+        try:
+            delegate = self.IconListFragment(self, repo_name, icons, show_loading_initial=True, repo_id=repo_id)
+            new_fragment = UniversalFragment(delegate)
+            # NOTE: do not "retry" presentFragment based on its return value —
+            # the host can present successfully while returning a falsy value,
+            # and re-presenting the same instance stacks a duplicate screen
+            fragment.presentFragment(new_fragment)
+
+            def _setup_action_bar(attempt=0):
+                try:
+                    actionBar = new_fragment.getActionBar()
+                    if not actionBar:
+                        # on slow devices the fragment view (and its action
+                        # bar) appears a few frames after presentFragment;
+                        # calling setTitle before that NPEs inside the host
+                        if attempt < 10:
+                            run_on_ui_thread(lambda: _setup_action_bar(attempt + 1), 120)
+                        else:
+                            logx("icons: action bar never appeared, skipping setup", True)
+                        return
+                    new_fragment.setTitle(repo_name, False, 0)
+                    actionBar.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray))
+                    from org.telegram.messenger import R as R_tg
+                    back_icon = getattr(R_tg.drawable, 'ic_ab_back', 0)
+                    if back_icon:
+                        actionBar.setBackButtonImage(back_icon)
+                        actionBar.setBackButtonContentDescription("Back")
+                        try:
+                            back_button = actionBar.getBackButton()
+                            if back_button:
+                                def _on_back_click(v):
+                                    f = get_last_fragment()
+                                    if f: f.finishFragment()
+                                back_button.setOnClickListener(OnClickListener(_on_back_click))
+                        except Exception:
+                            pass
+                except Exception as e:
+                    logx(f"icons: failed to setup action bar: {e}", False)
+            _setup_action_bar()
+        except Exception as e:
+            logx(f"icons: failed to show universal: {e}", False)
+
+    class IconListFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
+        def __init__(self, install_ui, title, icons, show_loading_initial=False, repo_id=""):
+            super().__init__()
+            self.install_ui = install_ui
+            self.title = title
+            self.repo_id = repo_id
+            self.icons = icons
+            self.show_loading_initial = show_loading_initial
+            self.last_search_query = None
+            self.search_index = None
+            self.filtered_icons = []
+            self.visible_icons = []
+            self.lazy_load_queue = deque()
+            self.is_loading = False
+            self.current_sort_type = "alpha_az"
+            self.batch_size = 15
+            self.results_container = None
+            self._finish_loading = None
+            self._loading_started = False
+            # set when icons arrive before the deferred chrome is built
+            self._data_ready_pending = False
+            # registry of (iv, loaded_list) for the global swap ticker
+            self._card_registry = []
+            self._ticker_started = False
+            # bumped with the registry: a ticker whose generation is stale stops
+            # instead of animating cards from a discarded list forever
+            self._ticker_gen = 0
+            self._live_search_spinner = None
+            # bumped on every list rebuild; preview tasks captured with an
+            # older epoch abort instead of downloading for discarded cards
+            self._preview_epoch = 0
+
+        def onFragmentCreate(self, *_):
+            try:
+                from ..NoInternetBanner import NoInternetBanner as _NIB
+                self._no_internet_banner = _NIB(None)
+
+                def _on_restore():
+                    try:
+                        logx("IconList: network restored, reloading icons", True)
+                        if self.repo_id:
+                            repos = self.install_ui.repoManager.getRepositories() or []
+                            for r in repos:
+                                if r.get("id") == self.repo_id:
+                                    self.install_ui._open_repo_icons(r)
+                                    break
+                        else:
+                            self.install_ui._open_all_repos_icons()
+                    except Exception as e:
+                        logx(f"IconList: _on_restore error: {e}", False)
+
+                self._no_internet_banner._on_network_restored_callback = _on_restore
+                self._no_internet_banner.register()
+            except Exception as e:
+                logx(f"IconList: NoInternetBanner register error: {e}", False)
+
+        def onFragmentDestroy(self, *_):
+            try:
+                banner = getattr(self, '_no_internet_banner', None)
+                if banner:
+                    banner.unregister()
+                    self._no_internet_banner = None
+            except Exception as e:
+                logx(f"IconList: NoInternetBanner unregister error: {e}", False)
+            try:
+                if hasattr(self, 'content_view') and self.content_view is not None:
+                    parent = self.content_view.getParent()
+                    if parent is not None:
+                        parent.removeView(self.content_view)
+            except Exception:
+                pass
+
+        def _handle_repo_select(self, selected):
+            if selected == "all":
+                self.install_ui._open_all_repos_icons()
+            elif isinstance(selected, dict):
+                self.install_ui._open_repo_icons(selected)
+
+        def beforeCreateView(self):
+            # light shell now, heavy chrome a few frames later: _build_chrome
+            # makes hundreds of python->java calls and used to block the UI
+            # thread, freezing the fragment open animation for ~half a second
+            act = get_last_fragment().getContext()
+            try:
+                shell_bg = self.install_ui._get_theme_colors()["main_bg_color"]
+            except Exception:
+                shell_bg = Theme.getColor(Theme.key_windowBackgroundGray)
+            shell = FrameLayout(act)
+            shell.setBackgroundColor(shell_bg)
+
+            def _deferred():
+                try:
+                    view = self._build_chrome()
+                    if view is not None:
+                        shell.addView(view, FrameLayout.LayoutParams(-1, -1))
+                    # data that landed while the chrome was still building
+                    if getattr(self, "_data_ready_pending", False):
+                        self._data_ready_pending = False
+                        if self._loading_started and callable(self._finish_loading):
+                            logx("IconList: applying pending data after chrome build", True)
+                            self._loading_started = False
+                            self._finish_loading()
+                        elif self.results_container is not None:
+                            self.build_list_with_sort(self.current_sort_type)
+                except Exception as e:
+                    logx(f"IconList: deferred _build_chrome error: {e}", False)
+            # let the open animation start smoothly before the heavy build
+            run_on_ui_thread(_deferred, 30)
+            return shell
+
+        def _build_chrome_python(self, act):
+            # original python chrome builder, kept as the fallback path
+            main_layout = LinearLayout(act)
+            main_layout.setOrientation(LinearLayout.VERTICAL)
+            main_layout.setPadding(AndroidUtilities.dp(16), 0, AndroidUtilities.dp(16), AndroidUtilities.dp(14))
+
+            # search bar
+            search_container = FrameLayout(act)
+            pill = GradientDrawable()
+            pill.setShape(GradientDrawable.RECTANGLE)
+            pill.setCornerRadius(AndroidUtilities.dp(50))
+            try:
+                base_color = Theme.getColor(Theme.key_featuredStickers_addButton)
+                pill.setStroke(AndroidUtilities.dp(2), base_color)
+            except Exception:
+                try:
+                    pill.setStroke(AndroidUtilities.dp(2), Theme.getColor(Theme.key_dialogTextBlue))
+                except Exception:
+                    pass
+            try:
+                pill.setColor(self.card_bg_color)
+            except Exception:
+                pass
+            search_container.setBackground(pill)
+            search_container.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(5), AndroidUtilities.dp(8), AndroidUtilities.dp(5))
+
+            self.search = EditTextBoldCursor(act)
+            self.search.setHint(strings["icons_search_hint"])
+            self.search.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15)
+            self.search.setSingleLine(True)
+            self.search.setInputType(InputType.TYPE_CLASS_TEXT)
+            self.search.setBackgroundColor(0)
+            self.search.setTextColor(self.text_color)
+            try:
+                self.search.setHintTextColor(self.hint_text_color)
+            except Exception:
+                pass
+            try:
+                self.search.setCursorColor(self.cursor_color)
+            except Exception:
+                pass
+            try:
+                self.search.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(10), AndroidUtilities.dp(8))
+            except Exception:
+                pass
+
+
+            try:
+                self.search.setOnEditorActionListener(_icons_editor_listener(self, act))
+            except Exception as ex:
+                logx(f"icons: setOnEditorActionListener failed: {ex}", True)
+
+
+            search_row = LinearLayout(act)
+            search_row.setOrientation(LinearLayout.HORIZONTAL)
+            search_row.setGravity(Gravity.CENTER_VERTICAL)
+            search_row.addView(self.search, LinearLayout.LayoutParams(-1, AndroidUtilities.dp(36), 1.0))
+
+            clear_btn = FrameLayout(act)
+            clear_btn.setClickable(True)
+            clear_btn.setFocusable(True)
+            clear_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                AndroidUtilities.dp(25), 0x00000000, 0x00000000
+            ))
+            clear_btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
+            clear_btn_icon = ImageView(act)
+            clear_btn_icon.setImageResource(self.install_ui._resolve_icon("input_clear"))
+            try:
+                clear_btn_icon.setColorFilter(self.text_color)
+            except Exception:
+                pass
+            clear_btn_icon.setScaleType(ImageView.ScaleType.CENTER)
+            clear_btn.addView(clear_btn_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
+
+
+            clear_btn.setOnClickListener(OnClickListener(lambda v: _icons_on_clear_click(self, act)))
+            self.install_ui._apply_press_scale(clear_btn)
+            clear_btn.setVisibility(View.GONE)
+            clear_btn.setAlpha(0.0)
+            search_row.addView(clear_btn, LinearLayout.LayoutParams(AndroidUtilities.dp(52), AndroidUtilities.dp(36), 0))
+
+            search_btn = FrameLayout(act)
+            search_btn.setClickable(True)
+            search_btn.setFocusable(True)
+            try:
+                base_color = Theme.getColor(Theme.key_featuredStickers_addButton)
+                pressed_color = Theme.getColor(Theme.key_featuredStickers_addButtonPressed)
+            except Exception:
+                base_color = Theme.getColor(Theme.key_dialogTextBlue)
+                pressed_color = base_color
+            search_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                AndroidUtilities.dp(25), base_color, pressed_color
+            ))
+            search_btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
+            search_btn_icon = ImageView(act)
+            search_btn_icon.setImageResource(self.install_ui._resolve_icon("ic_ab_search"))
+            try:
+                search_btn_icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_buttonText))
+            except Exception:
+                pass
+            search_btn_icon.setScaleType(ImageView.ScaleType.CENTER)
+            search_btn.addView(search_btn_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
+
+
+            search_btn.setOnClickListener(OnClickListener(lambda v: _icons_on_search_btn_click(self, act)))
+            self.install_ui._apply_press_scale(search_btn)
+            try:
+                from elyx import settings as _s
+                # default must match the plugins catalog (True): manual
+                # search button stays hidden unless live_search is off
+                if _s.get("live_search", True):
+                    search_btn.setVisibility(View.GONE)
+            except Exception:
+                pass
+            search_row.addView(search_btn, LinearLayout.LayoutParams(AndroidUtilities.dp(52), AndroidUtilities.dp(36), 0))
+            search_container.addView(search_row, FrameLayout.LayoutParams(-1, -2))
+            main_layout.addView(search_container, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 8))
+
+            # header row: repo button | subtitle | sort button
+            header_row = FrameLayout(act)
+            header_row_lp = LinearLayout.LayoutParams(-1, AndroidUtilities.dp(44))
+            header_row_lp.topMargin = AndroidUtilities.dp(4)
+            header_row_lp.bottomMargin = AndroidUtilities.dp(12)
+            main_layout.addView(header_row, header_row_lp)
+
+            repo_btn = FrameLayout(act)
+            repo_btn.setClickable(True)
+            repo_btn.setFocusable(True)
+            try:
+                repo_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                    AndroidUtilities.dp(16), self.card_bg_color, self.card_pressed_color
+                ))
+            except Exception:
+                pass
+            repo_btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
+            repo_icon = ImageView(act)
+            repo_icon.setImageResource(self.install_ui._resolve_icon("msg_smile_status"))
+            try:
+                repo_icon.setColorFilter(self.text_color)
+            except Exception:
+                pass
+            repo_btn.addView(repo_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
+
+
+            repo_btn.setOnClickListener(OnClickListener(lambda v: _icons_show_repo_menu(self, act)))
+            self.install_ui._apply_press_scale(repo_btn)
+            header_row.addView(repo_btn, FrameLayout.LayoutParams(-2, -2, Gravity.LEFT | Gravity.CENTER_VERTICAL))
+
+            subtitle = TextView(act)
+            subtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16)
+            subtitle.setText(strings["total_plugins_unknown"] if not self.icons else strings["icons_count"].format(len(self.icons)))
+            subtitle.setGravity(Gravity.CENTER)
+            subtitle.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(7), AndroidUtilities.dp(12), AndroidUtilities.dp(7))
+            subtitle.setClickable(False)
+            subtitle.setFocusable(False)
+            try:
+                subtitle.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                    AndroidUtilities.dp(16), self.card_bg_color, self.card_bg_color
+                ))
+            except Exception:
+                pass
+            try:
+                subtitle.setTextColor(self.text_color)
+            except Exception:
+                pass
+            header_row.addView(subtitle, FrameLayout.LayoutParams(-2, -2, Gravity.CENTER))
+            self.subtitle = subtitle
+
+            sort_btn = FrameLayout(act)
+            sort_btn.setClickable(True)
+            sort_btn.setFocusable(True)
+            try:
+                sort_btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                    AndroidUtilities.dp(16), self.card_bg_color, self.card_pressed_color
+                ))
+            except Exception:
+                pass
+            sort_btn.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8), AndroidUtilities.dp(8))
+            sort_icon = ImageView(act)
+            sort_icon.setImageResource(self.install_ui._resolve_icon("msg_list"))
+            try:
+                sort_icon.setColorFilter(self.text_color)
+            except Exception:
+                pass
+            sort_btn.addView(sort_icon, FrameLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20), Gravity.CENTER))
+
+
+            sort_btn.setOnClickListener(OnClickListener(lambda v: _icons_open_sort_menu(self, act)))
+            self.install_ui._apply_press_scale(sort_btn)
+            header_row.addView(sort_btn, FrameLayout.LayoutParams(-2, -2, Gravity.RIGHT | Gravity.CENTER_VERTICAL))
+
+            scroll = ScrollView(act)
+            scroll.setFillViewport(True)
+            scroll.setVerticalScrollBarEnabled(False)
+            scroll.setBackgroundColor(self.main_bg_color)
+            scroll.setFadingEdgeLength(AndroidUtilities.dp(24))
+            scroll.setVerticalFadingEdgeEnabled(True)
+            try:
+                scroll.setNestedScrollingEnabled(True)
+            except Exception:
+                pass
+
+            return main_layout, scroll, clear_btn
+
+        def _build_chrome(self):
+            act = get_last_fragment().getContext()
+            colors = self.install_ui._get_theme_colors()
+            self.main_bg_color = colors["main_bg_color"]
+            self.card_bg_color = colors["card_bg_color"]
+            self.card_pressed_color = colors["card_pressed_color"]
+            self.text_color = colors["text_color"]
+            self.secondary_text_color = colors["secondary_text_color"]
+            self.hint_text_color = colors["hint_text_color"]
+            self.cursor_color = colors["cursor_color"]
+            self.search_border_color = colors["search_border_color"]
+            self.search_stroke_width = colors["search_stroke_width"]
+
+            self.content_view = FrameLayout(act)
+            self.content_view.setBackgroundColor(self.main_bg_color)
+
+            chrome = None
+            try:
+                chrome = _icons_build_chrome_kotlin(self, act)
+            except Exception as e:
+                logx(f"icons: kotlin chrome error: {e}", False)
+            if chrome is None:
+                main_layout, scroll, clear_btn = self._build_chrome_python(act)
+            else:
+                main_layout, scroll, clear_btn = chrome
+            self.content_view.addView(main_layout, 0, FrameLayout.LayoutParams(-1, -1))
+
+            self.results_container = LinearLayout(act)
+            self.results_container.setOrientation(LinearLayout.VERTICAL)
+            self.results_container.setPadding(0, 0, 0, AndroidUtilities.dp(10))
+
+            if self.show_loading_initial:
+                content_wrapper = FrameLayout(act)
+                content_wrapper.setLayoutParams(ScrollView.LayoutParams(-1, -2))
+
+                loading_container = None
+                try:
+                    from org.telegram.ui.Components import CircularProgressDrawable
+                    _size = 122
+                    _color = Theme.getColor(Theme.key_featuredStickers_addButton)
+                    try:
+                        _d = CircularProgressDrawable(float(_size), float(AndroidUtilities.dp(8)), _color)
+                    except Exception:
+                        _d = CircularProgressDrawable(_color)
+                        try:
+                            _d.size = float(_size)
+                            _d.thickness = float(AndroidUtilities.dp(8))
+                        except Exception:
+                            pass
+                    _d.setBounds(0, 0, _size, _size)
+                    _spinner = ImageView(act)
+                    _spinner.setImageDrawable(_d)
+                    _spinner.setScaleType(ImageView.ScaleType.FIT_CENTER)
+                    loading_container = FrameLayout(act)
+                    loading_container.setLayoutParams(FrameLayout.LayoutParams(-1, -1))
+                    _lp = FrameLayout.LayoutParams(_size, _size, Gravity.CENTER)
+                    loading_container.addView(_spinner, _lp)
+                    self.content_view.addView(loading_container, FrameLayout.LayoutParams(-1, -1))
+                except Exception as e:
+                    logx(f"icons: loading spinner error: {e}", False)
+
+                # store callback so _update_current_fragment_icons can call it after data arrives
+                _loading_container_ref = loading_container
+                def finish_loading():
+                    try:
+                        logx(f"IconList.finish_loading: called, icons count={len(self.icons) if self.icons else 0}", True)
+                        def _on_spinner_removed():
+                            try:
+                                content_wrapper.addView(self.results_container, FrameLayout.LayoutParams(-1, -2))
+                                if self.icons:
+                                    logx(f"IconList.finish_loading: building list, icons={len(self.icons)}", True)
+                                    self.build_list_with_sort("alpha_az")
+                                else:
+                                    logx("IconList.finish_loading: icons is empty, showing empty state", True)
+                                    self._show_empty_state()
+                                if hasattr(self, 'subtitle'):
+                                    self.subtitle.setText(strings["icons_count"].format(len(self.icons)))
+                                
+                                try:
+                                    banner = getattr(self, '_no_internet_banner', None)
+                                    if banner:
+                                        banner.on_config_loaded()
+                                except Exception as e:
+                                    logx(f"IconList: NoInternetBanner on_config_loaded error: {e}", False)
+                            except Exception as e:
+                                logx(f"IconList.finish_loading inner error: {e}", False)
+
+                        if _loading_container_ref is not None:
+                            try:
+                                class _RemoveRunnable(dynamic_proxy(find_class("java.lang.Runnable"))):
+                                    def __init__(self, cv, lc):
+                                        super().__init__()
+                                        self.cv = cv
+                                        self.lc = lc
+                                    def run(self):
+                                        try:
+                                            self.cv.removeView(self.lc)
+                                        except Exception:
+                                            pass
+                                        _on_spinner_removed()
+                                        
+                                _loading_container_ref.animate().alpha(0.0).setDuration(250).withEndAction(
+                                    _RemoveRunnable(self.content_view, _loading_container_ref)
+                                ).start()
+                            except Exception as e:
+                                logx(f"IconList.finish_loading: animate failed: {e}", False)
+                                try:
+                                    self.content_view.removeView(_loading_container_ref)
+                                except Exception:
+                                    pass
+                                _on_spinner_removed()
+                        else:
+                            _on_spinner_removed()
+                    except Exception as e:
+                        logx(f"IconList.finish_loading: error: {e}", False)
+
+                self._finish_loading = finish_loading
+                self._loading_started = True
+                scroll.addView(content_wrapper, ScrollView.LayoutParams(-1, -2))
+            else:
+                self._finish_loading = None
+                self._loading_started = False
+                scroll.addView(self.results_container, ScrollView.LayoutParams(-1, -2))
+
+            class ScrollListener(dynamic_proxy(View.OnScrollChangeListener)):
+                def __init__(self, outer):
+                    super().__init__()
+                    self.outer = outer
+                    self.last_scroll_y = 0
+                    self.scroll_threshold = AndroidUtilities.dp(50)
+                def onScrollChange(self, v, scrollX, scrollY, oldScrollX, oldScrollY):
+                    try:
+                        if not self.outer.is_loading and len(self.outer.visible_icons) < len(self.outer.filtered_icons):
+                            height = v.getHeight()
+                            content_height = v.getChildAt(0).getHeight()
+                            scroll_delta = abs(scrollY - self.last_scroll_y)
+                            if scroll_delta > self.scroll_threshold:
+                                if scrollY + height >= content_height - AndroidUtilities.dp(300):
+                                    self.outer._load_more_items()
+                                self.last_scroll_y = scrollY
+                    except Exception:
+                        pass
+            try:
+                scroll.setOnScrollChangeListener(ScrollListener(self))
+            except Exception:
+                pass
+
+            if scroll.getParent() is None:
+                main_layout.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1.0))
+            self.search.addTextChangedListener(_IconsSearchTextWatcher(self, clear_btn, act))
+            try:
+                from ..ViewUtils import applyFontToTree
+                applyFontToTree(self.content_view)
+            except Exception:
+                pass
+
+            try:
+                banner = getattr(self, '_no_internet_banner', None)
+                if banner:
+                    banner.content_view = self.content_view
+                    if not self.show_loading_initial:
+                        banner.on_config_loaded()
+            except Exception as e:
+                logx(f"IconList: NoInternetBanner attach error: {e}", False)
+
+            return self.content_view
+
+        def getTitle(self):
+            return self.title
+
+        def onBackPressed(self):
+            return False
+
+        def afterCreateView(self, v):
+            return None
+
+        def fillItems(self, items, adapter):
+            pass
+
+        def onClick(self, item, view, pos, x, y):
+            pass
+
+        def onLongClick(self, item, view, pos, x, y):
+            return False
+
+        def onMenuItemClick(self, mid):
+            if mid == -1:
+                try:
+                    f = get_last_fragment()
+                    if f: f.finishFragment()
+                except Exception as e:
+                    logx(f"icons: failed to finish fragment: {e}", False)
+                return True
+            return False
+
+        def build_list_with_sort(self, sort_type: str, q=None):
+            logx(f"IconList.build_list_with_sort: sort_type='{sort_type}' q='{q}' total_icons={len(self.icons) if self.icons else 0}", True)
+            self.current_sort_type = sort_type
+            q = (q or "").strip()
+            if q != self.last_search_query:
+                self.last_search_query = q
+            self.is_loading = True
+            self.results_container.removeAllViews()
+            self.visible_icons = []
+            self.lazy_load_queue.clear()
+            self._card_registry = []
+            self._ticker_started = False
+            self._ticker_gen += 1
+            self._preview_epoch += 1
+
+            if not q:
+                filtered = list(self.icons)
+            else:
+                isRussian = False
+                try:
+                    from java.util import Locale
+                    isRussian = Locale.getDefault().getLanguage() == "ru"
+                except Exception:
+                    pass
+                fuzzy = settings.get("fuzzy_search", False)
+                scored = []
+                for icon in self.icons:
+                    s = search_mod.score(icon, q, self.search_index, isRussian, fuzzy)
+                    if s[0] < 6:
+                        scored.append((s, icon))
+                scored.sort(key=lambda x: x[0])
+                filtered = [icon for _, icon in scored]
+
+            if not q:
+                if sort_type == "alpha_az":
+                    filtered.sort(key=lambda i: str(i.get("name") or i.get("id") or "").lower())
+                elif sort_type == "alpha_za":
+                    filtered.sort(key=lambda i: str(i.get("name") or i.get("id") or "").lower(), reverse=True)
+                elif sort_type == "authors":
+                    filtered.sort(key=lambda i: str(i.get("author") or "").lower())
+
+            self.filtered_icons = filtered
+            logx(f"IconList.build_list_with_sort: filtered count={len(filtered)}", True)
+
+            if hasattr(self, 'subtitle'):
+                self.subtitle.setText(strings["icons_count"].format(len(self.icons)))
+
+            fragment = get_last_fragment()
+            act = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
+            if not act:
+                act = fragment.getContext() if fragment else None
+
+            if not filtered:
+                logx("IconList.build_list_with_sort: filtered is empty, calling _show_empty_state", True)
+                self._show_empty_state()
+            else:
+                logx(f"IconList.build_list_with_sort: loading initial batch of {min(self.batch_size, len(filtered))}", True)
+                self._load_initial_batch()
+
+        def build_list(self, q):
+            self.build_list_with_sort(self.current_sort_type, q)
+
+        def _show_empty_state(self):
+            logx(f"IconList._show_empty_state: called, icons={len(self.icons) if self.icons else 0} filtered={len(self.filtered_icons) if self.filtered_icons else 0} last_query='{self.last_search_query}'", True)
+            try:
+                fragment = get_last_fragment()
+                act = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
+                if not act:
+                    act = fragment.getContext() if fragment else None
+
+                empty_container = LinearLayout(act)
+                empty_container.setOrientation(LinearLayout.VERTICAL)
+                empty_container.setGravity(Gravity.CENTER)
+                empty_container.setPadding(0, AndroidUtilities.dp(60), 0, AndroidUtilities.dp(60))
+
+                ghost_icon = ImageView(act)
+                try:
+                    R = find_class("org.telegram.messenger.R")
+                    ghost_icon.setImageResource(getattr(R.drawable, "ayu_ghost"))
+                    ghost_icon.setColorFilter(self.secondary_text_color)
+                except Exception:
+                    pass
+                empty_container.addView(ghost_icon, LayoutHelper.createLinear(AndroidUtilities.dp(64), AndroidUtilities.dp(64), 0, 0, 0, 16))
+
+
+
+                self.results_container.addView(empty_container, LayoutHelper.createLinear(-1, -2))
+                self.is_loading = False
+            except Exception as e:
+                logx(f"icons: empty state error: {e}", False)
+
+        def _add_items_with_animation(self, items_to_add):
+            try:
+                fragment = get_last_fragment()
+                act = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else fragment.getContext()
+                gap = AndroidUtilities.dp(8)
+                # pair items into rows of 2
+                i = 0
+                rows = []
+                while i < len(items_to_add):
+                    row = LinearLayout(act)
+                    row.setOrientation(LinearLayout.HORIZONTAL)
+                    left = items_to_add[i]
+                    lp = LinearLayout.LayoutParams(0, AndroidUtilities.dp(160), 1.0)
+                    lp.rightMargin = gap // 2
+                    row.addView(left, lp)
+                    if i + 1 < len(items_to_add):
+                        right = items_to_add[i + 1]
+                        rp = LinearLayout.LayoutParams(0, AndroidUtilities.dp(160), 1.0)
+                        rp.leftMargin = gap // 2
+                        row.addView(right, rp)
+                    else:
+                        # odd last item — fill half width with empty space
+                        spacer = View(act)
+                        sp = LinearLayout.LayoutParams(0, AndroidUtilities.dp(160), 1.0)
+                        sp.leftMargin = gap // 2
+                        row.addView(spacer, sp)
+                    row_lp = LayoutHelper.createLinear(-1, -2, 0, 4, 0, 4)
+                    self.results_container.addView(row, row_lp)
+                    rows.append(row)
+                    i += 2
+
+                delay_step = 40
+                for idx, row in enumerate(rows):
+                    try:
+                        row.setAlpha(0.0)
+                        row.setScaleX(0.94)
+                        row.setScaleY(0.94)
+                        row.animate().alpha(1.0).scaleX(1.0).scaleY(1.0).setDuration(220).setStartDelay(idx * delay_step).start()
+                    except Exception:
+                        pass
+                self.is_loading = False
+            except Exception as e:
+                logx(f"icons: add items error: {e}", False)
+                self.is_loading = False
+
+        def _load_initial_batch(self):
+            self.is_loading = True
+            batch_size = min(self.batch_size, len(self.filtered_icons))
+
+            def load_batch():
+                try:
+                    items_to_add = []
+                    for i in range(batch_size):
+                        if i < len(self.filtered_icons):
+                            icon = self.filtered_icons[i]
+                            self.visible_icons.append(icon)
+                            items_to_add.append(self.make_item(icon))
+                    run_on_ui_thread(lambda: self._add_items_with_animation(items_to_add))
+                except Exception as e:
+                    logx(f"icons: initial batch error: {e}", False)
+                    self.is_loading = False
+            threading.Thread(target=load_batch, daemon=True).start()
+
+        def _load_more_items(self):
+            if self.is_loading or len(self.visible_icons) >= len(self.filtered_icons):
+                return
+            self.is_loading = True
+            start_index = len(self.visible_icons)
+            batch_size = min(self.batch_size, len(self.filtered_icons) - start_index)
+
+            def load_batch():
+                try:
+                    items_to_add = []
+                    for i in range(batch_size):
+                        idx = start_index + i
+                        if idx < len(self.filtered_icons):
+                            icon = self.filtered_icons[idx]
+                            self.visible_icons.append(icon)
+                            items_to_add.append(self.make_item(icon))
+                    run_on_ui_thread(lambda: self._add_items_with_animation(items_to_add))
+                except Exception as e:
+                    logx(f"icons: batch load error: {e}", False)
+                    self.is_loading = False
+            threading.Thread(target=load_batch, daemon=True).start()
+
+        def _start_ticker_if_needed(self):
+            if self._ticker_started:
+                return
+            self._ticker_started = True
+            import random
+            Runnable = find_class("java.lang.Runnable")
+            registry = self._card_registry
+            delegate = self
+            # the ticker used to re-post itself on the first card's view: a
+            # detached view queues the runnable until it is attached again, so
+            # the ticker could stall — and a card left mid-crossfade then stays
+            # invisible forever. The heartbeat now runs on the main handler,
+            # which no view can hold up, and every tick heals stranded cards.
+            gen = self._ticker_gen
+            ticker_runnable = [None]
+            # keeps runnables handed to java alive until they fire
+            pending = []
+            # track last swapped card and bitmap to prevent consecutive repeats
+            last_iv = [None]
+            last_bmp = [None]
+
+            def _runnable(fn):
+                class _R(dynamic_proxy(Runnable)):
+                    def __init__(self):
+                        super().__init__()
+                    def run(self):
+                        try:
+                            fn()
+                        finally:
+                            try:
+                                pending.remove(self)
+                            except Exception:
+                                pass
+                r = _R()
+                pending.append(r)
+                if len(pending) > 64:
+                    del pending[:len(pending) - 64]
+                return r
+
+            def _post(fn, delay):
+                AndroidUtilities.runOnUIThread(_runnable(fn), delay)
+
+            def _restore_alpha(v):
+                # a crossfade that gets interrupted leaves the preview at alpha
+                # 0 — the card then shows its name and count with an empty icon,
+                # exactly like a preview that never loaded
+                try:
+                    if v.getAlpha() < 1.0:
+                        v.setAlpha(1.0)
+                except Exception:
+                    pass
+
+            def tick():
+                try:
+                    if delegate._ticker_gen != gen or delegate._card_registry is not registry:
+                        return  # the list was rebuilt; a newer ticker owns it
+                    candidates = [(iv, bitmaps) for iv, bitmaps in registry if len(bitmaps) >= 1]
+                    if candidates:
+                        # exclude last card if other options exist
+                        filtered = [c for c in candidates if c[0] is not last_iv[0]]
+                        if not filtered:
+                            filtered = candidates
+                        iv, bitmaps = random.choice(filtered)
+                        # exclude last shown bitmap on this card if other options exist
+                        other_bmps = [b for b in bitmaps if b is not last_bmp[0]]
+                        bmp = random.choice(other_bmps if other_bmps else bitmaps)
+                        last_iv[0] = iv
+                        last_bmp[0] = bmp
+
+                        def do_swap(v=iv, b=bmp):
+                            try:
+                                # heal anything a previous interrupted fade left
+                                # behind, including the card we are about to use
+                                for other_iv, _ in registry:
+                                    if other_iv is not v:
+                                        _restore_alpha(other_iv)
+                                try:
+                                    v.animate().cancel()
+                                except Exception:
+                                    pass
+                                v.setAlpha(1.0)
+
+                                def _swap_in():
+                                    try:
+                                        v.setImageBitmap(b)
+                                        v.animate().alpha(1.0).setDuration(200).start()
+                                    except Exception:
+                                        pass
+                                    # the fade-in can be interrupted too, so pin
+                                    # the end state instead of trusting it
+                                    _post(lambda: _restore_alpha(v), 260)
+
+                                v.animate().alpha(0.0).setDuration(200).start()
+                                # driven by time, not by withEndAction: a cancelled
+                                # animation drops its end action and the swap with it
+                                _post(_swap_in, 210)
+                            except Exception:
+                                try:
+                                    v.setImageBitmap(b)
+                                    v.setAlpha(1.0)
+                                except Exception:
+                                    pass
+
+                        run_on_ui_thread(do_swap)
+                    else:
+                        for iv, _ in registry:
+                            _restore_alpha(iv)
+                    AndroidUtilities.runOnUIThread(ticker_runnable[0], 2000)
+                except Exception as ex:
+                    logx(f"icons ticker: tick error: {ex}", True)
+
+            ticker_runnable[0] = _runnable(tick)
+            # _runnable drops its ref once it fires, but the heartbeat is reused
+            pending.append(ticker_runnable[0])
+
+            def post_start():
+                try:
+                    AndroidUtilities.runOnUIThread(ticker_runnable[0], 2000)
+                except Exception as ex:
+                    logx(f"icons ticker: post_start error: {ex}", True)
+            run_on_ui_thread(post_start)
+
+        def make_item(self, icon):
+            import random
+            import ctypes
+            act = get_last_fragment().getContext()
+
+            icon_size_dp = 64
+
+            card = FrameLayout(act)
+            try:
+                card.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
+                    AndroidUtilities.dp(18), self.card_bg_color, self.card_pressed_color
+                ))
+            except Exception:
+                pass
+
+            inner = LinearLayout(act)
+            inner.setOrientation(LinearLayout.VERTICAL)
+            inner.setGravity(Gravity.CENTER)
+            inner.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(10), AndroidUtilities.dp(8), AndroidUtilities.dp(10))
+            card.addView(inner, FrameLayout.LayoutParams(-1, -1))
+
+            all_urls = [e[0] for e in (icon.get("preview") or []) if isinstance(e, (list, tuple)) and e and (str(e[0]).lower().endswith(".png") or str(e[0]).lower().endswith(".svg"))]
+
+            icon_size_px = AndroidUtilities.dp(icon_size_dp)
+            iv = ImageView(act)
+            iv.setScaleType(ImageView.ScaleType.FIT_CENTER)
+            iv_lp = LinearLayout.LayoutParams(icon_size_px, icon_size_px)
+            iv_lp.bottomMargin = AndroidUtilities.dp(8)
+            inner.addView(iv, iv_lp)
+            # neutral block until the first preview decodes, so a card that is
+            # still downloading reads as loading instead of as broken
+            try:
+                _ph_color = Theme.getColor(Theme.key_emptyListPlaceholder)
+                _ph = GradientDrawable()
+                _ph.setShape(GradientDrawable.RECTANGLE)
+                _ph.setCornerRadius(AndroidUtilities.dp(10))
+                _ph.setColor(ctypes.c_int32(
+                    (0x33 << 24) | (_ph_color & 0xFFFFFF)
+                ).value)
+                iv.setBackground(_ph)
+            except Exception:
+                pass
+
+            name_tv = TextView(act)
+            try:
+                name_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+            except Exception:
+                name_tv.setTypeface(AndroidUtilities.bold())
+            name_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
+            name_tv.setGravity(Gravity.CENTER)
+            _display_name = str(icon.get("name") or icon.get("id") or "Unknown")
+            # highlight search matches in the name with the accent color
+            _hl = None
+            try:
+                _q = getattr(self, "last_search_query", None)
+                if _q:
+                    from ..ViewUtils import highlightQuery
+                    _hl = highlightQuery(
+                        _display_name, str(_q),
+                        Theme.getColor(Theme.key_featuredStickers_addButton),
+                    )
+            except Exception:
+                _hl = None
+            name_tv.setText(_hl if _hl is not None else _display_name)
+            name_tv.setTextColor(self.text_color)
+            name_tv.setSingleLine(True)
+            try:
+                name_tv.setEllipsize(TextUtils.TruncateAt.END)
+            except Exception:
+                pass
+            inner.addView(name_tv, LinearLayout.LayoutParams(-1, -2))
+
+            icon_count = icon.get("icon_count")
+            if icon_count is not None:
+                try:
+                    base_color = Theme.getColor(Theme.key_avatar_backgroundInProfileBlue)
+                    r = (base_color >> 16) & 0xFF
+                    g = (base_color >> 8) & 0xFF
+                    b = base_color & 0xFF
+                    fill_color = ctypes.c_int32((0x33 << 24) | (r << 16) | (g << 8) | b).value
+                    text_color = ctypes.c_int32((0xFF << 24) | (r << 16) | (g << 8) | b).value
+                    count_pill = TextView(act)
+                    count_pill.setText(str(strings["il_icon_count"]).replace("{count}", str(icon_count)))
+                    count_pill.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 10)
+                    count_pill.setGravity(Gravity.CENTER)
+                    try:
+                        count_pill.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
+                    except Exception:
+                        pass
+                    count_pill.setTextColor(text_color)
+                    pill_bg = GradientDrawable()
+                    pill_bg.setShape(GradientDrawable.RECTANGLE)
+                    pill_bg.setCornerRadius(AndroidUtilities.dp(6))
+                    pill_bg.setColor(fill_color)
+                    count_pill.setBackground(pill_bg)
+                    count_pill.setPadding(
+                        AndroidUtilities.dp(6), AndroidUtilities.dp(2),
+                        AndroidUtilities.dp(6), AndroidUtilities.dp(2)
+                    )
+                    count_lp = LinearLayout.LayoutParams(-2, -2)
+                    count_lp.topMargin = AndroidUtilities.dp(4)
+                    inner.addView(count_pill, count_lp)
+                except Exception:
+                    pass
+
+            cache = self.install_ui._preview_cache
+            cache_lock = self.install_ui._preview_cache_lock
+            loaded = []
+            # register this card so the fragment-level ticker can swap it
+            self._card_registry.append((iv, loaded))
+            self._start_ticker_if_needed()
+            epoch = self._preview_epoch
+            delegate = self
+
+            def load_one(url, px=icon_size_px):
+                # cache-aware download + decode of a single preview, or None
+                try:
+                    with cache_lock:
+                        bmp = cache.get(url)
+                        if bmp is not None:
+                            cache.move_to_end(url)
+                            return bmp
+                    r = requests.get(url, timeout=10)
+                    if r.status_code != 200:
+                        return None
+                    data = r.content
+                    if url.lower().endswith(".svg"):
+                        try:
+                            SVG = find_class("com.caverock.androidsvg.SVG")
+                            ByteArrayInputStream = find_class("java.io.ByteArrayInputStream")
+                            Bitmap = find_class("android.graphics.Bitmap")
+                            Canvas = find_class("android.graphics.Canvas")
+                            stream = ByteArrayInputStream(data)
+                            svg = SVG.getFromInputStream(stream)
+                            # force render at target size, respects viewBox scaling
+                            svg.setDocumentWidth(px)
+                            svg.setDocumentHeight(px)
+                            bmp = Bitmap.createBitmap(px, px, Bitmap.Config.ARGB_8888)
+                            canvas = Canvas(bmp)
+                            svg.renderToCanvas(canvas)
+                        except Exception as e:
+                            logx(f"icons svg render error: {e}", False)
+                            return None
+                    else:
+                        BitmapFactory = find_class("android.graphics.BitmapFactory")
+                        opts = BitmapFactory.Options()
+                        opts.inJustDecodeBounds = True
+                        BitmapFactory.decodeByteArray(data, 0, len(data), opts)
+                        scale = max(1, min(opts.outWidth // px, opts.outHeight // px))
+                        opts.inSampleSize = scale
+                        opts.inJustDecodeBounds = False
+                        bmp = BitmapFactory.decodeByteArray(data, 0, len(data), opts)
+                    if bmp is None:
+                        return None
+                    with cache_lock:
+                        cache[url] = bmp
+                        while len(cache) > _PREVIEW_CACHE_CAP:
+                            cache.popitem(last=False)
+                    return bmp
+                except Exception as e:
+                    logx(f"icons preview load error: {e}", False)
+                    return None
+
+            def fetch_rest(rest):
+                # ticker variety: the remaining previews of this pack, queued
+                # behind every card's first image so entry stays snappy
+                for url in rest:
+                    if delegate._preview_epoch != epoch:
+                        return
+                    bmp = load_one(url)
+                    if bmp is not None:
+                        loaded.append(bmp)
+
+            def _bind_preview(b):
+                try:
+                    iv.setImageBitmap(b)
+                    iv.setBackground(None)
+                    iv.setAlpha(1.0)
+                except Exception:
+                    pass
+
+            def fetch_first(urls=all_urls, attempt=0):
+                # phase 1: get any single preview on screen ASAP
+                for i, url in enumerate(urls):
+                    if delegate._preview_epoch != epoch:
+                        return
+                    bmp = load_one(url)
+                    if bmp is not None:
+                        loaded.append(bmp)
+                        if delegate._preview_epoch == epoch:
+                            run_on_ui_thread(lambda b=bmp: _bind_preview(b))
+                        rest = urls[i + 1:]
+                        if rest:
+                            _preview_pool_submit(lambda: fetch_rest(rest))
+                        return
+                # every preview of this pack failed — a card used to stay empty
+                # for the rest of the session over one network blip, with no
+                # retry and nothing to tell it apart from a loaded card
+                if attempt == 0 and urls and delegate._preview_epoch == epoch:
+                    logx(f"icons: no preview loaded for '{_display_name}', retrying", False)
+                    threading.Timer(
+                        3.0, lambda: _preview_pool_submit(lambda: fetch_first(urls, 1))
+                    ).start()
+
+            _preview_pool_submit(fetch_first)
+
+            card.setClickable(True)
+            card.setFocusable(True)
+            def _on_click(v, _icon=icon):
+                try:
+                    from ...Core import install_icon_pack
+                    install_icon_pack(_icon)
+                except Exception as ex:
+                    logx(f"icons: card click error: {ex}", True)
+            card.setOnClickListener(OnClickListener(_on_click))
+
+            def _on_long_click(v, _icon=icon, _repo_id=self.repo_id):
+                try:
+                    icon_id = str(_icon.get("id") or "")
+                    link = f"tg://packit?install&repo={_repo_id}&icon={icon_id}"
+                    from android.content import ClipData
+                    clipboard = act.getSystemService(act.CLIPBOARD_SERVICE)
+                    clipboard.setPrimaryClip(ClipData.newPlainText("packit_icon_link", link))
+                    try:
+                        from hook_utils import find_class as _fc
+                        BulletinFactory = _fc("org.telegram.ui.Components.BulletinFactory")
+                        frag = get_last_fragment()
+                        container = v.getRootView()
+                        resource_provider = None
+                        try:
+                            resource_provider = frag.getResourceProvider()
+                        except Exception:
+                            pass
+                        icon_raw = getattr(R_tg.raw, "copy", getattr(R_tg.raw, "msg_copy", 0))
+                        _pbf(container, resource_provider).createSimpleBulletin(
+                            icon_raw,
+                            str(strings["link_copied"])
+                        ).show()
+                    except Exception as _be:
+                        logx(f"icons: copy bulletin error: {_be}", True)
+                    try:
+                        from ...ui.achievementsactivity.service.AchivementsEngine import increment_category
+                        increment_category("Copying links")
+                    except Exception:
+                        pass
+                except Exception as ex:
+                    logx(f"icons: card long click error: {ex}", True)
+                return True
+            card.setOnLongClickListener(OnLongClickListener(_on_long_click))
+            self.install_ui._apply_press_scale(card)
+            return card

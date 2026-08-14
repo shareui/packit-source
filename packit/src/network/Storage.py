@@ -13,7 +13,7 @@
 # from here.
 #
 # Where a fetched repomap is kept, and everything read back out of it, is
-# utils/cachedRepos — this module does not touch that file.
+# utils/CachedRepos — this module does not touch that file.
 
 from packutil import logx
 import json
@@ -21,8 +21,8 @@ import os
 
 import requests
 
-from ..utils import jsonx as _jsonx
-from ..utils.paths import getRepoIconCachePath, getRepoIconCacheDir
+from ..utils import Jsonx as _jsonx
+from ..utils.Paths import getRepoIconCachePath, getRepoIconCacheDir
 
 # repositories are served from github raw and the like; some of them log this
 HEADERS = {"User-Agent": "PackIt/1.0 (Android; github.com/shareui/packit)"}
@@ -176,7 +176,7 @@ def peek_icon(url: str, px: int):
 
 def load_icon(url: str, px: int):
     """memory -> disk -> network, decoded to a px-sized bitmap. Off the ui thread."""
-    from ..utils import imagePool
+    from ..utils import ImagePool
 
     bmp = peek_icon(url, px)
     if bmp is not None:
@@ -192,7 +192,7 @@ def load_icon(url: str, px: int):
         data = None
 
     if not data:
-        data = imagePool.fetch(url)
+        data = ImagePool.fetch(url)
         if not data:
             return None
         try:
@@ -202,7 +202,7 @@ def load_icon(url: str, px: int):
         except Exception as e:
             logx(f"Storage: icon cache write failed: {e}", True)
 
-    bmp = imagePool.decode(data, px, imagePool.looks_like_svg(url, data))
+    bmp = ImagePool.decode(data, px, ImagePool.looks_like_svg(url, data))
     if bmp is None:
         # a corrupted cache entry would keep failing forever
         try:

@@ -7,13 +7,13 @@ try:
     from elyx import strings, metainfo
 except Exception as e:
     import android_utils as _au; _au.log(f"import elyx import strings, metainfo failed: {e}")
-    from .utils.importFailed import showImportFailedAlert as _sifa; _sifa()
-from .SettingsActivity.deeplinks import DeeplinksSettings
-from .SettingsActivity.settings import OtherSettings
-from .SettingsActivity.docs import DocumentationSettings
-from .ui.contributors.fragment import show_contributors_fragment
-from .SettingsActivity.profile import ProfileSettings
-from .SettingsActivity.utilities import UtilitiesSettings
+    from .utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
+from .settingsactivity.Deeplinks import DeeplinksSettings
+from .settingsactivity.Settings import OtherSettings
+from .settingsactivity.Docs import DocumentationSettings
+from .ui.contributors.Fragment import show_contributors_fragment
+from .settingsactivity.Profile import ProfileSettings
+from .settingsactivity.Utilities import UtilitiesSettings
 from ui.bulletin import BulletinHelper
 from base_plugin import BasePlugin, MethodHook
 from android_utils import run_on_ui_thread
@@ -22,17 +22,17 @@ try:
     from org.telegram.ui.ActionBar import Theme, BottomSheet
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.ui.ActionBar import Theme, BottomSheet failed: {e}")
-    from .utils.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from .utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.ui.Components import LayoutHelper, UItem, BackupImageView, EffectsTextView, BulletinFactory
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.ui.Components import LayoutHelper, UItem, BackupImageView, EffectsTextView, BulletinFactory failed: {e}")
-    from .utils.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from .utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from com.exteragram.messenger.plugins.models import HeaderSetting
 except Exception as e:
     import android_utils as _au; _au.log(f"import com.exteragram.messenger.plugins.models import HeaderSetting failed: {e}")
-    from .utils.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from .utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 from android.widget import FrameLayout, TextView, LinearLayout, ScrollView
 from android.graphics.drawable import GradientDrawable
 from android.view import Gravity
@@ -41,15 +41,15 @@ try:
     from org.telegram.messenger import AndroidUtilities, ImageLocation, MediaDataController, R
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities, ImageLocation, MediaDataController, R failed: {e}")
-    from .utils.importFailed import showImportFailedAlert as _sifa; _sifa()
-from .ui.PluginListActivity.fragment import InstallUI
-from .ui.IconsListActivity.fragment import InstallIconsUI
+    from .utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
+from .ui.pluginlistactivity.Fragment import InstallUI
+from .ui.iconslistactivity.Fragment import InstallIconsUI
 from client_utils import get_last_fragment
 try:
     from org.telegram.messenger.browser import Browser
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.messenger.browser import Browser failed: {e}")
-    from .utils.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from .utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 from android.net import Uri
 from java import dynamic_proxy as dyp
 from android_utils import OnClickListener, OnLongClickListener
@@ -147,12 +147,12 @@ class SettingsBuilder:
             imageView = BackupImageView(context)
             imageView.setRoundRadius(AndroidUtilities.dp(45))
 
-            from .utils.stickers import load_sticker
+            from .utils.Stickers import load_sticker
             load_sticker(imageView, __icon__, 130)
 
             def _on_sticker_long_click():
                 try:
-                    from .SettingsActivity.debugItems import show_debug_menu
+                    from .settingsactivity.DebugItems import show_debug_menu
                     show_debug_menu()
                 except Exception as _e:
                     logx(f"MainActivity: sticker long click error: {_e}", True)
@@ -193,7 +193,7 @@ class SettingsBuilder:
     
     def _check_updates(self, view):
         try:
-            from .ui.pluginsUpdates.fragment import show_updates_fragment
+            from .ui.pluginsupdates.Fragment import show_updates_fragment
             show_updates_fragment(self.plugin)
         except Exception as e:
             
@@ -201,7 +201,7 @@ class SettingsBuilder:
     
     def _open_repositories(self, view):
         try:
-            from .ui.ReposActivity import show_repos_fragment
+            from .ui.reposactivity import show_repos_fragment
             show_repos_fragment(self.repoManager)
         except Exception as e:
             logx(f"MainActivity: _open_repositories error: {e}", False)
@@ -358,7 +358,7 @@ class SettingsBuilder:
         ]
 
     def _build_client_label(self):
-        from .utils.buildInfo import getBuildClientName, getBuildStaticVersion
+        from .utils.BuildInfo import getBuildClientName, getBuildStaticVersion
 
         client_str = getBuildClientName()
         static_ver = getBuildStaticVersion()

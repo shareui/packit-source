@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
-from ..utils.bulletins import factory as _pbf
+from ..utils.Bulletins import factory as _pbf
 from android.view import View, MotionEvent
 from android.widget import LinearLayout, TextView, FrameLayout, ScrollView, ImageView
 from android.view import Gravity
@@ -17,22 +17,22 @@ try:
     from org.telegram.ui.ActionBar import BottomSheet, Theme
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.ui.ActionBar import BottomSheet, Theme failed: {e}")
-    from ....utils.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ..utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.ui.Components import LayoutHelper
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.ui.Components import LayoutHelper failed: {e}")
-    from ....utils.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ..utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.messenger import AndroidUtilities
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities failed: {e}")
-    from ....utils.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ..utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from elyx import strings
 except Exception as e:
     import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
-    from ....utils.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from ..utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 
 
 DEEPLINKS_DATA = {
@@ -474,7 +474,7 @@ def show_deeplink_sheet(link_alias):
             root.addView(close_btn, LayoutHelper.createLinear(-1, -2, 0, 16, 0, 8))
             sheet.setCustomView(root)
             try:
-                from .viewUtils import applyFontToTree
+                from .ViewUtils import applyFontToTree
                 applyFontToTree(root)
             except Exception:
                 pass

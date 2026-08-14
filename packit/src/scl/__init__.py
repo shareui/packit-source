@@ -1,4 +1,4 @@
-from .scl import (
+from .Scl import (
     parse,
     parseFile,
     version,
@@ -17,7 +17,7 @@ from .scl import (
     STRUCT,
     UNION,
 )
-from .errors import ParseError, TomlError
-from .opts import ParseOpts
-from .doc import Doc
-from .value import Value
+from .Errors import ParseError, TomlError
+from .Opts import ParseOpts
+from .Doc import Doc
+from .Value import Value

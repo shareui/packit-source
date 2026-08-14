@@ -2,22 +2,22 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
-from .utils.netQueue import run_serial_io
+from .utils.NetQueue import run_serial_io
 from .network import Storage
-from .utils import cachedRepos
+from .utils import CachedRepos
 import json
 from client_utils import get_last_fragment, run_on_queue
 try:
     from elyx import settings, strings
 except Exception as e:
     import android_utils as _au; _au.log(f"import elyx import settings, strings failed: {e}")
-    from .utils.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from .utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 
 try:
     from org.telegram.messenger import ApplicationLoader
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
-    from .utils.importFailed import showImportFailedAlert as _sifa; _sifa()
+    from .utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 
 OFFICIAL_REPO_URL = "https://raw.githubusercontent.com/shareui/packit/refs/heads/main/configs/repomap.json"
 
@@ -77,7 +77,7 @@ class RepositoryManager:
         # the sources screen is a plain fragment with no adapter, so
         # rebuildAllItems never reaches it — it listens here instead
         try:
-            from .ui.ReposActivity import notify_repos_changed
+            from .ui.reposactivity import notify_repos_changed
             notify_repos_changed()
         except Exception:
             pass
@@ -89,7 +89,7 @@ class RepositoryManager:
             logx(f"repom: cannot fetch repomap from '{url}': {error}", True)
             return None
         repometa = data.get("repometa")
-        if not cachedRepos.write(repometa.get("rm_rid"), data):
+        if not CachedRepos.write(repometa.get("rm_rid"), data):
             return None
         return repometa
 
@@ -113,7 +113,7 @@ class RepositoryManager:
         if not rm_name:
             return None, "missing rm_name"
 
-        if not cachedRepos.write(rm_rid, data):
+        if not CachedRepos.write(rm_rid, data):
             return None, "cache write failed"
 
         repos = self.getRepositories()
@@ -181,7 +181,7 @@ class RepositoryManager:
         logx(f"repom.removeRepository: removing idx={idx}, id={repr(repo_id)}, name={repr(repo.get('name'))}", True)
 
         if repo_id:
-            dropped = cachedRepos.forget(repo_id)
+            dropped = CachedRepos.forget(repo_id)
             logx(f"repom.removeRepository: cache for '{repo_id}' "
                  f"{'deleted' if dropped else 'was not there'}", True)
 
@@ -323,7 +323,7 @@ class RepositoryManager:
                                 changed = True
                                 logx(f"updateAllCaches: restored name '{rm_name}' for '{rm_rid}'", True)
 
-                        cachedRepos.write(rm_rid, data)
+                        CachedRepos.write(rm_rid, data)
                         logx(f"updateAllCaches: updated cache for '{rm_rid}'", True)
                     except Exception as e:
                         logx(f"updateAllCaches: error for {url}: {e}", False)

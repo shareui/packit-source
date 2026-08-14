@@ -3,13 +3,13 @@
 
 from typing import List, Any
 from base_plugin import BasePlugin
-from . import main
+from . import Main as main
 
 import time
 
 _launch_start = time.time()
 
-# the launch logic has been delegated to main.py
+# the launch logic has been delegated to Main.py
 # there shouldn't be anything extra in this file (if it is not required)
 class Main(BasePlugin):
     def __init__(self):

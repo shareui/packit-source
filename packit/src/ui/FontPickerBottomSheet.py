@@ -412,7 +412,7 @@ def _showStyleSheet(act, family, styles, selected_filename, parent_sheet, on_sel
         root.addView(_createCloseButton(act, sheet.dismiss), LayoutHelper.createLinear(-1, -2, 0, 16, 0, 8))
 
         try:
-            from .viewUtils import applyFontToTree
+            from .ViewUtils import applyFontToTree
             applyFontToTree(root)
         except Exception:
             pass
@@ -486,7 +486,7 @@ def showFontPicker(act, on_select=None):
         root.addView(_createCloseButton(act, sheet.dismiss), LayoutHelper.createLinear(-1, -2, 0, 16, 0, 8))
 
         try:
-            from .viewUtils import applyFontToTree
+            from .ViewUtils import applyFontToTree
             applyFontToTree(root)
         except Exception:
             pass
