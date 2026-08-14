@@ -126,7 +126,7 @@ class BadgeManager:
                 pass
 
             # primary path: precompiled Kotlin dex (config fetch + cache + hooks
-            # all live in packit/dex/<abi>/badges.dex, source in /kotlin/)
+            # all live in packit/dex/packit.dex, source in packit/src/kotlin/)
             try:
                 from ...core.DexLoader import loadBadges
                 if loadBadges(self.context, enabled):

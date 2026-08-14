@@ -7,18 +7,26 @@ packit/
   meta.yml          plugin name, id, version, minimum client and SDK
   locales/          strings_{en,ru,de,be}.json — the only place UI text belongs
   res/              fonts, sounds, drawables shipped with the plugin
-  dex/              compiled Kotlin, built from kotlin/
+  dex/              packit.dex — all of kawaii.packetik, built from src/kotlin
   native/           .so files per ABI
   src/
-    python/         everything below — the plugin itself
+    python/         the plugin itself, everything below
+    kotlin/         src/ and the compile-only Xposed stubs
 
-kotlin/             Kotlin sources for the dexes in packit/dex
 scripts/            one-off tooling; yours goes in scripts/{username}/
+  linux/kotlin-build.sh   Kotlin -> packit/dex/packit.dex
+  linux/build-native.sh   C -> packit/native/<abi>/
 ```
 
 `src/` holds one folder per language the plugin is written in, and `src/python`
 is the package root — the path `refmap.yml` and the builder's `source:` both
 point at. Move it and those two have to move with it.
+
+There is one dex, not one per Kotlin package. R8 emits a single `classes.dex`
+from all of the sources, so splitting it by name only ever shipped the same
+bytes several times over. Add a class under `kawaii.packetik.*`, rerun
+`kotlin-build.sh`, and reach it from `core/DexLoader.py` by its fully qualified
+name — nothing else needs to change.
 
 It is laid out by what a module *is*, not by which client screen it happens to
 touch:

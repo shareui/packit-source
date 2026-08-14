@@ -1,52 +1,73 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# Loads precompiled Kotlin dexes shipped in packit/dex/ and calls their
-# entrypoints. Currently used for the badge system (kawaii.packetik.badges),
-# ported from packit/src/other/{badges,chatBadge,chatTitleIcon,profileTitleIcon}.py.
+# Loads the precompiled Kotlin shipped in packit/dex/packit.dex and calls its
+# entrypoints — badges, the code viewer, the catalogue chrome, the sfx cells.
 #
-# Dex is arch-independent Dalvik bytecode, so a single copy is shipped for all
-# ABIs (unlike packit/native/, which is per-ABI).
+# One dex for all of kawaii.packetik. It used to be four, named after the
+# package each was for, but R8 emits one classes.dex from all of the sources
+# and the build script copied that same file out under four names: four
+# identical 55K blobs in the artifact, and four class loaders here, each with
+# its own copy of the same bytecode resident.
+#
+# Dex is arch-independent Dalvik bytecode, so one copy serves all ABIs (unlike
+# packit/native/, which is per-ABI).
 
 from packutil import logx
 import os
 
-_DEX_BASE = "/plugins/ElyxPlugins/shareui_packit/packit/dex"
+_DEX_PATH = "/plugins/ElyxPlugins/shareui_packit/packit/dex/packit.dex"
+
 _BADGES_CLASS = "kawaii.packetik.badges.BadgesNative"
+_OPENFILE_CLASS = "kawaii.packetik.openfile.OpenFileNative"
+_CATALOG_CLASS = "kawaii.packetik.catalog.CatalogChromeNative"
+_SFX_CLASS = "kawaii.packetik.sfx.SfxNative"
 
-# loaded entrypoint Class objects, keyed by dex name (kept for later calls)
-_loaded = {}
+_loader = None      # the one InMemoryDexClassLoader over packit.dex
+_classes = {}       # entrypoint Class objects by name, kept for later calls
 
 
-def _dexPath(name: str) -> str:
+def _dexPath() -> str:
     from ..utils.Paths import _filesDir
-    return _filesDir() + _DEX_BASE + "/" + name + ".dex"
+    return _filesDir() + _DEX_PATH
 
 
-def _loadClass(dexName: str, className: str, context):
-    # loads className from packit/dex/<abi>/<dexName>.dex whose parent is the
-    # host app classloader (so host classes resolve).
-    #
+def _dexLoader(context):
     # Uses InMemoryDexClassLoader (API 26+; PackIt requires Android 13+): the
     # plugin dir is writable by the app, and Android's W^X policy refuses to
     # load a writable dex file via DexClassLoader ("Writable dex file ... is not
     # allowed"). Loading from an in-memory ByteBuffer sidesteps that entirely.
-    cached = _loaded.get(dexName)
-    if cached is not None:
-        return cached
-    dex_path = _dexPath(dexName)
+    global _loader
+    if _loader is not None:
+        return _loader
+    dex_path = _dexPath()
     if not os.path.exists(dex_path):
-        logx(f"dexLoader: {dexName}.dex not found at {dex_path}", False)
+        logx(f"dexLoader: packit.dex not found at {dex_path}", False)
         return None
     with open(dex_path, "rb") as f:
         data = f.read()
     from java.nio import ByteBuffer
     from dalvik.system import InMemoryDexClassLoader
-    parent_cl = context.getClassLoader()
-    loader = InMemoryDexClassLoader(ByteBuffer.wrap(data), parent_cl)
-    cls = loader.loadClass(className)
-    _loaded[dexName] = cls
-    logx(f"dexLoader: loaded {className} from {dexName}.dex ({len(data)} bytes, in-memory)", True)
+    # parented to the host app classloader, so host classes resolve
+    _loader = InMemoryDexClassLoader(ByteBuffer.wrap(data), context.getClassLoader())
+    logx(f"dexLoader: loaded packit.dex ({len(data)} bytes, in-memory)", True)
+    return _loader
+
+
+def _loadClass(className: str, context):
+    cached = _classes.get(className)
+    if cached is not None:
+        return cached
+    loader = _dexLoader(context)
+    if loader is None:
+        return None
+    try:
+        cls = loader.loadClass(className)
+    except Exception as e:
+        logx(f"dexLoader: {className} not in packit.dex: {e}", False)
+        return None
+    _classes[className] = cls
+    logx(f"dexLoader: resolved {className}", True)
     return cls
 
 
@@ -68,13 +89,13 @@ def _callStatic(cls, method: str, *args):
 
 
 def loadBadges(context, enabled: bool) -> bool:
-    # loads badges.dex and calls BadgesNative.init(classLoader, context, enabled).
+    # resolves BadgesNative and calls init(classLoader, context, enabled).
     # returns True on success; caller falls back to the Python impl on False.
     try:
         if context is None:
             from org.telegram.messenger import ApplicationLoader
             context = ApplicationLoader.applicationContext
-        cls = _loadClass("badges", _BADGES_CLASS, context)
+        cls = _loadClass(_BADGES_CLASS, context)
         if cls is None:
             return False
         _callStatic(cls, "init", context.getClassLoader(), context, bool(enabled))
@@ -87,7 +108,7 @@ def loadBadges(context, enabled: bool) -> bool:
 
 def setBadgesEnabled(enabled: bool):
     try:
-        cls = _loaded.get("badges")
+        cls = _classes.get(_BADGES_CLASS)
         if cls is not None:
             _callStatic(cls, "setEnabled", bool(enabled))
     except Exception as e:
@@ -96,14 +117,11 @@ def setBadgesEnabled(enabled: bool):
 
 def unloadBadges():
     try:
-        cls = _loaded.get("badges")
+        cls = _classes.get(_BADGES_CLASS)
         if cls is not None:
             _callStatic(cls, "deinit")
     except Exception as e:
         logx(f"dexLoader: unloadBadges error: {e}", False)
-
-
-_OPENFILE_CLASS = "kawaii.packetik.openfile.OpenFileNative"
 
 
 def openFileCreate(context, path, text_size_px, pad_l, pad_t, pad_r, pad_b,
@@ -117,7 +135,7 @@ def openFileCreate(context, path, text_size_px, pad_l, pad_t, pad_r, pad_b,
         if context is None:
             from org.telegram.messenger import ApplicationLoader
             context = ApplicationLoader.applicationContext
-        cls = _loadClass("openfile", _OPENFILE_CLASS, context)
+        cls = _loadClass(_OPENFILE_CLASS, context)
         if cls is None:
             return None
         from java import jint, jfloat, jarray
@@ -138,10 +156,6 @@ def openFileCreate(context, path, text_size_px, pad_l, pad_t, pad_r, pad_b,
         return None
 
 
-_CATALOG_CLASS = "kawaii.packetik.catalog.CatalogChromeNative"
-_SFX_CLASS = "kawaii.packetik.sfx.SfxNative"
-
-
 def catalogChromeCreate(context, main_bg, card_bg, card_pressed, text_color,
                         accent, accent_pressed, button_text,
                         icon_clear, icon_search, icon_ai, icon_filter, icon_sort,
@@ -153,7 +167,7 @@ def catalogChromeCreate(context, main_bg, card_bg, card_pressed, text_color,
         if context is None:
             from org.telegram.messenger import ApplicationLoader
             context = ApplicationLoader.applicationContext
-        cls = _loadClass("catalog", _CATALOG_CLASS, context)
+        cls = _loadClass(_CATALOG_CLASS, context)
         if cls is None:
             return None
         from java import jint
@@ -183,7 +197,7 @@ def catalogIconsChromeCreate(context, main_bg, card_bg, card_pressed, text_color
         if context is None:
             from org.telegram.messenger import ApplicationLoader
             context = ApplicationLoader.applicationContext
-        cls = _loadClass("catalog", _CATALOG_CLASS, context)
+        cls = _loadClass(_CATALOG_CLASS, context)
         if cls is None:
             return None
         from java import jint
@@ -210,7 +224,7 @@ def sfxExpandableCreate(context, item_id, text, subtext, checked, collapsed,
         if context is None:
             from org.telegram.messenger import ApplicationLoader
             context = ApplicationLoader.applicationContext
-        cls = _loadClass("sfx", _SFX_CLASS, context)
+        cls = _loadClass(_SFX_CLASS, context)
         if cls is None:
             return None
         from java import jint
@@ -229,7 +243,7 @@ def sfxChildCreate(context, item_id, text, checked):
         if context is None:
             from org.telegram.messenger import ApplicationLoader
             context = ApplicationLoader.applicationContext
-        cls = _loadClass("sfx", _SFX_CLASS, context)
+        cls = _loadClass(_SFX_CLASS, context)
         if cls is None:
             return None
         from java import jint
@@ -248,7 +262,7 @@ def sfxVolumeSliderCreate(context, initial, title, off_label, maximum_label,
         if context is None:
             from org.telegram.messenger import ApplicationLoader
             context = ApplicationLoader.applicationContext
-        cls = _loadClass("sfx", _SFX_CLASS, context)
+        cls = _loadClass(_SFX_CLASS, context)
         if cls is None:
             return None
         from java import jint
@@ -264,7 +278,7 @@ def sfxVolumeSliderCreate(context, initial, title, off_label, maximum_label,
 
 def openFileCancel(view):
     try:
-        cls = _loaded.get("openfile")
+        cls = _classes.get(_OPENFILE_CLASS)
         if cls is not None and view is not None:
             _callStatic(cls, "cancel", view)
     except Exception as e:
@@ -273,7 +287,7 @@ def openFileCancel(view):
 
 def openFileGetText(view):
     try:
-        cls = _loaded.get("openfile")
+        cls = _classes.get(_OPENFILE_CLASS)
         if cls is not None and view is not None:
             return _callStatic(cls, "getText", view)
     except Exception as e:

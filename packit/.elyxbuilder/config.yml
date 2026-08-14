@@ -2,9 +2,13 @@ zipFormat: eaf
 source: packit/src/python
 buildNameUncompiled: '{name}-{version}'
 buildNameCompiled: '{name}-{version}-3.11'
+# fnmatch against each file's full path in the archive, so a bare directory
+# never matches anything — the trailing /* is what does the work
 ignoreAll:
 - packit/.elyxbuilder/cache/*
-- packit/docs/
+- packit/docs/*
+# the kotlin sources build into packit/dex/packit.dex; only the dex ships
+- packit/src/kotlin/*
 compilationIgnore:
 - packit/src/python/BasePlugin.py
 obfuscationConfig:
