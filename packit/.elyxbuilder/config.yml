@@ -1,12 +1,12 @@
 zipFormat: eaf
-source: packit/src
+source: packit/src/python
 buildNameUncompiled: '{name}-{version}'
 buildNameCompiled: '{name}-{version}-3.11'
 ignoreAll:
 - packit/.elyxbuilder/cache/*
 - packit/docs/
 compilationIgnore:
-- packit/src/BasePlugin.py
+- packit/src/python/BasePlugin.py
 obfuscationConfig:
   stripDocstrings: true
   removeLogs: false

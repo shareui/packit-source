@@ -9,17 +9,22 @@ packit/
   res/              fonts, sounds, drawables shipped with the plugin
   dex/              compiled Kotlin, built from kotlin/
   native/           .so files per ABI
-  src/              everything below
+  src/
+    python/         everything below — the plugin itself
 
 kotlin/             Kotlin sources for the dexes in packit/dex
 scripts/            one-off tooling; yours goes in scripts/{username}/
 ```
 
-`packit/src` is laid out by what a module *is*, not by which client screen it
-happens to touch:
+`src/` holds one folder per language the plugin is written in, and `src/python`
+is the package root — the path `refmap.yml` and the builder's `source:` both
+point at. Move it and those two have to move with it.
+
+It is laid out by what a module *is*, not by which client screen it happens to
+touch:
 
 ```
-src/
+src/python/
   BasePlugin.py     the entry point — the class the loader looks for
   Main.py           startup, hooks, lifecycle
 
@@ -79,8 +84,8 @@ two things. Split it before inventing a folder for it.
 
 ### Imports
 
-All imports inside `packit/src` are relative — `from ..utils import Paths`,
-never `from packit.src.utils import Paths`. When you move a file, remember that
+All imports inside `src/python` are relative — `from ..utils import Paths`,
+never an absolute path from the package root. When you move a file, remember that
 the number of dots changes with its depth.
 
 Two modules are the only way to reach a repository, and which one you want is
