@@ -36,7 +36,7 @@ def getPackitArchivesDir() -> str:
     return _filesDir() + "/plugins/ElyxPlugins/packit"
 
 def getBitHashSoPath() -> str:
-    from ..NativeLoader import detectArch
+    from ..core.NativeLoader import detectArch
     return _filesDir() + f"/plugins/ElyxPlugins/shareui_packit/packit/native/{detectArch()}/libbithash.so"
 
 def getRepoCachePath(repoId: str) -> str:

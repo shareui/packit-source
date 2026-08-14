@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
-from ..utils.Bulletins import factory as _pbf
+from .Bulletins import factory as _pbf
 import os
 import requests
 import threading

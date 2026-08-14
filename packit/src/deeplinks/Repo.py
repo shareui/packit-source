@@ -55,13 +55,13 @@ _REPO_ADD_ALL = _REPO_ADD_REQUIRED | _REPO_ADD_OPTIONAL
 def _sheet_chip(act, text: str):
     # the same pill the source cards use, so the sheet that adds a source and
     # the card it becomes are recognisably the same thing
-    from ..ui.reposactivity.Card import _chip
-    from ..ui.reposactivity.RepoIcon import accent_for
+    from ..ui.repos.Card import _chip
+    from ..ui.repos.RepoIcon import accent_for
     return _chip(act, text, accent_for({}))
 
 
 def _sheet_chip_lp(margin_dp=3):
-    from ..ui.reposactivity.Card import _ROW_H
+    from ..ui.repos.Card import _ROW_H
     lp = LinearLayout.LayoutParams(-2, AndroidUtilities.dp(_ROW_H))
     lp.leftMargin = AndroidUtilities.dp(margin_dp)
     lp.rightMargin = AndroidUtilities.dp(margin_dp)
@@ -185,7 +185,7 @@ def _show_confirm_sheet(repometa, pluginCount, name, link, repoManager):
         # picture for every repository in existence, which told the reader
         # nothing about the one they were about to add.
         try:
-            from ..ui.reposactivity.RepoIcon import build_icon_view
+            from ..ui.repos.RepoIcon import build_icon_view
             icon_view = build_icon_view(
                 act, {"id": rm_rid, "name": rm_name, "url": link}, 76, 22, rm_icon)
             linear.addView(icon_view, LayoutHelper.createLinear(
@@ -299,7 +299,7 @@ def _show_confirm_sheet(repometa, pluginCount, name, link, repoManager):
                     repoManager.setRepositories(currentRepos)
                     BulletinHelper.show_success(strings.repo_add_success)
                     try:
-                        from ..ui.achievementsactivity.service.AchivementsEngine import increment_category
+                        from ..ui.achievements.service.AchivementsEngine import increment_category
                         increment_category("Repositories")
                     except Exception as e:
                         logx(f"repo deeplink: achievements increment error: {e}", False)

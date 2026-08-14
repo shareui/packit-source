@@ -103,7 +103,7 @@ def _openPluginProfile(repo: dict, pluginId: str, repoId: str, repoManager):
                 run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings("dl_plugin_not_found", plugin_id=pluginId))))
                 return
 
-            from ..ui.pluginlistactivity.Fragment import InstallUI
+            from ..ui.plugins.Fragment import InstallUI
 
             class _FakePlugin:
                 def __init__(self, rm):
@@ -112,7 +112,7 @@ def _openPluginProfile(repo: dict, pluginId: str, repoId: str, repoManager):
             installUI = InstallUI(_FakePlugin(repoManager))
 
             def _show(_p=plugin, _all=all_plugins, _rid=repoId):
-                from ..ui.pluginactivity.Fragment import show_plugin_profile
+                from ..ui.plugin.Fragment import show_plugin_profile
                 show_plugin_profile(_p, installUI, _all, repo_id=_rid)
 
             run_on_ui_thread(_show)

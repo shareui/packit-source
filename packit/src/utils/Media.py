@@ -9,7 +9,7 @@ try:
     from elyx import settings
 except Exception as e:
     import android_utils as _au; _au.log(f"import elyx import settings failed: {e}")
-    from ..utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
+    from .ImportFailed import showImportFailedAlert as _sifa; _sifa()
 from java import dynamic_proxy
 
 
@@ -21,7 +21,7 @@ def playSound(soundPath: str, soundKey: str = None, check_pending: bool = True, 
 
     if check_pending:
         try:
-            from ..ui.achievementsactivity.service.AchivementsEngine import is_achievement_pending
+            from ..ui.achievements.service.AchivementsEngine import is_achievement_pending
             if is_achievement_pending():
                 return
         except Exception:

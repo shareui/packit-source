@@ -22,7 +22,7 @@ def handle(url):
     if url != "tg://packit?aytist":
         return
     try:
-        from ...ui.achievementsactivity.service.AchivementsEngine import unlock_secret
+        from ...ui.achievements.service.AchivementsEngine import unlock_secret
         unlock_secret("aytist")
         run_on_ui_thread(_startSpawnChain)
     except Exception as e:

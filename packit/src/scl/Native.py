@@ -3,7 +3,7 @@ import platform
 
 def _soPath() -> str:
     from ..utils.Paths import _filesDir
-    from ..NativeLoader import detectArch
+    from ..core.NativeLoader import detectArch
     arch = detectArch()
     return _filesDir() + f"/plugins/ElyxPlugins/shareui_packit/packit/native/{arch}/libscl.so"
 

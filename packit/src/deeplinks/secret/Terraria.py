@@ -18,7 +18,7 @@ def handle(url):
     try:
         _playMaxVolume()
         logx(f"deeplinks.terraria: calling unlock_secret", True)
-        from ...ui.achievementsactivity.service.AchivementsEngine import unlock_secret
+        from ...ui.achievements.service.AchivementsEngine import unlock_secret
         unlock_secret("terraria")
         logx(f"deeplinks.terraria: unlock_secret returned", True)
     except Exception as e:

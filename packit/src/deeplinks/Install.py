@@ -8,8 +8,8 @@ from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment, run_on_queue
 from android_utils import run_on_ui_thread
 from urllib.parse import urlparse, parse_qs
-from ..Core import install_plugin, install_icon_pack
-from ..ui.pluginlistactivity.Fragment import InstallUI
+from ..core.Core import install_plugin, install_icon_pack
+from ..ui.plugins.Fragment import InstallUI
 try:
     from elyx import strings
 except Exception as e:
@@ -117,7 +117,7 @@ def _is_version_ok(app_ver_expr: str) -> bool:
 def _find_best_compatible(plugin: dict) -> dict | None:
     # returns a plugin dict with link/app_version set to best available compatible version
     # checks root version first (newest), then versions dict descending
-    from ..ui.pluginactivity.VersionPicker import _build_version_entries
+    from ..ui.plugin.VersionPicker import _build_version_entries
     entries = _build_version_entries(plugin)
     for e in entries:
         if _is_version_ok(e["app_version"]):
@@ -140,7 +140,7 @@ def _show_incompatible_sheet(requested_version: str, compatible_plugin: dict, al
         from org.telegram.ui.ActionBar import BottomSheet, Theme
         from org.telegram.ui.Components import LayoutHelper
         from org.telegram.messenger import AndroidUtilities
-        from ..Core import install_plugin
+        from ..core.Core import install_plugin
 
         fragment = get_last_fragment()
         if not fragment:

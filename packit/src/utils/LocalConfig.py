@@ -10,12 +10,12 @@ try:
     from elyx import assets
 except Exception as e:
     import android_utils as _au; _au.log(f"import elyx import assets failed: {e}")
-    from ..utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
+    from .ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.messenger import ApplicationLoader
 except Exception as e:
     import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
-    from ..utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
+    from .ImportFailed import showImportFailedAlert as _sifa; _sifa()
 
 
 def _get_configs_dir() -> str:

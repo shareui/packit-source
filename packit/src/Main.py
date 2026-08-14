@@ -5,8 +5,8 @@ from packutil import logx
 from .utils.Bulletins import factory as _pbf
 import time
 from typing import Any
-from .other import Text as _text
-from .chatactivity.inline.EnterView import (
+from .integrations.decorations import Text as _text
+from .integrations.chat.inline.EnterView import (
     _packit_get_class,
     _packit_hook_enter_view_constructor,
     _packit_attach_text_watcher,
@@ -44,14 +44,14 @@ def _clearLatestLog():
 def startInit(plugin, launchStart):
     _clearLatestLog()
 
-    from .NativeLoader import detectArch
+    from .core.NativeLoader import detectArch
     detectArch()
 
-    from .RepositoryManager import RepositoryManager
-    from .Core import PackItCore
-    from .MainActivity import SettingsBuilder
-    from .dialogsactivity.Button import ChatButton
-    from .other.Badges import BadgeManager
+    from .core.RepositoryManager import RepositoryManager
+    from .core.Core import PackItCore
+    from .ui.MainActivity import SettingsBuilder
+    from .integrations.chatlist.Button import ChatButton
+    from .integrations.decorations.Badges import BadgeManager
 
     plugin._launch_start = launchStart
     plugin.repoManager = RepositoryManager()
@@ -120,31 +120,31 @@ def loadPlugin(plugin):
         logx(f"PackIt: import settings failed: {e}", False)
         return
 
-    from .ui.pluginactivity.Fragment import process_start
+    from .ui.plugin.Fragment import process_start
     process_start()
 
     if RENAME_PACKITCACHE:
         _migrate_packitcache()
     if CHECK_PATHS:
         _check_paths()
-    from .NativeLoader import CHECK_SO_PATHS, checkSoPaths
+    from .core.NativeLoader import CHECK_SO_PATHS, checkSoPaths
     if CHECK_SO_PATHS:
         checkSoPaths()
     from .utils.LocalConfig import LocalConfig
     LocalConfig.init()
-    from .dialogsactivity.BuildNotCorrect import setup_build_not_correct_check
+    from .integrations.chatlist.BuildNotCorrect import setup_build_not_correct_check
     setup_build_not_correct_check()
     try:
         from .utils.InstallIndex import purge_missing
         purge_missing()
     except Exception as e:
         logx(f"PackIt: installIndex purge error: {e}", False)
-    from .other import IsBeta
-    from .other import Everyone as _everyone
+    from .integrations.decorations import IsBeta
+    from .integrations.decorations import Everyone as _everyone
     IsBeta.init()
     _everyone.init()
     try:
-        from .ui.achievementsactivity.service.AchivementsEngine import sync_accounts, sync_completed, _load_account, _save_account
+        from .ui.achievements.service.AchivementsEngine import sync_accounts, sync_completed, _load_account, _save_account
         sync_accounts()
         loaded, load_ok = _load_account()
         data, _ = sync_completed(loaded)
@@ -165,36 +165,36 @@ def loadPlugin(plugin):
     plugin.deeplink_hook_ref = setup_deeplink_hook(plugin)
     plugin.chatUI.initialize_chat_menu()
     plugin.badgeManager.setup_hooks()
-    from .chatactivity.securitybottomsheets import setup_policy_button_hook, setup_hash_button_hook
+    from .integrations.chat.securitybottomsheets import setup_policy_button_hook, setup_hash_button_hook
     plugin.policy_button_hook_ref = setup_policy_button_hook(plugin)
     plugin.hash_button_hook_ref = setup_hash_button_hook(plugin, plugin.repoManager)
-    from .chatactivity.linksicons import setup_links_buttons_hook
+    from .integrations.chat.linksicons import setup_links_buttons_hook
     plugin.links_button_hook_ref = setup_links_buttons_hook(plugin)
-    from .standalonehooks.InstallDismissHook import setup_install_dismiss_hook
+    from .integrations.hooks.InstallDismissHook import setup_install_dismiss_hook
     plugin.install_dismiss_hook_ref = setup_install_dismiss_hook(plugin)
-    from .standalonehooks.UniversalFragmentFix import setup_universal_fragment_fix
+    from .integrations.hooks.UniversalFragmentFix import setup_universal_fragment_fix
     plugin.universal_fragment_fix_ref = setup_universal_fragment_fix(plugin)
-    from .chatactivity.export.DecryptorBottomSheet import setup_packit_file_hook
+    from .integrations.chat.export.DecryptorBottomSheet import setup_packit_file_hook
     setup_packit_file_hook(plugin)
-    from .chatactivity.AfpFile import setup_afp_file_hook
+    from .integrations.chat.AfpFile import setup_afp_file_hook
     setup_afp_file_hook(plugin)
-    from .standalonehooks.AddPluginFab import setup_plugins_activity_fab
+    from .integrations.hooks.AddPluginFab import setup_plugins_activity_fab
     plugin.plugins_activity_fab_ref = setup_plugins_activity_fab(plugin)
-    from .standalonehooks.AddIconsFab import setup_icon_packs_activity_fab
+    from .integrations.hooks.AddIconsFab import setup_icon_packs_activity_fab
     plugin.icon_packs_activity_fab_ref = setup_icon_packs_activity_fab(plugin)
-    from .standalonehooks.SettingsActivityHook import setup_settings_activity_hook
+    from .integrations.hooks.SettingsActivityHook import setup_settings_activity_hook
     plugin.settings_activity_hook_refs = setup_settings_activity_hook(plugin)
-    from .settingsactivity.service.FastExpandableHook import setup_fast_expandable_hook
+    from .ui.settings.service.FastExpandableHook import setup_fast_expandable_hook
     plugin.fast_expandable_hook_ref = setup_fast_expandable_hook(plugin, plugin.settingsBuilder.otherSettings)
-    from .dialogsactivity.PillWidget import setup_pill_widget
+    from .integrations.chatlist.PillWidget import setup_pill_widget
     setup_pill_widget(plugin)
-    from .dialogsactivity.UpdatesWidget import setup_updates_widget
+    from .integrations.chatlist.UpdatesWidget import setup_updates_widget
     setup_updates_widget(plugin)
     plugin.dialogs_menu_hook_ref = plugin.chatUI.setup_dialogs_menu_hook()
     plugin.everyone_hook_refs = _everyone.setup_hook(plugin)
-    from .chatactivity.inline.EnterView import setup_packit_autocomplete
+    from .integrations.chat.inline.EnterView import setup_packit_autocomplete
     plugin.packit_hook_constructor_ref = setup_packit_autocomplete(plugin)
-    from .chatactivity.inline.InlineBtns import setup_inline_translate_button
+    from .integrations.chat.inline.InlineBtns import setup_inline_translate_button
     setup_inline_translate_button(plugin)
     plugin._init_official_repository()
     plugin._check_for_update()
@@ -221,7 +221,7 @@ def _show_startup_bulletin(plugin):
 
 def _check_for_update(plugin):
     try:
-        from .dialogsactivity.PackitUpdateSheet import check_and_show
+        from .integrations.chatlist.PackitUpdateSheet import check_and_show
         check_and_show()
     except Exception as e:
         logx(f"PackIt: update check error: {e}", False)
@@ -229,7 +229,7 @@ def _check_for_update(plugin):
 
 def _check_startup_updates(plugin):
     try:
-        from .ui.pluginsupdates.StartupSheet import check_and_show_startup_updates
+        from .ui.updates.StartupSheet import check_and_show_startup_updates
         check_and_show_startup_updates(plugin=plugin)
     except Exception as e:
         logx(f"PackIt: startup updates check error: {e}", False)
@@ -240,7 +240,7 @@ def _check_update_notifications_bulletin(plugin):
 
     def task():
         try:
-            from .ui.pluginsupdates.Fragment import _check_updates, _filter_ignored
+            from .ui.updates.Fragment import _check_updates, _filter_ignored
             updates = _filter_ignored(None, _check_updates(None))
             if not updates:
                 return
@@ -291,7 +291,7 @@ def _check_update_notifications_bulletin(plugin):
                     if single_update is not None:
                         def _install():
                             try:
-                                from .ui.pluginsupdates.Fragment import _get_repos, _get_repo_plugins_url
+                                from .ui.updates.Fragment import _get_repos, _get_repo_plugins_url
                                 import requests as _req
                                 pid = str(single_update.get("id") or "")
                                 repo_id = str(single_update.get("repo_id") or "")
@@ -326,7 +326,7 @@ def _check_update_notifications_bulletin(plugin):
                                 if not plugin_item:
                                     logx(f"PackIt: update bulletin install: plugin '{pid}' not found in repo", True)
                                     return
-                                from .Core import install_plugin
+                                from .core.Core import install_plugin
                                 run_on_ui_thread(lambda: install_plugin(plugin_item, all_plugins=all_plugins, rm_rid=repo_id))
                             except Exception as _e:
                                 logx(f"PackIt: update bulletin install error: {_e}", True)
@@ -335,7 +335,7 @@ def _check_update_notifications_bulletin(plugin):
                     else:
                         def _action():
                             try:
-                                from .ui.pluginsupdates.Fragment import show_updates_fragment
+                                from .ui.updates.Fragment import show_updates_fragment
                                 show_updates_fragment()
                             except Exception as _e:
                                 logx(f"PackIt: update bulletin open error: {_e}", True)
@@ -362,7 +362,7 @@ def _check_identity_achievement(plugin):
         return
     first_name = str(user.first_name) if user.first_name else ""
     if first_name.lower() in ("shareui", "fuchs"):
-        from .ui.achievementsactivity.service.AchivementsEngine import unlock_secret
+        from .ui.achievements.service.AchivementsEngine import unlock_secret
         unlock_secret("identity")
 
 
@@ -385,7 +385,7 @@ def on_send_message_hook(plugin, account: int, params: Any):
     if params.message.startswith(".deleteachievements"):
         try:
             import os
-            from .ui.achievementsactivity.service.AchivementsEngine import _get_db_path, _get_snap_path
+            from .ui.achievements.service.AchivementsEngine import _get_db_path, _get_snap_path
             for path in (_get_db_path(), _get_snap_path()):
                 if os.path.exists(path):
                     os.remove(path)

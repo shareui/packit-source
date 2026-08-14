@@ -3,7 +3,7 @@
 
 
 from packutil import logx
-from ..utils.Bulletins import factory as _pbf
+from .Bulletins import factory as _pbf
 from client_utils import get_last_fragment
 from hook_utils import find_class
 from java import dynamic_proxy
@@ -259,7 +259,7 @@ def _show_translate_sheet(act, plugin_info, lang, translated_text):
 
         translate_sheet.setCustomView(root)
         try:
-            from ..ui.ViewUtils import applyFontToTree
+            from ..ui.components.ViewUtils import applyFontToTree
             applyFontToTree(root)
         except Exception:
             pass

@@ -27,7 +27,7 @@ def _getBitHashLib():
     if _libLoaded:
         return _lib
     _libLoaded = True
-    from ..NativeLoader import loadBitHash
+    from ..core.NativeLoader import loadBitHash
     _lib = loadBitHash()
     if _lib is not None:
         logx("hashutil: libbithash.so loaded successfully!", True)
