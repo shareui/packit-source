@@ -18,7 +18,6 @@ from android.media import MediaPlayer
 from java import dynamic_proxy
 import os
 from hook_utils import find_class
-import requests
 from android_utils import run_on_ui_thread
 from client_utils import get_last_fragment, run_on_queue
 from ui.bulletin import BulletinHelper
@@ -246,69 +245,26 @@ class InstallUI:
                         repo_url = (repo.get("url") or "").strip()
                         if not repo_url: continue
                         try:
-                            plugins_url = repo_url
-                            if r_id:
-                                try:
-                                    from org.telegram.messenger import ApplicationLoader
-                                except Exception as e:
-                                    pass
-                                import os
-                                from ...utils.paths import getRepoCachePath
-                                cache_path = getRepoCachePath(r_id)
-                                if os.path.exists(cache_path):
-                                    with open(cache_path, "r", encoding="utf-8") as f:
-                                        cached = json.load(f)
-                                    resolved = cached.get("repomap", {}).get("plugins") or repo_url
-                                    plugins_url = resolved
-
-                            response = requests.get(plugins_url, timeout=10)
-                            if response.status_code != 200: continue
-                            config = response.json()
-                            plugins = config.get("plugins", {})
-                            if isinstance(plugins, dict):
-                                for pluginId, info in plugins.items():
-                                    if isinstance(info, dict):
-                                        all_plugins.append({"id": pluginId, "repo_name": repo.get("name", "Unknown"), "_repo_id": r_id, **info})
-                            elif isinstance(plugins, list):
-                                for item in plugins:
-                                    if isinstance(item, dict) and item.get("id"):
-                                        all_plugins.append({"id": item.get("id"), "repo_name": repo.get("name", "Unknown"), "_repo_id": r_id, **item})
+                            from ...network import Storage
+                            entries, error = Storage.fetch_plugins(
+                                Storage.plugins_url(repo, repo_url))
+                            if error:
+                                continue
+                            repo_name = repo.get("name", "Unknown")
+                            for entry in entries:
+                                all_plugins.append(
+                                    {"repo_name": repo_name, "_repo_id": r_id, **entry})
                         except Exception as e:
-                            pass
+                            logx(f"InstallUI: repo '{r_id}' load failed: {e}", True)
                     run_on_ui_thread(lambda: self._update_current_fragment_plugins(all_plugins))
                 else:
                     repos = self.repoManager.getRepositories()
                     repo = next((r for r in repos if r.get("id") == repo_id), None)
                     if not repo: return
-                    repo_url = (repo.get("url") or "").strip()
-                    plugins_url = repo_url
-                    try:
-                        from org.telegram.messenger import ApplicationLoader
-                    except Exception as e:
-                        pass
-                    import os
-                    from ...utils.paths import getRepoCachePath
-                    cache_path = getRepoCachePath(repo_id)
-                    if os.path.exists(cache_path):
-                        with open(cache_path, "r", encoding="utf-8") as f:
-                            cached = json.load(f)
-                        resolved = cached.get("repomap", {}).get("plugins") or repo_url
-                        plugins_url = resolved
-
-                    r = requests.get(plugins_url, timeout=20)
-                    if r.status_code != 200:
-                        raise Exception(f"HTTP {r.status_code}")
-                    config = r.json()
-                    plugins_raw = config.get("plugins", [])
-                    plugins = []
-                    if isinstance(plugins_raw, dict):
-                        for pid, info in plugins_raw.items():
-                            if isinstance(info, dict):
-                                plugins.append({"id": pid, **info})
-                    elif isinstance(plugins_raw, list):
-                        for item in plugins_raw:
-                            if isinstance(item, dict) and item.get("id"):
-                                plugins.append(item)
+                    from ...network import Storage
+                    plugins, error = Storage.fetch_plugins(Storage.plugins_url(repo))
+                    if error:
+                        raise Exception(error)
                     # the sources screen has no other way to know how big a
                     # source is: repomap only points at this file by url
                     try:

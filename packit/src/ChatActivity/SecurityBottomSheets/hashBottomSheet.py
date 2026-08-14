@@ -62,35 +62,15 @@ def _extractPluginId(filePath: str) -> str | None:
     return None
 
 def _loadCachedRepos() -> list:
-    import os, json
+    # [(name, pluginsUrl, repoId), …] for every repository with a usable cache
+    from ...network import Storage
     result = []
-    try:
-        from ...utils.paths import getReposCacheDir
-        cacheDir = getReposCacheDir()
-    except Exception as e:
-        if DEBUG_LOGS:
-            logx(f"hashBottomSheet: _loadCachedRepos error: {e}", False)
-        return result
-
-    if not os.path.isdir(cacheDir):
-        return result
-
-    for fname in os.listdir(cacheDir):
-        if not fname.endswith(".json"):
+    for rm_rid, cached in Storage.all_cached():
+        pluginsUrl = Storage.plugins_url(rm_rid)
+        if not pluginsUrl:
             continue
-        try:
-            with open(os.path.join(cacheDir, fname), "r", encoding="utf-8") as f:
-                cached = json.load(f)
-            pluginsUrl = cached.get("repomap", {}).get("plugins")
-            if not pluginsUrl:
-                continue
-            name = cached.get("repometa", {}).get("rm_name") or fname.replace(".json", "")
-            repoId = cached.get("repometa", {}).get("rm_rid") or fname.replace(".json", "")
-            result.append((name, pluginsUrl, repoId))
-        except Exception as e:
-            if DEBUG_LOGS:
-                logx(f"hashBottomSheet: error reading cache {fname}: {e}", False)
-
+        meta = cached.get("repometa") or {}
+        result.append((meta.get("rm_name") or rm_rid, pluginsUrl, meta.get("rm_rid") or rm_rid))
     return result
 
 

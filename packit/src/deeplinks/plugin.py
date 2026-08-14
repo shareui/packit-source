@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ..network import Storage
 from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment, run_on_queue
 from android_utils import run_on_ui_thread
@@ -24,25 +25,8 @@ except Exception as e:
 _REQUIRED = {"plugin", "repo"}
 
 
-def _getCachePath(repoId: str) -> str:
-    from ..utils.paths import getRepoCachePath
-    return getRepoCachePath(repoId)
-
-
 def _resolvePluginsUrl(repo: dict) -> str:
-    repoId = (repo.get("id") or "").strip()
-    fallback = (repo.get("url") or "").strip()
-    if not repoId:
-        return fallback
-    try:
-        cachePath = _getCachePath(repoId)
-        if os.path.exists(cachePath):
-            with open(cachePath, "r", encoding="utf-8") as f:
-                cached = json.load(f)
-            return cached.get("repomap", {}).get("plugins") or fallback
-    except Exception:
-        pass
-    return fallback
+    return Storage.plugins_url(repo)
 
 
 def _findRepo(repoManager, repoId: str) -> dict | None:

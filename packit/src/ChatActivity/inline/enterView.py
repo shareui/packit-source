@@ -5,7 +5,6 @@ from packutil import logx
 import os
 import json
 import weakref
-import requests
 from base_plugin import MethodHook
 from client_utils import get_last_fragment, run_on_queue
 from hook_utils import find_class, get_private_field
@@ -115,14 +114,6 @@ def _flag_match(plugin, flags):
 
     return True
 
-
-def _get_cache_dir():
-    from ...utils.paths import getReposCacheDir
-    return getReposCacheDir()
-
-def _get_repo_cache_path(repo_id):
-    from ...utils.paths import getRepoCachePath
-    return getRepoCachePath(repo_id)
 
 class _PackitAutocompleteHook(MethodHook):
     def __init__(self, plugin):
@@ -250,62 +241,26 @@ def _packit_attach_text_watcher(self, enter_view):
 
 
 def _packit_load_plugins_from_cache(self):
+    from ...network import Storage
     plugins_list = []
     try:
-        cache_dir = _get_cache_dir()
-        if not os.path.exists(cache_dir):
-            return plugins_list
-        
-        repos = self.repoManager.getRepositories()
-        for repo in repos:
+        for repo in self.repoManager.getRepositories():
             repo_id = repo.get("id")
             if not repo_id:
                 continue
-            
-            cache_path = _get_repo_cache_path(repo_id)
-            if not os.path.exists(cache_path):
+            plugins_url = Storage.plugins_url(repo)
+            if not plugins_url:
                 continue
-            
-            try:
-                with open(cache_path, "r", encoding="utf-8") as f:
-                    cached = json.load(f)
-                
-                plugins_url = cached.get("repomap", {}).get("plugins")
-                if not plugins_url:
-                    continue
-                
-                try:
-                    r = requests.get(plugins_url, timeout=10)
-                    if r.status_code != 200:
-                        continue
-                    config = r.json()
-                    plugins_raw = config.get("plugins", {})
-                    
-                    if isinstance(plugins_raw, dict):
-                        for pid, info in plugins_raw.items():
-                            if isinstance(info, dict):
-                                plugins_list.append({
-                                    "id": pid,
-                                    "repo_id": repo_id,
-                                    "repo_name": repo.get("name", "Unknown"),
-                                    **info
-                                })
-                    elif isinstance(plugins_raw, list):
-                        for item in plugins_raw:
-                            if isinstance(item, dict) and item.get("id"):
-                                plugins_list.append({
-                                    "id": item.get("id"),
-                                    "repo_id": repo_id,
-                                    "repo_name": repo.get("name", "Unknown"),
-                                    **item
-                                })
-                except Exception as e:
-                    logx(f"Packit load plugins from url error: {e}", False)
-            except Exception as e:
-                logx(f"Packit load repo cache error for {repo_id}: {e}", False)
+            entries, error = Storage.fetch_plugins(plugins_url)
+            if error:
+                logx(f"Packit autocomplete: repo '{repo_id}': {error}", True)
+                continue
+            repo_name = repo.get("name", "Unknown")
+            for entry in entries:
+                plugins_list.append({"repo_id": repo_id, "repo_name": repo_name, **entry})
     except Exception as e:
         logx(f"Packit load plugins from cache error: {e}", False)
-    
+
     return plugins_list
 
 

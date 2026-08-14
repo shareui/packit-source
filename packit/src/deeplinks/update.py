@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ..network import Storage
 from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment, run_on_queue
 from android_utils import run_on_ui_thread
@@ -18,21 +19,13 @@ except Exception as e:
 from urllib.parse import urlparse, parse_qs
 import requests
 import json
-from ..utils import jsonx as _jsonx
 import os
-
-
-def _get_cache_dir() -> str:
-    from ..utils.paths import getCacheRoot
-    return getCacheRoot()
 
 
 def _run_update(repoManager):
     def task():
         try:
             repos = repoManager.getRepositories()
-            cacheDir = _get_cache_dir()
-            os.makedirs(cacheDir, exist_ok=True)
             changed = False
             toRemove = []
             seenRids = set()
@@ -42,19 +35,17 @@ def _run_update(repoManager):
                 if not url:
                     continue
                 try:
-                    r = requests.get(url, timeout=10)
-                    if r.status_code != 200:
-                        logx(f"update deeplink: HTTP {r.status_code} for {url}", True)
-                        continue
-                    data = _jsonx.loads(r.text)
-                    repometa = data.get("repometa")
-                    rmRid = repometa.get("rm_rid") if repometa else None
-
-                    if not repometa or not rmRid:
-                        logx(f"update deeplink: no repometa for '{url}', removing repo", True)
+                    data, error = Storage.fetch_repomap(url)
+                    if error in ("missing repometa", "missing rm_rid"):
+                        logx(f"update deeplink: '{url}' is not a repomap ({error}), removing", True)
                         toRemove.append(i)
                         changed = True
                         continue
+                    if error:
+                        logx(f"update deeplink: {error} for {url}", True)
+                        continue
+                    repometa = data.get("repometa")
+                    rmRid = repometa.get("rm_rid")
 
                     if rmRid in seenRids:
                         logx(f"update deeplink: duplicate rm_rid='{rmRid}', removing repo", True)
@@ -68,9 +59,7 @@ def _run_update(repoManager):
                         changed = True
                         logx(f"update deeplink: set id='{rmRid}' for repo '{repo.get('name')}'", True)
 
-                    cachePath = os.path.join(cacheDir, f"{rmRid}.json")
-                    with open(cachePath, "w", encoding="utf-8") as f:
-                        json.dump(data, f, indent=2, ensure_ascii=False)
+                    Storage.write_repomap(rmRid, data)
                     logx(f"update deeplink: updated cache for '{rmRid}'", True)
                 except Exception as e:
                     logx(f"update deeplink: error for {url}: {e}", False)
@@ -92,8 +81,6 @@ def _run_update_single(repoManager, repoId: str):
     def task():
         try:
             repos = repoManager.getRepositories()
-            cacheDir = _get_cache_dir()
-            os.makedirs(cacheDir, exist_ok=True)
 
             target = next((r for r in repos if r.get("id") == repoId), None)
             if not target:
@@ -106,23 +93,18 @@ def _run_update_single(repoManager, repoId: str):
                 return
 
             try:
-                r = requests.get(url, timeout=10)
-                if r.status_code != 200:
-                    logx(f"update deeplink: HTTP {r.status_code} for {url}", True)
-                    run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings("dl_update_repo_http_error", code=r.status_code))))
-                    return
-                data = _jsonx.loads(r.text)
-                repometa = data.get("repometa")
-                rmRid = repometa.get("rm_rid") if repometa else None
-
-                if not repometa or not rmRid:
+                data, error = Storage.fetch_repomap(url)
+                if error in ("missing repometa", "missing rm_rid"):
                     logx(f"update deeplink: no repometa for '{url}'", True)
                     run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings["dl_update_repo_no_meta"])))
                     return
-
-                cachePath = os.path.join(cacheDir, f"{rmRid}.json")
-                with open(cachePath, "w", encoding="utf-8") as f:
-                    json.dump(data, f, indent=2, ensure_ascii=False)
+                if error:
+                    logx(f"update deeplink: {error} for {url}", True)
+                    run_on_ui_thread(lambda e=error: BulletinHelper.show_error(str(strings("dl_update_repo_http_error", code=e))))
+                    return
+                repometa = data.get("repometa")
+                rmRid = repometa.get("rm_rid")
+                Storage.write_repomap(rmRid, data)
                 logx(f"update deeplink: updated cache for '{rmRid}'", True)
 
                 idx = next((i for i, rp in enumerate(repos) if rp.get("id") == repoId), None)

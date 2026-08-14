@@ -1,12 +1,12 @@
 # pyright: reportMissingImports=false
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# Repository avatar.
+# Repository avatar — the view only. Where the picture comes from, and the
+# memory and disk caches it comes through, are network/Storage's business.
 #
 # repomap declares the icon as a plain image url (repometa.rm_icon), so there is
-# nothing to look up in R.drawable any more — the file is downloaded once, kept
-# on disk and in memory, and drawn over a monogram that stands in until it
-# arrives (and stays for repositories that declare no icon at all).
+# nothing to look up in R.drawable any more: the bitmap is drawn over a monogram
+# that stands in until it arrives, and stays for repositories that declare none.
 #
 # The view is a FrameLayout of two layers, monogram below and bitmap above,
 # because a Drawable subclass would have to be proxied into java just to paint
@@ -15,7 +15,6 @@
 
 from packutil import logx
 import ctypes
-from collections import OrderedDict
 
 from android.widget import FrameLayout, TextView, ImageView
 from android.view import Gravity
@@ -32,11 +31,7 @@ except Exception as e:
     Theme = None
 
 from ...utils import imagePool
-from ...utils.paths import getRepoIconCachePath, getRepoIconCacheDir, getRepoCachePath
-
-_MEM_CAP = 64
-_mem = OrderedDict()
-_mem_lock = None
+from ...network import Storage
 
 def _c(color: int) -> int:
     # java setColor(int) rejects python ints >= 0x80000000
@@ -63,14 +58,6 @@ def tonal(accent: int, surface: int, fraction: float) -> int:
         b = (surface >> shift) & 0xFF
         out |= int(round(b + (a - b) * fraction)) << shift
     return _c(out)
-
-
-def _lock():
-    global _mem_lock
-    if _mem_lock is None:
-        import threading
-        _mem_lock = threading.Lock()
-    return _mem_lock
 
 
 def _seed(repo: dict) -> int:
@@ -106,88 +93,7 @@ def _letter(repo: dict) -> str:
 
 
 def icon_url_for(repo: dict):
-    # rm_icon out of the cached repomap; anything that is not an http(s) link is
-    # ignored — older repositories put an R.drawable name there
-    try:
-        repo_id = str(repo.get("id") or "")
-        if not repo_id:
-            return None
-        import json
-        import os
-        path = getRepoCachePath(repo_id)
-        if not os.path.isfile(path):
-            return None
-        with open(path, "r", encoding="utf-8") as f:
-            cached = json.load(f)
-        url = str((cached.get("repometa") or {}).get("rm_icon") or "").strip()
-        return url if url.lower().startswith(("http://", "https://")) else None
-    except Exception as e:
-        logx(f"repoIcon: icon_url_for error: {e}", True)
-        return None
-
-
-def peek_bitmap(url: str, px: int):
-    # The already-decoded answer, or None. Card rebuilds go through here first:
-    # routing a known bitmap through the worker pool costs a hop to the pool and
-    # back to the ui thread, and in those two frames the card shows its
-    # monogram — which is what made an avatar blink every time the list was
-    # rebuilt after a toggle.
-    if not url:
-        return None
-    key = _mem_key(url, px)
-    with _lock():
-        bmp = _mem.get(key)
-        if bmp is not None:
-            _mem.move_to_end(key)
-        return bmp
-
-
-def _mem_key(url: str, px: int) -> str:
-    # px is part of the key: the same icon is decoded at different sizes for the
-    # card and for the deeplink sheet, and the smaller decode looks soft blown up
-    return f"{url}|{px}"
-
-
-def _load_bitmap(url: str, px: int):
-    # memory -> disk -> network, decoded to a px-sized bitmap
-    bmp = peek_bitmap(url, px)
-    if bmp is not None:
-        return bmp
-
-    import os
-    path = getRepoIconCachePath(url)
-    data = None
-    try:
-        if os.path.isfile(path):
-            with open(path, "rb") as f:
-                data = f.read()
-    except Exception:
-        data = None
-
-    if not data:
-        data = imagePool.fetch(url)
-        if not data:
-            return None
-        try:
-            os.makedirs(getRepoIconCacheDir(), exist_ok=True)
-            with open(path, "wb") as f:
-                f.write(data)
-        except Exception as e:
-            logx(f"repoIcon: cache write failed: {e}", True)
-
-    bmp = imagePool.decode(data, px, imagePool.looks_like_svg(url, data))
-    if bmp is None:
-        # a corrupted cache entry would keep failing forever
-        try:
-            os.unlink(path)
-        except Exception:
-            pass
-        return None
-    with _lock():
-        _mem[_mem_key(url, px)] = bmp
-        while len(_mem) > _MEM_CAP:
-            _mem.popitem(last=False)
-    return bmp
+    return Storage.icon_url(repo) or None
 
 
 def build_icon_view(ctx, repo: dict, size_dp: int = 48, radius_dp: int = 14, url=None):
@@ -240,7 +146,7 @@ def build_icon_view(ctx, repo: dict, size_dp: int = 48, radius_dp: int = 14, url
         # is an answer, unlike None, so no worker goes and reads it again
         return holder
 
-    cached = peek_bitmap(str(url or ""), size_px)
+    cached = Storage.peek_icon(str(url or ""), size_px)
     if cached is not None:
         # straight onto the view, no fade: the icon was already on screen a
         # moment ago and fading it back in is exactly what reads as a blink
@@ -256,7 +162,7 @@ def build_icon_view(ctx, repo: dict, size_dp: int = 48, radius_dp: int = 14, url
         target = url if url else icon_url_for(repo)
         if not target:
             return
-        bmp = _load_bitmap(target, size_px)
+        bmp = Storage.load_icon(target, size_px)
         if bmp is None:
             return
 

@@ -122,43 +122,14 @@ def _animate_out(overlay_ref, card, decor):
 
 
 def _load_reasons(repo_id: str) -> list:
-    # loads reasons from cached repomap for given repo_id
-    if not repo_id:
-        return []
-    try:
-        from ..utils.paths import getRepoCachePath
-        cache_path = getRepoCachePath(repo_id)
-        if not os.path.exists(cache_path):
-            return []
-        with open(cache_path, "r", encoding="utf-8") as f:
-            cached = json.load(f)
-        reasons = cached.get("reasons", {}).get("reasons", [])
-        if isinstance(reasons, list):
-            return [str(r) for r in reasons if r]
-        return []
-    except Exception as e:
-        logx(f"reportDialog: _load_reasons error: {e}", False)
-        return []
+    from ..network import Storage
+    return Storage.reasons(repo_id)
 
 
 def _load_report_settings(repo_id: str):
-    # returns (forum_username, topic_msg_id) or (None, None)
-    if not repo_id:
-        return None, None
-    try:
-        from ..utils.paths import getRepoCachePath
-        cache_path = getRepoCachePath(repo_id)
-        if not os.path.exists(cache_path):
-            return None, None
-        with open(cache_path, "r", encoding="utf-8") as f:
-            cached = json.load(f)
-        settings = cached.get("reasons", {}).get("settings", [])
-        if isinstance(settings, list) and len(settings) >= 2:
-            return str(settings[0]), int(settings[1])
-        return None, None
-    except Exception as e:
-        logx(f"reportDialog: _load_report_settings error: {e}", False)
-        return None, None
+    # (forum_username, topic_msg_id), or (None, None)
+    from ..network import Storage
+    return Storage.report_settings(repo_id)
 
 
 def _submit_report(forum_username: str, topic_msg_id: int, plugin_name: str, plugin_id: str, repo_id: str, reason: str, description: str, act, on_done):

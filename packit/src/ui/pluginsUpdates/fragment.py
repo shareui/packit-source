@@ -51,11 +51,6 @@ def _get_index_path(pkg: str, rm_rid: str) -> str:
     return getRepoIndexPath(rm_rid)
 
 
-def _get_repo_cache_path(pkg: str, rm_rid: str) -> str:
-    from ...utils.paths import getRepoCachePath
-    return getRepoCachePath(rm_rid)
-
-
 def _get_repos() -> list:
     try:
         raw = settings.get("repositories", "[]")
@@ -82,42 +77,18 @@ def _read_index(pkg: str, rm_rid: str) -> list:
 
 
 def _get_repo_plugins_url(pkg: str, rm_rid: str, fallback_url: str) -> str:
-    # resolves plugins url from cached repomap, falls back to repo url
-    cache_path = _get_repo_cache_path(pkg, rm_rid)
-    if os.path.exists(cache_path):
-        try:
-            with open(cache_path, "r", encoding="utf-8") as f:
-                cached = json.load(f)
-            resolved = cached.get("repomap", {}).get("plugins")
-            if resolved:
-                return resolved
-        except Exception as e:
-            logx(f"pluginsUpdates: _get_repo_plugins_url error for '{rm_rid}': {e}", False)
-    return fallback_url
+    from ...network import Storage
+    return Storage.plugins_url(rm_rid, fallback_url)
 
 
 def _fetch_repo_plugins(url: str) -> dict:
-    # returns dict: plugin_id plugin_info
-    try:
-        r = requests.get(url, timeout=20, headers={"User-Agent": "PackIt/1.0"})
-        if r.status_code != 200:
-            logx(f"pluginsUpdates: HTTP {r.status_code} for {url}", True)
-            return {}
-        config = r.json()
-        raw = config.get("plugins", {})
-        result = {}
-        if isinstance(raw, dict):
-            for pid, info in raw.items():
-                if isinstance(info, dict):
-                    result[pid] = info
-        elif isinstance(raw, list):
-            for item in raw:
-                if isinstance(item, dict) and item.get("id"):
-                    result[item["id"]] = item
-        return result
-    except Exception as e:
-        logx(f"pluginsUpdates: _fetch_repo_plugins error for '{url}': {e}", False)
+    # {plugin_id: plugin_info} — this screen looks plugins up by id
+    from ...network import Storage
+    entries, error = Storage.fetch_plugins(url)
+    if error:
+        logx(f"pluginsUpdates: {error} for {url}", True)
         return {}
+    return {entry["id"]: entry for entry in entries if entry.get("id")}
 
 
 def _version_tuple(v: str):
@@ -1564,40 +1535,22 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
         def task():
             try:
-                from ...deeplinks.install import _resolvePluginsUrl
                 from ...core import install_plugin
-                import requests as _requests
+                from ...network import Storage
 
-                plugins_url = _resolvePluginsUrl(repo)
+                plugins_url = Storage.plugins_url(repo)
                 if not plugins_url:
                     logx(f"pluginsUpdates: _install_update no plugins url for '{repo_id}'", True)
                     run_on_ui_thread(lambda: set_btn_state("idle"))
                     return
 
-                r = _requests.get(plugins_url, timeout=20, headers={"User-Agent": "PackIt/1.0"})
-                if r.status_code != 200:
-                    logx(f"pluginsUpdates: _install_update HTTP {r.status_code}", True)
+                all_plugins, error = Storage.fetch_plugins(plugins_url)
+                if error:
+                    logx(f"pluginsUpdates: _install_update {error}", True)
                     run_on_ui_thread(lambda: set_btn_state("idle"))
                     return
 
-                data = r.json()
-                plugins_raw = data.get("plugins", {})
-
-                plugin = None
-                all_plugins = []
-                if isinstance(plugins_raw, dict):
-                    for _pid, info in plugins_raw.items():
-                        if isinstance(info, dict):
-                            all_plugins.append({"id": _pid, **info})
-                    info = plugins_raw.get(pid)
-                    if isinstance(info, dict):
-                        plugin = {"id": pid, **info}
-                elif isinstance(plugins_raw, list):
-                    all_plugins = [p for p in plugins_raw if isinstance(p, dict)]
-                    for p in plugins_raw:
-                        if isinstance(p, dict) and p.get("id") == pid:
-                            plugin = p
-                            break
+                plugin = next((p for p in all_plugins if p.get("id") == pid), None)
 
                 if not plugin:
                     logx(f"pluginsUpdates: _install_update plugin '{pid}' not found in repo", True)
@@ -2057,13 +2010,13 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
         def task():
             try:
-                from ...deeplinks.install import _resolvePluginsUrl
                 from ...core import install_plugin_silent
                 from ...utils.paths import getPluginsDir
+                from ...network import Storage
                 import requests as _requests
                 import os as _os
 
-                plugins_url = _resolvePluginsUrl(repo)
+                plugins_url = Storage.plugins_url(repo)
                 if not plugins_url:
                     logx(f"pluginsUpdates: _install_update_silent no plugins url for '{repo_id}'", True)
                     run_on_ui_thread(lambda: set_btn_state("idle"))
@@ -2071,26 +2024,15 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         on_done()
                     return
 
-                r = _requests.get(plugins_url, timeout=20, headers={"User-Agent": "PackIt/1.0"})
-                if r.status_code != 200:
-                    logx(f"pluginsUpdates: _install_update_silent plugins list HTTP {r.status_code} for '{pid}'", True)
+                entries, error = Storage.fetch_plugins(plugins_url)
+                if error:
+                    logx(f"pluginsUpdates: _install_update_silent {error} for '{pid}'", True)
                     run_on_ui_thread(lambda: set_btn_state("idle"))
                     if on_done:
                         on_done()
                     return
 
-                data = r.json()
-                plugins_raw = data.get("plugins", {})
-                plugin = None
-                if isinstance(plugins_raw, dict):
-                    info = plugins_raw.get(pid)
-                    if isinstance(info, dict):
-                        plugin = {"id": pid, **info}
-                elif isinstance(plugins_raw, list):
-                    for p in plugins_raw:
-                        if isinstance(p, dict) and p.get("id") == pid:
-                            plugin = p
-                            break
+                plugin = next((p for p in entries if p.get("id") == pid), None)
 
                 if not plugin:
                     logx(f"pluginsUpdates: _install_update_silent plugin '{pid}' not found in repo", True)

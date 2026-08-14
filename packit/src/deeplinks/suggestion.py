@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ..network import Storage
 from urllib.parse import urlparse, parse_qs
 from android_utils import run_on_ui_thread
 from client_utils import get_last_fragment
@@ -14,21 +15,8 @@ import json
 import os
 
 
-def _get_cache_path(rm_rid: str) -> str:
-    from ..utils.paths import getRepoCachePath
-    return getRepoCachePath(rm_rid)
-
-
-def _load_repomap(rm_rid: str) -> dict | None:
-    path = _get_cache_path(rm_rid)
-    if not os.path.exists(path):
-        return None
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception as e:
-        logx(f"suggestion deeplink: _load_repomap error: {e}", False)
-        return None
+def _load_repomap(rm_rid: str):
+    return Storage.read_repomap(rm_rid)
 
 
 def _has_required_fields(data: dict) -> bool:

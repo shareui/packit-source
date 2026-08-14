@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from packutil import logx
+from ..network import Storage
 from ..utils.bulletins import factory as _pbf
 from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment, run_on_queue
@@ -30,11 +31,6 @@ _INSTALL_OPTIONAL = {"plugin", "icon", "version"}
 _INSTALL_ALL = _INSTALL_REQUIRED | _INSTALL_OPTIONAL
 
 
-def _getCachePath(repoId: str) -> str:
-    from ..utils.paths import getRepoCachePath
-    return getRepoCachePath(repoId)
-
-
 def _findRepo(repoManager, repoId: str) -> dict | None:
     try:
         for r in (repoManager.getRepositories() or []):
@@ -46,19 +42,7 @@ def _findRepo(repoManager, repoId: str) -> dict | None:
 
 
 def _resolvePluginsUrl(repo: dict) -> str:
-    repoId = (repo.get("id") or "").strip()
-    fallback = (repo.get("url") or "").strip()
-    if not repoId:
-        return fallback
-    try:
-        cachePath = _getCachePath(repoId)
-        if os.path.exists(cachePath):
-            with open(cachePath, "r", encoding="utf-8") as f:
-                cached = json.load(f)
-            return cached.get("repomap", {}).get("plugins") or fallback
-    except Exception:
-        pass
-    return fallback
+    return Storage.plugins_url(repo)
 
 
 def handle(url, repoManager):
@@ -376,19 +360,7 @@ def _handleInstallPlugin(repo: dict, pluginId: str, versionId: str = ""):
 
 
 def _resolveIconsUrl(repo: dict) -> str:
-    repoId = (repo.get("id") or "").strip()
-    fallback = (repo.get("url") or "").strip()
-    if not repoId:
-        return fallback
-    try:
-        cachePath = _getCachePath(repoId)
-        if os.path.exists(cachePath):
-            with open(cachePath, "r", encoding="utf-8") as f:
-                cached = json.load(f)
-            return cached.get("repomap", {}).get("icons") or fallback
-    except Exception:
-        pass
-    return fallback
+    return Storage.icons_url(repo)
 
 
 def _handleInstallIconPack(repo: dict, iconId: str):

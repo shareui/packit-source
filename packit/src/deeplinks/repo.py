@@ -35,8 +35,7 @@ except Exception as e:
 from urllib.parse import urlparse, parse_qs
 import requests
 import json
-from ..utils import jsonx as _jsonx
-import os
+from ..network import Storage
 
 BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
 
@@ -50,11 +49,6 @@ BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
 _REPO_ADD_REQUIRED = {"link"}
 _REPO_ADD_OPTIONAL = {"name", "icon"}
 _REPO_ADD_ALL = _REPO_ADD_REQUIRED | _REPO_ADD_OPTIONAL
-
-
-def _get_cache_dir() -> str:
-    from ..utils.paths import getReposCacheDir
-    return getReposCacheDir()
 
 
 def _sheet_chip(act, text: str):
@@ -129,36 +123,21 @@ def handle(url, repoManager):
             repometa = None
             pluginCount = 0
             try:
-                response = requests.get(link, timeout=10)
-                if response.status_code == 200:
-                    data = _jsonx.loads(response.text)
+                data, error = Storage.fetch_repomap(link)
+                if error:
+                    logx(f"repo deeplink: {error} for '{link}'", True)
+                else:
                     repometa = data.get("repometa")
+                    # cached now, so the sheet's avatar and everything the
+                    # source screen shows are there the moment it is added
+                    Storage.write_repomap(repometa.get("rm_rid"), data)
 
-                    if repometa and repometa.get("rm_rid"):
-                        try:
-                            cache_dir = _get_cache_dir()
-                            os.makedirs(cache_dir, exist_ok=True)
-                            cache_path = os.path.join(cache_dir, f"{repometa['rm_rid']}.json")
-                            with open(cache_path, "w", encoding="utf-8") as f:
-                                json.dump(data, f, indent=2, ensure_ascii=False)
-                        except Exception as e:
-                            logx(f"repo deeplink: cache error: {e}", False)
-
-                    repomap = data.get("repomap", {})
-                    plugins_url = repomap.get("plugins") if repomap else None
-                    if plugins_url:
-                        try:
-                            pr = requests.get(plugins_url, timeout=10)
-                            if pr.status_code == 200:
-                                pdata = _jsonx.loads(pr.text)
-                                plugins = pdata.get("plugins", [])
-                                pluginCount = len(plugins) if isinstance(plugins, (list, dict)) else 0
-                        except Exception as e:
-                            logx(f"repo deeplink: plugins count error: {e}", False)
+                    plugins_url = Storage.plugins_url(repometa.get("rm_rid"), link)
+                    entries, list_error = Storage.fetch_plugins(plugins_url)
+                    if list_error:
+                        logx(f"repo deeplink: plugin count unavailable: {list_error}", True)
                     else:
-                        plugins = data.get("plugins", [])
-                        if isinstance(plugins, (list, dict)):
-                            pluginCount = len(plugins)
+                        pluginCount = len(entries)
             except Exception as e:
                 logx(f"repo deeplink: fetch error: {e}", False)
 

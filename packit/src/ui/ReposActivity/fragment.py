@@ -45,7 +45,7 @@ except Exception as e:
 from . import register, unregister
 from .card import make_repo_card
 from ..viewUtils import applyFontToTree
-from ...utils.paths import getRepoCachePath
+from ...network import Storage
 
 
 def _c(color: int) -> int:
@@ -85,28 +85,17 @@ def read_repo_info(repo: dict) -> dict:
     except Exception as e:
         logx(f"repos: stats unavailable for '{repo_id}': {e}", True)
 
-    path = getRepoCachePath(repo_id)
-    try:
-        if not os.path.isfile(path):
-            return info
-        with open(path, "r", encoding="utf-8") as f:
-            cached = json.load(f)
-    except Exception as e:
-        logx(f"repos: cache unreadable for '{repo_id}': {e}", True)
+    cached = Storage.read_repomap(repo_id)
+    if not cached:
         return info
 
     meta = cached.get("repometa") or {}
     info["maintainer"] = str(meta.get("rm_maintainer") or "")
     info["telegram"] = str(meta.get("rm_telegram") or "")
     info["source"] = str(meta.get("rm_source") or "")
-    icon_url = str(meta.get("rm_icon") or "").strip()
-    # older repositories put an R.drawable name in rm_icon; only a link is an icon
-    info["icon_url"] = icon_url if icon_url.lower().startswith(("http://", "https://")) else ""
+    info["icon_url"] = Storage.icon_url(repo_id)
     info["status"] = "loaded"
-    try:
-        info["updated_at"] = os.path.getmtime(path)
-    except Exception:
-        info["updated_at"] = 0.0
+    info["updated_at"] = Storage.repomap_mtime(repo_id)
 
     # a repomap that is itself the plugin list carries the count inline; the
     # usual shape only points at it by url, and that count comes from repoStats

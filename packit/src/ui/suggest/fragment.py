@@ -986,39 +986,23 @@ def _try_parse_plugin_meta(uri, act, suggest_config, on_description=None, on_upd
                 pass
             repometa = None
             try:
-                from ...utils.paths import getRepoCachePath
-                import json as _json
+                from ...network import Storage
 
-                # suggest_config may carry rm_rid indirectly; scan all caches
-                # find by checking suggest_config origin — passed as is, so use paths util
-                cache_dir_path = getRepoCachePath("")
-                import os as _os
-                cache_dir = _os.path.dirname(cache_dir_path)
-                for fname in (_os.listdir(cache_dir) if _os.path.isdir(cache_dir) else []):
-                    if not fname.endswith(".json"):
-                        continue
-                    fpath = _os.path.join(cache_dir, fname)
+                # which repository carries this plugin is not recorded here, so
+                # every cached one is asked in turn
+                for rm_rid, _cached in Storage.all_cached():
                     try:
-                        with open(fpath, "r", encoding="utf-8") as f:
-                            cached = _json.load(f)
-                        repomap = cached.get("repomap", {})
-                        plugins_url = repomap.get("plugins", "")
+                        plugins_url = Storage.plugins_url(rm_rid)
                         if not plugins_url:
                             continue
-                        import requests as _req
-                        r = _req.get(plugins_url, timeout=10)
-                        if r.status_code != 200:
+                        entries, error = Storage.fetch_plugins(plugins_url)
+                        if error:
                             continue
-                        data = r.json()
-                        plugins = data.get("plugins", {})
                         repo_plugin = None
-                        if isinstance(plugins, dict):
-                            repo_plugin = plugins.get(plugin_id)
-                        elif isinstance(plugins, list):
-                            for item in plugins:
-                                if isinstance(item, dict) and item.get("id") == plugin_id:
-                                    repo_plugin = item
-                                    break
+                        for item in entries:
+                            if item.get("id") == plugin_id:
+                                repo_plugin = item
+                                break
                         if repo_plugin is not None:
                             repo_version = repo_plugin.get("version", "?")
                             meta_version = meta.get("version", "?")
@@ -1055,30 +1039,12 @@ def _load_forked_plugins(repo_data: dict) -> list:
         rm_rid = repometa.get("rm_rid") if isinstance(repometa, dict) else None
         if not rm_rid:
             return []
-        from ...utils.paths import getRepoCachePath
-        path = getRepoCachePath(rm_rid)
-        if not _os.path.exists(path):
-            return []
-        with open(path, "r", encoding="utf-8") as f:
-            cached = _json.load(f)
-        plugins_url = cached.get("repomap", {}).get("plugins", "")
+        from ...network import Storage
+        plugins_url = Storage.plugins_url(rm_rid)
         if not plugins_url:
             return []
-        r = _req.get(plugins_url, timeout=10)
-        if r.status_code != 200:
-            return []
-        data = r.json()
-        plugins_raw = data.get("plugins", [])
-        plugins = []
-        if isinstance(plugins_raw, dict):
-            for pid, info in plugins_raw.items():
-                if isinstance(info, dict):
-                    plugins.append({"id": pid, **info})
-        elif isinstance(plugins_raw, list):
-            for item in plugins_raw:
-                if isinstance(item, dict) and item.get("id"):
-                    plugins.append(item)
-        return plugins
+        plugins, error = Storage.fetch_plugins(plugins_url)
+        return [] if error else plugins
     except Exception as e:
         logx(f"suggest: _load_forked_plugins error: {e}", False)
         return []
@@ -1524,20 +1490,13 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 rm_rid = repometa.get("rm_rid")
             self._rm_rid = rm_rid or "default"
             if rm_rid:
-                import json, os
-                from ...utils.paths import getRepoCachePath
-                path = getRepoCachePath(rm_rid)
-                if os.path.exists(path):
-                    with open(path, "r", encoding="utf-8") as f:
-                        data = json.load(f)
-                    sp = data.get("suggest_plugins")
-                    if isinstance(sp, dict):
-                        self._suggest_config = sp
-                        logx(f"suggest: loaded suggest_plugins for {rm_rid}", True)
-                    else:
-                        logx(f"suggest: suggest_plugins missing in cache for {rm_rid}", True)
+                from ...network import Storage
+                sp = Storage.suggest_config(rm_rid)
+                if sp is not None:
+                    self._suggest_config = sp
+                    logx(f"suggest: loaded suggest_plugins for {rm_rid}", True)
                 else:
-                    logx(f"suggest: cache file not found for {rm_rid}", True)
+                    logx(f"suggest: no suggest_plugins cached for {rm_rid}", True)
             else:
                 sp = self._repo_data.get("suggest_plugins") if isinstance(self._repo_data, dict) else None
                 if isinstance(sp, dict):

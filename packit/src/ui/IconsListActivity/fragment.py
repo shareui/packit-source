@@ -685,40 +685,17 @@ class InstallIconsUI:
                         continue
                     logx(f"IconList._open_all_repos_icons: loading repo '{repo.get('name')}' id='{repo_id}' url='{repo_url}'", True)
                     try:
-                        icons_url = repo_url
-                        if repo_id:
-                            try:
-                                from org.telegram.messenger import ApplicationLoader
-                            except Exception as e:
-                                import android_utils as _au; _au.log(f"import ApplicationLoader failed: {e}")
-                                from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
-                            import os
-                            from ...utils.paths import getRepoCachePath
-                            cache_path = getRepoCachePath(repo_id)
-                            logx(f"IconList._open_all_repos_icons: cache_path='{cache_path}' exists={os.path.exists(cache_path)}", True)
-                            if os.path.exists(cache_path):
-                                with open(cache_path, "r", encoding="utf-8") as f:
-                                    cached = json.load(f)
-                                icons_url = cached.get("repomap", {}).get("icons") or repo_url
-                                logx(f"IconList._open_all_repos_icons: resolved icons_url from cache='{icons_url}'", True)
-
+                        from ...network import Storage
+                        icons_url = Storage.icons_url(repo, repo_url)
                         logx(f"IconList._open_all_repos_icons: fetching icons from '{icons_url}'", True)
-                        response = requests.get(icons_url, timeout=10)
-                        logx(f"IconList._open_all_repos_icons: repo '{repo.get('name')}' HTTP {response.status_code}", True)
-                        if response.status_code != 200:
-                            logx(f"IconList._open_all_repos_icons: repo '{repo.get('name')}': HTTP {response.status_code}, skipping", True)
+                        entries, error = Storage.fetch_icons(icons_url)
+                        if error:
+                            logx(f"IconList._open_all_repos_icons: repo '{repo.get('name')}': {error}, skipping", True)
                             continue
-                        config = response.json()
-                        icons = config.get("icons", {})
-                        logx(f"IconList._open_all_repos_icons: repo '{repo.get('name')}' icons type={type(icons).__name__} len={len(icons) if icons else 0}", True)
-                        if isinstance(icons, dict):
-                            for iconId, info in icons.items():
-                                if isinstance(info, dict):
-                                    all_icons.append({"id": iconId, "repo_name": repo.get("name", "Unknown"), **info})
-                        elif isinstance(icons, list):
-                            for item in icons:
-                                if isinstance(item, dict) and item.get("id"):
-                                    all_icons.append({"id": item.get("id"), "repo_name": repo.get("name", "Unknown"), **item})
+                        logx(f"IconList._open_all_repos_icons: repo '{repo.get('name')}' icons={len(entries)}", True)
+                        repo_name = repo.get("name", "Unknown")
+                        for entry in entries:
+                            all_icons.append({"repo_name": repo_name, **entry})
                     except Exception as e:
                         logx(f"IconList._open_all_repos_icons: failed to load repo '{repo.get('name')}': {e}", False)
 
@@ -762,43 +739,12 @@ class InstallIconsUI:
 
         def load_task():
             try:
-                icons_url = repo_url
-                if repo_id:
-                    try:
-                        from org.telegram.messenger import ApplicationLoader
-                    except Exception as e:
-                        import android_utils as _au; _au.log(f"import ApplicationLoader failed: {e}")
-                        from ...utils.importFailed import showImportFailedAlert as _sifa; _sifa()
-                    import os
-                    from ...utils.paths import getRepoCachePath
-                    cache_path = getRepoCachePath(repo_id)
-                    logx(f"IconList._open_repo_icons: cache_path='{cache_path}' exists={os.path.exists(cache_path)}", True)
-                    if os.path.exists(cache_path):
-                        with open(cache_path, "r", encoding="utf-8") as f:
-                            cached = json.load(f)
-                        icons_url = cached.get("repomap", {}).get("icons") or repo_url
-                        logx(f"IconList._open_repo_icons: resolved icons_url from cache='{icons_url}'", True)
-
+                from ...network import Storage
+                icons_url = Storage.icons_url(repo_id, repo_url)
                 logx(f"IconList._open_repo_icons: fetching '{icons_url}'", True)
-                r = requests.get(icons_url, timeout=20)
-                logx(f"IconList._open_repo_icons: HTTP {r.status_code}", True)
-                if r.status_code != 200:
-                    raise Exception(f"HTTP {r.status_code}")
-                config = r.json()
-                icons_raw = config.get("icons", [])
-                logx(f"IconList._open_repo_icons: icons_raw type={type(icons_raw).__name__} len={len(icons_raw) if icons_raw else 0}", True)
-                icons = []
-                if isinstance(icons_raw, dict):
-                    for iid, info in icons_raw.items():
-                        if isinstance(info, dict):
-                            icons.append({"id": iid, **info})
-                elif isinstance(icons_raw, list):
-                    for item in icons_raw:
-                        if isinstance(item, dict) and item.get("id"):
-                            icons.append(item)
-                        else:
-                            logx(f"IconList._open_repo_icons: skipping list item (no id or not dict): {item}", True)
-
+                icons, error = Storage.fetch_icons(icons_url)
+                if error:
+                    raise Exception(error)
                 logx(f"IconList._open_repo_icons: parsed icons count={len(icons)}", True)
                 # left behind for the sources screen: repomap points at this
                 # file by url and carries no count of its own
