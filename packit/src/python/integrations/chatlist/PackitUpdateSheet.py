@@ -65,7 +65,7 @@ def _get_current_version() -> str:
 #    except Exception as e:
 #        logx(f"updateSheet: _get_current_version error: {e}", False)
 #        return "0.0.0"
-    return "0.1.0" # latest
+    return "1.0.0" # latest
 
 def _get_dismissed_ver() -> str:
     try:
