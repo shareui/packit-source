@@ -138,14 +138,12 @@ def showNativeErrorSheet(libName: str, error: str):
                 except Exception:
                     pass
 
-                # index 49 of the error pack; the shared loader binds it now if
-                # cached, else on diceStickersDidLoad (no polling)
                 from ..utils.Stickers import load_sticker
-                load_sticker(iv, "wtffffffffffDD/49", 100)
+                btsticker = "randomshareui/54"
+                load_sticker(iv, btsticker, 100)
 
                 linear.addView(iv, LayoutHelper.createLinear(
-                    100, 100, Gravity.CENTER_HORIZONTAL, 0, 20, 0, 0
-                ))
+                    100, 100, Gravity.CENTER_HORIZONTAL, 0, 20, 0, 0 ))
 
                 # title
                 title = TextView(activity)
