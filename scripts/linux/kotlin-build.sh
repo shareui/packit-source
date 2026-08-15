@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-# Builds the self-written Kotlin dexes (sources in /kotlin/) into
-# packit/dex/<name>.dex. Reflection + Xposed based, so it compiles against
-# android.jar + the compile-only Xposed stubs in kotlin/stubs (never shipped),
-# and R8 tree-shakes kotlin-stdlib so the dex stays tiny.
+# Builds the self-written Kotlin (sources in packit/src/kotlin) into a single
+# packit/dex/packit.dex holding all of kawaii.packetik. Reflection + Xposed
+# based, so it compiles against android.jar + the compile-only Xposed stubs in
+# packit/src/kotlin/stubs (never shipped), and R8 tree-shakes kotlin-stdlib so
+# the dex stays small.
+#
+# One dex, not one per package: R8 emits a single classes.dex from all of the
+# sources anyway, and this script used to copy that same file out four times
+# under four names. Four identical 55K blobs shipped, and DexLoader built a
+# separate class loader over each — the same bytecode resident four times.
 #
 # Toolchain discovery order:
 #   1. environment variables (ANDROID_HOME / ANDROID_SDK_ROOT, KOTLINC, ...)
@@ -13,21 +19,13 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-SRC_DIR="$REPO_ROOT/kotlin/src"
-STUB_DIR="$REPO_ROOT/kotlin/stubs"
+SRC_DIR="$REPO_ROOT/packit/src/kotlin/src"
+STUB_DIR="$REPO_ROOT/packit/src/kotlin/stubs"
 OUT_DIR="$REPO_ROOT/kotlin-build"
-DEX_OUT_BASE="$REPO_ROOT/packit/dex"
+DEX_OUT="$REPO_ROOT/packit/dex/packit.dex"
 MIN_API=26
-
-# what to build: "<dexName>=<keepClassFqn>"
-PACKAGES=(
-  "badges=kawaii.packetik.badges.BadgesNative"
-  "openfile=kawaii.packetik.openfile.OpenFileNative"
-  "catalog=kawaii.packetik.catalog.CatalogChromeNative"
-  "sfx=kawaii.packetik.sfx.SfxNative"
-)
 
 die() { echo "error: $*" >&2; exit 1; }
 info() { echo "[kotlin-build] $*"; }
@@ -134,13 +132,14 @@ java -cp "$D8_JAR" com.android.tools.r8.R8 \
   "$KOTLIN_STDLIB"
 
 [[ -f "$OUT_DIR/dex/classes.dex" ]] || die "R8 produced no classes.dex"
+if [[ -f "$OUT_DIR/dex/classes2.dex" ]]; then
+  die "R8 split the output across several dex files.
+  packit.dex is loaded as one file, so the method count has to stay under the limit."
+fi
 
-# NOTE: .dex is arch-independent Dalvik bytecode; a single copy serves all ABIs.
-for entry in "${PACKAGES[@]}"; do
-  name="${entry%%=*}"
-  mkdir -p "$DEX_OUT_BASE"
-  cp "$OUT_DIR/dex/classes.dex" "$DEX_OUT_BASE/$name.dex"
-  info "-> $DEX_OUT_BASE/$name.dex ($(wc -c < "$DEX_OUT_BASE/$name.dex") bytes)"
-done
+# NOTE: .dex is arch-independent Dalvik bytecode; one copy serves all ABIs.
+mkdir -p "$(dirname "$DEX_OUT")"
+cp "$OUT_DIR/dex/classes.dex" "$DEX_OUT"
+info "-> $DEX_OUT ($(wc -c < "$DEX_OUT") bytes)"
 
 info "done."
