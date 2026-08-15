@@ -132,14 +132,29 @@ java -cp "$D8_JAR" com.android.tools.r8.R8 \
   "$KOTLIN_STDLIB"
 
 [[ -f "$OUT_DIR/dex/classes.dex" ]] || die "R8 produced no classes.dex"
-if [[ -f "$OUT_DIR/dex/classes2.dex" ]]; then
-  die "R8 split the output across several dex files.
-  packit.dex is loaded as one file, so the method count has to stay under the limit."
+
+# R8 emits one classes.dex from these sources today, but it splits at the 64K
+# method limit, and DexLoader reads packit.dex as a single file. D8 merges
+# whatever came out into as few dex files as it can, so growing past the limit
+# is something the build notices rather than something the plugin discovers.
+info "merging dex output with D8"
+mkdir -p "$OUT_DIR/merged"
+java -cp "$D8_JAR" com.android.tools.r8.D8 \
+  --release --min-api "$MIN_API" \
+  --lib "$ANDROID_JAR" \
+  --output "$OUT_DIR/merged" \
+  "$OUT_DIR"/dex/*.dex
+
+[[ -f "$OUT_DIR/merged/classes.dex" ]] || die "D8 produced no classes.dex"
+if [[ -f "$OUT_DIR/merged/classes2.dex" ]]; then
+  die "the merged output still spans several dex files.
+  kawaii.packetik has outgrown the 64K method limit and packit.dex is loaded as one file —
+  either trim what R8 keeps, or teach DexLoader to load more than one."
 fi
 
 # NOTE: .dex is arch-independent Dalvik bytecode; one copy serves all ABIs.
 mkdir -p "$(dirname "$DEX_OUT")"
-cp "$OUT_DIR/dex/classes.dex" "$DEX_OUT"
+cp "$OUT_DIR/merged/classes.dex" "$DEX_OUT"
 info "-> $DEX_OUT ($(wc -c < "$DEX_OUT") bytes)"
 
 info "done."
