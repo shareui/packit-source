@@ -1,11 +1,7 @@
 name: PackIt
 description: "{plugin_description} [shareui/packit-source](https://github.com/shareui/packit-source)"
 id: shareui_packit
-<<<<<<< HEAD
-version: "1.0.0-dev"
-=======
 version: "1.0.0-dev.1"
->>>>>>> a6b98ce (fixed adding repository by deeplink)
 author: "@packitX"
 app_version: ">=12.9.0"
 sdk_version: ">=1.4.5.0"
