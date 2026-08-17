@@ -1,0 +1,53 @@
+[metadata]
+title = "PackIt"
+description = "{plugin_description} [shareui/packit-source](https://github.com/shareui/packit-source)"
+id = "packitX_packit"
+version = "1.0.0-dev.1-crul"
+version_num = 1
+author = "@packitX"
+app_version = ">=12.9.2"
+sdk_version = ">=1.4.6.0"
+icon = "packit/boobs.png"
+
+[config]
+target = "plugin"
+builder = "cruel"
+cruel = ["0.1.0", "0.1.0"] # [min, max]
+
+[references]
+# the contents of this folder will be listed as ElyxCore assets and will be accessible through elyx
+assets = "packit/res"
+strings = "packit/locales"
+entry = "packit/src/python/BasePlugin.py"
+pysrc = "packit/src/python"
+
+[requirements.pypi]
+# name = ">=1.2.3" leave string empty to download latest
+
+[requirements.local]
+packutil = "packit/wheels/packutil-(0.1.1).whl"
+
+[requirements.plugins]
+# name = { url = "https://t.me/doctashare/63", version = "1.2.3" }
+
+# builds
+[build.asmrel]
+path = "cruel/builds/asmrel.py"
+opt = 2
+remove_pymeta = true # randomising: co_filename, co_firstlineno, co_linetable, co_name, co_qualname,
+pycompile = true
+include = ["packit/**/*"]
+
+[build.asmdbg]
+path = "cruel/builds/asmdbg.py"
+opt = 0
+remove_pymeta = false # randomising: co_filename, co_name, co_qualname, co_firstlineno, co_linetable
+pycompile = false
+include = ["packit/**/*"]
+
+# flags
+[flags.asmrel]
+# support for flugs will be later
+
+[flags.asmdbg]
+# support for flugs will be later

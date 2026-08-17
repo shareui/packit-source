@@ -1,3 +1,5 @@
+cruel: en
+
 official_repository: Official
 plugin_title_version: "PackIt v{0}"
 plugin_subtitle: Resource catalog for exteraGram
@@ -246,8 +248,10 @@ deeplinks_install_plugin: Installing the plugin
 deeplinks_suggest_plugin: Submit plugin for review
 deeplinks_suggest_plugin_desc: Open the plugin submission form for a specific repository
 deeplinks_updates_header: Updates
+deeplinks_check: Check Status
 deeplinks_check_updates: Refresh the cache of all repositories
 deeplinks_check_updates_repo: Refresh the cache in the repository
+deeplinks_check_updates_repo_desc: Refresh the cache in the repository
 deeplinks_other_header: Other
 deeplinks_settings: Settings
 deeplinks_forum: Forum
@@ -1214,5 +1218,7 @@ repos_empty_title: Nothing here yet
 repos_empty_text: Add a source to install plugins
 repos_manage: Manage
 retry: Retry
+retry_button: Retry
+no_internet_banner: No internet connection
 repo_default_already: The default repository is already there
 repo_link_shared: Repository link sent

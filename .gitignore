@@ -14,3 +14,6 @@ libs/build-armeabi-v7a/*
 # workspace (compiled stubs/classes, intermediate dex, R8 rules) is not.
 kotlin-build/
 kotlin/**/*.class
+
+# cruel/local/*
+cruel/*

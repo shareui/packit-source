@@ -1,6 +1,0 @@
-metainfo: packit/meta.yml
-main: packit/src/python/BasePlugin.py
-strings: packit/locales
-assets: packit/res
-elyxbuilder: packit/.elyxbuilder
-wheels: packit/wheels
