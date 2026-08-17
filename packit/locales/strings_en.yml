@@ -1,0 +1,1218 @@
+official_repository: Official
+plugin_title_version: "PackIt v{0}"
+plugin_subtitle: Resource catalog for exteraGram
+plugins_header: Categories
+install_plugin: Plugin Catalog
+check_updates: Check for Updates
+install_icons: Icon Catalog
+install_config: Install Configuration
+not_ready_yet: Not ready yet
+settings_header: Other
+deeplinks: Deeplinks
+repositories: Repositories
+other_settings: Settings
+community_header: Community
+packit_forum: Packit Forum
+source_code: Source code
+links_docs: "Links & Documentation"
+contributors: Contributors
+max_repositories_allowed: Maximum of 10 repositories allowed. Chill.
+max_buttons_allowed: Maximum of 4 buttons allowed. Chill.
+add_repository: Add Repository
+delete_repository_title: Delete
+delete_repository_message: "Are you sure you want to delete this repository? No takebacks."
+delete_button: Delete
+save_button: Save
+close_button: Close
+binary_file_title: Binary File
+binary_file_message: "This file contains binary data, I don't think opening it is a good idea."
+achiev_open: Open
+achiev_unlocked: "Achievement Unlocked!"
+repo_link_copied: "Copied to clipboard! Magic."
+failed_to_copy: "Failed to copy :("
+repo_name: Name
+repo_url: Config URL
+invalid_repository: Invalid repository
+repository_added: Repository added
+share_repository: Share
+remove_repository: Remove
+failed_to_open_link: Couldn't open the link. Classic.
+founder_shareui: Founder
+github: GitHub
+direct_message: Direct Message
+personal_channel: Personal Channel
+plugins_channel: Channel for plugins
+lead_developer_vestr: Lead Developer
+mentor: Mentor
+special_thanks: Special thanks
+for_users: For Users
+faq: Frequently Asked Questions
+report_bug: Report Bug
+official_forum: Official Forum
+packit_channel: PackIt Channel
+for_devs: For Developers
+devdocs: Developer Docs
+creating_own_repo: Creating Your Own Repository
+navigating_through_settings: Navigating through settings
+hotkeys_header: Hotkeys
+hotkeys_subtext: Entry points to PackIt across the app
+buttons_header: Buttons
+button_in_chat_menu: Button in Chat Menu
+button_in_chat_menu_desc: Adds a settings button in the chat menu.
+button_in_side_menu: Button in Side Menu
+button_in_side_menu_desc: Adds a settings button in the side menu.
+button_in_chat_plugins: Button in Chat Plugins
+button_in_chat_plugins_desc: Adds a settings button in the chat plugins menu.
+interface_header: Interface
+font_picker: View Font
+font_picker_desc: Change font for all PackIt views
+font_picker_title: Select Font
+font_picker_experimental: Experimental
+font_default: Default (System)
+plugin_card_header: Plugin Card
+install_sheet_header: Installation BottomSheet
+install_sheet_links: Show author links
+install_sheet_links_desc: Display icon buttons from links metadata in the install dialog.
+install_sheet_hash: Show hash check button
+install_sheet_hash_desc: Display the file hash verification button in the install dialog.
+install_sheet_signatures: Show signatures button
+install_sheet_signatures_desc: Display the security signatures scan button in the install dialog.
+navigation_header: Navigation
+repos_navigation_header: Repositories navigation
+classic_sort_menu: Classic Sort Menu
+classic_sort_menu_desc: Use the classic design for the plugin sort menu.
+show_default_sticker: Show default sticker
+show_default_sticker_desc: Shows default sticker for plugins without icon.
+repository_selection_header: Repository Selection
+skip_repository_selection: Skip repository selection
+skip_repository_selection_desc: "Automatically opens the plugins menu in \"All repositories\" mode."
+everything_working: All systems operational. Relax.
+packit: PackIt
+packit_settings: PackIt Settings
+plugin_not_found: PackIt plugin not found. Awkward.
+file_not_found: "File not found :("
+error_opening_settings: "Error opening settings: {0}"
+error_generic: "Error: {0}"
+arrows_navigation: "Arrows & Navigation"
+attachments_media: "Attachments & Media"
+avatar_profile: "Avatar & Profile"
+calls_voice: "Calls & Voice"
+chat_actions: Chat Actions
+data_network: "Data & Network"
+dialog_creation: "Dialogs & Creation"
+fab_actions: "FAB & Actions"
+files_storage: "Files & Storage"
+input_interface: "Input & Interface"
+location_maps: "Location & Maps"
+menu_items: Menu Items
+message_content: Message Content
+message_controls: Message Controls
+passcode_security: "Passcode & Security"
+player_controls: Player Controls
+stickers: Stickers
+stories: Stories
+themes: Themes
+ui_elements: UI Elements
+error_header: "Error :("
+failed_to_load_icons: "Failed to load icon packs: {0}. Oops."
+publish_ur_plugin: Submit Your Plugin
+how_to_enlighten: "How to achieve enlightenment?"
+enlighten_1: No way.
+enlighten_2: "Seriously, no way."
+enlighten_3: Ugh... Stop bothering me.
+enlighten_4: "I don’t know! Leave me alone."
+enlighten_5: "Still looking? How sweet, aww"
+enlighten_6: "How? How? I DON’T KNOW!"
+enlighten_7: If you don’t stop…
+enlighten_8: "I will destroy you!"
+enlighten_9: "You asked for it, last warning."
+enlighten_10: I warned you...
+enlighten_11: "Didn’t you get it the first time?"
+pkill: "Sometimes you just need to restart... :3"
+restore_default_repository: Restore default repository
+default_repo_restored: "Default repository restored!"
+reset_repositories: Reset repositories
+reset_repositories_title: "Reset repositories?"
+reset_repositories_message: "All repositories will be removed and the default repository will be restored. Are you sure, sweetie?"
+repositories_reset: Repositories reset
+reset_button: Reset
+clear_all_except_first: Clear all
+clear_all_title: "Clear all repositories?"
+clear_all_message: All repositories except the first one will be deleted.
+repositories_cleared: "Cleaning!~"
+clear_button: Clear
+easter_egg_title: Wait a minute...
+easter_egg_clear_message: "Did you really think I work as your housekeeper? You have one repository, master."
+easter_egg_reset_message: "Don't bother me with trifles, you have one repository."
+support_via_send: "Support via @send"
+support_via_ton: Support via GRAM
+support_via_yoomoney: Support via YooMoney
+support_send_message: "<З"
+support_with_github_sponsors: Support with Github Sponsors
+copied_to_clipboard: Copied to clipboard
+donate_easter_egg: "Wait, did someone give some subs?"
+additional_actions: Additional
+export_repositories: Export repositories
+repositories_exported: "All repository links copied! Don’t lose them!"
+no_repositories_to_export: No repositories to export
+disable_all_repositories: Disable all
+enable_all_repositories: Enable all
+secret_video: Secret Video
+plugin_link_copied: "Link to {0} copied!"
+repo_add_title: "Add repository?"
+repo_add_message: |-
+  Name: {0}
+  URL: {1}
+repo_add_button: Add
+repo_add_success: "Repository added!"
+repo_add_limit: Maximum of 10 repositories allowed. Chill.
+repo_add_invalid: Invalid repository link.
+repo_add_fetching: Fetching repository data...
+repo_add_fetch_failed: Failed to fetch repository data.
+repo_add_disclaimer: |-
+  PackIt is not responsible for the content of {0}. All rights and responsibility belong to the owner, {1}.
+
+  Plugin count: {2}
+repo_add_disclaimer_short: "PackIt is not responsible for the content of third-party sources."
+repo_add_no_repometa: |-
+  Repository has no metadata. Add anyway?
+
+  Plugin count: {0}
+sort_title: Sort Plugins
+sort_title_icons: Sort Icons
+sort_alpha_az: "Alphabetically A-Z"
+sort_alpha_za: "Alphabetically Z-A"
+sort_by_authors: "By Authors (A-Z)"
+sort_as_in_repo: As in Repository
+search_hint: Search plugins...
+no_plugins: No plugins
+no_icons: No icon packs
+total_plugins: "{0} repositories · {1} plugins"
+total_plugins_unknown: Loading...
+select_repository: Select a repository
+all_repositories: All repositories
+search_all_repositories: Search across all repositories
+plugin_view_button: View
+plugin_install_success: "Successfully sent!"
+unnamed: Unnamed
+security_scan: Security
+cache_header: Cache
+filesystem_header: File System
+clear_cache: Delete working folder
+clear_cache_confirm_title: Clear cache
+clear_cache_confirm_message: "Are you sure? This action is irreversible."
+clear_cache_done_title: Cache cleared
+clear_cache_done_message: It is STRONGLY recommended that you restart the app.
+clear_cache_button: Clear
+cancel_button: Cancel
+restart_now: Restart now
+restart_later: Later
+update_repos_success: "Updated successfully!"
+beta_dialog_title: Beta version
+beta_dialog_message: "This is a BETA version, not all functionality is ready yet. Also, the plugin doesn't have many plugins in the repository at the moment."
+beta_dialog_ok: OK
+beta_dialog_cancel: "Don't joke like that anymore :("
+update_repositories: Update repositories
+sfx_settings: SFX Settings
+plugin_components: Plugin Components
+sfx_header: SFX
+enable_sfx: Enable SFX
+enable_sfx_desc: Play sounds on plugin actions
+sfx_install: Install
+sfx_copy_link: Copy link
+sfx_search: Search
+sfx_clear_search: Clear search
+sfx_achievement: Achievement
+sfx_available_updates: Available Updates
+deeplink_too_few_args: There are too few arguments.
+deeplink_too_many_args: There are too many arguments.
+security_header: Security
+sudo_password: Sudo password
+sudo_password_desc: Password for privileged operations
+sudo_password_saved: Password saved
+scanning_header: Scanning
+signature_scan: Signature verification
+hash_comparison: Hash comparison
+import_failed: "Some import failed, check the logs!"
+deeplinks_repositories_header: Repositories
+deeplinks_all_repositories: All repositories
+deeplinks_add_repository: Adding repositories
+deeplinks_installation_header: Installation
+deeplinks_plugins_menu: Plugins menu
+deeplinks_specific_repository: Specific repository
+deeplinks_plugin_profile: Open plugin profile
+deeplinks_plugin_profile_desc: Opens the profile page of a specific plugin
+deeplinks_install_plugin: Installing the plugin
+deeplinks_suggest_plugin: Submit plugin for review
+deeplinks_suggest_plugin_desc: Open the plugin submission form for a specific repository
+deeplinks_updates_header: Updates
+deeplinks_check_updates: Refresh the cache of all repositories
+deeplinks_check_updates_repo: Refresh the cache in the repository
+deeplinks_other_header: Other
+deeplinks_settings: Settings
+deeplinks_forum: Forum
+deeplinks_possible_problems: Possible problems
+deeplinks_restart: Restart the app
+repo_one: "{0} repository"
+repo_few: "{0} repositories"
+repo_many: "{0} repositories"
+plugin_one: "{0} plugin"
+plugin_few: "{0} plugins"
+plugin_many: "{0} plugins"
+plural_type: en
+show_plugin_tags: Show plugin tags
+show_plugin_tags_desc: Display category tags on plugin cards.
+show_plugin_size: Show plugin size
+show_plugin_size_desc: Display the file size of the plugin as specified in the repository config.
+show_plugin_min_version: Show minimum version
+show_plugin_min_version_desc: Display the minimum app version required to run the plugin.
+show_plugin_deps_count: Show dependencies count
+show_plugin_deps_count_desc: Display the number of library dependencies on the plugin card.
+edit_plugin_card: Edit the plugin card
+edit_plugin_card_desc: Card appearance in the plugin list
+card_tap_hint: Tap an element to edit it
+card_section_icon: Icon
+card_show_icon: Show icon
+card_icon_size: Icon size (dp)
+card_section_name: Plugin name
+card_name_size: Name font size
+card_section_id: "Version & author"
+card_show_id: "Show version & author"
+card_id_size: Font size
+card_section_extra: Extra info
+card_section_desc: Description
+card_show_desc: Show description
+card_desc_size: Description font size
+card_section_buttons: Card buttons
+show_details_button: Show popup menu button
+show_view_button: "Show \"View\" button"
+card_section_shape: Shape
+card_radius: Corner radius (dp)
+sticker_radius: Sticker radius (dp)
+card_padding: Card padding (dp)
+"on": "On"
+"off": "Off"
+fuzzy_search: Fuzzy search
+fuzzy_search_desc: Find plugins even with typos (1 character off). May be slightly slower.
+live_search: Live Search
+live_search_desc: "Removes the need to click the search button in the plugin list. Not recommended for use on low-end devices."
+deeplinks_parameters: Parameters
+required: Required
+deeplinks_plugins_menu_desc: Open the plugin manager to browse and install plugins
+deeplinks_all_repositories_desc: Show plugins from all enabled repositories
+deeplinks_add_repository_desc: Add a new repository to PackIt
+deeplinks_specific_repository_desc: Open plugins from a specific repository
+deeplinks_install_plugin_desc: Install a specific plugin from a repository
+deeplinks_update_all_desc: Update cache of all repositories
+deeplinks_update_repository_desc: Update cache of a specific repository
+deeplinks_settings_desc: Open PackIt settings page
+deeplinks_forum_desc: Open PackItGround Telegram group
+deeplinks_possible_problems_desc: Open known issues topic in forum
+deeplinks_restart_desc: Force restart the application
+deeplinks_check_desc: Show notification that PackIt is working
+param_name_desc: Repository name
+param_link_desc: URL to repomap.json
+param_icon_desc: "Icon name (e.g., msg_folders)"
+param_rm_id_desc: Repository ID
+param_plugin_id_desc: Plugin ID
+failed_to_open_deeplink: Failed to open deeplink info
+components_header: Components
+misc_header: Misc
+show_startup_status: Show startup timing
+show_startup_status_desc: "Shows a bulletin with init, startup, and total launch time when the app starts."
+disable_achievements_notify: Disable achievements
+disable_achievements_notify_desc: Disables achievement bulletin notifications and sound. Achievements are still tracked.
+static_online_status: Static profile status
+static_online_status_desc: "Shows \"Online\" instead of a dynamic greeting in your profile."
+static_online_label: Online
+downloading_files: Downloading files
+download_path: Download path
+link_copied: "Link copied to clipboard!"
+button_in_dialogs_menu: Dialogs Menu Settings
+button_in_dialogs_menu_desc: "Allows you to configure buttons in the dialogs menu, including PackIt buttons."
+greeting_0500: "Good morning, sweetie..."
+greeting_0700: "Morning, hope you got some sleep."
+greeting_0830: Morning... you can open your eyes and pretend to be a productive person now.
+greeting_1000: Morning~
+greeting_1100: "Good morning, how did you sleep?"
+greeting_1200: "So, how's the day going so far?"
+greeting_1300: I assume the day is going well.
+greeting_1400: Hope you've eaten something today and aren't running purely on enthusiasm.
+greeting_1500: "Hang in there, the day isn't over yet — but you're already doing great!"
+greeting_1600: "How's your day going? Nobody being mean to you?"
+greeting_1700: "Evening already, how are you?"
+greeting_1800: "Good evening, hope you're doing well."
+greeting_1900: Evening... a wonderful time.
+greeting_2000: Perfect time to relax a little and have some tea.
+greeting_2100: "Good evening, {first_name}."
+greeting_2200: "It's getting late, starting to feel sleepy?"
+greeting_2300: "Good night, time to go to sleep."
+greeting_2330: "Hey! Why are you still awake?"
+greeting_0000: It's past midnight... please go to sleep.
+greeting_0200: "I take it you're not planning to sleep. Well, well..."
+plugin_no_id: Plugin has no id
+plugin_no_download_link: Plugin has no download link
+plugin_no_link: Plugin has no link
+download_failed: "Download failed: {msg}"
+failed_to_open_url: Failed to open URL
+failed_to_open_plugin_url: Failed to open plugin URL
+plugin_unavailable: Unavailable
+plugin_version_below_min: The app version is below the minimum. Can be hidden in the settings.
+ok_button: OK
+profile_title: "{first_name}"
+profile_achievements: Achievements
+profile_statistics: Statistics
+profile_export_db: Export database
+export_db_done: "Saved as {filename}"
+export_db_error: Export failed
+profile_template_divider: "THIS IS AN INTERFACE TEMPLATE, A FULL UI WILL BE IMPLEMENTED LATER"
+stat_account_level: "Account level: {level}"
+stat_account_level_max: "Account level: 100"
+stat_xp_to_next: "To the next level: {xp_a}/{xp_b} points"
+stat_xp_total: "Total points: {xp_a}/{xp_b}"
+stat_achievements: "Achievements {completed}/{total}"
+stat_days_of_use: "Days {days}"
+stat_installed_plugins: "Installed {count}"
+stat_repositories_added: "Repositories added: {count}"
+stat_plugins_shared: "Shared {count}"
+stat_plugins_downloaded: "Downloaded {count}"
+stat_code_views: "Code views {count}"
+stat_reports_sent: "Reports {count}"
+stat_links_copied: "Links {count}"
+downloading_progress_title: Downloading...
+download_saved: "Saved in .../{folder}."
+download_server_error: "Server returned {code}"
+sec_signature_scan_title: Signature scan
+sec_signatures_btn: "Signatures?"
+sec_scanning: Scanning...
+sec_no_signatures: No known signatures found.
+sec_hash_comparison_title: Hash comparison
+sec_hash_checking: Checking hash...
+sec_hash_downloading: Downloading...
+sec_hash_loading: Loading...
+sec_hash_match: The hash matches.
+sec_hash_mismatch: "Hash mismatch!"
+sec_hash_mismatch_newer: "The hash differs from the one in the repository. However, the version you want to install is newer than the one in the repository. Everything is probably fine."
+sec_hash_not_found: "Plugin not found in \"{repo}\"."
+sec_hash_no_plugin_id: Could not determine plugin ID.
+sec_hash_no_repos: No repositories available.
+deps_sheet_title: Dependencies
+deps_sheet_all_installed: "All dependencies are installed, continue?"
+deps_sheet_none_installed: "Need to install dependencies, install?"
+deps_sheet_some_missing: "Several dependencies are missing, install?"
+deps_sheet_btn_continue: Continue
+deps_sheet_btn_install: Install and continue
+deps_sheet_btn_cancel: Cancel
+deps_sheet_card_install: Install
+deps_sheet_need_install: You need to install dependencies first
+deps_sheet_label_id: ID
+deps_sheet_label_author: Author
+deps_sheet_label_min_version: Min version
+deps_sheet_install_failed: Failed to install one or more dependencies
+sec_install_btn: Install
+sec_cancel_btn: Cancel
+sec_select_repo_title: Select repository
+sec_repo_load_failed: "Failed to load repository: HTTP {code}"
+sec_plugin_not_in_repo: Plugin not found in repository
+sec_plugin_no_link: Plugin has no link
+sec_download_failed: "Failed to download: HTTP {code}"
+sec_install_dialog_failed: Failed to open install dialog
+sec_error_occurred: An error occurred
+profile: Profile
+install_plugin_btn: Install plugin
+dialogs_menu_packit_settings: PackIt
+dialogs_menu_install_icon: Install icon
+import_db_title: "Are you sure you want to apply the export?"
+import_db_subtitle: "Account level: {level} [{xp}xp]"
+import_db_confirm: "Yes, I'm sure"
+import_db_cancel: I changed my mind
+import_db_done: "Export successfully applied!"
+import_db_error: Failed to read export
+import_db_wrong_account: "Exports are intended for transfer between devices, not accounts!"
+reload: Reload
+stat_hint_achievements: Number of achievements unlocked out of all available.
+stat_hint_days_of_use: Number of days PackIt has been used.
+stat_hint_installed_plugins: Number of plugins installed.
+stat_hint_links_copied: Number of plugin links copied to clipboard.
+stat_hint_plugins_downloaded: Number of plugin files downloaded to storage.
+stat_hint_plugins_shared: Number of plugins shared with others.
+stat_hint_code_views: Number of views of the plugin's source code.
+stat_hint_reports_sent: Number of plugin reports submitted.
+achiev_category_progress: "{completed} of {total} completed"
+achiev_category_all_done: "All completed!"
+export_db_done_share: "Backup shared successfully!"
+copy_link: Copy link
+copy: Copy
+share: Share
+code: Code
+download: Download
+translate: Translate
+send_as_file: Send as file
+send_as_file_sending: Sending file...
+send_as_file_no_link: Plugin has no download link
+send_as_file_failed: Failed to send file
+report: Report
+no_description_to_translate: No description to translate
+translation_failed: Translation failed
+tg_channel_title: "Hey, we have a channel"
+tg_channel_subtitle: "Updates, announcements, and changelogs. Only what is necessary, promise."
+tg_channel_join: Fine
+tg_channel_dismiss: Don't want
+tg_channel_url: "https://t.me/packitappen"
+achiev_cat_installing_plugins: Installing plugins
+achiev_cat_repositories: Repositories
+achiev_cat_sharing: Sharing
+achiev_cat_downloading: Downloading
+achiev_cat_viewing_code: Viewing code
+achiev_cat_reporting: Reporting
+achiev_cat_copying_links: Copying links
+achiev_cat_levels: Levels
+achiev_cat_loyalty: Loyalty
+achiev_cat_unknown: Unknown achievements
+achiev_title_first_plugin: Newbie
+achiev_hint_first_plugin: "Open PackIt, go to the installation interface and pick any plugin from the repository. Tap the install button and confirm the installation."
+achiev_title_plugins_5: Getting Started
+achiev_hint_plugins_5: Browse through the available repositories and install 5 plugins in total. Try exploring different categories to find something useful.
+achiev_title_plugins_10: Enthusiast
+achiev_hint_plugins_10: You are getting the hang of it. Install 10 plugins across any repositories. A good moment to add a few extra repos to expand your options.
+achiev_title_plugins_25: Collector
+achiev_hint_plugins_25: At this point you clearly enjoy customizing your client. Keep installing plugins until you reach 25 total installations.
+achiev_title_plugins_50: Power User
+achiev_hint_plugins_50: 50 installations means you know what you want. At this point you probably have a solid setup. Keep going.
+achiev_title_plugins_100: Hoarder
+achiev_hint_plugins_100: "100 plugins installed. You have tried almost everything out there. Do you even remember what half of them do?"
+achiev_title_plugins_250: Obsessed
+achiev_hint_plugins_250: "250 installations. At this point PackIt is basically your lifestyle. Keep installing, there is no going back."
+achiev_title_plugins_500: No Life
+achiev_hint_plugins_500: "500 plugin installations. We are not sure if this is impressive or concerning. Either way, you have earned this."
+achiev_title_repo_1: First Source
+achiev_hint_repo_1: "Add your first repository. Open PackIt settings, go to Repositories and paste a valid repository URL."
+achiev_title_repo_3: Expanding Horizons
+achiev_hint_repo_3: Add 3 repositories in total. More sources mean more plugins to discover.
+achiev_title_repo_5: "Multi-Source"
+achiev_hint_repo_5: You are pulling plugins from 5 different repositories. At this point you know exactly where to look.
+achiev_title_repo_10: Aggregator
+achiev_hint_repo_10: 10 repositories added. You have probably seen every plugin available at this point.
+achiev_title_repo_50: Repository Maniac
+achiev_hint_repo_50: "50 repositories. There is no way all of these are active. Are you okay?"
+achiev_title_share_1: Spread the Word
+achiev_hint_share_1: "Share a plugin file with someone. Open any plugin in the installation interface, tap the burger menu and hit Share."
+achiev_title_share_5: Evangelist
+achiev_hint_share_5: You have shared 5 plugins. Your friends are either grateful or confused by now.
+achiev_title_share_10: Distributor
+achiev_hint_share_10: 10 shares done. You are basically running your own plugin delivery service at this point.
+achiev_title_share_25: Plugin Dealer
+achiev_hint_share_25: 25 plugins shared. People probably come to you when they need a recommendation.
+achiev_title_share_50: Community Pillar
+achiev_hint_share_50: 50 shares. You are holding this community together one plugin file at a time.
+achiev_title_share_100: The Supplier
+achiev_hint_share_100: 100 plugins shared. At this point sharing is just a reflex for you.
+achiev_title_download_1: Grab and Go
+achiev_hint_download_1: "Download a plugin file to your device. Open any plugin in the installation interface, tap the burger menu and hit Download."
+achiev_title_download_5: Local Hoarder
+achiev_hint_download_5: You have downloaded 5 plugin files. Your downloads folder is getting interesting.
+achiev_title_download_10: Backup Freak
+achiev_hint_download_10: "10 plugin files downloaded. Clearly you like having things locally, just in case."
+achiev_title_download_25: Archivist
+achiev_hint_download_25: 25 downloads. You are building quite the offline collection.
+achiev_title_download_50: The Vault
+achiev_hint_download_50: 50 plugin files saved locally. Nothing gets past you without being downloaded first.
+achiev_title_code_1: Curious
+achiev_hint_code_1: Open the source code of any plugin. Tap the burger menu in the installation interface and hit Code.
+achiev_title_code_3: Peeking Inside
+achiev_hint_code_3: You have looked at the code of 3 plugins. Good habit — always know what you are installing.
+achiev_title_code_5: Code Reader
+achiev_hint_code_5: 5 plugins inspected. You are getting comfortable reading other people's code.
+achiev_title_code_10: Reviewer
+achiev_hint_code_10: 10 code reviews done. At this point you probably have opinions about code style.
+achiev_title_code_25: Auditor
+achiev_hint_code_25: 25 plugins reviewed. You take security seriously and that is genuinely admirable.
+achiev_title_code_50: Inspector
+achiev_hint_code_50: 50 code views. You probably spot patterns across plugins by now.
+achiev_title_code_100: Paranoid
+achiev_hint_code_100: 100 plugins checked before installing. Trust no one. Read everything. Stay safe.
+achiev_title_code_200: The Analyst
+achiev_hint_code_200: 200 code reviews. At this point you have read more plugin code than most plugin authors.
+achiev_title_report_1: Whistleblower
+achiev_hint_report_1: "Report a plugin for the first time. If something looks wrong, tap the burger menu in the installation interface and hit Report."
+achiev_title_report_5: Watchdog
+achiev_hint_report_5: 5 reports submitted. You are actively helping keep the ecosystem clean.
+achiev_title_report_10: Moderator at Heart
+achiev_hint_report_10: 10 reports. You clearly care about the quality of what gets distributed here.
+achiev_title_report_25: Quality Guardian
+achiev_hint_report_25: 25 reports filed. The community is safer because of people like you.
+achiev_title_report_50: The Sheriff
+achiev_hint_report_50: 50 reports. Nobody gets away with a bad plugin on your watch.
+achiev_title_report_100: Zero Tolerance
+achiev_hint_report_100: 100 reports submitted. Either you have very high standards or very low tolerance. Probably both.
+achiev_title_copy_1: Link Sharer
+achiev_hint_copy_1: "Copy a plugin link for the first time. Open any plugin in the installation interface, tap the burger menu and hit Copy link."
+achiev_title_copy_5: Referrer
+achiev_hint_copy_5: 5 links copied. You like sending people directly to specific plugins.
+achiev_title_copy_10: Link Machine
+achiev_hint_copy_10: 10 links copied. You are a reliable source of plugin references.
+achiev_title_copy_50: Hyperlinker
+achiev_hint_copy_50: 50 links copied. Your clipboard history must be fascinating.
+achiev_title_copy_100: Deep Linker
+achiev_hint_copy_100: "100 plugin links copied. At this point copy-pasting is basically muscle memory."
+achiev_title_copy_250: The Index
+achiev_hint_copy_250: 250 links copied. You are a living directory of plugin links at this point.
+achiev_title_level_1: Just downloaded PackIt
+achiev_hint_level_1: Welcome. You are just getting started.
+achiev_title_level_5: Getting Comfortable
+achiev_hint_level_5: You have spent enough time with PackIt to know your way around. Level 5 reached.
+achiev_title_level_10: Part of the Routine
+achiev_hint_level_10: PackIt is no longer new to you. It is just part of how you use Telegram now.
+achiev_title_level_25: Here to Stay
+achiev_hint_level_25: Level 25. At this point it is safe to say you are not going anywhere.
+achiev_title_level_50: Halfway There
+achiev_hint_level_50: Level 50. Ten more to go.
+achiev_title_level_75: Deep in the Rabbit Hole
+achiev_hint_level_75: Level 75. Most people never get this far. You are not most people.
+achiev_title_level_80: No Turning Back
+achiev_hint_level_80: Level 80. You have invested too much to stop now. Not that you would want to.
+achiev_title_level_90: The Final Stretch
+achiev_hint_level_90: Level 90. The end is in sight. You can almost see the top from here.
+achiev_title_level_95: Almost There
+achiev_hint_level_95: Level 95. Five levels away from the absolute maximum. Finish what you started.
+achiev_title_level_100: Transcendent
+achiev_hint_level_100: Level 100. The maximum. There is nothing beyond this point. You have seen it all.
+achiev_title_days_30: First Month
+achiev_hint_days_30: You have been using PackIt for a month. The plugins are already part of your daily setup.
+achiev_title_days_182: Half a Year
+achiev_hint_days_182: Six months with PackIt. You have seen updates come and go and you are still here.
+achiev_title_days_365: One Year
+achiev_hint_days_365: A full year. PackIt has been part of your Telegram experience through all of it.
+achiev_title_days_730: Two Years
+achiev_hint_days_730: "Two years in. Assuming PackIt and exteraGram are still around — and if you are reading this, they are."
+achiev_title_days_1095: Three Years
+achiev_hint_days_1095: Three years. Honestly impressive. We hope the plugin ecosystem is still alive and well by now.
+achiev_title_days_1460: Four Years
+achiev_hint_days_1460: Four years. At this point you have probably outlasted a few Telegram forks. We appreciate your loyalty.
+achiev_title_days_1825: Five Years
+achiev_hint_days_1825: "Five years. Half a decade. We genuinely did not expect anyone to reach this. Is exteraGram even still a thing?"
+achiev_title_days_2190: Six Years
+achiev_hint_days_2190: "Six years. If you are still using PackIt in 2030 or whenever this is, you deserve a medal. Or a doctor."
+achiev_title_days_2555: Seven Years
+achiev_hint_days_2555: Seven years. PackIt is either immortal or you forgot to uninstall it. Either way — respect.
+achiev_title_days_2920: Eight Years
+achiev_hint_days_2920: "Eight years. At this point we are genuinely surprised this codebase still runs. So are you, probably."
+achiev_title_days_3285: Nine Years
+achiev_hint_days_3285: "Nine years. Is Telegram still relevant? Is exteraGram maintained? We have no idea. But here you are."
+achiev_title_days_3650: Ten Years
+achiev_hint_days_3650: Ten years. A decade. This achievement was written as a joke. We did not think anyone would ever see it. Hi.
+achiev_title_secret_premium: You got premium
+achiev_hint_secret_premium: "I feel sorry for you if you were in a public place, or near your parents. But at least now you have premium."
+achiev_title_secret_terraria: Now you are a terrorist
+achiev_hint_secret_terraria: "Now you're a terrorist... Should I call the police? Or the FBI?"
+achiev_title_secret_identity: "Are you sure it's you?"
+achiev_hint_secret_identity: "Bro, I don't think you're seriously the creator of the PackIt. Real or fake?"
+achiev_title_secret_curiosity: "Why are you reading this?"
+achiev_hint_secret_curiosity: "Why did you click here? There's nothing here. Go install some plugins. Seriously, close this and do something useful."
+achiev_title_secret_subscriber: One of us
+achiev_hint_secret_subscriber: "You joined the PackIt channel. Now you are officially part of the loop. Updates, changelogs, chaos — all yours."
+achiev_title_copy_25: "Go-To Guy"
+achiev_hint_copy_25: 25 plugin links copied. People probably come to you when they need a direct link to something.
+achiev_title_download_100: The Packrat
+achiev_hint_download_100: 100 plugin files saved. Your storage is basically a plugin museum at this point.
+achiev_title_repo_20: Network Builder
+achiev_hint_repo_20: 20 repositories connected. You have built yourself a serious plugin network.
+achiev_title_share_200: The Broadcaster
+achiev_hint_share_200: "200 plugins shared. At this point you are basically a one-person distribution network."
+achiev_title_plugins_75: Veteran
+achiev_hint_plugins_75: 75 plugins installed. You clearly know what you are doing at this point.
+achiev_title_plugins_200: The Addict
+achiev_hint_plugins_200: 200 installations. You have explored more of this ecosystem than most people ever will.
+achiev_title_report_200: The Inspector General
+achiev_hint_report_200: 200 reports filed. Nobody takes quality more seriously than you. Nobody.
+achiev_title_code_75: Deep Dive
+achiev_hint_code_75: 75 plugins reviewed. You read more code than most developers write.
+achiev_title_code_150: The Skeptic
+achiev_hint_code_150: "150 code reviews. Trust is earned, not given. You made sure of that."
+achiev_title_level_60: Transcendent
+achiev_hint_level_60: Level 60. The maximum. There is nothing beyond this point. You have seen it all.
+hide_unavailable_plugins: Hide unavailable plugins
+hide_unavailable_plugins_desc: Hide plugins that are incompatible with your client.
+sec_hash_mismatch_hint: It is recommended to install from PackIt.
+update_sheet_title: "Update available!"
+button_relocation: Button Relocation
+update_sheet_version: "PackIt v{0}"
+update_sheet_update: Update
+update_sheet_later: Later
+icons_search_hint: Search icon packs...
+icons_count: "{0} icon packs"
+plugin_tags: Plugin Tags
+support_with_stars: Support with Stars
+deeplinks_install_icon_pack: Installing the icon pack
+deeplinks_install_icon_pack_desc: Install a specific icon pack from a repository
+param_icon_id_desc: Icon pack ID
+pill_widget: PackIt Widget
+pill_widget_desc: Shows a PackIt pill in the pill stack on the main screen. Opens settings on tap.
+clear_plugin_cache: Clear plugin cache
+clear_plugin_cache_desc: Removes locally cached plugin files.
+cache_size_label: "{size} • {count} files"
+buttons_header_desc: Configure entry points to open PackIt from different places in the app.
+navigation_header_desc: Control how the plugin browser opens and behaves.
+sfx_header_desc: Play sounds on specific plugin actions.
+sfx_volume: Volume
+sfx_volume_off: "Off"
+sfx_volume_maximum: Maximum
+cache_header_desc: Manage locally cached plugin data and repository files.
+show_settings_button: PackIt button in Telegram settings
+show_settings_button_desc: Shows a PackIt Settings button under the exteraGram settings row.
+show_plugin_list_fab: New plugin button
+show_plugin_list_fab_desc: Adds a button to open the plugin list in PluginCell.
+show_icon_packs_fab: Icon catalog button
+show_icon_packs_fab_desc: Adds a button to open the icon catalog on the Icon Sets screen.
+scroll_button_bottom_right: Scroll button at bottom right
+scroll_button_bottom_right_desc: "Position the scroll-to-top button at the bottom right corner instead of top center."
+scroll_btn_style_top_center: Top center
+scroll_btn_style_bottom_right: Bottom right
+restart_required_title: Restart required
+restart_required_message: This setting takes effect after a restart.
+bulletin_hook_restart_required: A client restart is required to update the hook.
+bulletin_restart_button: Restart
+packit_channel_handle: "@packitappen"
+packit_forum_handle: "@packitGround"
+pp_unknown_plugin: Plugin
+pp_unknown_name: Unknown
+pp_required_version: "{} required"
+pp_tab_description: Description
+pp_tab_gallery: Gallery
+pp_tab_changes: History
+pp_changelog_loading: Loading...
+pp_changelog_empty: There is no changelog for this plugin.
+pp_changelog_missing: Changelog is missing
+pp_changelog_none_provided: The author did not provide a changelog.
+pp_changelog_binary: This file is probably binary.
+pp_changelog_size_empty: Empty
+pp_changelog_latest: latest
+pp_section_description: Description
+pp_section_dependencies: Dependencies
+pp_section_social: Author's links
+pp_section_tags: Tags
+pp_section_more_from: "More from {}"
+pp_dep_library_one: 1 library
+pp_dep_library_other: "{} libraries"
+pp_other_plugin_one: 1 plugin
+pp_other_plugin_other: "{} plugins"
+pill_stack_settings: Pill Stack Settings
+pill_stack_settings_desc: Configure visible widgets and their order
+pill_action_settings: Open settings
+pill_action_change: Change action
+pp_version_picker_title: Select version
+pp_version_selected: "Version: {}"
+pp_install: Install
+pp_version_requires: "Requires client version {} or higher."
+version_picker_auto_expand: Expand version list automatically
+version_picker_auto_expand_desc: Expand the version list when the picker opens
+pp_select_version_first: Please select a version first
+param_version_desc: "Plugin version (optional, installs latest if omitted)"
+dl_install_incompatible_all: "Unfortunately, it is not compatible with your client version."
+dl_install_incompatible_sheet_title: Version unavailable
+dl_install_incompatible_sheet_desc: "Version {} requires a newer client. Install the latest compatible version instead?"
+dl_install_incompatible_sheet_btn: Install latest compatible
+dl_install_incompatible_sheet_cancel: Cancel
+dl_install_version_loading: "Loading version {0}..."
+inline_search_header: Inline search
+inline_search_double_space: Double space
+inline_search_double_space_desc: "Pressing the space bar twice quickly will automatically enter \"{cmd} \""
+inline_search_divider: "Type \"{cmd} {plugin name}\" in the message input line for inline search."
+inline_search_clear_field: Clear the input field
+inline_search_clear_field_desc: "After submitting the plugin, it clears the input field."
+inline_view_guide: View guide
+plugin_profile_header: Plugin Page
+plugin_profile_subtext: When you open a plugin in the catalogue
+show_extended_desc: Show extended description
+show_extended_desc_desc: Load and display the readme instead of the standard description.
+show_extended_desc_hint: "This is the screen when you click on \"View\""
+pp_section_extended_description: Extended Description
+search_engine: Search method
+search_engine_native: libsearch.so
+search_engine_python: SearchEngine.py
+search_engine_desc: Select a method to search for plugins from the list. Select native for faster search.
+search_engine_native_short: Native
+search_engine_python_short: Python
+hash_function: Hash function
+hash_function_bithash_short: BitHash
+hash_function_sha256_short: Sha256
+hash_function_bithash_sub: ~5x faster
+hash_function_sha256_sub: Max compatibility
+hash_function_desc: BitHash is 5x faster than Sha256. But it has no cryptography.
+sort_menu_design: Sort Menu Style
+sort_menu_design_modern: Modern
+sort_menu_design_classic: Classic
+sort_menu_design_desc: Modern style highlights the active option with a colored dot. Classic fills the row with the accent color.
+show_from_repo: Show repository name
+show_from_repo_desc: "Show \"From {name} repository\" chip on each update card."
+show_updates_on_startup: List of updated plugins
+show_updates_on_startup_desc: "When you open the app, it automatically checks for available updates and displays them on the screen."
+startup_updates_title: Updates
+startup_updates_subtitle: "Several plugins have been updated, here is a list of them. Install or ignore."
+startup_updates_update: Update
+startup_updates_ignore: Ignore
+startup_updates_ignore_all: Ignore everything
+startup_updates_close: Close
+ignore_updates_title: Ignore updates
+ignore_updates_message: "This plugin's update will be ignored depending on the option selected. Continue?"
+ignore_mode_title: Ignore mode
+ignore_mode_message: Select the update ignore mode.
+ignore_mode_until_next: Until the next update
+ignore_mode_forever: Forever
+ignore_all_title: "Ignore all plugins until next update?"
+"yes": "Yes"
+"no": "No"
+cancel: Cancel
+updating_plugins_header: Updating plugins
+update_notifications: Update notifications
+update_notifications_desc: "When you log in to the app, it displays a notification with plugin updates."
+msg_plugins_updated: "{count} plugins updated!"
+msg_plugins_open: Open
+msg_one_plugin_updated: "One plugin has been updated!"
+msg_one_plugin_install: Install
+clear_ignore_list: Clearing the ignore list
+clear_ignore_list_desc: Remove plugins from the update ignore list
+clear_ignore_list_dialog_title: Select an option
+clear_ignore_list_specific: Specific plugin
+clear_ignore_list_all: Clear all
+clear_ignore_list_cancel: Cancel
+clear_ignore_list_done: List of ignored updates has been cleared.
+clear_ignore_list_specific_done: "Successfully removed!"
+clear_ignore_list_remove: Remove
+file_system_settings_header: File system settings
+highlight_syntax: Highlight syntax
+highlight_syntax_subtext: It helps navigate the file. But it can lead to crashes on large files.
+hidden_files: Hidden files
+hidden_files_subtext: Shows files or folders that start with .
+inline_search_command: Inline command
+inline_search_command_desc: "The command used for inline search (default: .packit)"
+inline_send_header: Sending a message
+inline_send_name: Plugin name
+inline_send_version: Plugin version
+inline_send_author: Plugin author
+inline_send_description: Plugin description
+inline_send_install: Installation link
+utilities: Utilities
+utilities_header: Utilities
+utilities_share_afp: Export plugins
+utilities_afp_shared: Archive shared
+utilities_afp_error: Failed to share archive
+utilities_afp_building: Building archive...
+utilities_archive_name_label: Archive name
+utilities_afp_divider: A few plugins — A fast and convenient format for exporting exteragram plugins.
+utilities_export_empty: Please select at least 1 plugin to export
+utilities_export_toggle_all: Select all
+utilities_export_title: Export plugins
+utilities_export_subtitle_zero: Exports all plugins from your client
+utilities_export_subtitle_none: No plugins selected
+utilities_export_subtitle_one: Exports 1 plugin from your client
+utilities_export_subtitle: "Exports {count} plugins from your client"
+utilities_export_plugins_section: Plugins
+utilities_export_settings_section: Export settings
+utilities_export_plugin_settings: Export plugin settings
+utilities_export_locally: Export locally
+utilities_export_btn: Export
+utilities_export_subtext_loading: Loading...
+utilities_export_subtext: "{count} plugins • {size}"
+afp_import_btn: Import
+afp_import_all: all
+afp_import_still_all: Still import all
+afp_import_hint: "{0} plugins will be imported into your client, continue?"
+afp_confirm_desc: "{count} plugins will be imported into your client. Continue?"
+afp_import_with_settings: Import with settings
+achiev_title_secret_enlightened: You are enlightened
+achiev_hint_secret_enlightened: Well... You really don't understand the first time that you can't screw every living thing.
+plugin_description: "**A resource catalog for exteraGram/AyuGram. Plugins, icon packs — all in one place, with support for multiple repositories.**\n\nSource code: "
+achiev_title_secret_talking_about_you: "No, I'm talking about you"
+achiev_hint_secret_talking_about_you: "https://t.me/packitGround/232/4434"
+achiev_title_secret_utils_rule: "I won't be put in the utils :("
+achiev_hint_secret_utils_rule: "кстати тебя врядли выложат в utilits. Ты пофакту, повторил kpm. А как бы в utils правило второй вариант нельзя выкладыватьб"
+achiev_title_secret_aytist: "You found an amethyst!"
+achiev_hint_secret_aytist: "You really found an amethyst, now you don't have to work for the rest of your life..."
+achiev_title_secret_opsec: Operational security
+achiev_hint_secret_opsec: "You installed opsec the privileged way: sudo packit install opsec."
+tags_section_title: Tags
+apply_button: Apply
+authors_section_title: Authors
+app_version_section_title: App Version
+saved_section_title: Saved Plugins
+saved_filter_saved: Saved plugins
+saved_filter_unsaved: Unsaved plugins
+open_directory: Open Directory
+open_directory_desc: Browse packit files and folders
+to_the_beginning: Scroll to Top
+catalog_title: Catalog
+end_of_list: It's as clean there as after a search of a deputy's place
+publish_plugin_guide_url: "https://t.me/packitd/4"
+faq_desc: Common questions and answers
+report_bug_desc: "Found something broken? Tell us"
+how_to_enlighten_desc: Will enlighten you...
+secret_video_desc: "Don't think, just click."
+creating_own_repo_desc: Guide to creating your own repository
+publish_ur_plugin_desc: How to get your plugin into the catalog
+deeplinks_desc: "Guide to deeplinks (tg://packit...)"
+devdocs_desc: Detailed documentation
+links_docs_desc: Useful links and guides
+docs_suggest_review: "You can also leave a review or suggest how to improve PackIt in [this section ⟩](https://t.me/packitGround/933)"
+interface_header_desc: "Cards, fonts, navigation style"
+sfx_settings_desc: Sounds and volume for actions
+plugin_components_desc: Technical components of the PackIt
+install_sheet_header_desc: Buttons and info in install dialog
+repos_navigation_header_desc: How repo list is opened
+inline_search_nav: Inline search
+inline_search_nav_desc: "Search & send plugins in the chat"
+inline_search_enabled: Inline search
+inline_search_enabled_desc: "When disabled, removes all related hooks."
+misc_nav: Misc
+misc_nav_desc: "Search, status and appearance tweaks"
+updplugins_nav: Updating plugins
+updplugins_nav_desc: Startup updates and ignore list
+api_keys_nav: API keys
+api_keys_nav_desc: Setting up API keys
+api_keys_safety_title: About safety
+api_keys_safety_desc: "If you're worried, click on me"
+api_keys_why_is_this: "Why is this?"
+api_keys_header: API keys
+gemini_header: Gemini
+add_gemini_api_key: Add Gemini API key
+add_gemini_api_key_desc: "Key: Not configured"
+add_gemini_api_key_desc_set: "Key: {preview}"
+change_gemini_api_key: Change Gemini API key
+add_gemini_api_key_dialog_title: API Key
+add_gemini_api_key_dialog_subtitle: We will keep it safe.
+add_gemini_api_key_dialog_hint: Add API key
+add_gemini_api_key_dialog_button: Add key
+change_gemini_api_key_dialog_hint: Enter a new API key
+change_gemini_api_key_dialog_button: Change key
+api_key_dialog_outline_label: Enter the API key
+api_key_saved_success: "The key has been added successfully!"
+api_key_saved_error: An error occurred. Please check the logs.
+api_key_reset_success: The key has been reset successfully.
+reset_gemini_api_key: Reset the Gemini API key
+reset_gemini_api_key_desc: Click to reset the API key
+reset_gemini_api_key_confirm: "This action is irreversible, are you sure you want to continue?"
+get_gemini_key_hint: "You can get the Gemini API key on [this page](https://aistudio.google.com/api-keys)"
+get_gemini_key_hint_link: "aistudio.google.com/api-keys"
+gemini_model_selector: Gemini model
+gemini_model_selector_desc: Model used for AI search
+ai_search_loading: Searching...
+ai_search_no_key: Add the API key in the settings
+ai_search_error: Search error. Check the logs.
+ai_search_results_title: AI results
+file_system_settings_nav_desc: File display settings
+copy_link_install: Install
+copy_link_install_latest: Install latest
+copy_link_profile: Open profile
+copy_link_back: Back
+export_bs_title: Export
+export_bs_subtitle: Select what you want to export
+export_bs_local_config: Local Config
+export_bs_achievements: Achievements and statistics
+export_bs_plugins: Saved plugins
+export_bs_local_config_desc: Plugin settings and preferences
+export_bs_achievements_desc: Achievement progress and counters
+export_bs_plugins_desc: Your saved plugins list
+export_bs_share: Share
+fs_enter_name: Enter name
+fs_file_name: File name
+fs_new_file_title: New File
+fs_delete_title: Delete
+fs_empty_folder: Empty folder
+info_dialog_ok: OK
+ignore_plugin_id_hint: Enter plugin ID
+from_repo_chip: "From {repo_name} repository"
+pp_release_date: Release date
+pp_last_updated: Last updated
+pp_archived_text: "This plugin was archived by the owner on {date}. The plugin will no longer be updated."
+pp_archived_hint: The plugin will no longer be updated. But it might still work.
+pp_closed_source_text: This plugin is closed source. You are solely responsible for its use.
+pp_paid_text: This plugin may have paid features.
+pp_not_ready: It's not ready yet.
+pp_click_version_hint: Click on any version
+filter_tags_title: Tags
+filter_tag_unsorted: Unsorted
+filter_reset: Reset
+filter_authors_title: Authors
+filter_saved_title: Saved Plugins
+filter_version_title: App Version
+pl_no_repos: No repositories configured
+pl_load_failed: Failed to load plugins
+pl_repo_url_empty: Repository URL is empty
+pl_download_error: An error occurred while downloading
+il_no_repos: No repositories configured
+il_load_failed: Failed to load icon packs
+il_repo_url_empty: Repository URL is empty
+il_download_error: An error occurred while downloading
+core_failed_install_dialog: "Failed to open install dialog: {error}"
+core_plugin_no_link: Plugin has no link
+core_download_error: An error occurred while downloading
+core_iconpack_no_link: Icon pack has no link
+core_iconpack_http_error: "Download failed: HTTP {code}"
+core_iconpack_read_failed: Failed to read icon pack
+core_iconpack_installed: "'{name}' installed"
+core_installation_failed: Installation failed
+core_error_generic: "Error: {error}"
+core_install_sheet_failed: "Failed to open install sheet: {error}"
+core_iconpack_download_error: An error occurred while downloading
+native_error_title: "Error in native library!"
+native_error_desc: "Unfortunately, an error occurred in the native library {lib_name} :("
+native_report_bug: Report a bug
+afp_problematic_plugins: Problematic plugins
+afp_copied: "Copied!"
+afp_plugin_error: "There is an error in plugin {name}:"
+afp_rest_installed: "However, the rest of the plugins were installed successfully."
+afp_copy_all_errors: Copy all errors
+afp_import_success: "Import completed successfully!"
+dl_repo_no_metadata: Repository has no metadata
+dl_repo_already_added: Repository already added
+dl_repo_not_found: "Repository '{repo_id}' not found"
+dl_repo_url_empty: Repository URL is empty
+dl_repo_http_error: "Failed to load repository: HTTP {code}"
+dl_plugin_not_found: "Plugin '{plugin_id}' not found"
+dl_plugin_load_error: An error occurred while loading plugin
+dl_version_no_link: "Version '{version_id}' has no link"
+dl_version_not_found: "Version '{version_id}' not found"
+dl_install_error: An error occurred while loading plugin
+dl_iconpack_not_found: "Icon pack '{icon_id}' not found"
+dl_iconpack_load_error: An error occurred while loading icon pack
+dl_update_repo_no_url: "Repository '{repo_id}' has no URL"
+dl_update_repo_http_error: "HTTP {code}"
+dl_update_repo_no_meta: Repository has no metadata
+dl_packit_ok: OK
+share_plugin_no_id: Plugin has no id
+share_plugin_no_link: Plugin has no download link
+share_failed: Failed to share plugin
+hash_label_sha256: "SHA-256"
+pce_plugin_name: Plugin Name
+pce_version_author: "v1.0.0 • @author"
+pce_chips_info: + info
+pce_tags_placeholder: + tags
+pce_desc_preview: Plugin description text that shows below the name and author.
+pce_chips_gravity: Chips gravity
+pce_gravity_left: Left
+pce_gravity_center: Center
+pce_gravity_right: Right
+pce_color_label: Color
+settings_free_space: "Free: {space}"
+il_icon_count: "{count} icons"
+filter_version_or_higher: "{version} or higher"
+filter_version_or_lower: "{version} or lower"
+date_ago_today: Today
+date_ago_yesterday: Yesterday
+date_ago_days: "{n} days ago"
+date_ago_month: "{n} month ago"
+date_ago_months: "{n} months ago"
+date_ago_year: "{n} year ago"
+date_ago_years: "{n} years ago"
+deeplinks_docs_footer: "Complete documentation is available [here](https://github.com/shareui/packit/blob/main/docs/deeplinks.md) in markdown."
+updates_no_plugins_installed: You have not installed any plugins from PackIt
+updates_all_up_to_date: All plugins are up to date
+updates_failed_to_check: Failed to check updates
+updates_title: Updates
+fs_rename: Rename
+fs_copy_path: Copy path
+fs_info: Info
+fs_create: Create
+info_copied: "{label} copied to clipboard!"
+info_path: Path
+info_type_dir: Directory
+info_type_file_ext: "File ({ext})"
+info_type_file: File
+info_items: Items
+info_content_size: Content size
+info_size: Size
+info_modified: Modified
+info_created: Created
+pp_forked_from: "Forked from [{name}]({url})"
+pp_version_link_copied: "The link with the version has been copied to the clipboard!"
+updates_btn_refresh: Refresh
+updates_btn_ignore: Ignore
+updates_btn_update_all: Update all
+updates_btn_ignore_list: Ignore list
+updates_empty_title: "Install plugins!"
+updates_empty_available_chip: "Available to install: {count} plugins"
+updates_up_to_date_title: "All up to date!"
+updates_error_title: Something went wrong
+updates_stat_installed: Installed
+updates_stat_active: Active
+updates_stat_packit: Via PackIt
+report_dialog_title: Report
+report_dialog_subtitle: "If you report a plugin {name}, the moderators of the corresponding repository will most likely review it."
+report_dialog_select_reason: Select a reason
+report_dialog_describe: Describe the problem
+report_dialog_submit: Submit for review
+report_dialog_sent: "Report sent successfully!"
+report_dialog_failed: Report failed. Check the logs.
+report_dialog_missing_field: "Missing field in metainfo: {field}"
+updates_widget_up_to_date: Up to date
+updates_widget_one_update: "{count} update"
+updates_widget_many_updates: "{count} updates"
+updates_widget_label: Available updates
+updplugins_pill_stack_settings: Update widget
+updplugins_pill_stack_settings_desc: To the list of widgets
+build_not_correct_title: Incompatibility
+build_not_correct_client: "The build is intended for {app_name} but your client is {current_app_name}. Some functions may not work."
+build_not_correct_version: "The build is for version {build_version}, but your client version is {client_version}. Some functions may not work."
+build_not_correct_both: "The build is for {app_name} {app_version}, but you're using {current_app_name} {current_app_version}. Many functions may not work."
+build_not_correct_client_short: This build targets a different client. Some functions may not work.
+build_not_correct_version_short: This build targets a different version. Some functions may not work.
+build_not_correct_both_short: This build targets a different client and version. Many functions may not work.
+build_not_correct_label_build: Build target
+build_not_correct_label_yours: Your client
+build_not_correct_list_of_versions: List of versions
+ai_search_input_hint: Describe the plugin and AI will find it...
+ai_search_button: Search
+ai_key_not_configured: "Key: Not configured"
+ai_search_title: AI Search
+ai_search_empty_hint: "Pay attention to me!!"
+ai_search_quota: Gemini API quota exceeded. Try again later.
+ai_search_geo_error: Turn on VPN and try again
+reset_gemini_cache: Reset results cache
+reset_gemini_cache_desc: Resets saved results
+gemini_cache_result: Cache the result
+gemini_cache_result_desc: Saves tokens for identical requests
+packit_verification: PackIt verification
+packit_verification_desc: Displays people related to PackIt. Disable it if there is a lag when opening a verified profile.
+suggest_repo_not_found: Repository not found
+suggest_missing_fields: Missing required fields
+suggest_title: Suggest
+suggest_upload_label: Click to add a file
+suggest_upload_sub: Attach a .plugin/.eaf file
+suggest_back_button: Back
+suggest_submit_title: Submit Plugin for Review
+suggest_no_rules: This repository has no rules
+suggest_rules_header: About approval
+suggest_rules_prefix: "Please, read the rules of this repository:"
+suggest_file_selected: File selected
+suggest_add_another_file: Add another file
+suggest_description_hint: Enter a description...
+suggest_description_label: Description
+suggest_social_links_label: Social links
+suggest_add_social_btn: Add social link
+suggest_social_placeholder: "https://..."
+suggest_social_fill_first: Fill in the previous link first
+suggest_submit_btn: Submit for review
+suggest_sending: Sending...
+suggest_sent: Plugin submitted successfully
+suggest_send_error: Failed to send. Try again later.
+suggest_no_config: Repository has no submission target configured
+suggest_resolve_error: Could not find the submission account
+suggest_forked_label: Forked
+suggest_forked_name_hint: Enter the plugin name...
+suggest_forked_not_found: Plugin not found
+suggest_changelog_label: Changelog
+suggest_changelog_hint: "https://..."
+suggest_note_hint: "If you wish, you can enter a note for the administrator..."
+suggest_save_title: Save
+suggest_save_message: You have saved your previous input.
+suggest_save_reset: Reset
+suggest_save_restore: Restore
+suggest_source_code_label: Source code
+suggest_source_code_hint: "If your project is in .py, you can leave this option."
+suggest_source_for_moderation: For moderation
+suggest_source_for_moderation_sub: Attach the file above as an additional file.
+suggest_source_for_everyone: For everyone
+suggest_source_link_hint: Paste the link to the Git/file
+suggest_paid_label: Paid
+sec_packitkey_warning_title: ⚠ WARNING
+sec_packitkey_warning_text: This plugin is likely trying to obtain your API key stored in the PackIt. Installation is strongly discouraged.
+contributor_translator: Translator
+developer: Developer
+install_restart_required_title: Restart required
+install_restart_optional_title: Restart recommended
+install_restart_required_message: This plugin requires a client restart to work correctly.
+install_restart_optional_message: This plugin works best after a client restart. You can do it now or skip for later.
+translate_pending_1: "Translating, one sec..."
+translate_pending_2: Looking for the right words...
+translate_pending_3: "Hmm, let me translate this..."
+translate_pending_4: Translation incoming...
+translate_pending_5: Kicking the translator...
+translate_pending_6: Waking up the translator...
+translate_pending_7: Trying to figure out what's even written here...
+translate_pending_8: "Breaking the language barrier... :3"
+sponsors: Sponsors
+pp_team_title: Contributors
+role_maintainer: Maintainer
+role_developer: Developer
+role_designer: Designer
+role_founder: Founder
+achiev_title_secret_connect_is_bullshit: We all hate Connect
+achiev_hint_secret_connect_is_bullshit: Drawing goddess Umi Asanagi without knowing human anatomy... May they burn in hell.
+pp_section_about: About the project
+pp_source_code: Source code
+pp_not_provided: Not provided
+pp_license: License
+pp_no_license: No License
+pp_languages: Languages
+pp_clients: Clients
+pp_closed_source_moderated: "Closed source, but moderated, so you are safe."
+beta_build_title: Beta build
+beta_build_msg: "You are not a tester, you shouldn't have installed the PackIt."
+delete_packit: Delete PackIt
+debug_menu: Debug menu
+debug_menu_desc: Menu for developers
+debug_logs: Debug logs
+debug_logs_desc: Enables debug logs for diagnostics
+write_logs: Write logs to file
+write_logs_desc: Saves all logs to latestlog.txt in the PackIt cache directory
+clean_logs: Clean logs on launch
+clean_logs_desc: Clears logs on every new launch
+view_latestlog: View log file
+send_latestlog: Send latestlog as file
+copy_latestlog_path: Copy latestlog path
+copy_latestlog_path_desc: Copies the absolute path to the clipboard
+copy_latestlog_path_done: Path copied to clipboard
+force_clean_log: Forced cleaning
+force_clean_log_desc: Clears the latestlog.txt
+force_clean_log_done: Log file cleared
+force_clean_log_error: Failed to clear log file
+debug_clearing_header: Clearing logs
+debug_perf_warning: Using this setting may reduce performance. Use only when necessary.
+bi_header: Device info
+bi_manufacturer: Manufacturer
+bi_model: Model
+bi_android_version: Android version
+bi_sdk_version: SDK version
+bi_abi: Architecture
+bi_root_status: Root status
+bi_root_yes: "Yes"
+bi_root_no: "No"
+bi_app_version: App version
+bi_app_package: App package
+plus_sponsor: + Sponsor
+repo_card_status_missing: Not loaded
+repo_card_plugins: "{0} plugins"
+repo_card_icons: "{0} icon packs"
+repo_card_installed: "{0} installed"
+repo_edit: Edit
+repo_copy_link: Copy link
+repos_updating: Refreshing repositories…
+repo_add_sheet_title: New source
+repo_add_sheet_subtitle: Paste a link to repomap.json
+repo_add_field_url: Link
+repo_sheet_edit_title: Edit source
+repo_sheet_edit_sub: Name and link
+repo_err_empty: Enter a link
+repo_err_name_empty: Enter a name
+repo_err_scheme: "The link must start with https://"
+repo_err_duplicate: This source is already added
+repo_err_not_found: File not found
+repo_err_forbidden: Access denied
+repo_err_rate_limited: "Too many requests, try again later"
+repo_err_redirect: The link redirects — use a direct file link
+repo_err_timeout: Request timed out
+repo_err_server: Server error
+repo_err_http: "The server answered: {0}"
+repo_err_json: The file is not valid JSON
+repo_err_meta: The file has no repometa block
+repo_err_rid: repometa has no rm_rid
+repo_err_name: repometa has no rm_name
+repo_err_cache: Could not save the cache
+repo_err_network: No connection
+repo_err_unknown: "Unknown error: {0}"
+repos_empty_title: Nothing here yet
+repos_empty_text: Add a source to install plugins
+repos_manage: Manage
+retry: Retry
+repo_default_already: The default repository is already there
+repo_link_shared: Repository link sent
