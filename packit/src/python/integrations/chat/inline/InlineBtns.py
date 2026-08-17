@@ -412,19 +412,27 @@ def _do_send_file_inline(message_object, plugin_ref):
         logx(f"inlineBtns: downloaded {len(r.content)} bytes to {file_path}", True)
 
         # send document to the current dialog — and, in a forum, to the topic
-        # the message lives in. send_document() only takes a peer, so the file
-        # always landed in the General topic; send_message() carries
-        # replyToTopMsg the same way the inline message send does.
+        # the message lives in. send_document() is the high-level helper that
+        # correctly builds SendMessageParams for file sending.
         try:
             dialog_id = message_object.getDialogId()
-            params = {"peer": dialog_id, "path": file_path}
             topic_msg_obj = _resolve_topic_message(dialog_id)
+            send_kwargs = {}
             if topic_msg_obj is not None:
-                params["replyToMsg"] = topic_msg_obj
-                params["replyToTopMsg"] = topic_msg_obj
-            from client_utils import send_message
-            send_message(params)
-            logx(f"inlineBtns: sent document to dialog_id={dialog_id} topic={topic_msg_obj is not None}", True)
+                send_kwargs["replyToMsg"] = topic_msg_obj
+                send_kwargs["replyToTopMsg"] = topic_msg_obj
+
+            from client_utils import send_document
+
+            # send_document calls SendMessagesHelper which requires main thread
+            def _send_on_main():
+                try:
+                    send_document(dialog_id, file_path, **send_kwargs)
+                    logx(f"inlineBtns: sent document to dialog_id={dialog_id} topic={topic_msg_obj is not None}", True)
+                except Exception as e:
+                    logx(f"inlineBtns: send_document on main error: {e}", False)
+
+            _run(_send_on_main)
         except Exception as e:
             logx(f"inlineBtns: send document error: {e}", False)
             _run(dismiss_loading)
