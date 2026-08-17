@@ -35,7 +35,7 @@ from . import Suggestion
 
 class PackItDeeplinkHook(MethodHook):
     def __init__(self, plugin):
-        self.plugin = Plugin
+        self.plugin = plugin
         self.pending_intent = None
         self.pending_param = None
         self.is_processing = False
@@ -126,7 +126,7 @@ def setup_deeplink_hook(plugin):
                 find_class("java.lang.Boolean").TYPE
             )
             method.setAccessible(True)
-            return Plugin.hook_method(method, PackItDeeplinkHook(Plugin))
+            return plugin.hook_method(method, PackItDeeplinkHook(plugin))
     except Exception as e:
         logx(f"[PackIt] Error setting up deeplink hook: {e}", False)
     return None
