@@ -1,0 +1,1210 @@
+official_repository: Афіцыйны
+plugin_title_version: "PackIt v{0}"
+plugin_subtitle: Каталог рэсурсаў для exteraGram
+plugins_header: Катэгорыі
+install_plugin: Каталог плагінаў
+check_updates: Праверыць абнаўленні
+install_icons: Каталог іконак
+install_config: Усталяваць канфігурацыю
+not_ready_yet: Пакуль не гатова
+settings_header: Іншае
+deeplinks: Дыплінкі
+repositories: Рэпазіторыі
+other_settings: Налады
+community_header: Супольнасць
+packit_forum: Форум PackIt
+source_code: Зыходны код
+links_docs: Спасылкі і дакументацыя
+contributors: Удзельнікі
+max_repositories_allowed: Максімум 10 рэпазіторыяў. Расслабься.
+max_buttons_allowed: Максімум 4 кнопкі. Расслабься.
+add_repository: Дадаць рэпазіторый
+delete_repository_title: Выдаліць
+delete_repository_message: "Ты ўпэўнены, што хочаш выдаліць гэты рэпазіторый? Назад шляху няма."
+delete_button: Выдаліць
+save_button: Захаваць
+close_button: Закрыць
+binary_file_title: Бінарны файл
+binary_file_message: "Гэты файл утрымлівае бінарныя дадзеныя, не думаю, што адкрываць яго — добрая ідэя."
+achiev_open: Адкрыць
+achiev_unlocked: "Дасягненне разблакавана!"
+repo_link_copied: "Скапіявана ў буфер! Магія."
+failed_to_copy: "Не атрымалася скапіяваць :("
+repo_name: Назва
+repo_url: URL канфігурацыі
+invalid_repository: Няправільны рэпазіторый
+repository_added: Рэпазіторый дададзены
+share_repository: Падзяліцца
+remove_repository: Выдаліць
+failed_to_open_link: Не атрымалася адкрыць спасылку. Класіка.
+founder_shareui: Заснавальнік
+github: GitHub
+direct_message: Асабістае паведамленне
+personal_channel: Асабісты канал
+plugins_channel: Канал для плагінаў
+lead_developer_vestr: Галоўны распрацоўшчык
+mentor: Настаўнік
+special_thanks: Асобая падзяка
+for_users: Для карыстальнікаў
+faq: Частыя пытанні
+report_bug: Паведаміць пра баг
+official_forum: Афіцыйны форум
+packit_channel: Канал PackIt
+for_devs: Для распрацоўшчыкаў
+devdocs: Дакументацыя для распрацоўшчыкаў
+creating_own_repo: Стварэнне ўласнага рэпазіторыя
+navigating_through_settings: Навігацыя па наладах
+hotkeys_header: Гарачыя клавішы
+hotkeys_subtext: Кропкі ўваходу ў PackIt па ўсім дадатку
+buttons_header: Кнопкі
+button_in_chat_menu: Кнопка ў меню чата
+button_in_chat_menu_desc: Дадае кнопку налад у меню чата.
+button_in_side_menu: Кнопка ў бакавым меню
+button_in_side_menu_desc: Дадае кнопку налад у бакавое меню.
+button_in_chat_plugins: Кнопка ў плагінах чата
+button_in_chat_plugins_desc: Дадае кнопку налад у меню плагінаў чата.
+interface_header: Інтэрфейс
+font_picker: Шрыфт прагляду
+font_picker_desc: Змяніць шрыфт для ўсіх праглядаў PackIt
+font_picker_title: Выбраць шрыфт
+font_picker_experimental: Эксперыментальна
+font_default: Па змаўчанні (Сістэмны)
+plugin_card_header: Картка плагіна
+install_sheet_header: Ніжні ліст усталявання
+install_sheet_links: Паказваць спасылкі аўтара
+install_sheet_links_desc: "Адлюстроўваць кнопкі-іконкі з метададзеных спасылак у дыялогу ўсталявання."
+install_sheet_hash: Паказваць кнопку праверкі хэша
+install_sheet_hash_desc: Адлюстроўваць кнопку праверкі хэша файла ў дыялогу ўсталявання.
+install_sheet_signatures: Паказваць кнопку подпісаў
+install_sheet_signatures_desc: Адлюстроўваць кнопку сканавання бяспечных подпісаў у дыялогу ўсталявання.
+navigation_header: Навігацыя
+repos_navigation_header: Навігацыя па рэпазіторыях
+classic_sort_menu: Класічнае меню сартавання
+classic_sort_menu_desc: Выкарыстоўваць класічны дызайн для меню сартавання плагінаў.
+show_default_sticker: Паказваць стыкер па змаўчанні
+show_default_sticker_desc: Паказвае стыкер па змаўчанні для плагінаў без іконкі.
+repository_selection_header: Выбар рэпазіторыя
+skip_repository_selection: Прапусціць выбар рэпазіторыя
+skip_repository_selection_desc: "Аўтаматычна адкрывае меню плагінаў у рэжыме \"Усе рэпазіторыі\"."
+everything_working: Усе сістэмы працуюць. Расслабься.
+packit: PackIt
+packit_settings: Налады PackIt
+plugin_not_found: Плагін PackIt не знойдзены. Не зручна.
+file_not_found: "Файл не знойдзены :("
+error_opening_settings: "Памылка адкрыцця налад: {0}"
+error_generic: "Памылка: {0}"
+arrows_navigation: Стрэлкі і навігацыя
+attachments_media: Укладанні і медыя
+avatar_profile: Аватар і профіль
+calls_voice: Званкі і голас
+chat_actions: Дзеянні ў чаце
+data_network: Дадзеныя і сетка
+dialog_creation: Дыялогі і стварэнне
+fab_actions: FAB і дзеянні
+files_storage: Файлы і сховішча
+input_interface: Увод і інтэрфейс
+location_maps: Лакацыя і мапы
+menu_items: Пункты меню
+message_content: Змест паведамлення
+message_controls: Кіраванне паведамленнямі
+passcode_security: "Код-пароль і бяспека"
+player_controls: Кіраванне плэерам
+stickers: Стыкеры
+stories: Гісторыі
+themes: Тэмы
+ui_elements: Элементы інтэрфейсу
+error_header: "Памылка :("
+failed_to_load_icons: "Не атрымалася загрузіць наборы іконак: {0}. Ой."
+publish_ur_plugin: Адправіць свой плагін
+how_to_enlighten: "Як дасягнуць прасветлення?"
+enlighten_1: Ніяк.
+enlighten_2: "Сур'ёзна, ніяк."
+enlighten_3: Уф... Перастань дакучаць мне.
+enlighten_4: "Я не ведаю! Пакінь мяне ў спакоі."
+enlighten_5: "Усё яшчэ шукаеш? Як міла, ауў"
+enlighten_6: "Як? Як? Я НЕ ВЕДАЮ!"
+enlighten_7: Калі ты не спынішся...
+enlighten_8: "Я знішчу цябе!"
+enlighten_9: "Ты сам наклікаў, апошняе папярэджанне."
+enlighten_10: Я папярэджаў...
+enlighten_11: "Ты не зразумеў з першага разу?"
+pkill: "Іншы раз проста трэба перазапусціцца... :3"
+restore_default_repository: Аднавіць рэпазіторый па змаўчанні
+default_repo_restored: "Рэпазіторый па змаўчанні адноўлены!"
+reset_repositories: Скінуць рэпазіторыі
+reset_repositories_title: "Скінуць рэпазіторыі?"
+reset_repositories_message: "Усе рэпазіторыі будуць выдалены і адноўлены рэпазіторый па змаўчанні. Ты ўпэўнены, мілачка?"
+repositories_reset: Рэпазіторыі скінуты
+reset_button: Скінуць
+clear_all_except_first: Ачысціць усе
+clear_all_title: "Ачысціць усе рэпазіторыі?"
+clear_all_message: "Усе рэпазіторыі, акрамя першага, будуць выдалены."
+repositories_cleared: "Чышчу!~"
+clear_button: Ачысціць
+easter_egg_title: Пачакай...
+easter_egg_clear_message: "Ты сур'ёзна думаў, што я працую тваім дворнікам? У цябе адзін рэпазіторый, гаспадар."
+easter_egg_reset_message: "Не турбуй мяне дробязямі, у цябе адзін рэпазіторый."
+support_via_send: "Падтрымаць праз @send"
+support_via_ton: Падтрымаць праз GRAM
+support_via_yoomoney: Падтрымаць праз ЮMoney
+support_send_message: "<З"
+support_with_github_sponsors: Падтрымаць праз Github Sponsors
+copied_to_clipboard: Скапіявана ў буфер
+donate_easter_egg: "Пачакай, хтосьці даў падпісак?"
+additional_actions: Дадаткова
+export_repositories: Экспартаваць рэпазіторыі
+repositories_exported: "Усе спасылкі на рэпазіторыі скапіяваны! Не страць іх!"
+no_repositories_to_export: Няма рэпазіторыяў для экспарту
+disable_all_repositories: Адключыць усе
+enable_all_repositories: Уключыць усе
+secret_video: Сакрэтнае відэа
+plugin_link_copied: "Спасылка на {0} скапіявана!"
+repo_add_title: "Дадаць рэпазіторый?"
+repo_add_message: "Назва: {0}\\nURL: {1}"
+repo_add_button: Дадаць
+repo_add_success: "Рэпазіторый дададзены!"
+repo_add_limit: Максімум 10 рэпазіторыяў дазволена. Расслабься.
+repo_add_invalid: Няправільная спасылка на рэпазіторый.
+repo_add_fetching: Загрузка дадзеных рэпазіторыя...
+repo_add_fetch_failed: Не атрымалася загрузіць дадзеныя рэпазіторыя.
+repo_add_disclaimer: "PackIt не нясе адказнасці за змест {0}. Усе правы і адказнасць належаць уладальніку, {1}.\\n\\nКолькасць плагінаў: {2}"
+repo_add_disclaimer_short: PackIt не адказвае за змест старонніх крыніц.
+repo_add_no_repometa: "Рэпазіторый не мае метададзеных. Дадаць усё роўна?\\n\\nКолькасць плагінаў: {0}"
+sort_title: Сартаваць плагіны
+sort_title_icons: Сартаванне набораў іконак
+sort_alpha_az: "Па алфавіце А-Я"
+sort_alpha_za: "Па алфавіце Я-А"
+sort_by_authors: "Па аўтарах (А-Я)"
+sort_as_in_repo: Як у рэпазіторыі
+search_hint: Пошук плагінаў...
+no_plugins: Няма плагінаў
+no_icons: Няма набораў іконак
+total_plugins: "{0} рэпазіторыяў · {1} плагінаў"
+total_plugins_unknown: Загрузка...
+select_repository: Выбраць рэпазіторый
+all_repositories: Усе рэпазіторыі
+search_all_repositories: Пошук па ўсіх рэпазіторыях
+plugin_view_button: Прагляд
+plugin_install_success: "Паспяхова адпраўлена!"
+unnamed: Без назвы
+security_scan: Бяспека
+cache_header: Кэш
+filesystem_header: Файлавая сістэма
+clear_cache: Выдаліць рабочую папку
+clear_cache_confirm_title: Ачысціць кэш
+clear_cache_confirm_message: "Ты ўпэўнены? Гэта дзеянне незваротнае."
+clear_cache_done_title: Кэш ачышчаны
+clear_cache_done_message: Вельмі РЭКАМЕНДУЕЦЦА перазапусціць дадатак.
+clear_cache_button: Ачысціць
+cancel_button: Скасаваць
+restart_now: Перазапусціць зараз
+restart_later: Потым
+update_repos_success: "Паспяхова абноўлена!"
+beta_dialog_title: "Бэта-версія"
+beta_dialog_message: "Гэта БЭТА-версія, не ўся функцыянальнасць гатова. Таксама, у плагіна пакуль не шмат плагінаў у рэпазіторыі."
+beta_dialog_ok: ОК
+beta_dialog_cancel: "Больш так не жартуй :("
+update_repositories: Абнавіць рэпазіторыі
+sfx_settings: Налады SFX
+plugin_components: Кампаненты плагіна
+sfx_header: SFX
+enable_sfx: Уключыць SFX
+enable_sfx_desc: Прайграваць гукі пры дзеяннях з плагінамі
+sfx_install: Усталяваць
+sfx_copy_link: Скапіяваць спасылку
+sfx_search: Пошук
+sfx_clear_search: Ачысціць пошук
+sfx_achievement: Дасягненне
+sfx_available_updates: Даступныя абнаўленні
+deeplink_too_few_args: Занадта мала аргументаў.
+deeplink_too_many_args: Занадта шмат аргументаў.
+security_header: Бяспека
+sudo_password: Пароль sudo
+sudo_password_desc: Пароль для прывілейных аперацый
+sudo_password_saved: Пароль захаваны
+scanning_header: Сканаванне
+signature_scan: Праверка подпісу
+hash_comparison: Параўнанне хэша
+import_failed: "Некаторыя імпарты не ўдаліся, правер логі!"
+deeplinks_repositories_header: Рэпазіторыі
+deeplinks_all_repositories: Усе рэпазіторыі
+deeplinks_add_repository: Даданне рэпазіторыяў
+deeplinks_installation_header: Усталяванне
+deeplinks_plugins_menu: Меню плагінаў
+deeplinks_specific_repository: Канкрэтны рэпазіторый
+deeplinks_plugin_profile: Адкрыць профіль плагіна
+deeplinks_plugin_profile_desc: Адкрывае старонку профілю канкрэтнага плагіна
+deeplinks_install_plugin: Усталяванне плагіна
+deeplinks_suggest_plugin: Адправіць плагін на разгляд
+deeplinks_suggest_plugin_desc: Адкрыць форму адпраўкі плагіна для канкрэтнага рэпазіторыя
+deeplinks_updates_header: Абнаўленні
+deeplinks_check_updates: Абнавіць кэш усіх рэпазіторыяў
+deeplinks_check_updates_repo: Абнавіць кэш у рэпазіторыі
+deeplinks_other_header: Іншае
+deeplinks_settings: Налады
+deeplinks_forum: Форум
+deeplinks_possible_problems: Магчымыя праблемы
+deeplinks_restart: Перазапусціць дадатак
+repo_one: "{0} рэпазіторый"
+repo_few: "{0} рэпазіторыі"
+repo_many: "{0} рэпазіторыяў"
+plugin_one: "{0} плагін"
+plugin_few: "{0} плагіны"
+plugin_many: "{0} плагінаў"
+plural_type: be
+show_plugin_tags: Паказваць тэгі плагінаў
+show_plugin_tags_desc: Адлюстроўваць тэгі катэгорый на картках плагінаў.
+show_plugin_size: Паказваць памер плагіна
+show_plugin_size_desc: "Адлюстроўваць памер файла плагіна, як указана ў канфігурацыі рэпазіторыя."
+show_plugin_min_version: Паказваць мінімальную версію
+show_plugin_min_version_desc: "Адлюстроўваць мінімальную версію дадатку, неабходную для запуску плагіна."
+show_plugin_deps_count: Паказваць колькасць залежнасцей
+show_plugin_deps_count_desc: Адлюстроўваць колькасць бібліятэчных залежнасцей на картцы плагіна.
+edit_plugin_card: Рэдагаваць картку плагіна
+edit_plugin_card_desc: Выгляд карткі ў спісе плагінаў
+card_tap_hint: "Націсні на элемент, каб адрэдагаваць"
+card_section_icon: Іконка
+card_show_icon: Паказваць іконку
+card_icon_size: Памер іконкі (dp)
+card_section_name: Назва плагіна
+card_name_size: Памер шрыфту назвы
+card_section_id: Версія і аўтар
+card_show_id: Паказваць версію і аўтара
+card_id_size: Памер шрыфту
+card_section_extra: Дадатковая інфармацыя
+card_section_desc: Апісанне
+card_show_desc: Паказваць апісанне
+card_desc_size: Памер шрыфту апісання
+card_section_buttons: Кнопкі карткі
+show_details_button: Паказваць кнопку ўсплывальнага меню
+show_view_button: "Паказваць кнопку \"Прагляд\""
+card_section_shape: Форма
+card_radius: Радыус кутоў (dp)
+sticker_radius: Радыус стыкера (dp)
+card_padding: Адступы карткі (dp)
+"on": Укл
+"off": Выкл
+fuzzy_search: Няпоўны пошук
+fuzzy_search_desc: Знаходзіць плагіны нават з памылкамі (1 сімвал розніцы). Можа быць крыху павольней.
+live_search: Жывы пошук
+live_search_desc: Прыбірае неабходнасць націскаць кнопку пошуку ў спісе плагінаў. Не рэкамендуецца для слабых прылад.
+deeplinks_parameters: Параметры
+required: Абавязкова
+deeplinks_plugins_menu_desc: Адкрыць менеджэр плагінаў для прагляду і ўсталявання плагінаў
+deeplinks_all_repositories_desc: Паказаць плагіны з усіх уключаных рэпазіторыяў
+deeplinks_add_repository_desc: Дадаць новы рэпазіторый у PackIt
+deeplinks_specific_repository_desc: Адкрыць плагіны з канкрэтнага рэпазіторыя
+deeplinks_install_plugin_desc: Усталяваць канкрэтны плагін з рэпазіторыя
+deeplinks_update_all_desc: Абнавіць кэш усіх рэпазіторыяў
+deeplinks_update_repository_desc: Абнавіць кэш канкрэтнага рэпазіторыя
+deeplinks_settings_desc: Адкрыць старонку налад PackIt
+deeplinks_forum_desc: "Адкрыць Telegram-канал PackItGround"
+deeplinks_possible_problems_desc: Адкрыць тэму з вядомымі праблемамі на форуме
+deeplinks_restart_desc: Прымусова перазапусціць дадатак
+deeplinks_check_desc: "Паказаць апавяшчэнне, што PackIt працуе"
+param_name_desc: Назва рэпазіторыя
+param_link_desc: URL на repomap.json
+param_icon_desc: "Назва іконкі (напрыклад, msg_folders)"
+param_rm_id_desc: ID рэпазіторыя
+param_plugin_id_desc: ID плагіна
+failed_to_open_deeplink: Не атрымалася адкрыць інфармацыю пра дыплінк
+components_header: Кампаненты
+misc_header: Рознае
+show_startup_status: Паказваць час запуску
+show_startup_status_desc: "Паказвае бюлетэнь з часам ініцыялізацыі, запуску і агульным часам запуску пры старце дадатку."
+disable_achievements_notify: Адключыць дасягненні
+disable_achievements_notify_desc: Адключае апавяшчэнні і гук дасягненняў. Дасягненні ўсё яшчэ адсочваюцца.
+static_online_status: "Статус профілю \"Онлайн\""
+static_online_status_desc: "Паказвае \"Онлайн\" замест дынамічнага вітання ў тваім профіле."
+static_online_label: Онлайн
+downloading_files: Загрузка файлаў
+download_path: Шлях загрузкі
+link_copied: "Спасылка скапіявана ў буфер!"
+button_in_dialogs_menu: Налады меню дыялогаў
+button_in_dialogs_menu_desc: "Дазваляе наладжваць кнопкі ў меню дыялогаў, уключаючы кнопкі PackIt."
+greeting_0500: "Добрай раніцы, мілачка..."
+greeting_0700: "Раніца, спадзяюся, ты выспаўся."
+greeting_0830: Раніца... можаш адкрыць вочы і прыкінуцца прадуктоўным чалавекам.
+greeting_1000: Раніца~
+greeting_1100: "Добрай раніцы, як спалася?"
+greeting_1200: "Ну, як ідзе дзень?"
+greeting_1300: "Мяркую, дзень ідзе добра."
+greeting_1400: "Спадзяюся, ты сёння нешта паеў і не працуеш толькі на энтузіазме."
+greeting_1500: "Трымайся, дзень яшчэ не скончаны — але ты ўжо малачына!"
+greeting_1600: "Як ідзе дзень? Ніхто не абражае?"
+greeting_1700: "Ужо вечар, як справы?"
+greeting_1800: "Добры вечар, спадзяюся, у цябе ўсё добра."
+greeting_1900: Вечар... цудоўны час.
+greeting_2000: Ідэальны час крыху адпачыць і выпіць гарбату.
+greeting_2100: "Добры вечар, {first_name}."
+greeting_2200: "Ужо позна, пачынаеш засыпаць?"
+greeting_2300: "Дабранач, час спаць."
+greeting_2330: "Гэй! Чаго ты яшчэ не спіш?"
+greeting_0000: "Ужо за поўнач... калі ласка, ідзі спаць."
+greeting_0200: "Разумею, што ты не плануеш спаць. Ну, ну..."
+plugin_no_id: У плагіна няма id
+plugin_no_download_link: У плагіна няма спасылкі для загрузкі
+plugin_no_link: У плагіна няма спасылкі
+download_failed: "Загрузка не ўдалася: {msg}"
+failed_to_open_url: Не атрымалася адкрыць URL
+failed_to_open_plugin_url: Не атрымалася адкрыць URL плагіна
+plugin_unavailable: Недаступна
+plugin_version_below_min: Версія дадатку ніжэй мінімальнай. Можна схаваць у наладах.
+ok_button: ОК
+profile_title: "{first_name}"
+profile_achievements: Дасягненні
+profile_statistics: Статыстыка
+profile_export_db: Экспарт базы дадзеных
+export_db_done: "Захавана як {filename}"
+export_db_error: Экспарт не ўдался
+profile_template_divider: "ГЭТА ШАБЛЁН ІНТЭРФЕЙСУ, ПОЎНЫ ІНТЭРФЕЙС БУДЗЕ РЭАЛІЗАВАНЫ ПАЗНЕЙ"
+stat_account_level: "Узровень акаўнта: {level}"
+stat_account_level_max: "Узровень акаўнта: 100"
+stat_xp_to_next: "Да наступнага ўзроўню: {xp_a}/{xp_b} балаў"
+stat_xp_total: "Усяго балаў: {xp_a}/{xp_b}"
+stat_achievements: "Дасягненні {completed}/{total}"
+stat_days_of_use: "Дзён {days}"
+stat_installed_plugins: "Усталявана {count}"
+stat_repositories_added: "Дададзена рэпазіторыяў: {count}"
+stat_plugins_shared: "Падзелена {count}"
+stat_plugins_downloaded: "Загружана {count}"
+stat_code_views: "Праглядаў кода {count}"
+stat_reports_sent: "Справаздач {count}"
+stat_links_copied: "Спасылак {count}"
+downloading_progress_title: Загрузка...
+download_saved: "Захавана ў .../{folder}."
+download_server_error: "Сервер вярнуў {code}"
+sec_signature_scan_title: Сканаванне подпісаў
+sec_signatures_btn: "Подпісы?"
+sec_scanning: Сканаванне...
+sec_no_signatures: Вядомых подпісаў не знойдзена.
+sec_hash_comparison_title: Параўнанне хэша
+sec_hash_checking: Праверка хэша...
+sec_hash_downloading: Загрузка...
+sec_hash_loading: Загрузка...
+sec_hash_match: Хэш супадае.
+sec_hash_mismatch: "Несупадзенне хэша!"
+sec_hash_mismatch_newer: "Хэш адрозніваецца ад таго, што ў рэпазіторыі. Аднак версія, якую ты хочаш усталяваць, навейшая за тую, што ў рэпазіторыі. Хутчэй за ўсё, усё добра."
+sec_hash_not_found: "Плагін не знойдзены ў \"{repo}\"."
+sec_hash_no_plugin_id: Не атрымалася вызначыць ID плагіна.
+sec_hash_no_repos: Няма даступных рэпазіторыяў.
+deps_sheet_title: Залежнасці
+deps_sheet_all_installed: "Усе залежнасці ўсталяваны, працягнуць?"
+deps_sheet_none_installed: "Трэба ўсталяваць залежнасці, усталяваць?"
+deps_sheet_some_missing: "Некаторыя залежнасці адсутнічаюць, усталяваць?"
+deps_sheet_btn_continue: Працягнуць
+deps_sheet_btn_install: Усталяваць і працягнуць
+deps_sheet_btn_cancel: Скасаваць
+deps_sheet_card_install: Усталяваць
+deps_sheet_need_install: Спачатку трэба ўсталяваць залежнасці
+deps_sheet_label_id: ID
+deps_sheet_label_author: Аўтар
+deps_sheet_label_min_version: Мін версія
+deps_sheet_install_failed: Не атрымалася ўсталяваць адну ці некалькі залежнасцей
+sec_install_btn: Усталяваць
+sec_cancel_btn: Скасаваць
+sec_select_repo_title: Выбраць рэпазіторый
+sec_repo_load_failed: "Не атрымалася загрузіць рэпазіторый: HTTP {code}"
+sec_plugin_not_in_repo: Плагін не знойдзены ў рэпазіторыі
+sec_plugin_no_link: У плагіна няма спасылкі
+sec_download_failed: "Не атрымалася загрузіць: HTTP {code}"
+sec_install_dialog_failed: Не атрымалася адкрыць дыялог усталявання
+sec_error_occurred: Адбылася памылка
+profile: Профіль
+install_plugin_btn: Усталяваць плагін
+dialogs_menu_packit_settings: PackIt
+dialogs_menu_install_icon: Усталяваць іконку
+import_db_title: "Ты ўпэўнены, што хочаш прымяніць экспарт?"
+import_db_subtitle: "Узровень акаўнта: {level} [{xp}xp]"
+import_db_confirm: "Так, я ўпэўнены"
+import_db_cancel: Я перадумаў
+import_db_done: "Экспарт паспяхова прыменены!"
+import_db_error: Не атрымалася прачытаць экспарт
+import_db_wrong_account: "Экспарты прызначаныя для пераносу паміж прыладамі, не акаўнтамі!"
+reload: Перазагрузіць
+stat_hint_achievements: Колькасць разблакаваных дасягненняў з усіх даступных.
+stat_hint_days_of_use: Колькасць дзён выкарыстання PackIt.
+stat_hint_installed_plugins: Колькасць усталяваных плагінаў.
+stat_hint_links_copied: Колькасць скапіяваных спасылак на плагіны ў буфер.
+stat_hint_plugins_downloaded: Колькасць загружаных файлаў плагінаў у сховішча.
+stat_hint_plugins_shared: "Колькасць плагінаў, якімі падзеліліся з іншымі."
+stat_hint_code_views: Колькасць праглядаў зыходнага кода плагіна.
+stat_hint_reports_sent: Колькасць адпраўленых справаздач пра плагіны.
+achiev_category_progress: "{completed} з {total} выканана"
+achiev_category_all_done: "Усё выканана!"
+export_db_done_share: "Рэзервовая копія паспяхова перададзена!"
+copy_link: Скапіяваць спасылку
+copy: Скапіяваць
+share: Падзяліцца
+code: Код
+download: Загрузіць
+translate: Перакласці
+send_as_file: Адправіць як файл
+send_as_file_sending: Адпраўка файла...
+send_as_file_no_link: У плагіна няма спасылкі для загрузкі
+send_as_file_failed: Не атрымалася адправіць файл
+report: Паведаміць
+no_description_to_translate: Няма апісання для перакладу
+translation_failed: Пераклад не ўдаўся
+tg_channel_title: "Гэй, у нас ёсць канал"
+tg_channel_subtitle: "Абнаўленні, анонсы і чэйнджлогі. Толькі тое, што трэба, абяцаю."
+tg_channel_join: Добра
+tg_channel_dismiss: Не хачу
+tg_channel_url: "https://t.me/packitappen"
+achiev_cat_installing_plugins: Усталяванне плагінаў
+achiev_cat_repositories: Рэпазіторыі
+achiev_cat_sharing: Абмен
+achiev_cat_downloading: Загрузка
+achiev_cat_viewing_code: Прагляд кода
+achiev_cat_reporting: Справаздачы
+achiev_cat_copying_links: Капіяванне спасылак
+achiev_cat_levels: Узроўні
+achiev_cat_loyalty: Лаяльнасць
+achiev_cat_unknown: Невядомыя дасягненні
+achiev_title_first_plugin: Навічок
+achiev_hint_first_plugin: "Адкрый PackIt, перайдзі ў інтэрфейс усталявання і выбяры любы плагін з рэпазіторыя. Націсні кнопку ўсталявання і пацвердзі."
+achiev_title_plugins_5: Пачатак шляху
+achiev_hint_plugins_5: "Праглядзі даступныя рэпазіторыі і ўсталюй 5 плагінаў агулам. Паспрабуй даследваць розныя катэгорыі, каб знайсці нешта карыснае."
+achiev_title_plugins_10: Энтузіаст
+achiev_hint_plugins_10: "Ты ўжо ў тэме. Усталюй 10 плагінаў у любых рэпазіторыях. Добры момант, каб дадаць некалькі дадатковых рэпазіторыяў, каб пашырыць выбар."
+achiev_title_plugins_25: Калекцыянер
+achiev_hint_plugins_25: "Ужо зразумела, што табе падабаецца наладжваць кліент. Працягвай усталёўваць плагіны, пакуль не дасягнеш 25 усталяванняў."
+achiev_title_plugins_50: Дасведчаны карыстальнік
+achiev_hint_plugins_50: "50 усталяванняў — значыць, ты ведаеш, чаго хочаш. Напэўна, у цябе ўжо ёсць добрая наладка. Працягвай."
+achiev_title_plugins_100: Збіральнік
+achiev_hint_plugins_100: "100 усталяваных плагінаў. Ты паспрабаваў амаль усё, што ёсць. Ты ўвогуле памятаеш, што робіць палова з іх?"
+achiev_title_plugins_250: Абседжаны
+achiev_hint_plugins_250: "250 усталяванняў. У гэты момант PackIt — гэта ўжо твой лад жыцця. Працягвай усталёўваць, назад дарогі няма."
+achiev_title_plugins_500: Няма жыцця
+achiev_hint_plugins_500: "500 усталяванняў плагінаў. Мы не ўпэўненыя, гэта ўражвае ці трывожна. У любым выпадку, ты гэта заслужыў."
+achiev_title_repo_1: Першы крыніца
+achiev_hint_repo_1: "Дадай свой першы рэпазіторый. Адкрый налады PackIt, перайдзі ў Рэпазіторыі і ўстаў правільны URL рэпазіторыя."
+achiev_title_repo_3: Пашырэнне гарызонтаў
+achiev_hint_repo_3: Дадай 3 рэпазіторыі агулам. Больш крыніц — больш плагінаў для адкрыцця.
+achiev_title_repo_5: "Мульты-крыніца"
+achiev_hint_repo_5: "Ты цягнеш плагіны з 5 розных рэпазіторыяў. Ужо ведаеш дакладна, дзе што шукаць."
+achiev_title_repo_10: Агрэгатар
+achiev_hint_repo_10: "10 рэпазіторыяў дададзена. Напэўна, ты ўжо бачыў амаль усе плагіны, якія ёсць."
+achiev_title_repo_50: Маніяк рэпазіторыяў
+achiev_hint_repo_50: "50 рэпазіторыяў. Не магчыма, што ўсе яны актыўныя. З табой усё добра?"
+achiev_title_share_1: Распаўсюджвай вестку
+achiev_hint_share_1: "Падзяліся файлам плагіна з кім-небудзь. Адкрый любы плагін у інтэрфейсе ўсталявання, націсні меню-бургер і выбяры Падзяліцца."
+achiev_title_share_5: Евангеліст
+achiev_hint_share_5: "Ты падзяліўся 5 плагінамі. Твае сябры альбо ўдзячныя, альбо збітыя з панталыку."
+achiev_title_share_10: Дыстрыб'ютар
+achiev_hint_share_10: 10 абменаў зроблена. Ты ўжо фактычна кіруеш сваёй службай дастаўкі плагінаў.
+achiev_title_share_25: Дылер плагінаў
+achiev_hint_share_25: "25 плагінаў перададзена. Напэўна, людзі прыходзяць да цябе, калі ім трэба нешта параіць."
+achiev_title_share_50: Слуп супольнасці
+achiev_hint_share_50: "50 абменаў. Ты трымаеш гэту супольнасць разам, адзін файл плагіна за раз."
+achiev_title_share_100: Пастаўшчык
+achiev_hint_share_100: 100 плагінаў перададзена. У гэты момант абмен — гэта проста рэфлекс для цябе.
+achiev_title_download_1: Хапай і бяжы
+achiev_hint_download_1: "Загрузі файл плагіна на сваю прыладу. Адкрый любы плагін у інтэрфейсе ўсталявання, націсні меню-бургер і выбяры Загрузіць."
+achiev_title_download_5: Мясцовы зборшчык
+achiev_hint_download_5: Ты загрузіў 5 файлаў плагінаў. Твая папка загрузак становіцца цікавай.
+achiev_title_download_10: Маніяк рэзервовых копій
+achiev_hint_download_10: "10 файлаў плагінаў загружана. Відавочна, табе падабаецца мець усё лакальна, на ўсялякі выпадак."
+achiev_title_download_25: Архівіст
+achiev_hint_download_25: "25 загрузак. Ты будаваеш даволі сур'ёзную афлайн-калекцыю."
+achiev_title_download_50: Сховішча
+achiev_hint_download_50: 50 файлаў плагінаў захавана лакальна. Нішто не праходзіць міма цябе без загрузкі.
+achiev_title_code_1: Цікаўны
+achiev_hint_code_1: "Адкрый зыходны код любога плагіна. Націсні меню-бургер у інтэрфейсе ўсталявання і выбяры Код."
+achiev_title_code_3: Зазіранне ўнутр
+achiev_hint_code_3: "Ты паглядзеў код 3 плагінаў. Добрая звычка — заўсёды ведаць, што ты ўсталёўваеш."
+achiev_title_code_5: Чытач кода
+achiev_hint_code_5: 5 плагінаў праінспектавана. Ты ўжо ўпэўнена чытаеш чужы код.
+achiev_title_code_10: Рэцэнзент
+achiev_hint_code_10: "10 праглядаў кода зроблена. Ужо, напэўна, маеш меркаванні пра стыль кода."
+achiev_title_code_25: Аўдытар
+achiev_hint_code_25: "25 плагінаў прагледжана. Ты сур'ёзна ставішся да бяспекі, і гэта сапраўды выдатна."
+achiev_title_code_50: Інспектар
+achiev_hint_code_50: "50 праглядаў кода. Напэўна, ужо заўважаеш патэрны ў розных плагінах."
+achiev_title_code_100: Параноік
+achiev_hint_code_100: 100 плагінаў праверана перад усталяваннем. Нікому не вер. Чытай усё. Будзь у бяспецы.
+achiev_title_code_200: Аналітык
+achiev_hint_code_200: "200 праглядаў кода. У гэты момант ты прачытаў больш кода плагінаў, чым большасць аўтараў плагінаў."
+achiev_title_report_1: Стукач
+achiev_hint_report_1: "Паведамі пра плагін упершыню. Калі нешта выглядае падозрва, націсні меню-бургер у інтэрфейсе ўсталявання і выбяры Паведаміць."
+achiev_title_report_5: Вартавы
+achiev_hint_report_5: 5 справаздач адпраўлена. Ты актыўна дапамагаеш падтрымліваць экасістэму ў чысціні.
+achiev_title_report_10: Мадэратар па сэрцы
+achiev_hint_report_10: "10 справаздач. Відавочна, табе не абыякавая якасць таго, што тут распаўсюджваецца."
+achiev_title_report_25: Ахоўнік якасці
+achiev_hint_report_25: "25 справаздач пададзена. Супольнасць бяспечнейшая дзякуючы такім, як ты."
+achiev_title_report_50: Шэрыф
+achiev_hint_report_50: 50 справаздач. Ніхто не зможа праслізнуць з дрэнным плагінам пад тваім наглядам.
+achiev_title_report_100: Нулявая талерантнасць
+achiev_hint_report_100: "100 справаздач адпраўлена. Альбо ў цябе вельмі высокія стандарты, альбо вельмі нізкая талерантнасць. Напэўна, і тое, і іншае."
+achiev_title_copy_1: "Той, хто дзеліцца спасылкамі"
+achiev_hint_copy_1: "Скапіруй спасылку на плагін упершыню. Адкрый любы плагін у інтэрфейсе ўсталявання, націсні меню-бургер і выбяры Скапіяваць спасылку."
+achiev_title_copy_5: Рэферал
+achiev_hint_copy_5: 5 спасылак скапіявана. Табе падабаецца дасылаць людзей прама на канкрэтныя плагіны.
+achiev_title_copy_10: Машына спасылак
+achiev_hint_copy_10: 10 спасылак скапіявана. Ты — надзейная крыніца спасылак на плагіны.
+achiev_title_copy_50: Гіперлінкер
+achiev_hint_copy_50: "50 спасылак скапіявана. Гісторыя тваёй буфера абмену, напэўна, вельмі цікавая."
+achiev_title_copy_100: Дыплінкер
+achiev_hint_copy_100: "100 спасылак на плагіны скапіявана. У гэты момант капіяванне-ўстаўка — гэта фактычна мышэчная памяць."
+achiev_title_copy_250: Індэкс
+achiev_hint_copy_250: 250 спасылак скапіявана. Ты ўжо жывы даведнік спасылак на плагіны.
+achiev_title_level_1: Толькі што загрузіў PackIt
+achiev_hint_level_1: Вітаю. Ты толькі пачынаеш.
+achiev_title_level_5: Асвойваешся
+achiev_hint_level_5: "Ты правёў дастаткова часу з PackIt, каб арыентавацца. Дасягнуты 5-ы ўзровень."
+achiev_title_level_10: Частка руціны
+achiev_hint_level_10: "PackIt ужо не новы для цябе. Гэта проста частка таго, як ты карыстаешся Telegram."
+achiev_title_level_25: Тут надоўга
+achiev_hint_level_25: "Узровень 25. У гэты момант можна сміела сказаць, што ты нікуды не збіраешся."
+achiev_title_level_50: На палове шляху
+achiev_hint_level_50: Узровень 50. Яшчэ 10 да максімуму.
+achiev_title_level_75: Глыбока ў кроліковай нары
+achiev_hint_level_75: Узровень 75. Большасць людзей ніколі не дасягаюць гэтага. Ты не з большасці.
+achiev_title_level_80: Назад дарогі няма
+achiev_hint_level_80: "Узровень 80. Ты ўклаў занадта шмат, каб спыняцца. Не што ты хацеў бы."
+achiev_title_level_90: Апошні рывок
+achiev_hint_level_90: Узровень 90. Канец ужо бачны. Ты амаль бачыш вяршыню адсюль.
+achiev_title_level_95: Амаль там
+achiev_hint_level_95: "Узровень 95. Пяць узроўняў да абсалютнага максімуму. Давяршы тое, што пачаў."
+achiev_title_level_100: Трансцэндэнтны
+achiev_hint_level_100: Узровень 100. Максімум. За гэтым пунктам нічога няма. Ты бачыў усё.
+achiev_title_days_30: Першы месяц
+achiev_hint_days_30: Ты карыстаешся PackIt месяц. Плагіны ўжо частка тваёй штодзённай наладкі.
+achiev_title_days_182: Паўгода
+achiev_hint_days_182: "Шэсць месяцаў з PackIt. Ты бачыў, як абнаўленні прыходзілі і сыходзілі, а ты ўсё яшчэ тут."
+achiev_title_days_365: Адзін год
+achiev_hint_days_365: Поўны год. PackIt быў часткай твайго досведу Telegram праз усё гэта.
+achiev_title_days_730: Два гады
+achiev_hint_days_730: "Два гады. Калі PackIt і exteraGram яшчэ існуюць — і калі ты чытаеш гэта, значыць, існуюць."
+achiev_title_days_1095: Тры гады
+achiev_hint_days_1095: "Тры гады. Шчыра кажучы, уражвае. Спадзяемся, экасістэма плагінаў яшчэ жывая і здаровая."
+achiev_title_days_1460: Чатыры гады
+achiev_hint_days_1460: "Чатыры гады. Ужо, напэўна, перажыў некалькі форкаў Telegram. Мы цэнім тваю лаяльнасць."
+achiev_title_days_1825: Пяць гадоў
+achiev_hint_days_1825: "Пяць гадоў. Палова дзесяцігоддзя. Мы шчыра не чакалі, што хто-небудзь дасягне гэтага. Ці exteraGram увогуле яшчэ існуе?"
+achiev_title_days_2190: Шэсць гадоў
+achiev_hint_days_2190: "Шэсць гадоў. Калі ты ўсё яшчэ карыстаешся PackIt у 2030 ці каля таго, ты заслугоўваеш медаль. Ці лекара."
+achiev_title_days_2555: Сем гадоў
+achiev_hint_days_2555: "Сем гадоў. PackIt альбо бяссмяротны, альбо ты забыліся яго выдаліць. У любым выпадку — павага."
+achiev_title_days_2920: Восем гадоў
+achiev_hint_days_2920: "Восем гадоў. У гэты момант мы шчыра здзіўленыя, што гэты код яшчэ працуе. Ты, напэўна, таксама."
+achiev_title_days_3285: Дзевяць гадоў
+achiev_hint_days_3285: "Дзевяць гадоў. Ці Telegram яшчэ актуальны? Ці exteraGram падтрымліваецца? Мы не ведаем. Але вось ты тут."
+achiev_title_days_3650: Дзесяць гадоў
+achiev_hint_days_3650: "Дзесяць гадоў. Дзесяцігоддзе. Гэта дасягненне было напісана як жарт. Мы не думалі, што хто-небудзь яго ўбачыць. Прывітанне."
+achiev_title_secret_premium: У цябе прэміум
+achiev_hint_secret_premium: "Мне шкада цябе, калі ты быў у грамадскім месцы ці каля бацькоў. Але цяпер у цябе ёсць прэміум."
+achiev_title_secret_terraria: Цяпер ты тэрарыст
+achiev_hint_secret_terraria: "Цяпер ты тэрарыст... Мне выклікаць паліцыю? Ці ФБР?"
+achiev_title_secret_identity: "Ты ўпэўнены, што гэта ты?"
+achiev_hint_secret_identity: "Бро, я не думаю, што ты сур'ёзна стваральнік PackIt. Сапраўдны ці фэйк?"
+achiev_title_secret_curiosity: "Чаго ты гэта чытаеш?"
+achiev_hint_secret_curiosity: "Чаму ты сюды націснуў? Тут нічога няма. Ідзі ўсталёўвай плагіны. Сур'ёзна, закрый гэта і зрабі нешта карыснае."
+achiev_title_secret_subscriber: Адзін з нас
+achiev_hint_secret_subscriber: "Ты далучыўся да канала PackIt. Цяпер ты афіцыйна частка пятлі. Абнаўленні, чэйнджлогі, хаос — усё тваё."
+achiev_title_copy_25: "Той, да кога звяртаюцца"
+achiev_hint_copy_25: "25 спасылак на плагіны скапіявана. Напэўна, людзі прыходзяць да цябе, калі ім трэба прамая спасылка."
+achiev_title_download_100: Запаслівы
+achiev_hint_download_100: 100 файлаў плагінаў захавана. Тваё сховішча — фактычна музей плагінаў.
+achiev_title_repo_20: Будаўнік сеткі
+achiev_hint_repo_20: 20 рэпазіторыяў падключана. Ты пабудаваў сур'ёзную сетку плагінаў.
+achiev_title_share_200: Вяшчальнік
+achiev_hint_share_200: 200 плагінаў перададзена. У гэты момант ты фактычна аднаасобная сетка распаўсюджвання.
+achiev_title_plugins_75: Ветэран
+achiev_hint_plugins_75: "75 плагінаў усталявана. Відавочна, ты ўжо ведаеш, што робіш."
+achiev_title_plugins_200: Залежны
+achiev_hint_plugins_200: "200 усталяванняў. Ты даследаваў больш гэтай экасістэмы, чым большасць людзей калі-небудзь."
+achiev_title_report_200: Генеральны інспектар
+achiev_hint_report_200: 200 справаздач пададзена. Ніхто не ставіцца да якасці сур'ёзней за цябе. Ніхто.
+achiev_title_code_75: Глыбокае пагружэнне
+achiev_hint_code_75: "75 плагінаў прагледжана. Ты чытаеш больш кода, чым большасць распрацоўшчыкаў піша."
+achiev_title_code_150: Скептык
+achiev_hint_code_150: "150 праглядаў кода. Даўер заслугоўваецца, а не даецца. Ты пераканаўся ў гэтым."
+achiev_title_level_60: Трансцэндэнтны
+achiev_hint_level_60: Узровень 60. Максімум. За гэтым пунктам нічога няма. Ты бачыў усё.
+hide_unavailable_plugins: Хаваць недаступныя плагіны
+hide_unavailable_plugins_desc: "Хаваць плагіны, якія несумяшчальныя з тваім кліентам."
+sec_hash_mismatch_hint: Рэкамендуецца ўсталёўваць праз PackIt.
+update_sheet_title: "Даступна абнаўленне!"
+button_relocation: Перамяшчэнне кнопак
+update_sheet_version: "PackIt v{0}"
+update_sheet_update: Абнавіць
+update_sheet_later: Потым
+icons_search_hint: Пошук набораў іконак...
+icons_count: "{0} набораў іконак"
+plugin_tags: Тэгі плагіна
+support_with_stars: Падтрымаць зоркамі
+deeplinks_install_icon_pack: Усталяванне набору іконак
+deeplinks_install_icon_pack_desc: Усталяваць канкрэтны набор іконак з рэпазіторыя
+param_icon_id_desc: ID набора іконак
+pill_widget: Віджэт PackIt
+pill_widget_desc: Паказвае пілюлю PackIt у стосе пілюль на галоўным экране. Адкрывае налады па націску.
+clear_plugin_cache: Ачысціць кэш плагінаў
+clear_plugin_cache_desc: Выдаляе лакальна кэшаваныя файлы плагінаў.
+cache_size_label: "{size} • {count} файлаў"
+buttons_header_desc: Наладжвай кропкі ўваходу для адкрыцця PackIt з розных месцаў у дадатку.
+navigation_header_desc: "Кантралюй, як адкрываецца браўзэр плагінаў і як ён паводзіць сябе."
+sfx_header_desc: Прайгравай гукі пры канкрэтных дзеяннях з плагінамі.
+sfx_volume: Гучнасць
+sfx_volume_off: Выкл
+sfx_volume_maximum: Максімум
+cache_header_desc: Кіруй лакальна кэшаванымі дадзенымі плагінаў і файламі рэпазіторыяў.
+show_settings_button: Кнопка PackIt у наладах Telegram
+show_settings_button_desc: Паказвае кнопку Налады PackIt пад радком налад exteraGram.
+show_plugin_list_fab: Кнопка новага плагіна
+show_plugin_list_fab_desc: Дадае кнопку для адкрыцця спісу плагінаў у PluginCell.
+show_icon_packs_fab: Кнопка каталога іконак
+show_icon_packs_fab_desc: Дадае кнопку для адкрыцця каталога іконак на экране Наборы іконак.
+scroll_button_bottom_right: Кнопка пракруткі ўнізу справа
+scroll_button_bottom_right_desc: Размяшчае кнопку пракруткі ўверх у ніжнім правым куце замест верхняга цэнтра.
+scroll_btn_style_top_center: Верх цэнтр
+scroll_btn_style_bottom_right: Унізу справа
+restart_required_title: Патрабуецца перазапуск
+restart_required_message: Гэтая налада ўступае ў сілу пасля перазапуску.
+bulletin_hook_restart_required: Патрабуецца перазапуск кліента для абнаўлення хука.
+bulletin_restart_button: Перазапусціць
+packit_channel_handle: "@packitappen"
+packit_forum_handle: "@packitGround"
+pp_unknown_plugin: Плагін
+pp_unknown_name: Невядома
+pp_required_version: "Патрабуецца {}"
+pp_tab_description: Апісанне
+pp_tab_gallery: Галерэя
+pp_tab_changes: Гісторыя
+pp_changelog_loading: Загрузка...
+pp_changelog_empty: Для гэтага плагіна няма чэйнджлога.
+pp_changelog_missing: Чэйнджлог адсутнічае
+pp_changelog_none_provided: Аўтар не прадаставіў чэйнджлог.
+pp_changelog_binary: "Гэты файл, верагодна, бінарны."
+pp_changelog_size_empty: Пуста
+pp_changelog_latest: апошняе
+pp_section_description: Апісанне
+pp_section_dependencies: Залежнасці
+pp_section_social: Спасылкі аўтара
+pp_section_tags: Тэгі
+pp_section_more_from: "Больш ад {}"
+pp_dep_library_one: 1 бібліятэка
+pp_dep_library_other: "{} бібліятэк"
+pp_other_plugin_one: 1 плагін
+pp_other_plugin_other: "{} плагінаў"
+pill_stack_settings: Налады стоса пілюль
+pill_stack_settings_desc: Наладжвай бачныя віджэты і іх парадак
+pill_action_settings: Адкрыць налады
+pill_action_change: Змяніць дзеянне
+pp_version_picker_title: Выбраць версію
+pp_version_selected: "Версія: {}"
+pp_install: Усталяваць
+pp_version_requires: "Патрабуецца версія кліента {} ці вышэй."
+version_picker_auto_expand: Аўтараскрыццё спісу версій
+version_picker_auto_expand_desc: Раскрываць спіс версій пры адкрыцці выбаршчыка
+pp_select_version_first: Спачатку выбяры версію
+param_version_desc: "Версія плагіна (неабавязкова, усталюе апошнюю, калі прапушчана)"
+dl_install_incompatible_all: "На жаль, гэта несумяшчальна з тваёй версіяй кліента."
+dl_install_incompatible_sheet_title: Версія недоступна
+dl_install_incompatible_sheet_desc: "Версія {} патрабуе навейшы кліент. Усталяваць апошнюю сумяшчальную версію замест гэтага?"
+dl_install_incompatible_sheet_btn: Усталяваць апошнюю сумяшчальную
+dl_install_incompatible_sheet_cancel: Скасаваць
+dl_install_version_loading: "Загрузка версіі {0}..."
+inline_search_header: Інлайн пошук
+inline_search_double_space: Падвойны прабел
+inline_search_double_space_desc: "Націсканне прабелу двойчы хутка аўтаматычна ўводзіць \"{cmd} \""
+inline_search_divider: "Набірай \"{cmd} {назва плагіна}\" у радку ўводу паведамлення для інлайн пошуку."
+inline_search_clear_field: Ачысціць поле ўводу
+inline_search_clear_field_desc: Пасля адпраўкі плагіна ачышчае поле ўводу.
+inline_view_guide: Праглядзець гайд
+plugin_profile_header: Старонка плагіна
+plugin_profile_subtext: Калі ты адкрываеш плагін у каталогу
+show_extended_desc: Паказваць пашыранае апісанне
+show_extended_desc_desc: Загружаць і адлюстроўваць readme замест стандартнага апісання.
+show_extended_desc_hint: "Гэта экран, калі ты націскаеш \"Прагляд\""
+pp_section_extended_description: Пашыранае апісанне
+search_engine: Метад пошуку
+search_engine_native: libsearch.so
+search_engine_python: SearchEngine.py
+search_engine_desc: Выбяры метад для пошуку плагінаў у спісе. Выбяры native для хутчэйшага пошуку.
+search_engine_native_short: Native
+search_engine_python_short: Python
+hash_function: Функцыя хэшавання
+hash_function_bithash_short: BitHash
+hash_function_sha256_short: Sha256
+hash_function_bithash_sub: ~5x хутчэй
+hash_function_sha256_sub: Макс. сумяшчальнасць
+hash_function_desc: BitHash у 5 разоў хутчэйшы за Sha256. Але ў яго няма крыптаграфіі.
+sort_menu_design: Стыль меню сартавання
+sort_menu_design_modern: Сучасны
+sort_menu_design_classic: Класічны
+sort_menu_design_desc: Сучасны стыль вылучае актыўны варыянт каляровай кропкай. Класічны запаўняе радок колерам акцэнту.
+show_from_repo: Паказваць назву рэпазіторыя
+show_from_repo_desc: "Паказваць чып \"З рэпазіторыя {name}\" на кожнай картцы абнаўлення."
+show_updates_on_startup: Спіс абноўленых плагінаў
+show_updates_on_startup_desc: Пры адкрыцці дадатку аўтаматычна правярае даступныя абнаўленні і паказвае іх на экране.
+startup_updates_title: Абнаўленні
+startup_updates_subtitle: "Некалькі плагінаў былі абноўлены, вось спіс. Усталюй ці праігнаруй."
+startup_updates_update: Абнавіць
+startup_updates_ignore: Ігнараваць
+startup_updates_ignore_all: Ігнараваць усё
+startup_updates_close: Закрыць
+ignore_updates_title: Ігнараваць абнаўленні
+ignore_updates_message: "Абнаўленне гэтага плагіна будзе праігнаравана ў залежнасці ад выбранай опцыі. Працягнуць?"
+ignore_mode_title: Рэжым ігнаравання
+ignore_mode_message: Выбяры рэжым ігнаравання абнаўлення.
+ignore_mode_until_next: Да наступнага абнаўлення
+ignore_mode_forever: Назаўсёды
+ignore_all_title: "Ігнараваць усе плагіны да наступнага абнаўлення?"
+"yes": Так
+"no": Не
+cancel: Скасаваць
+updating_plugins_header: Абнаўленне плагінаў
+update_notifications: Апавяшчэнні пра абнаўленні
+update_notifications_desc: Пры ўваходзе ў дадатак паказвае апавяшчэнне з абнаўленнямі плагінаў.
+msg_plugins_updated: "{count} плагінаў абноўлена!"
+msg_plugins_open: Адкрыць
+msg_one_plugin_updated: "Адзін плагін абноўлены!"
+msg_one_plugin_install: Усталяваць
+clear_ignore_list: Ачысціць спіс ігнаравання
+clear_ignore_list_desc: Выдаліць плагіны са спісу ігнараваных абнаўленняў
+clear_ignore_list_dialog_title: Выбяры опцыю
+clear_ignore_list_specific: Канкрэтны плагін
+clear_ignore_list_all: Ачысціць усе
+clear_ignore_list_cancel: Скасаваць
+clear_ignore_list_done: Спіс ігнараваных абнаўленняў ачышчаны.
+clear_ignore_list_specific_done: "Паспяхова выдалена!"
+clear_ignore_list_remove: Выдаліць
+file_system_settings_header: Налады файлавай сістэмы
+highlight_syntax: Падсвечванне сінтаксісу
+highlight_syntax_subtext: Дапамагае арыентавацца ў файле. Але можа прывесці да крашаў на вялікіх файлах.
+hidden_files: Схаваныя файлы
+hidden_files_subtext: "Паказвае файлы ці папкі, якія пачынаюцца з ."
+inline_search_command: Інлайн каманда
+inline_search_command_desc: "Каманда, якая выкарыстоўваецца для інлайн пошуку (па змаўчанні: .packit)"
+inline_send_header: Адпраўка паведамлення
+inline_send_name: Назва плагіна
+inline_send_version: Версія плагіна
+inline_send_author: Аўтар плагіна
+inline_send_description: Апісанне плагіна
+inline_send_install: Спасылка для ўсталявання
+utilities: Утыліты
+utilities_header: Утыліты
+utilities_share_afp: Экспартаваць плагіны
+utilities_afp_shared: Архіў перададзены
+utilities_afp_error: Не атрымалася перадаць архіў
+utilities_afp_building: Будаванне архіва...
+utilities_archive_name_label: Назва архіва
+utilities_afp_divider: Некалькі плагінаў — Хуткі і зручны фармат для экспарту плагінаў exteragram.
+utilities_export_empty: "Калі ласка, выбяры хаця б 1 плагін для экспарту"
+utilities_export_toggle_all: Выбраць усе
+utilities_export_title: Экспартаваць плагіны
+utilities_export_subtitle_zero: Экспартуе ўсе плагіны з твайго кліента
+utilities_export_subtitle_none: Плагіны не выбраны
+utilities_export_subtitle_one: Экспартуе 1 плагін з твайго кліента
+utilities_export_subtitle: "Экспартуе {count} плагінаў з твайго кліента"
+utilities_export_plugins_section: Плагіны
+utilities_export_settings_section: Налады экспарту
+utilities_export_plugin_settings: Экспартаваць налады плагіна
+utilities_export_locally: Экспартаваць лакальна
+utilities_export_btn: Экспартаваць
+utilities_export_subtext_loading: Загрузка...
+utilities_export_subtext: "{count} плагінаў • {size}"
+afp_import_btn: Імпарт
+afp_import_all: усе
+afp_import_still_all: Усё роўна імпартаваць усе
+afp_import_hint: "{0} плагінаў будзе імпартавана ў твой кліент, працягнуць?"
+afp_confirm_desc: "{count} плагінаў будзе імпартавана ў твой кліент. Працягнуць?"
+afp_import_with_settings: Імпартаваць з наладамі
+achiev_title_secret_enlightened: Ты прасветлены
+achiev_hint_secret_enlightened: "Ну... Ты сапраўды не разумееш з першага разу, што нельга трахаць усё жывое."
+plugin_description: "**Каталог рэсурсаў для exteraGram/AyuGram. Плагіны, набор іконак — усё ў адным месцы, з падтрымкай некалькіх рэпазіторыяў.**\n\nЗыходны код: "
+achiev_title_secret_talking_about_you: "Не, я пра цябе"
+achiev_hint_secret_talking_about_you: "https://t.me/packitGround/232/4434"
+achiev_title_secret_utils_rule: "Мяне не пакладуць у ўтыліты :("
+achiev_hint_secret_utils_rule: кстати цябе врадли выложат у utilits. Ты па факту паўтарыў kpm. А як бы ў utils правіла другі варыянт нельга выкладваць
+achiev_title_secret_aytist: "Ты знайшоў аметыст!"
+achiev_hint_secret_aytist: "Ты сапраўды знайшоў аметыст, цяпер табе не трэба працаваць да канца жыцця..."
+achiev_title_secret_opsec: Аперацыйная бяспека
+achiev_hint_secret_opsec: "Ты ўсталяваў opsec прывілеяваным спосабам: sudo packit install opsec."
+tags_section_title: Тэгі
+apply_button: Ужыць
+authors_section_title: Аўтары
+app_version_section_title: Версія дадатку
+saved_section_title: Захаваныя плагіны
+saved_filter_saved: Захаваныя плагіны
+saved_filter_unsaved: Незахаваныя плагіны
+open_directory: Адкрыць дырэкторыю
+open_directory_desc: Прагляд файлаў і папак packit
+to_the_beginning: Пракруціць уверх
+catalog_title: Каталог
+end_of_list: "Там так чыста, як пасля ператруску кватэры дэпутата"
+publish_plugin_guide_url: "https://t.me/packitd/4"
+faq_desc: Агульныя пытанні і адказы
+report_bug_desc: "Знайшоў нешта зламанага? Раскажы нам"
+how_to_enlighten_desc: Прасветліць цябе...
+secret_video_desc: "Не думай, проста націсні."
+creating_own_repo_desc: Гайд па стварэнні ўласнага рэпазіторыя
+publish_ur_plugin_desc: Як трапіць з плагінам у каталог
+deeplinks_desc: "Гайд па дыплінках (tg://packit...)"
+devdocs_desc: Дэтальная дакументацыя
+links_docs_desc: Карысныя спасылкі і гайды
+docs_suggest_review: "Ты таксама можаш пакінуць водгук ці прапанаваць, як палепшыць PackIt у [гэтай секцыі ⟩](https://t.me/packitGround/933)"
+interface_header_desc: "Карткі, шрыфты, стыль навігацыі"
+sfx_settings_desc: Гукі і гучнасць для дзеянняў
+plugin_components_desc: Тэхнічныя кампаненты PackIt
+install_sheet_header_desc: Кнопкі і інфармацыя ў дыялогу ўсталявання
+repos_navigation_header_desc: Як адкрываецца спіс рэпазіторыяў
+inline_search_nav: Інлайн пошук
+inline_search_nav_desc: Шукай і дасылай плагіны ў чаце
+inline_search_enabled: Інлайн пошук
+inline_search_enabled_desc: "Калі адключана, выдаляе ўсе звязаныя хукі."
+misc_nav: Рознае
+misc_nav_desc: "Пошук, статус і змены выгляду"
+updplugins_nav: Абнаўленне плагінаў
+updplugins_nav_desc: Абнаўленні пры старце і спіс ігнаравання
+api_keys_nav: "API-ключы"
+api_keys_nav_desc: "Наладка API-ключоў"
+api_keys_safety_title: Пра бяспеку
+api_keys_safety_desc: "Калі ты хвалюешся, націсні на мяне"
+api_keys_why_is_this: "Навошта гэта?"
+api_keys_header: "API-ключы"
+gemini_header: Gemini
+add_gemini_api_key: "Дадаць API-ключ Gemini"
+add_gemini_api_key_desc: "Ключ: Не наладжаны"
+add_gemini_api_key_desc_set: "Ключ: {preview}"
+change_gemini_api_key: "Змяніць API-ключ Gemini"
+add_gemini_api_key_dialog_title: "API-ключ"
+add_gemini_api_key_dialog_subtitle: Мы захаваем яго ў бяспецы.
+add_gemini_api_key_dialog_hint: "Дадаць API-ключ"
+add_gemini_api_key_dialog_button: Дадаць ключ
+change_gemini_api_key_dialog_hint: "Увядзі новы API-ключ"
+change_gemini_api_key_dialog_button: Змяніць ключ
+api_key_dialog_outline_label: "Увядзі API-ключ"
+api_key_saved_success: "Ключ паспяхова дададзены!"
+api_key_saved_error: "Адбылася памылка. Калі ласка, правер логі."
+api_key_reset_success: Ключ паспяхова скінуты.
+reset_gemini_api_key: "Скінуць API-ключ Gemini"
+reset_gemini_api_key_desc: "Націсні, каб скінуць API-ключ"
+reset_gemini_api_key_confirm: "Гэта дзеянне незваротнае, ты ўпэўнены, што хочаш працягнуць?"
+get_gemini_key_hint: "Ты можаш атрымаць API-ключ Gemini на [гэтай старонцы](https://aistudio.google.com/api-keys)"
+get_gemini_key_hint_link: "aistudio.google.com/api-keys"
+gemini_model_selector: Мадэль Gemini
+gemini_model_selector_desc: "Мадэль, якая выкарыстоўваецца для AI-пошуку"
+ai_search_loading: Пошук...
+ai_search_no_key: "Дадай API-ключ у наладах"
+ai_search_error: Памылка пошуку. Правер логі.
+ai_search_results_title: Вынікі AI
+file_system_settings_nav_desc: Налады адлюстравання файлаў
+copy_link_install: Усталяваць
+copy_link_install_latest: Усталяваць апошнюю
+copy_link_profile: Адкрыць профіль
+copy_link_back: Назад
+export_bs_title: Экспарт
+export_bs_subtitle: "Выбяры, што хочаш экспартаваць"
+export_bs_local_config: Лакальная канфігурацыя
+export_bs_achievements: Дасягненні і статыстыка
+export_bs_plugins: Захаваныя плагіны
+export_bs_local_config_desc: Налады і параметры плагіна
+export_bs_achievements_desc: Прагрэс дасягненняў і лічыльнікі
+export_bs_plugins_desc: Спіс захаваных плагінаў
+export_bs_share: Падзяліцца
+fs_enter_name: Увядзі назву
+fs_file_name: Назва файла
+fs_new_file_title: Новы файл
+fs_delete_title: Выдаліць
+fs_empty_folder: Пустая папка
+info_dialog_ok: ОК
+ignore_plugin_id_hint: Увядзі ID плагіна
+from_repo_chip: "З рэпазіторыя {repo_name}"
+pp_release_date: Дата выпуску
+pp_last_updated: Апошняе абнаўленне
+pp_archived_text: "Гэты плагін быў заархіваваны ўладальнікам {date}. Плагін больш не будзе абнаўляцца."
+pp_archived_hint: Плагін больш не будзе абнаўляцца. Але ён можа ўсё яшчэ працаваць.
+pp_closed_source_text: Гэты плагін з закрытым зыходным кодам. Вы адзіны адказны за яго выкарыстанне.
+pp_paid_text: Гэты плагін можа мець платныя функцыі.
+pp_not_ready: Гэта пакуль не гатова.
+pp_click_version_hint: Націсні на любую версію
+filter_tags_title: Тэгі
+filter_tag_unsorted: Несартавана
+filter_reset: Скінуць
+filter_authors_title: Аўтары
+filter_saved_title: Захаваныя плагіны
+filter_version_title: Версія дадатку
+pl_no_repos: Рэпазіторыі не наладжаны
+pl_load_failed: Не атрымалася загрузіць плагіны
+pl_repo_url_empty: URL рэпазіторыя пусты
+pl_download_error: Адбылася памылка падчас загрузкі
+il_no_repos: Рэпазіторыі не наладжаны
+il_load_failed: Не атрымалася загрузіць наборы іконак
+il_repo_url_empty: URL рэпазіторыя пусты
+il_download_error: Адбылася памылка падчас загрузкі
+core_failed_install_dialog: "Не атрымалася адкрыць дыялог усталявання: {error}"
+core_plugin_no_link: У плагіна няма спасылкі
+core_download_error: Адбылася памылка падчас загрузкі
+core_iconpack_no_link: У набора іконак няма спасылкі
+core_iconpack_http_error: "Загрузка не ўдалася: HTTP {code}"
+core_iconpack_read_failed: Не атрымалася прачытаць набор іконак
+core_iconpack_installed: "'{name}' усталявана"
+core_installation_failed: Усталяванне не ўдалася
+core_error_generic: "Памылка: {error}"
+core_install_sheet_failed: "Не атрымалася адкрыць ліст усталявання: {error}"
+core_iconpack_download_error: Адбылася памылка падчас загрузкі
+native_error_title: "Памылка ў native-бібліятэцы!"
+native_error_desc: "На жаль, адбылася памылка ў native-бібліятэцы {lib_name} :("
+native_report_bug: Паведаміць пра баг
+afp_problematic_plugins: Праблематычныя плагіны
+afp_copied: "Скапіявана!"
+afp_plugin_error: "Памылка ў плаціне {name}:"
+afp_rest_installed: Аднак астатнія плагіны былі паспяхова ўсталяваны.
+afp_copy_all_errors: Скапіяваць усе памылкі
+afp_import_success: "Імпарт паспяхова завершаны!"
+dl_repo_no_metadata: Рэпазіторый не мае метададзеных
+dl_repo_already_added: Рэпазіторый ужо дададзены
+dl_repo_not_found: "Рэпазіторый '{repo_id}' не знойдзены"
+dl_repo_url_empty: URL рэпазіторыя пусты
+dl_repo_http_error: "Не атрымалася загрузіць рэпазіторый: HTTP {code}"
+dl_plugin_not_found: "Плагін '{plugin_id}' не знойдзены"
+dl_plugin_load_error: Адбылася памылка падчас загрузкі плагіна
+dl_version_no_link: "Версія '{version_id}' не мае спасылкі"
+dl_version_not_found: "Версія '{version_id}' не знойдзена"
+dl_install_error: Адбылася памылка падчас загрузкі плагіна
+dl_iconpack_not_found: "Набор іконак '{icon_id}' не знойдзены"
+dl_iconpack_load_error: Адбылася памылка падчас загрузкі набора іконак
+dl_update_repo_no_url: "Рэпазіторый '{repo_id}' не мае URL"
+dl_update_repo_http_error: "HTTP {code}"
+dl_update_repo_no_meta: Рэпазіторый не мае метададзеных
+dl_packit_ok: ОК
+share_plugin_no_id: У плагіна няма id
+share_plugin_no_link: У плагіна няма спасылкі для загрузкі
+share_failed: Не атрымалася падзяліцца плагінам
+hash_label_sha256: "SHA-256"
+pce_plugin_name: Назва плагіна
+pce_version_author: "v1.0.0 • @author"
+pce_chips_info: + інфа
+pce_tags_placeholder: + тэгі
+pce_desc_preview: "Тэкст апісання плагіна, які паказваецца пад назвай і аўтарам."
+pce_chips_gravity: Гравітацыя чыпаў
+pce_gravity_left: Злева
+pce_gravity_center: Па цэнтры
+pce_gravity_right: Справа
+pce_color_label: Колер
+settings_free_space: "Вольна: {space}"
+il_icon_count: "{count} іконак"
+filter_version_or_higher: "{version} ці вышэй"
+filter_version_or_lower: "{version} ці ніжэй"
+date_ago_today: Сёння
+date_ago_yesterday: Учора
+date_ago_days: "{n} дзён таму"
+date_ago_month: "{n} месяц таму"
+date_ago_months: "{n} месяцаў таму"
+date_ago_year: "{n} год таму"
+date_ago_years: "{n} гадоў таму"
+deeplinks_docs_footer: "Поўная дакументацыя даступная [тут](https://github.com/shareui/packit/blob/main/docs/deeplinks.md) у markdown."
+updates_no_plugins_installed: Ты не ўсталяваў ніводнага плагіна з PackIt
+updates_all_up_to_date: Усе плагіны актуальныя
+updates_failed_to_check: Не атрымалася праверыць абнаўленні
+updates_title: Абнаўленні
+fs_rename: Перайменаваць
+fs_copy_path: Скапіяваць шлях
+fs_info: Інфармацыя
+fs_create: Стварыць
+info_copied: "{label} скапіявана ў буфер!"
+info_path: Шлях
+info_type_dir: Дырэкторыя
+info_type_file_ext: "Файл ({ext})"
+info_type_file: Файл
+info_items: Элементы
+info_content_size: Памер зместу
+info_size: Памер
+info_modified: Зменена
+info_created: Створана
+pp_forked_from: "Форк ад [{name}]({url})"
+pp_version_link_copied: "Спасылка з версіяй скапіявана ў буфер!"
+updates_btn_refresh: Абнавіць
+updates_btn_ignore: Ігнараваць
+updates_btn_update_all: Абнавіць усе
+updates_btn_ignore_list: Спіс ігнаравання
+updates_empty_title: "Усталюй плагіны!"
+updates_empty_available_chip: "Даступна для ўсталявання: {count} плагінаў"
+updates_up_to_date_title: "Усё актуальна!"
+updates_error_title: Нешта пайшло не так
+updates_stat_installed: Усталявана
+updates_stat_active: Актыўна
+updates_stat_packit: Праз PackIt
+report_dialog_title: Справаздача
+report_dialog_subtitle: "Калі ты паведамляеш пра плагін {name}, мадэратары адпаведнага рэпазіторыя, хутчэй за ўсё, разгледзяць гэта."
+report_dialog_select_reason: Выбяры прычыну
+report_dialog_describe: Апішы праблему
+report_dialog_submit: Адправіць на разгляд
+report_dialog_sent: "Справаздача паспяхова адпраўлена!"
+report_dialog_failed: Не атрымалася адправіць. Правер логі.
+report_dialog_missing_field: "Адсутнічае поле ў метаінфармацыі: {field}"
+updates_widget_up_to_date: Актуальна
+updates_widget_one_update: "{count} абнаўленне"
+updates_widget_many_updates: "{count} абнаўленняў"
+updates_widget_label: Даступныя абнаўленні
+updplugins_pill_stack_settings: Віджэт абнаўленняў
+updplugins_pill_stack_settings_desc: У спіс віджэтаў
+build_not_correct_title: Несумяшчальнасць
+build_not_correct_client: "Зборка прызначана для {app_name}, але твой кліент — {current_app_name}. Некаторыя функцыі могуць не працаваць."
+build_not_correct_version: "Зборка для версіі {build_version}, але версія твайго кліента — {client_version}. Некаторыя функцыі могуць не працаваць."
+build_not_correct_both: "Зборка для {app_name} {app_version}, але ты выкарыстоўваеш {current_app_name} {current_app_version}. Многія функцыі могуць не працаваць."
+build_not_correct_client_short: Гэтая зборка мэтава іншы кліент. Некаторыя функцыі могуць не працаваць.
+build_not_correct_version_short: Гэтая зборка мэтава іншую версію. Некаторыя функцыі могуць не працаваць.
+build_not_correct_both_short: Гэтая зборка мэтава іншы кліент і версію. Многія функцыі могуць не працаваць.
+build_not_correct_label_build: Мэта зборкі
+build_not_correct_label_yours: Твой кліент
+build_not_correct_list_of_versions: Спіс версій
+ai_search_input_hint: "Апішы плагін, і AI знойдзе яго..."
+ai_search_button: Пошук
+ai_key_not_configured: "Ключ: Не наладжаны"
+ai_search_title: "AI-пошук"
+ai_search_empty_hint: "Звярні на мяне ўвагу!!"
+ai_search_quota: Квота Gemini API перавышана. Паспрабуй пазней.
+ai_search_geo_error: Уключы VPN і паспрабуй зноў
+reset_gemini_cache: Скінуць кэш вынікаў
+reset_gemini_cache_desc: Скідае захаваныя вынікі
+gemini_cache_result: Кэшаваць вынік
+gemini_cache_result_desc: Эканоміць токены для ідэнтычных запытаў
+packit_verification: Верыфікацыя PackIt
+packit_verification_desc: "Адлюстроўвае людзей, звязаных з PackIt. Адключы, калі ёсць лагі пры адкрыцці верыфікаванага профілю."
+suggest_repo_not_found: Рэпазіторый не знойдзены
+suggest_missing_fields: Адсутнічаюць абавязковыя палі
+suggest_title: Прапанаваць
+suggest_upload_label: "Націсні, каб дадаць файл"
+suggest_upload_sub: Прычапі файл .plugin/.eaf
+suggest_back_button: Назад
+suggest_submit_title: Адправіць плагін на разгляд
+suggest_no_rules: Гэты рэпазіторый не мае правілаў
+suggest_rules_header: Пра ўхваленне
+suggest_rules_prefix: "Калі ласка, прачытай правілы гэтага рэпазіторыя:"
+suggest_file_selected: Файл выбраны
+suggest_add_another_file: Дадаць яшчэ файл
+suggest_description_hint: Увядзі апісанне...
+suggest_description_label: Апісанне
+suggest_social_links_label: Сацыяльныя спасылкі
+suggest_add_social_btn: Дадаць сацыяльную спасылку
+suggest_social_placeholder: "https://..."
+suggest_social_fill_first: Спачатку запоўні папярэднюю спасылку
+suggest_submit_btn: Адправіць на разгляд
+suggest_sending: Адпраўка...
+suggest_sent: Плагін паспяхова адпраўлены
+suggest_send_error: Не атрымалася адправіць. Паспрабуй пазней.
+suggest_no_config: Рэпазіторый не мае наладанай мэты для адпраўкі
+suggest_resolve_error: Не атрымалася знайсці акаўнт для адпраўкі
+suggest_forked_label: Форк
+suggest_forked_name_hint: Увядзі назву плагіна...
+suggest_forked_not_found: Плагін не знойдзены
+suggest_changelog_label: Чэйнджлог
+suggest_changelog_hint: "https://..."
+suggest_note_hint: "Калі хочаш, можаш пакінуць нататку для адміністратара..."
+suggest_save_title: Захаваць
+suggest_save_message: Ты захаваў сваё папярэдняе ўвядзенне.
+suggest_save_reset: Скінуць
+suggest_save_restore: Аднавіць
+suggest_source_code_label: Зыходны код
+suggest_source_code_hint: "Калі ваш праект на .py, можаце пакінуць гэты варыянт."
+suggest_source_for_moderation: Для мадэрацыі
+suggest_source_for_moderation_sub: Прымацуйце файл вышэй як дадатковы.
+suggest_source_for_everyone: Для ўсіх
+suggest_source_link_hint: Устаўце спасылку на Git/файл
+suggest_paid_label: Платны
+sec_packitkey_warning_title: ⚠ УВАГА
+sec_packitkey_warning_text: "Гэты плагін, верагодна, спрабуе атрымаць твой API-ключ, захаваны ў PackIt. Усталяванне настойліва не рэкамендуецца."
+contributor_translator: Перакладчык
+developer: Распрацоўшчык
+install_restart_required_title: Патрабуецца перазапуск
+install_restart_optional_title: Перазапуск рэкамендуецца
+install_restart_required_message: Гэты плагін патрабуе перазапуску кліента для карэктнай працы.
+install_restart_optional_message: Гэты плагін працуе лепш пасля перазапуску кліента. Можаш зрабіць гэта зараз ці прапусціць.
+translate_pending_1: "Перакладаю, хвілінку..."
+translate_pending_2: Шукаю правільныя словы...
+translate_pending_3: "Хм, зараз перакладу..."
+translate_pending_4: Ідзе пераклад...
+translate_pending_5: Пінчаю перакладчыка...
+translate_pending_6: Буджу перакладчыка...
+translate_pending_7: "Спрабую зразумець, што тут увогуле напісана..."
+translate_pending_8: "Ламаю моўны бар'ер... :3"
+sponsors: Спонсары
+pp_team_title: Удзельнікі
+role_maintainer: Куратар
+role_developer: Распрацоўшчык
+role_designer: Дызайнер
+role_founder: Заснавальнік
+achiev_title_secret_connect_is_bullshit: Усе мы ненавідзім Connect
+achiev_hint_secret_connect_is_bullshit: "Малююць багіню Умі Асанагі, не ведаючы анатомію чалавека... Гарэць ім у пекле."
+pp_closed_source_moderated: "Закрыты зыходны код, але з мадэрацыяй, таму вы ў бяспецы."
+beta_build_title: "Бэта-зборка"
+beta_build_msg: "Вы не тэсціроўшчык, вам не варта было ўсталёўваць PackIt."
+delete_packit: Выдаліць PackIt
+pp_section_about: Аб праекце
+pp_source_code: Зыходны код
+pp_not_provided: Не пазначана
+pp_license: Ліцэнзія
+pp_no_license: Няма ліцэнзіі
+pp_languages: Мовы
+pp_clients: Кліенты
+debug_menu: Меню адладкі
+debug_menu_desc: Меню для адладкі
+debug_logs: Логі адладкі
+debug_logs_desc: Уключае логі адладкі для дыягностыкі
+write_logs: Запісваць логі ў файл
+write_logs_desc: Захоўвае ўсе логі ў latestlog.txt у дырэкторыі кэша PackIt
+clean_logs: Ачышчаць логі пры запуску
+clean_logs_desc: Ачышчае файл логаў пры кожным новым запуску
+view_latestlog: Прагледзець файл логаў
+send_latestlog: Адправіць latestlog як файл
+copy_latestlog_path: Скапіяваць шлях да latestlog
+copy_latestlog_path_desc: Капіюе абсалютны шлях у буфер абмену
+copy_latestlog_path_done: Шлях скапіяваны ў буфер абмену
+force_clean_log: Прымусовая ачыстка
+force_clean_log_desc: Ачышчае latestlog.txt
+force_clean_log_done: Файл логаў ачышчаны
+force_clean_log_error: Не ўдалося ачысціць файл логаў
+debug_clearing_header: Ачыстка логаў
+debug_perf_warning: Выкарыстанне гэтай налады можа знізіць прадукцыйнасць. Выкарыстоўвайце толькі пры неабходнасці.
+bi_header: Інфармацыя пра прыладу
+bi_manufacturer: Вытворца
+bi_model: Мадэль
+bi_android_version: Версія Android
+bi_sdk_version: Версія SDK
+bi_abi: Архітэктура
+bi_root_status: Статус рута
+bi_root_yes: Так
+bi_root_no: Не
+bi_app_version: Версія праграмы
+bi_app_package: Пакет праграмы
+plus_sponsor: + Спонсар
+repo_card_status_missing: Не загружаны
+repo_card_plugins: "{0} плагінаў"
+repo_card_icons: "{0} набораў"
+repo_card_installed: "Усталявана: {0}"
+repo_edit: Змяніць
+repo_copy_link: Скапіяваць спасылку
+repos_updating: Абнаўленне крыніц…
+repo_add_sheet_title: Новая крыніца
+repo_add_sheet_subtitle: Устаўце спасылку на repomap.json
+repo_add_field_url: Спасылка
+repo_sheet_edit_title: Змяніць крыніцу
+repo_sheet_edit_sub: Назва і спасылка
+repo_err_empty: Увядзіце спасылку
+repo_err_name_empty: Увядзіце назву
+repo_err_scheme: "Спасылка мусіць пачынацца з https://"
+repo_err_duplicate: Гэтая крыніца ўжо дададзена
+repo_err_not_found: Файл не знойдзены
+repo_err_forbidden: Доступ забаронены
+repo_err_rate_limited: "Занадта шмат запытаў, паспрабуйце пазней"
+repo_err_redirect: Спасылка перанакіроўвае — патрэбна простая спасылка на файл
+repo_err_timeout: Час чакання скончыўся
+repo_err_server: Памылка на баку сервера
+repo_err_http: "Сервер адказаў: {0}"
+repo_err_json: Файл не з'яўляецца карэктным JSON
+repo_err_meta: У файле няма блока repometa
+repo_err_rid: У repometa няма rm_rid
+repo_err_name: У repometa няма rm_name
+repo_err_cache: Не атрымалася захаваць кэш
+repo_err_network: Няма злучэння
+repo_err_unknown: "Невядомая памылка: {0}"
+repos_empty_title: Пакуль пуста
+repos_empty_text: "Дадайце крыніцу, каб ставіць плагіны"
+repos_manage: Кіраванне
+retry: Паўтарыць
+repo_default_already: Стандартная крыніца ўжо на месцы
+repo_link_shared: Спасылка на крыніцу адпраўлена
