@@ -1,7 +1,7 @@
 [metadata]
 title = "PackIt"
 description = "{plugin_description} [shareui/packit-source](https://github.com/shareui/packit-source)"
-id = "packitX_packit"
+id = "shareui_packit"
 version = "1.0.0-dev.1-crul"
 version_num = 1
 author = "@packitX"
@@ -37,6 +37,7 @@ opt = 2
 remove_pymeta = true # randomising: co_filename, co_firstlineno, co_linetable, co_name, co_qualname,
 pycompile = true
 include = ["packit/**/*"]
+execlude = []
 
 [build.asmdbg]
 path = "cruel/builds/asmdbg.py"
@@ -44,6 +45,7 @@ opt = 0
 remove_pymeta = false # randomising: co_filename, co_name, co_qualname, co_firstlineno, co_linetable
 pycompile = false
 include = ["packit/**/*"]
+execlude = []
 
 # flags
 [flags.asmrel]
