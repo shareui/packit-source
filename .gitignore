@@ -8,10 +8,8 @@ utilities/
 /native-build/
 libs/build-arm64-v8a/*
 libs/build-armeabi-v7a/*
+**/*.egg-info/*
 
-# Kotlin -> dex build output and caches (see scripts/kotlin-build.sh).
-# The final dexes are committed under packit/dex/<abi>/, but the build
-# workspace (compiled stubs/classes, intermediate dex, R8 rules) is not.
 kotlin-build/
 kotlin/**/*.class
 

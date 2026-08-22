@@ -20,9 +20,9 @@ from .integrations.chat.inline.EnterView import (
     _packit_send_plugin_info
 )
 
+    
 CHECK_PATHS = False
 RENAME_PACKITCACHE = False
-
 
 def _clearLatestLog():
     try:
