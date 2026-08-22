@@ -38,7 +38,8 @@ remove_pymeta = true # randomising: co_filename, co_firstlineno, co_linetable, c
 pycompile = true
 include = ["packit/**/*"]
 exclude = ["packit/src/cxx", "packit/src/kotlin", "packit/src/wheels"]
-build_schema_version = 1
+build_schema_version = 6
+ref = "asmrel"
 
 [build.asmdbg]
 path = "cruel/builds/asmdbg.py"
@@ -47,7 +48,18 @@ remove_pymeta = false # randomising: co_filename, co_name, co_qualname, co_first
 pycompile = true
 include = ["packit/**/*"]
 exclude = ["packit/src/cxx", "packit/src/kotlin", "packit/src/wheels"]
-build_schema_version = 1
+build_schema_version = 6
+ref = "asmdbg"
+
+[build.asmtest]
+path = "cruel/builds/asmtest.py"
+opt = 0
+remove_pymeta = false
+pycompile = false
+include = []
+exclude = []
+ref = "asmrel"
+build_schema_version = 6
 
 # flags
 [flags.asmrel]
