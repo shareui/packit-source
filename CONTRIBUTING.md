@@ -1,49 +1,69 @@
 # Contributing
 
-## Where things live
+## Where things located
 
 ```
 packit/
-  meta.yml          plugin name, id, version, minimum client and SDK
-  locales/          strings_{en,ru,de,be}.json — the only place UI text belongs
-  res/              fonts, sounds, drawables shipped with the plugin
+  locales/          strings_{en,ru,de,be}.yml — the only place UI text belongs
+  res/              fonts, sounds, videos, drawables shipped with the plugin
   dex/              packit.dex — all of kawaii.packetik, built from src/kotlin
   native/           .so files per ABI
+  wheels/           built packutil wheel
   src/
-    python/         the plugin itself, everything below
+    python/         the plugin itself, everything below — the package root
     kotlin/         src/ and the compile-only Xposed stubs
+    cxx/            native libraries, one folder per lib, built via CMake
+    wheels/         python packages built into wheels, e.g. packutil
 
-scripts/            one-off tooling; yours goes in scripts/{username}/
-  linux/kotlin-build.sh   Kotlin -> packit/dex/packit.dex
-  linux/build-native.sh   C -> packit/native/<abi>/
+jars/               prebuilt .jar stubs (kotlin-stdlib, etc)
 ```
 
-`src/` holds one folder per language the plugin is written in, and `src/python`
-is the package root — the path `refmap.yml` and the builder's `source:` both
-point at. Move it and those two have to move with it.
+`jars/` is for stub jars under 15mb only. Above that, hand-write a stub instead
+— a jar that size bloats the repo more than a stub costs to write.
 
-There is one dex, not one per Kotlin package. R8 emits a single `classes.dex`
-from all of the sources, so splitting it by name only ever shipped the same
-bytes several times over. Add a class under `kawaii.packetik.*`, rerun
-`kotlin-build.sh`, and reach it from `core/DexLoader.py` by its fully qualified
-name — nothing else needs to change.
+`src/` holds one folder per language; `src/python` is the package root the
+builder's `source:` points at, so moving it means moving the builder config too.
 
-It is laid out by what a module *is*, not by which client screen it happens to
-touch:
+### `src/` layout by language
+
+- **`src/python`** — the plugin itself. Core source.
+- **`src/kotlin`** — the dex part. `src/kotlin/src` compiles into
+  `packit/dex/packit.dex`; `src/kotlin/stubs` are compile-only Xposed stubs.
+  Kotlin only, except stubs where Java is fine (nothing substantial goes there).
+- **`src/cxx`** — C/C++, one folder per library (`libachiv`, `libscl`, ...),
+  each with its own `CMakeLists.txt`. Builds go through CMake, not ad-hoc
+  compiler invocations.
+- **`src/wheels`** — Python packages built into `.whl` and installed for
+  import anywhere in the project, e.g. `packutil`.
+- **any other language** (Rust, Go, etc.) — `src/{lang}/{projectname}`, create
+  the folder if needed. File placement follows the entry point/config file,
+  or the language governing the surrounding code; with no config file, wherever
+  that language has the most code.
+
+Every native library except `libpackitkey` is built from its sources in this
+repo — no other checked-in prebuilt binaries. `libpackitkey` is closed-source,
+restored only from cache or from what's already in `packit/native/`; see
+`packit/src/cxx/libpackitkey/info.txt` for why.
+
+A library's upstream source location (if pulled in rather than written here)
+is tracked in `curl.toml`, not in code. Update that entry if the upstream moves.
+
+There is one dex, not one per Kotlin package — R8 emits a single `classes.dex`,
+so splitting by name just shipped the same bytes repeatedly. Add a class under
+`kawaii.packetik.*`, rebuild (see Build system), reach it from
+`core/DexLoader.py` by fully qualified name — nothing else changes.
+
+`src/python` is laid out by what a module *is*, not which client screen it touches:
 
 ```
 src/python/
   BasePlugin.py     the entry point — the class the loader looks for
   Main.py           startup, hooks, lifecycle
 
-  core/             installing and removing plugins, loading dexes and native
-                    libraries, the repository list itself
+  core/             installing and removing plugins, loading dexes and native libraries, the repository list itself
   network/          everything that goes over the wire to a repository
-  utils/            helpers with no UI of their own, including where files
-                    live on disk
-  scl/              the TOML parser (native-backed) used for .afp files and
-                    plugin export
-
+  utils/            helpers with no UI of their own, including where files live on disk
+  scl/              the TOML parser (native-backed) used for .afp files and plugin export
   ui/               the plugin's own screens
     MainActivity.py   builds the plugin's settings root
     components/       pieces screens are assembled from — never a screen
@@ -51,13 +71,11 @@ src/python/
     settings/         the plugin's settings pages
     plugins/ plugin/ icons/ repos/ updates/ files/
     achievements/ contributors/ suggest/
-
   integrations/     code that reaches into a screen the *client* owns
     chat/             the chat screen: import sheets, inline mode, security
     chatlist/         the dialogs list: buttons, widgets, update sheet
     hooks/            hooks into the client's own settings and fragments
     decorations/      badges and title icons drawn into client UI
-
   deeplinks/        one module per tg://packit?… route, dispatched by
                     DeepHandler
 ```
@@ -77,24 +95,21 @@ src/python/
 | A pure helper — parsing, hashing, paths, formatting | `utils/` |
 | Anything that downloads from a repository | `network/Storage.py` — do not add a second one |
 | Anything that reads `reposCache/{rm_rid}.json` | `utils/CachedRepos.py` — same rule |
-| User-visible text | `packit/locales/strings_*.json`, all four in lockstep |
+| User-visible text | `packit/locales/strings_*.yml`, all four in lockstep |
 
-If a file does not obviously belong anywhere, that is usually a sign it does
-two things. Split it before inventing a folder for it.
+A file with no obvious home is usually doing two things — split it before inventing a folder.
 
 ### Naming
 
 - **Folders are lowercase**, no separators: `ui/plugins`, `integrations/chatlist`.
 - **Modules are PascalCase**: `CachedRepos.py`, `AddSheet.py`, `EnterView.py`.
-- Two names are fixed and must not be renamed: `BasePlugin.py`, which
-  `refmap.yml` and the builder's `compilationIgnore` both point at by path, and
-  `__init__.py`, which is Python's.
+- Fixed, never renamed: `BasePlugin.py` (builder's `compilationIgnore` points
+  to it by path) and `__init__.py` (Python's).
 
 ### Imports
 
 All imports inside `src/python` are relative — `from ..utils import Paths`,
-never an absolute path from the package root. When you move a file, remember that
-the number of dots changes with its depth.
+never absolute from the package root. Moving a file changes the dot count.
 
 Two modules are the only way to reach a repository, and which one you want is
 readable from the call:
@@ -113,79 +128,81 @@ plugins, error = Storage.fetch_plugins(url)
 
 **Always use `logx` from `packutil` for all logs. Never use `log` from `android_utils` directly.**
 
-```python
-from packutil import logx
-```
+Full reference and docs: `docs/packutil.md` file.
 
----
+## Build system
 
-### When to use `isDebug=True` vs `isDebug=False`
+See [README.md](README.md#building) for what to install. This section covers
+how the pieces are wired — useful if touching the build itself.
 
-The rule is simple: think about who the log is for.
+`asmdbg`/`asmrel` (`cruel/builds/asmdbg.py`, `cruel/builds/asmrel.py`) are
+`cruel`'s own pipelines: validate config, validate references, validate
+pypi/whl requirements, validate python syntax/imports/strings, generate warns,
+compile python source, pack assets, pack into the cruel container, link
+sections, optionally adb-push. Each step has a `before_<step>`/`after_<step>`
+hook `cruel` calls if defined.
 
-**`isDebug=False` — always shown. Use for errors and unexpected states.**
+PackIt's hooks live in `cruel/builds/custom/asmdbg.py` and `asmrel.py`, both
+importing shared helpers from `cruel/builds/custom/_b.py` (`import _b as nb`)
+to build the non-python parts at the right pipeline point:
 
-These are logs that help a user report a bug. Something went wrong, an exception was caught, a critical path failed. The user should be able to open logcat, find this line, and send it in a bug report.
-
-```python
-try:
-    result = do_something()
-except Exception as e:
-    logx(f"module: do_something failed: {e}", False)
-```
-
-**`isDebug=True` — shown only when Debug Logs switch is enabled. Use for informational flow.**
-
-These are logs that describe what the code is doing: a value was loaded, a step completed, a branch was taken. They are useful during development or when diagnosing a specific issue, but not useful to an average user. They add noise and should be hidden by default.
-
-```python
-logx(f"module: loaded config, entries={len(entries)}", True)
-logx(f"module: cache hit for key={key}", True)
-```
-
-**Quick rule:**
-
-| Log contains `{e}` or describes a failure | `isDebug=False` |
+| Hook | Does |
 |---|---|
-| Log describes normal flow or state | `isDebug=True` |
+| `before_validate_whl` | builds the `packutil` wheel (`nb.build_packutil_wheel`) |
+| `before_compile_src` | checks NDK/cmake (`nb.check_native_deps`), then builds the native `.so` libs (`nb.build_native_libs`) |
+| `after_compile_src` | checks Android SDK/kotlinc/javac (`nb.check_kotlin_deps`), then builds `packit.dex` (`nb.build_kotlin_dex`) |
+| `after_link_sections` | removes generated build artifacts from the source tree (`nb.clean_build_artifacts`) |
+
+All other hooks in `asmdbg.py`/`asmrel.py` are no-ops (`return True`) —
+extension points, nothing runs there today.
+
+If a `before_*`/`after_*` hook returns `False`, `cruel` aborts immediately;
+`clean_build_artifacts` still runs, so a failed build never leaves half-built
+`.so`/`.dex`/`.whl` files in `packit/`.
+
+**Caching.** `_b.py` hashes each library's/module's source tree (`cruel
+__bithash`) against the last recorded hash. Unchanged sources are restored
+from `cruel/local/{so,dex,wheels}` instead of rebuilt. `libpackitkey.so` is the
+exception — never compiled here, only carried forward from cache (or from
+`packit/native/`) so it survives `clean_build_artifacts`.
+
+**`asmdbg` vs `asmrel`.** Same native/kotlin/wheel steps. Differences live in
+`cruel.toml`: `asmrel` compiles with `opt = 2` and strips `pymeta`, `asmdbg`
+doesn't; only `asmrel` is signed with the developer key from `crulw key-gen`.
+
+Document new hooks/build steps here as the build system grows.
 
 ---
 
-### `logx` reference
+## Pull requests
 
-```python
-from packutil import logx
-
-logx(msg: str, isDebug: bool)
-```
-
-| Parameter | Type | Description |
-|---|---|---|
-| `msg` | `str` | The log message |
-| `isDebug` | `bool` | `True` = shown only when Debug Logs is enabled. `False` = always shown. |
-
-Internally `logx` calls `android_utils.log()`. When `isDebug=True` and the Debug Logs switch (Settings → Debug menu → Debug logs) is off, the call is a no-op.
-
----
-
-### Examples
-
-```python
-from packutil import logx
-
-# always shown: exception caught, user may need to report this
-try:
-    data = fetch_data()
-except Exception as e:
-    logx(f"repo: fetch_data error: {e}", False)
-
-# debug only: routine info, hidden from normal users
-logx(f"repo: fetch_data returned {len(data)} items", True)
-logx(f"repo: cache miss, fetching from network", True)
-```
-
----
-
-### Scripts
-
-If you need to use the script for yourself, either create a directory `scripts/{username}/` or add it to `.gitignore`
+- **No hardcoded UI strings.** Everything user-visible goes through
+  `packit/locales/strings_*.yml`, at minimum in English (see [Where do I put a
+  new file?](#where-do-i-put-a-new-file)). Exceptions: log messages (plain
+  English, not localized) and names (plugins, classes, identifiers).
+- **No empty excepts.** Every `except` needs at least `logx(f"...{e}", False)`
+  — see [Logging](#logging). Never swallow silently.
+- **AI-written code must be tested, at minimum, before opening a PR.** Human
+  review is better than testing alone; testing alone is the floor, not untested.
+- **New dependency, or anything that changes what gets built?** Update the
+  custom build scripts to match (see [Build system](#build-system)). A PR
+  adding a library the build doesn't know about isn't done.
+- **In `cruel/builds/`, only touch `cruel/builds/custom/` and `_b.py`**, or add
+  your own alongside them. Don't edit `cruel`'s own pipeline files
+  (`asmdbg.py`/`asmrel.py` at top level, `tasks/`).
+- **Architecture changes get discussed first.** New layers, new patterns, or
+  moves across the language/module boundaries above — raise it at
+  [shareui](https://t.me/shareui) before writing the code, not after.
+- **Follow the naming rules and existing structure** (see
+  [Naming](#naming), [Where things located](#where-things-located)). No
+  parallel conventions for one PR's convenience.
+- **No closed-source libraries.** `libpackitkey` is the sole exception to
+  [every native library builds from its own sources here](#src-layout-by-language) —
+  a PR doesn't add a second one.
+- **Use `logx` correctly.** Not `log` from `android_utils`, and not with
+  `isDebug` backwards — see [Logging](#logging) and [packutil.md](packutil.md).
+- **Non-plugin-specific helpers belong in `packutil`**, not scattered through
+  `src/python/utils/` — see [`src/wheels`](#src-layout-by-language).
+- **Think before you write.** No sloppy code shipped just because it ran once.
+  Unsure of the approach? Ask at [shareui](https://t.me/shareui) before
+  writing, not instead of writing it properly.

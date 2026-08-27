@@ -5,13 +5,13 @@ builds/
 utilities/
 **/CMakeCache.txt
 **/CMakeFiles/
-/native-build/
-libs/build-arm64-v8a/*
-libs/build-armeabi-v7a/*
+**/native-build/
+**/libs/build-arm64-v8a/*
+**/libs/build-armeabi-v7a/*
 **/*.egg-info/*
 
-kotlin-build/
-kotlin/**/*.class
+**/kotlin-build/
+**/kotlin/**/*.class
 
-# cruel/local/*
+# **/cruel/local/*
 cruel/*
