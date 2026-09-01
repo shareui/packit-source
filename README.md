@@ -80,11 +80,7 @@ you don't get a build partway through and then a cryptic compiler error.
 
 ### Debug build
 
-Install the cruel wrapper package:
-
-```sh
-pip install cruel-wrapper
-```
+Install the cruel wrapper package: [crulw-releases](https://github.com/exteraSquad/crulw-releases/releases)
 
 Make sure the requirements above (NDK, Android SDK, kotlinc, JDK, build) are
 installed and discoverable, then run:

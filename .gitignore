@@ -1,5 +1,8 @@
-# temp **/cruel/local/*
-cruel/*
+# cruel local dir
+**/cruel/local/*
+
+# temp
+**/cruel/configs/chaquo.toml
 
 # build artifacts: chaquopy
 packit/src/python/**/*.c
@@ -39,3 +42,4 @@ tools/result/unique_imports.py
 # build artifacts: kotlin
 **/kotlin-build/
 **/kotlin/**/*.class
+**/__pycache__/*
