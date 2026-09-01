@@ -38,7 +38,8 @@ def _init_classes():
         except Exception:
             pass
         return True
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"[Packit Badges] _init_classes error: {e}", False)
         return False
 
@@ -50,7 +51,8 @@ def _make_drawable(name_view, index):
         d = _SwapDrawable(name_view, size, cache_type)
         d.offset(0, AndroidUtilities.dp(1))
         return d
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"[Packit Badges] _make_drawable [{index}] error: {e}", False)
         return None
 
@@ -116,7 +118,8 @@ class _UpdateProfileDataHook(MethodHook):
                 d.set(emoji_id, False)
                 name_view.setLeftDrawableOutside(True)
                 name_view.setLeftDrawable(d)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"[Packit Badges] ProfileDataHook error: {e}", False)
 
 
@@ -132,6 +135,7 @@ def setup_profile_title_icon_hook(plugin, cache_lookup):
         else:
             logx("[Packit Badges] updateProfileData hook failed", True)
         return refs or []
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"[Packit Badges] profile title icon setup error: {e}", False)
         return []

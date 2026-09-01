@@ -10,7 +10,8 @@ import ctypes
 
 try:
     from org.telegram.messenger import ApplicationLoader, UserConfig
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"achievements: import failed: {e}")
     from ....utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 
@@ -40,7 +41,8 @@ def _load_achievements() -> list:
 
 try:
     ACHIEVEMENTS = _load_achievements()
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"achievements: failed to load achievList asset: {e}", False)
     ACHIEVEMENTS = []
 
@@ -73,7 +75,8 @@ def _get_current_account_id() -> str:
         account = getattr(UserConfig, "selectedAccount", 0)
         user_id = UserConfig.getInstance(account).getClientUserId()
         return _hash_account_id(user_id)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"achievements._get_current_account_id: {e}", False)
         return "0"
 
@@ -109,7 +112,8 @@ def _open_db_from_file(path: str, account_id: str):
     compressed = bytes(buf[:out_len.value])
     try:
         raw = zlib.decompress(compressed)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"packitdb: decompress error: {e}", False)
         return None
     raw_buf = (ctypes.c_uint8 * len(raw))(*raw)
@@ -378,7 +382,8 @@ def _show_achievement_bulletin(achievement: dict, on_hide=None):
             def run(self):
                 try:
                     self._fn()
-                except Exception as _e:
+                except Exception as _cython_exc__e:
+                    _e = _cython_exc__e
                     logx(f"achievements: bulletin runnable error: {_e}", True)
 
         def show():
@@ -397,7 +402,8 @@ def _show_achievement_bulletin(achievement: dict, on_hide=None):
                 R_tg = find_class("org.telegram.messenger.R")
                 icon_res = getattr(R_tg.drawable, icon_name)
                 drawable = ContextCompat.getDrawable(ctx, icon_res)
-            except Exception as _e:
+            except Exception as _cython_exc__e:
+                _e = _cython_exc__e
                 logx(f"achievements: bulletin icon error: {_e}", True)
                 drawable = None
 
@@ -419,7 +425,8 @@ def _show_achievement_bulletin(achievement: dict, on_hide=None):
             bulletin.show(True)
 
         run_on_ui_thread(show)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"achievements._show_achievement_bulletin: error: {e}", False)
 
 
@@ -429,7 +436,8 @@ def _play_achievement_sound():
         from elyx import assets
         sound_path = assets.sounds.received_achievement.path_str
         playSound(sound_path, "sfx_achievement", check_pending=False, default=True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"achievements._play_achievement_sound: error: {e}", False)
 
 
@@ -447,7 +455,8 @@ def _show_achievement_queue(queue: list):
         from elyx import settings
         if settings.get("disable_achievements_notify", False):
             return
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"achievements._show_achievement_queue: settings check error: {e}", False)
     a = queue[0]
     rest = queue[1:]
@@ -557,5 +566,6 @@ def sync_accounts():
             if instance.isClientActivated():
                 active_ids.add(_hash_account_id(instance.getClientUserId()))
         logx(f"achievements.sync_accounts: active accounts={len(active_ids)}", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"achievements.sync_accounts: {e}", False)

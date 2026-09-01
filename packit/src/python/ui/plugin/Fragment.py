@@ -15,23 +15,28 @@ from hook_utils import find_class
 from java import dynamic_proxy
 try:
     from elyx import strings, settings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"pluginProfile: import elyx failed: {e}")
 try:
     from org.telegram.ui.ActionBar import Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"pluginProfile: import Theme failed: {e}")
 try:
     from org.telegram.ui.Components import LayoutHelper, BackupImageView
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"pluginProfile: import LayoutHelper failed: {e}")
 try:
     from org.telegram.messenger import AndroidUtilities, MediaDataController, ImageLocation
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"pluginProfile: import AndroidUtilities failed: {e}")
 try:
     from com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"pluginProfile: import UniversalFragment failed: {e}")
 
 
@@ -52,7 +57,8 @@ def _read_saved_plugins() -> list:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
         return data if isinstance(data, list) else []
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"pluginProfile: _read_saved_plugins: {e}", False)
         return []
 
@@ -62,7 +68,8 @@ def _write_saved_plugins(ids: list):
     try:
         with open(_get_saved_plugins_path(), "w", encoding="utf-8") as f:
             json.dump(ids, f, ensure_ascii=False)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"pluginProfile: _write_saved_plugins: {e}", False)
 
 
@@ -77,7 +84,8 @@ def _add_actionbar_glow(fv):
         overlay.setBackground(glow)
         overlay.setClickable(False)
         fv.addView(overlay, LayoutHelper.createFrame(-1, 24, 0x30, 0, 0, 0, 0))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"pluginProfile: _add_actionbar_glow: {e}", False)
 
 
@@ -92,26 +100,30 @@ def _add_bottom_glow(fv):
         overlay.setBackground(glow)
         overlay.setClickable(False)
         fv.addView(overlay, LayoutHelper.createFrame(-1, 24, 0x50, 0, 0, 0, 0))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"pluginProfile: _add_bottom_glow: {e}", False)
 
 try:
     from org.telegram.messenger.browser import Browser
     from android.net import Uri
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"pluginProfile: import Browser failed: {e}")
     Browser = None
     Uri = None
 
 try:
     from org.telegram.ui.ActionBar import ActionBarPopupWindow
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"pluginProfile: import ActionBarPopupWindow failed: {e}")
     ActionBarPopupWindow = None
 
 try:
     from androidx.core.content import ContextCompat
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"pluginProfile: import ContextCompat failed: {e}")
     ContextCompat = None
 
@@ -122,7 +134,8 @@ except Exception:
 
 try:
     from android.graphics import Color as AColor, PorterDuff
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"pluginProfile: import AColor failed: {e}")
     AColor = None
     PorterDuff = None
@@ -163,7 +176,8 @@ def _scroll_to_child(scroll, target):
                 pass
             view = parent
         scroll.smoothScrollTo(0, max(0, y - AndroidUtilities.dp(12)))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"pluginProfile: scroll to child error: {e}", False)
 
 
@@ -262,11 +276,13 @@ def _pp_fetch_user(user_id, on_done):
                     if objects.size() > 0:
                         user = objects.get(0)
                         mc.putUser(user, False)
-                except Exception as _e:
+                except Exception as _cython_exc__e:
+                    _e = _cython_exc__e
                     logx(f"pluginProfile: _pp_fetch_user putUser error: {_e}", True)
                 run_on_ui_thread(lambda: on_done(user))
             send_request(req, _on_resp)
-        except Exception as _e:
+        except Exception as _cython_exc__e:
+            _e = _cython_exc__e
             logx(f"pluginProfile: _pp_fetch_user outer error: {_e}", True)
             run_on_ui_thread(lambda: on_done(None))
     from client_utils import run_on_queue
@@ -311,9 +327,11 @@ def _pp_open_profile(act, user_id, username):
                 args = Bundle()
                 args.putLong("user_id", int(user_id))
                 frag.presentFragment(ProfileActivity(args))
-            except Exception as _fe:
+            except Exception as _cython_exc__fe:
+                _fe = _cython_exc__fe
                 logx(f"pluginProfile: _pp_open_profile fallback error: {_fe}", True)
-    except Exception as _e:
+    except Exception as _cython_exc__e:
+        _e = _cython_exc__e
         logx(f"pluginProfile: _pp_open_profile error: {_e}", True)
 
 
@@ -440,7 +458,8 @@ def _build_team_card(act, root, team):
                         uh[0] = username
                         ntv.setText(name)
                         r.setVisibility(View.VISIBLE)
-                    except Exception as _e:
+                    except Exception as _cython_exc__e:
+                        _e = _cython_exc__e
                         logx(f"pluginProfile: team _on_user error: {_e}", True)
                     try:
                         if im is not None and user is not None:
@@ -460,7 +479,8 @@ def _build_team_card(act, root, team):
             _pp_fetch_user(user_id, _make_on_user(row, name_tv, img, _username_holder))
 
         root.addView(card, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0, 10))
-    except Exception as _e:
+    except Exception as _cython_exc__e:
+        _e = _cython_exc__e
         logx(f"pluginProfile: _build_team_card error: {_e}", True)
 
 
@@ -492,7 +512,8 @@ def _show_plugin_menu(act, p, anchor_view, repo_id: str = ""):
                 def run(self):
                     try:
                         fn()
-                    except Exception as _e:
+                    except Exception as _cython_exc__e:
+                        _e = _cython_exc__e
                         logx(f"pluginProfile: menu action error: {_e}", True)
             return _R()
 
@@ -506,7 +527,8 @@ def _show_plugin_menu(act, p, anchor_view, repo_id: str = ""):
             try:
                 from ..achievements.service.AchivementsEngine import increment_category
                 increment_category("Copying links")
-            except Exception as _ae:
+            except Exception as _cython_exc__ae:
+                _ae = _cython_exc__ae
                 logx(f"pluginProfile: achievement increment error: {_ae}", True)
             try:
                 from hook_utils import find_class as _fc
@@ -523,7 +545,8 @@ def _show_plugin_menu(act, p, anchor_view, repo_id: str = ""):
                     icon_raw,
                     str(strings["link_copied"])
                 ).show()
-            except Exception as _be:
+            except Exception as _cython_exc__be:
+                _be = _cython_exc__be
                 logx(f"pluginProfile: copy bulletin error: {_be}", True)
 
         swipeback = options.makeSwipeback()
@@ -554,7 +577,8 @@ def _show_plugin_menu(act, p, anchor_view, repo_id: str = ""):
         options.setSwipebackGravity(True, False)
         options.show()
         logx("pluginProfile: _show_plugin_menu shown", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"pluginProfile: _show_plugin_menu error: {e}", False)
 
 
@@ -586,7 +610,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         try:
             from ..achievements.service.AchivementsEngine import unregister_bulletin_container
             unregister_bulletin_container(self.content_view)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginProfile: unregister_bulletin_container error: {e}", False)
         self._alive[0] = False
         try:
@@ -607,7 +632,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     parent.removeView(self.content_view)
                 self.content_view = None
                 logx("pluginProfile: content_view removed and nulled", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginProfile: onFragmentDestroy removeView error: {e}", False)
 
     def getTitle(self):
@@ -643,7 +669,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     fragment = get_last_fragment()
                     if fragment:
                         fragment.finishFragment()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"pluginProfile: failed to finish fragment: {e}", False)
             return
         if mid != self._MENU_ID:
@@ -656,7 +683,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 return
             act = frag.getParentActivity()
             _show_plugin_menu(act, self.plugin, anchor, repo_id=self.repo_id)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginProfile: onMenuItemClick error: {e}", False)
 
     def beforeCreateView(self):
@@ -667,7 +695,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 if parent is not None:
                     parent.removeView(self.content_view)
                     logx("pluginProfile: beforeCreateView removed stale content_view", True)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"pluginProfile: beforeCreateView stale cleanup error: {e}", False)
             self.content_view = None
         frag = get_last_fragment()
@@ -690,7 +719,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
         try:
             from ..achievements.service.AchivementsEngine import register_bulletin_container
             register_bulletin_container(self.content_view)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginProfile: register_bulletin_container error: {e}", False)
 
         try:
@@ -950,7 +980,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 raw = _ExteraConfig.squareFab
                 squareFab = bool(raw)
                 logx(f"pluginProfile: squareFab raw={raw} type={type(raw)} bool={squareFab}", True)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"pluginProfile: squareFab read error: {e}", False)
 
             def _make_fab_bg(color, size_dp, isSquare):
@@ -1045,7 +1076,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                                 _btn.addView(pb, pb_lp)
                         else:
                             _btn.addView(_label, FrameLayout.LayoutParams(circle_size, circle_size))
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"pluginProfile: _set_loading error: {e}", False)
 
                 def _do_install(_p, _install_ui, _all, _btn, _label, _btn_text_color, _act,
@@ -1128,10 +1160,12 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                                 hint.setJointPx(0.0, float(-AndroidUtilities.dp(32)) + center_x)
                                 hint.setDuration(3500)
                                 hint.show()
-                            except Exception as e:
+                            except Exception as _cython_exc_e:
+                                e = _cython_exc_e
                                 logx(f"pluginProfile: unavail hint position error: {e}", False)
                         run_on_ui_thread(_position)
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"pluginProfile: unavail hint error: {e}", False)
 
             # attach install button as FAB in bottom-right of content_view
@@ -1192,7 +1226,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                             _btn.addView(pb, pb_lp)
                     else:
                         _btn.addView(_label, FrameLayout.LayoutParams(sz, sz))
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"pluginProfile: _set_loading_fab error: {e}", False)
 
             # rebind click handler to use fab-aware loader and label
@@ -1322,7 +1357,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 bg = _make_circle_bg(fill)
                 if bg:
                     save_btn_hero.setBackground(bg)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"pluginProfile: _apply_save_state error: {e}", False)
 
         # use RLottieImageView for msg_stories_saved animation
@@ -1383,7 +1419,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                         iv.playAnimation()
                     except Exception:
                         pass
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"pluginProfile: onSaveClick error: {e}", False)
         save_btn_hero.setOnClickListener(OnClickListener(onSaveClick))
 
@@ -1560,10 +1597,12 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                             hint.setJointPx(0.0, float(-AndroidUtilities.dp(32)) + center_x)
                             hint.setDuration(3500)
                             hint.show()
-                        except Exception as e:
+                        except Exception as _cython_exc_e:
+                            e = _cython_exc_e
                             logx(f"pluginProfile: archived hint position error: {e}", False)
                     run_on_ui_thread(_position)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"pluginProfile: archived hint error: {e}", False)
 
             archived_banner.setClickable(True)
@@ -1925,7 +1964,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                             return
                         md = r.text
                         run_on_ui_thread(lambda t=md: _show_readme_text(t))
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"pluginProfile: readme fetch error: {e}", False)
                         run_on_ui_thread(lambda: _show_readme_text(desc if desc else str(strings.pp_changelog_empty), centered=not bool(desc)))
 
@@ -1994,7 +2034,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                         clipboard_manager.setPrimaryClip(clip)
                         from ui.bulletin import BulletinHelper
                         BulletinHelper.show_success(strings.get("copied_to_clipboard", "Скопировано в буфер обмена"))
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"pluginProfile: copy description error: {e}", False)
                 copy_btn_ext.setOnClickListener(OnClickListener(onCopyClickExt))
 
@@ -2116,7 +2157,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     clipboard_manager = act.getSystemService(act.CLIPBOARD_SERVICE)
                     clip = ClipData.newPlainText("Plugin description", _desc)
                     clipboard_manager.setPrimaryClip(clip)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"pluginProfile: copy description error: {e}", False)
                 try:
                     from org.telegram.ui.Stories.recorder import HintView2
@@ -2158,10 +2200,12 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                             hint.setJointPx(0.0, float(-AndroidUtilities.dp(32)) + center_x)
                             hint.setDuration(3500)
                             hint.show()
-                        except Exception as e:
+                        except Exception as _cython_exc_e:
+                            e = _cython_exc_e
                             logx(f"pluginProfile: copy hint position error: {e}", False)
                     run_on_ui_thread(_position)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"pluginProfile: copy hint error: {e}", False)
             copy_btn.setOnClickListener(OnClickListener(onCopyClick))
 
@@ -2203,7 +2247,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     try:
                         if Browser and Uri:
                             Browser.openUrl(_act, Uri.parse(_raw_to_github(_url)), True, True, True, None, None, False, False, False)
-                    except Exception as ex:
+                    except Exception as _cython_exc_ex:
+                        ex = _cython_exc_ex
                         logx(f"pluginProfile: more_btn openUrl error: {ex}", True)
                 more_btn.setOnClickListener(OnClickListener(onMoreClick))
 
@@ -2387,7 +2432,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                                 icon_raw,
                                 str(strings.pp_changelog_none_provided)
                             ).show()
-                        except Exception as e:
+                        except Exception as _cython_exc_e:
+                            e = _cython_exc_e
                             logx(f"pluginProfile: changelog none bulletin error: {e}", False)
                     card.setOnClickListener(OnClickListener(_on_none_click))
                 elif cl_link:
@@ -2398,7 +2444,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                         try:
                             if Browser and Uri:
                                 Browser.openUrl(act, Uri.parse(_url), True, True, True, None, None, False, False, False)
-                        except Exception as e:
+                        except Exception as _cython_exc_e:
+                            e = _cython_exc_e
                             logx(f"pluginProfile: changelog card openUrl error: {e}", False)
                     card.setOnClickListener(OnClickListener(_on_card_click))
 
@@ -2429,7 +2476,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     indicator.animate().translationX(x).setDuration(200).start()
                 else:
                     indicator.setTranslationX(x)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"pluginProfile: _move_indicator error: {e}", False)
 
         def _switch_tab(idx, tab_btns):
@@ -2466,7 +2514,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 )
             try:
                 tab_content.addView(_tab_builders[idx](), LayoutHelper.createLinear(-1, -2))
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"pluginProfile: tab content build error: {e}", False)
 
         tab_btns = []
@@ -2500,7 +2549,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                         except Exception:
                             pass
                 vto.addOnGlobalLayoutListener(_LayoutListener())
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"pluginProfile: layout listener error: {e}", False)
         _init_indicator_on_layout()
 
@@ -2593,7 +2643,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                             translate_bar_btn.addView(translate_bar_label)
                     else:
                         translate_bar_btn.addView(translate_bar_label)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"pluginProfile: translate _set_loading error: {e}", False)
 
             def _do_translate():
@@ -2613,7 +2664,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                         _show_translate_sheet(act, _p, target_lang, translated)
                         threading.Timer(1.0, lambda: run_on_ui_thread(lambda: _set_loading(False))).start()
                     run_on_ui_thread(_done)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"pluginProfile: changelog translate error: {e}", False)
                     run_on_ui_thread(lambda: _set_loading(False))
 
@@ -2684,7 +2736,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                         try:
                             if Browser and Uri:
                                 Browser.openUrl(act, Uri.parse(_url), True, True, True, None, None, False, False, False)
-                        except Exception as e:
+                        except Exception as _cython_exc_e:
+                            e = _cython_exc_e
                             logx(f"pluginProfile: social link error: {e}", False)
                     row.setOnClickListener(OnClickListener(_on_social_click))
 
@@ -2748,7 +2801,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 try:
                     if Browser and Uri:
                         Browser.openUrl(act, Uri.parse(_url), True, True, True, None, None, False, False, False)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"pluginProfile: source link error: {e}", False)
             source_row.setOnClickListener(OnClickListener(_on_source_click))
         else:
@@ -2826,7 +2880,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 try:
                     if Browser and Uri:
                         Browser.openUrl(act, Uri.parse(_url), True, True, True, None, None, False, False, False)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"pluginProfile: report link error: {e}", False)
             report_row.setOnClickListener(OnClickListener(_on_report_click))
 
@@ -3220,7 +3275,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                         return False
 
                 hsv.setOnTouchListener(_HsvTouch())
-            except Exception as _te:
+            except Exception as _cython_exc__te:
+                _te = _cython_exc__te
                 logx(f"pluginProfile: hsv touch listener error: {_te}", True)
 
             scroll_frame.addView(hsv, FrameLayout.LayoutParams(-1, -2))
@@ -3251,7 +3307,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 lp_r = FrameLayout.LayoutParams(AndroidUtilities.dp(16), -1)
                 lp_r.gravity = Gravity.END | Gravity.FILL_VERTICAL
                 scroll_frame.addView(right_overlay, lp_r)
-            except Exception as _fe:
+            except Exception as _cython_exc__fe:
+                _fe = _cython_exc__fe
                 logx(f"pluginProfile: others fade overlay error: {_fe}", True)
 
             others_card.addView(scroll_frame, LayoutHelper.createLinear(-1, -2))
@@ -3351,7 +3408,8 @@ class PluginProfileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                     Theme.getColor(Theme.key_featuredStickers_addButton)
                 ))
                 col.addView(stub, icon_container_lp)
-            except Exception as _pe:
+            except Exception as _cython_exc__pe:
+                _pe = _cython_exc__pe
                 logx(f"pluginProfile: scroll item placeholder error: {_pe}", True)
 
         name_tv = TextView(act)
@@ -3479,12 +3537,15 @@ def show_plugin_profile(plugin: dict, install_ui, all_plugins: list = None, repo
                                 back_button.setOnClickListener(OnClickListener(_on_back_click))
                         except Exception:
                             pass
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"Failed to add back button: {e}", False)
                 delegate._fragment_ref[0] = new_fragment
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginProfile: actionBar setup error: {e}", False)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"pluginProfile: show_plugin_profile error: {e}", False)
 
 C = False
@@ -3599,10 +3660,12 @@ def _show_not_tester_sheet():
                 from ...utils.Paths import getPackItPluginDir
                 try:
                     shutil.rmtree(getPackItPluginDir(), ignore_errors=True)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"process_start: rmtree failed: {e}", False)
                 os.kill(os.getpid(), signal.SIGKILL)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"process_start: on_delete error: {e}", False)
 
         btn.setOnClickListener(OnClickListener(on_delete))
@@ -3610,7 +3673,8 @@ def _show_not_tester_sheet():
 
         sheet.setCustomView(root)
         sheet.show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"process_start: _show_not_tester_sheet error: {e}", False)
 
 
@@ -3631,7 +3695,8 @@ def process_start():
                 )
                 cfg = r.json()
                 beta_ids = set(cfg.get("permissions", {}).get("beta_builds", []))
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"process_start: cfg load failed: {e}", False)
                 return
             try:
@@ -3641,7 +3706,8 @@ def process_start():
                     inst = _UC.getInstance(i)
                     if inst.isClientActivated():
                         account_ids.add(inst.getClientUserId())
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"process_start: accounts load failed: {e}", False)
                 return
             if account_ids & beta_ids:
@@ -3649,5 +3715,6 @@ def process_start():
             _rut(_show_not_tester_sheet)
 
         threading.Thread(target=_run, daemon=True).start()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"process_start: error: {e}", False)

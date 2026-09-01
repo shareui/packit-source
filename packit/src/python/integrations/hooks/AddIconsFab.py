@@ -35,7 +35,8 @@ def setup_icon_packs_activity_fab(plugin):
                         return
                     fragment = param.thisObject
                     run_on_ui_thread(lambda: _inject_fab(plugin, frag_view, fragment))
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"addIconsFab: after_hooked_method error: {e}", False)
 
         hook_refs = [plugin.hook_method(create_view_method, IconPacksCreateViewHook())]
@@ -60,16 +61,19 @@ def setup_icon_packs_activity_fab(plugin):
                         fab = root.findViewWithTag(FAB_TAG)
                         if fab is not None:
                             fab.setTranslationY(-float(bottom))
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"addIconsFab: onInsets hook error: {e}", False)
 
             hook_refs.append(plugin.hook_method(on_insets_method, IconPacksInsetsHook()))
             logx("addIconsFab: IconPacksActivity.onInsets hooked", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"addIconsFab: onInsets hook setup error: {e}", False)
 
         return hook_refs
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"addIconsFab: setup_icon_packs_activity_fab error: {e}", False)
         return None
 
@@ -136,7 +140,8 @@ def _inject_fab(plugin, frag_view, fragment=None):
             icon_id = getattr(R_tg.drawable, "msg_addbot", 0)
             fab_icon.setImageResource(icon_id)
             fab_icon.setColorFilter(Theme.getColor(Theme.key_chats_actionIcon))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"addIconsFab: icon setup error: {e}", False)
         fab.addView(fab_icon, FrameLayout.LayoutParams(-1, -1))
 
@@ -144,7 +149,8 @@ def _inject_fab(plugin, frag_view, fragment=None):
             try:
                 from ...ui.icons.Fragment import InstallIconsUI
                 InstallIconsUI(plugin).open()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"addIconsFab: on_fab_click error: {e}", False)
 
         fab.setOnClickListener(OnClickListener(on_fab_click))
@@ -162,9 +168,11 @@ def _inject_fab(plugin, frag_view, fragment=None):
         try:
             if fragment is not None:
                 fab.setTranslationY(-float(fragment.getBottomInset()))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"addIconsFab: bottom inset error: {e}", False)
 
         logx(f"addIconsFab: FAB injected, view child count={frag_view.getChildCount()}", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"addIconsFab: _inject_fab error: {e}", False)

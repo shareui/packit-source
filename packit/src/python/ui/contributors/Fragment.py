@@ -9,59 +9,73 @@ from client_utils import get_last_fragment, run_on_queue
 from hook_utils import find_class as _fc
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"contributors fragment: import elyx strings failed: {e}")
 try:
     from android.widget import FrameLayout, LinearLayout, TextView, ImageView, ScrollView
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"contributors fragment: import android.widget failed: {e}")
 try:
     from android.view import View, Gravity
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"contributors fragment: import android.view failed: {e}")
 try:
     from android.util import TypedValue
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"contributors fragment: import android.util failed: {e}")
 try:
     from android.graphics.drawable import GradientDrawable
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"contributors fragment: import android.graphics failed: {e}")
 try:
     from android.net import Uri
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"contributors fragment: import android.net failed: {e}")
 try:
     from android.content import Intent
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"contributors fragment: import android.content failed: {e}")
 try:
     from org.telegram.ui.Components import BackupImageView, LayoutHelper, AvatarDrawable
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"contributors fragment: import org.telegram.ui.Components failed: {e}")
 try:
     from org.telegram.messenger import AndroidUtilities, UserConfig, MessagesController
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"contributors fragment: import org.telegram.messenger failed: {e}")
 try:
     from org.telegram.ui.ActionBar import Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"contributors fragment: import org.telegram.ui.ActionBar failed: {e}")
 try:
     from org.telegram.messenger.browser import Browser
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"contributors fragment: import org.telegram.messenger.browser failed: {e}")
 try:
     from org.telegram.ui import LaunchActivity
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"contributors fragment: import org.telegram.ui LaunchActivity failed: {e}")
 try:
     from org.telegram.ui.Gifts import GiftSheet
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"contributors fragment: import org.telegram.ui.Gifts GiftSheet failed: {e}")
 try:
     from com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"contributors fragment: import UniversalFragment failed: {e}")
 
 # user ids
@@ -142,9 +156,11 @@ def _open_profile_by_user(user_id, username):
                 args.putLong("user_id", int(user_id))
                 profile = ProfileActivity(args)
                 frag.presentFragment(profile)
-            except Exception as _fe:
+            except Exception as _cython_exc__fe:
+                _fe = _cython_exc__fe
                 logx(f"contributors fragment: _open_profile_by_user ProfileActivity fallback error: {_fe}", True)
-    except Exception as _e:
+    except Exception as _cython_exc__e:
+        _e = _cython_exc__e
         logx(f"contributors fragment: _open_profile_by_user error: {_e}", True)
 
 
@@ -170,7 +186,8 @@ def _show_bulletin(icon_raw_name, text, is_error=False):
         else:
             icon_raw = getattr(R_tg.raw, icon_raw_name, 0)
             factory.createSimpleBulletin(icon_raw, str(text)).show()
-    except Exception as _e:
+    except Exception as _cython_exc__e:
+        _e = _cython_exc__e
         logx(f"contributors fragment: _show_bulletin error: {_e}", True)
 
 
@@ -206,11 +223,13 @@ def _fetch_user(user_id, on_done):
                     if objects.size() > 0:
                         user = objects.get(0)
                         mc.putUser(user, False)
-                except Exception as _e:
+                except Exception as _cython_exc__e:
+                    _e = _cython_exc__e
                     logx(f"contributors fragment: _fetch_user putUser error: {_e}", True)
                 run_on_ui_thread(lambda: on_done(user))
             send_request(req, _on_resp)
-        except Exception as _e:
+        except Exception as _cython_exc__e:
+            _e = _cython_exc__e
             logx(f"contributors fragment: _fetch_user outer error: {_e}", True)
             run_on_ui_thread(lambda: on_done(None))
     run_on_queue(_do)
@@ -248,11 +267,13 @@ def _fetch_user_by_username(username, on_done):
                         user = users.get(0)
                         mc.putUser(user, False)
                         _RESOLVED_UIDS[username] = int(user.id)
-                except Exception as _e:
+                except Exception as _cython_exc__e:
+                    _e = _cython_exc__e
                     logx(f"contributors fragment: _fetch_user_by_username putUser error: {_e}", True)
                 run_on_ui_thread(lambda: on_done(user))
             send_request(req, _on_resp)
-        except Exception as _e:
+        except Exception as _cython_exc__e:
+            _e = _cython_exc__e
             logx(f"contributors fragment: _fetch_user_by_username outer error: {_e}", True)
             run_on_ui_thread(lambda: on_done(None))
     run_on_queue(_do)
@@ -301,7 +322,8 @@ def _make_avatar_view(context, user_id, title_text, title_badge=None, username=N
                 ssb.append(str(title_badge))
                 ssb.setSpan(RelativeSizeSpan(0.6), badge_start, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                 title.setText(ssb)
-            except Exception as _be:
+            except Exception as _cython_exc__be:
+                _be = _cython_exc__be
                 logx(f"contributors fragment: title badge error: {_be}", True)
                 title.setText(str(title_text) + " " + str(title_badge))
         else:
@@ -347,10 +369,12 @@ def _make_avatar_view(context, user_id, title_text, title_badge=None, username=N
                     full_set = AnimatorSet()
                     full_set.playSequentially(down_set, up_set)
                     full_set.start()
-                except Exception as _ae:
+                except Exception as _cython_exc__ae:
+                    _ae = _cython_exc__ae
                     logx(f"contributors fragment: avatar scale anim error: {_ae}", True)
                 _open_profile_by_user(user_id, _username_holder[0])
-            except Exception as _e:
+            except Exception as _cython_exc__e:
+                _e = _cython_exc__e
                 logx(f"contributors fragment: _open_profile (avatar) error: {_e}", True)
 
         img.setOnClickListener(OnClickListener(_open_profile))
@@ -364,7 +388,8 @@ def _make_avatar_view(context, user_id, title_text, title_badge=None, username=N
                 try:
                     avatar_drawable = AvatarDrawable(user)
                     img.setForUserOrChat(user, avatar_drawable)
-                except Exception as _e:
+                except Exception as _cython_exc__e:
+                    _e = _cython_exc__e
                     logx(f"contributors fragment: avatar set error: {_e}", True)
                 # name: prefer first_name, fallback username (incl. NFT)
                 username = _get_username(user)
@@ -379,7 +404,8 @@ def _make_avatar_view(context, user_id, title_text, title_badge=None, username=N
                     name = "@" + username
                 _username_holder[0] = username
                 nickname_tv.setText(name)
-            except Exception as _e:
+            except Exception as _cython_exc__e:
+                _e = _cython_exc__e
                 logx(f"contributors fragment: _on_user error: {_e}", True)
 
         if username:
@@ -388,7 +414,8 @@ def _make_avatar_view(context, user_id, title_text, title_badge=None, username=N
             _fetch_user(user_id, _on_user)
 
         return container
-    except Exception as _e:
+    except Exception as _cython_exc__e:
+        _e = _cython_exc__e
         logx(f"contributors fragment: _make_avatar_view error: {_e}", True)
         return None
 
@@ -409,7 +436,8 @@ def _make_thanks_row(context, user_id):
         try:
             selector = Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 2)
             row.setBackground(selector)
-        except Exception as _se:
+        except Exception as _cython_exc__se:
+            _se = _cython_exc__se
             logx(f"contributors fragment: thanks row selector error: {_se}", True)
 
         img = BackupImageView(context)
@@ -434,7 +462,8 @@ def _make_thanks_row(context, user_id):
         def _open_profile(v):
             try:
                 _open_profile_by_user(user_id, _username_holder[0])
-            except Exception as _e:
+            except Exception as _cython_exc__e:
+                _e = _cython_exc__e
                 logx(f"contributors fragment: _open_profile error: {_e}", True)
 
         row.setOnClickListener(OnClickListener(_open_profile))
@@ -450,7 +479,8 @@ def _make_thanks_row(context, user_id):
                 try:
                     avatar_drawable = AvatarDrawable(user)
                     img.setForUserOrChat(user, avatar_drawable)
-                except Exception as _e:
+                except Exception as _cython_exc__e:
+                    _e = _cython_exc__e
                     logx(f"contributors fragment: thanks avatar error: {_e}", True)
                 username = _get_username(user)
                 name = ""
@@ -464,12 +494,14 @@ def _make_thanks_row(context, user_id):
                     name = "@" + username
                 _username_holder[0] = username
                 name_tv.setText(name)
-            except Exception as _e:
+            except Exception as _cython_exc__e:
+                _e = _cython_exc__e
                 logx(f"contributors fragment: _thanks on_user error: {_e}", True)
 
         _fetch_user(user_id, _on_user)
         return row
-    except Exception as _e:
+    except Exception as _cython_exc__e:
+        _e = _cython_exc__e
         logx(f"contributors fragment: _make_thanks_row error: {_e}", True)
         return None
 
@@ -534,7 +566,8 @@ def _build_special_thanks_card(act, content, animate_idx=0):
             card.animate().alpha(1.0).setDuration(180).start()
         except Exception:
             pass
-    except Exception as _e:
+    except Exception as _cython_exc__e:
+        _e = _cython_exc__e
         logx(f"contributors fragment: _build_special_thanks_card error: {_e}", True)
 
 
@@ -592,7 +625,8 @@ def _make_link_row(context, icon_name, label_text, link_text, on_click):
         row.addView(link, LayoutHelper.createLinear(-2, -2, Gravity.CENTER_VERTICAL, 8, 0, 0, 0))
 
         return row
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"contributors fragment: _make_link_row error: {e}", False)
         return None
 
@@ -612,7 +646,8 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 if parent is not None:
                     parent.removeView(self._root_view)
                 self._root_view = None
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"contributors fragment: onFragmentDestroy error: {e}", False)
 
     def beforeCreateView(self):
@@ -622,7 +657,8 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 if parent is not None:
                     parent.removeView(self._root_view)
                 self._root_view = None
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"contributors fragment: beforeCreateView cleanup error: {e}", False)
 
         frag = get_last_fragment()
@@ -653,7 +689,8 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             self._schedule_lazy_build(act, content)
 
             return root
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"contributors fragment: beforeCreateView error: {e}", False)
             return None
 
@@ -784,7 +821,8 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             def _run():
                 try:
                     builders[idx]()
-                except Exception as _e:
+                except Exception as _cython_exc__e:
+                    _e = _cython_exc__e
                     logx(f"contributors fragment: lazy builder {idx} error: {_e}", True)
                 # schedule next card
                 _post_builder(idx + 1)
@@ -816,7 +854,8 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 frag = get_last_fragment()
                 if frag:
                     frag.finishFragment()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"contributors fragment: finishFragment error: {e}", False)
             return True
         return False
@@ -890,7 +929,8 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
                 return
             try:
                 self._open_gift_sheet(int(user.id))
-            except Exception as _e:
+            except Exception as _cython_exc__e:
+                _e = _cython_exc__e
                 logx(f"contributors fragment: _open_gift_sheet_by_username error: {_e}", True)
 
         _fetch_user_by_username(username, _on_user)
@@ -955,7 +995,8 @@ class _ContributorsDelegate(dynamic_proxy(UniversalFragment.UniversalFragmentDel
             row.addView(label, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
 
             return row
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"contributors fragment: _make_donation_row error: {e}", False)
             return None
 
@@ -1073,7 +1114,9 @@ def show_contributors_fragment():
                             pass
                 except Exception:
                     pass
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"contributors fragment: actionbar setup error: {e}", False)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"contributors fragment: show_contributors_fragment error: {e}", False)

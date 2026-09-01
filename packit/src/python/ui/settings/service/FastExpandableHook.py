@@ -51,13 +51,15 @@ def setup_fast_expandable_hook(plugin, other_settings):
                     result = _fast_reload(param, plugin_id, other_settings)
                     if result is not None:
                         param.setResult(result)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"fastExpandableHook: hook error: {e}", False)
 
         refs = plugin.hook_all_methods(PythonEngineClass, "loadPluginSettings", LoadPluginSettingsHook())
         return refs[0] if refs else None
 
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"fastExpandableHook: setup error: {e}", False)
         return None
 
@@ -121,7 +123,8 @@ def _fast_reload(param, plugin_id, other_settings):
                 if frag2 is not None:
                     frag2.listView.adapter.update(True)
                     logx("fastExpandableHook: adapter.update(True) done", True)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"fastExpandableHook: adapter update error: {e}", False)
 
         run_on_ui_thread(_update)
@@ -129,7 +132,8 @@ def _fast_reload(param, plugin_id, other_settings):
         # return the mutated list so PluginsController.settings cache stays consistent
         return setting_items
 
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"fastExpandableHook: _fast_reload error: {e}", False)
         return _original_call(param)
 
@@ -151,13 +155,15 @@ def _patch_expandable(si, uitem, key, children, other_settings, _s, _OCL):
             _s.set("_es_dummy", not _s.get("_es_dummy", False), reload_settings=True)
 
         uitem.clickCallback = _OCL(switch_click)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"fastExpandableHook: _patch_expandable error: {e}", False)
 
 
 def _original_call(param):
     try:
         return param.method.invoke(param.thisObject, param.args)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"fastExpandableHook: _original_call error: {e}", False)
         return None

@@ -26,7 +26,8 @@ from android_utils import OnClickListener, run_on_ui_thread, R
 from client_utils import get_last_fragment
 try:
     from elyx import strings, settings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"AISearchSheet: import strings/settings failed: {e}", False)
     strings = {}
     settings = None
@@ -44,7 +45,8 @@ def _load_gemini_cache() -> dict:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
         return data if isinstance(data, dict) else {}
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"AISearchSheet: _load_gemini_cache error: {e}", False)
         return {}
 
@@ -56,7 +58,8 @@ def _save_gemini_cache(cache: dict) -> None:
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
             json.dump(cache, f, ensure_ascii=False)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"AISearchSheet: _save_gemini_cache error: {e}", False)
 
 
@@ -84,7 +87,8 @@ def _get_device_id() -> str:
         from org.telegram.messenger import ApplicationLoader
         ctx = ApplicationLoader.applicationContext
         return str(Settings.Secure.getString(ctx.getContentResolver(), Settings.Secure.ANDROID_ID)) or "default"
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"AISearchSheet: _get_device_id error: {e}", False)
         return "default"
 
@@ -94,7 +98,8 @@ def _load_gemini_key() -> "str | None":
     try:
         from ....core.NativeLoader import loadPackitKey
         from ....utils.Paths import getKeysDir
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"AISearchSheet: _load_gemini_key import failed: {e}", False)
         return None
     try:
@@ -122,7 +127,8 @@ def _load_gemini_key() -> "str | None":
         if result != 0:
             return None
         return bytes(buf[:length.value]).decode("utf-8", errors="replace")
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"AISearchSheet: _load_gemini_key error: {e}", False)
         return None
 
@@ -256,15 +262,18 @@ def _call_gemini(apiKey: str, model: str, pluginsCatalog: str, userQuery: str) -
 
 try:
     from org.telegram.ui.ActionBar import BottomSheet, Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"AISearchSheet: import BottomSheet/Theme failed: {e}", False)
 try:
     from org.telegram.ui.Components import LayoutHelper, EditTextBoldCursor
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"AISearchSheet: import LayoutHelper/EditTextBoldCursor failed: {e}", False)
 try:
     from org.telegram.messenger import AndroidUtilities
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"AISearchSheet: import AndroidUtilities failed: {e}", False)
 
 
@@ -314,7 +323,8 @@ def _open_settings_url(act):
         from android.net import Uri
         from org.telegram.messenger.browser import Browser
         Browser.openUrl(act, Uri.parse(_SETTINGS_URL), True, True, True, None, None, False, False, False)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"AISearchSheet: _open_settings_url error: {e}", False)
 
 
@@ -326,16 +336,19 @@ def _icon_btn(act, install_ui, icon_name: str, size_dp: int = 20, btn_size_dp: i
         surface = _alpha(Theme.getColor(Theme.key_dialogTextBlack), 0x14)
         bg = _rounded_bg(surface, radius_dp)
         btn.setBackground(_ripple_bg(bg, 0x20000000, radius_dp))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"AISearchSheet: _icon_btn bg failed: {e}", False)
     icon = ImageView(act)
     try:
         icon.setImageResource(install_ui._resolve_icon(icon_name))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"AISearchSheet: _icon_btn icon failed: {e}", False)
     try:
         icon.setColorFilter(Theme.getColor(Theme.key_dialogTextBlack))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"AISearchSheet: _icon_btn colorFilter failed: {e}", False)
     # CENTER_INSIDE: scales down oversized icon-pack drawables so they never clip
     icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
@@ -355,7 +368,8 @@ def _make_header(act, install_ui, sheet):
     try:
         surface = _alpha(Theme.getColor(Theme.key_dialogTextBlack), 0x10)
         ic_wrap.setBackground(_rounded_bg(surface, 12))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"AISearchSheet: header ic_wrap bg failed: {e}", False)
     ai_icon = ImageView(act)
     try:
@@ -363,11 +377,13 @@ def _make_header(act, install_ui, sheet):
     except Exception:
         try:
             ai_icon.setImageResource(install_ui._resolve_icon("msg_search"))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"AISearchSheet: header ai_icon failed: {e}", False)
     try:
         ai_icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_addButton))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"AISearchSheet: header ai_icon color failed: {e}", False)
     ai_icon.setScaleType(ImageView.ScaleType.CENTER)
     ic_wrap.addView(ai_icon, FrameLayout.LayoutParams(
@@ -391,7 +407,8 @@ def _make_header(act, install_ui, sheet):
         pass
     try:
         title_tv.setTextColor(Theme.getColor(Theme.key_dialogTextBlack))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"AISearchSheet: title color failed: {e}", False)
     titles.addView(title_tv, LinearLayout.LayoutParams(-2, -2))
 
@@ -402,13 +419,15 @@ def _make_header(act, install_ui, sheet):
             key_tv.setText(f"Gemini {_get_selected_model_label()}")
         else:
             key_tv.setText("Not configured")
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"AISearchSheet: key_tv setText failed: {e}", False)
         key_tv.setText("Not configured")
     key_tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12)
     try:
         key_tv.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"AISearchSheet: key_tv color failed: {e}", False)
     titles.addView(key_tv, LinearLayout.LayoutParams(-2, -2))
 
@@ -438,7 +457,8 @@ def _make_input_field(act):
         stroke = _alpha(Theme.getColor(Theme.key_dialogTextBlack), 0x1A)
         bg = _rounded_bg(fill, 14, stroke, 1)
         container.setBackground(bg)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"AISearchSheet: input bg failed: {e}", False)
 
     try:
@@ -460,17 +480,20 @@ def _make_input_field(act):
     )
     try:
         search_input.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"AISearchSheet: input text color failed: {e}", False)
     try:
         search_input.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"AISearchSheet: input hint color failed: {e}", False)
     try:
         accent = Theme.getColor(Theme.key_featuredStickers_addButton)
         search_input.setCursorColor(accent)
         search_input.setCursorWidth(1.5)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"AISearchSheet: input cursor failed: {e}", False)
 
     container.addView(search_input, FrameLayout.LayoutParams(-1, -2))
@@ -501,7 +524,8 @@ def _make_search_button(act, install_ui):
         btn.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
             AndroidUtilities.dp(28), base, pressed
         ))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"AISearchSheet: search_btn bg failed: {e}", False)
     btn.setPadding(0, AndroidUtilities.dp(14), 0, AndroidUtilities.dp(14))
 
@@ -512,11 +536,13 @@ def _make_search_button(act, install_ui):
     icon = ImageView(act)
     try:
         icon.setImageResource(install_ui._resolve_icon("ic_ab_search"))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"AISearchSheet: search_btn icon failed: {e}", False)
     try:
         icon.setColorFilter(Theme.getColor(Theme.key_featuredStickers_buttonText))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"AISearchSheet: search_btn icon color failed: {e}", False)
     icon.setScaleType(ImageView.ScaleType.CENTER)
     icon_lp = LinearLayout.LayoutParams(AndroidUtilities.dp(20), AndroidUtilities.dp(20))
@@ -536,7 +562,8 @@ def _make_search_button(act, install_ui):
     label.setGravity(Gravity.CENTER)
     try:
         label.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"AISearchSheet: search_btn label color failed: {e}", False)
     inner.addView(label, LinearLayout.LayoutParams(-2, -2))
     _add_icon_balance_spacer(act, inner)
@@ -592,7 +619,8 @@ def _set_btn_loading(btn, loading: bool, install_ui):
                 pass
             inner.addView(label, LinearLayout.LayoutParams(-2, -2))
             _add_icon_balance_spacer(act, inner)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"AISearchSheet: _set_btn_loading error: {e}", False)
 
 
@@ -615,11 +643,13 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
         )
         try:
             root.setBackground(install_ui._create_rounded_bg(Theme.getColor(Theme.key_dialogBackground)))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"AISearchSheet: root bg failed: {e}", False)
             try:
                 root.setBackgroundColor(Theme.getColor(Theme.key_dialogBackground))
-            except Exception as e2:
+            except Exception as _cython_exc_e2:
+                e2 = _cython_exc_e2
                 logx(f"AISearchSheet: root bg color failed: {e2}", True)
 
         header_row, header_lp = _make_header(act, install_ui, sheet)
@@ -642,7 +672,8 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
                 anim = ObjectAnimator.ofFloat(input_container, "translationX", 0.0, -20.0, 20.0, -14.0, 14.0, -8.0, 8.0, 0.0)
                 anim.setDuration(500)
                 anim.start()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"AISearchSheet: _shake_input error: {e}", False)
 
         # guard: True while attention hint is active, prevents stacking on rapid taps
@@ -664,7 +695,8 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
                         search_input.animate().alpha(0.0).setDuration(150).withEndAction(
                             R(lambda: _set_attention_hint(attention_text))
                         ).start()
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"AISearchSheet: fade_to_attention error: {e}", False)
 
                 def _set_attention_hint(attn):
@@ -672,7 +704,8 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
                         search_input.setHint(attn)
                         search_input.animate().alpha(1.0).setDuration(150).start()
                         run_on_ui_thread(_restore_hint, 1500)
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"AISearchSheet: set_attention_hint error: {e}", False)
 
                 def _restore_hint():
@@ -680,20 +713,23 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
                         search_input.animate().alpha(0.0).setDuration(150).withEndAction(
                             R(_finish_restore)
                         ).start()
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"AISearchSheet: restore_hint error: {e}", False)
 
                 def _finish_restore():
                     try:
                         search_input.setHint(original_hint)
                         search_input.animate().alpha(1.0).setDuration(150).start()
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"AISearchSheet: finish_restore error: {e}", False)
                     finally:
                         _hint_animating[0] = False
 
                 _fade_to_attention()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"AISearchSheet: _swap_hint_attention error: {e}", False)
                 _hint_animating[0] = False
 
@@ -717,7 +753,8 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
                     _pbf(container, rp).createErrorBulletin(
                         str(strings.get("ai_search_no_key", "Add the API key in the settings"))
                     ).show()
-                except Exception as be:
+                except Exception as _cython_exc_be:
+                    be = _cython_exc_be
                     logx(f"AISearchSheet: no key bulletin error: {be}", True)
                 return
 
@@ -783,7 +820,8 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
                             _pbf(container, rp).createErrorBulletin(
                                 str(strings.get("ai_search_quota", "Gemini API quota exceeded. Try again later."))
                             ).show()
-                        except Exception as be:
+                        except Exception as _cython_exc_be:
+                            be = _cython_exc_be
                             logx(f"AISearchSheet: quota bulletin error: {be}", True)
                     run_on_ui_thread(_on_quota)
                 except _GeminiGeoError:
@@ -798,10 +836,12 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
                             _pbf(container, rp).createErrorBulletin(
                                 str(strings.get("ai_search_geo_error", "Turn on VPN and try again"))
                             ).show()
-                        except Exception as be:
+                        except Exception as _cython_exc_be:
+                            be = _cython_exc_be
                             logx(f"AISearchSheet: geo bulletin error: {be}", True)
                     run_on_ui_thread(_on_geo)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"AISearchSheet: search task error: {e}", False)
                     def _on_error():
                         _searching[0] = False
@@ -814,7 +854,8 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
                             _pbf(container, rp).createErrorBulletin(
                                 str(strings.get("ai_search_error", "Search error. Check the logs."))
                             ).show()
-                        except Exception as be:
+                        except Exception as _cython_exc_be:
+                            be = _cython_exc_be
                             logx(f"AISearchSheet: error bulletin error: {be}", True)
                     run_on_ui_thread(_on_error)
 
@@ -826,9 +867,11 @@ def show_ai_search_sheet(install_ui, act, on_ai_results=None):
         try:
             from ...components.ViewUtils import applyFontToTree
             applyFontToTree(root)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"AISearchSheet: applyFontToTree failed: {e}", False)
         sheet.show()
         logx("AISearchSheet: sheet shown", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"AISearchSheet: show error: {e}", False)

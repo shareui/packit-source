@@ -23,28 +23,33 @@ from client_utils import get_last_fragment, run_on_queue
 from ui.bulletin import BulletinHelper
 try:
     from elyx import settings, strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import elyx import settings, strings failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.ui.ActionBar import Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.ui.ActionBar import Theme failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.ui.Components import LayoutHelper, EditTextBoldCursor
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.ui.Components import LayoutHelper, EditTextBoldCursor failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.messenger import AndroidUtilities, R as R_tg
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities, R as R_tg failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 from android_utils import OnClickListener, OnLongClickListener
 try:
     from com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 
@@ -84,7 +89,8 @@ def _preview_pool_submit(task):
                     fn = _preview_queue.get()
                     try:
                         fn()
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"icons preview worker error: {e}", True)
                     finally:
                         _preview_queue.task_done()
@@ -410,7 +416,8 @@ def _icons_build_chrome_kotlin(self, act):
         pass
     try:
         self.search.setOnEditorActionListener(_icons_editor_listener(self, act))
-    except Exception as ex:
+    except Exception as _cython_exc_ex:
+        ex = _cython_exc_ex
         logx(f"icons: setOnEditorActionListener failed: {ex}", True)
     search_slot.addView(self.search, FrameLayout.LayoutParams(-1, -1))
 
@@ -634,10 +641,12 @@ class InstallIconsUI:
                         repos.append(r)
                     else:
                         logx(f"IconList.open: skipping repo with empty url: name='{name}'", True)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"IconList.open: error processing repo: {e}", False)
                     continue
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"IconList.open: getRepositories failed: {e}", False)
         logx(f"IconList.open: usable repos count={len(repos)}", True)
         if not repos:
@@ -697,7 +706,8 @@ class InstallIconsUI:
                         repo_name = repo.get("name", "Unknown")
                         for entry in entries:
                             all_icons.append({"repo_name": repo_name, **entry})
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"IconList._open_all_repos_icons: failed to load repo '{repo.get('name')}': {e}", False)
 
                 logx(f"IconList._open_all_repos_icons: total icons collected={len(all_icons)}", True)
@@ -705,7 +715,8 @@ class InstallIconsUI:
                 # heavy — do it here on the queue thread, not on the UI thread
                 prebuilt = search_mod.build_index(all_icons)
                 run_on_ui_thread(lambda: self._update_current_fragment_icons(all_icons, prebuilt))
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 BulletinHelper.show_error(str(strings["il_load_failed"]))
                 logx(f"IconList._open_all_repos_icons: fatal error: {e}", False)
                 run_on_ui_thread(lambda: self._update_current_fragment_icons([]))
@@ -753,12 +764,14 @@ class InstallIconsUI:
                 try:
                     from ...utils import RepoStats
                     RepoStats.remember(repo_id, icons=len(icons))
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"IconList._open_repo_icons: stats write failed: {e}", True)
                 # index build is heavy — run it here on the queue thread
                 prebuilt = search_mod.build_index(icons)
                 run_on_ui_thread(lambda: self._update_current_fragment_icons(icons, prebuilt))
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 BulletinHelper.show_error(str(strings["il_download_error"]))
                 logx(f"IconList._open_repo_icons: error for url='{repo_url}': {e}", False)
                 run_on_ui_thread(lambda: self._update_current_fragment_icons([]))
@@ -806,7 +819,8 @@ class InstallIconsUI:
                         logx("IconList._update_current_fragment_icons: chrome not ready, data flagged as pending", True)
             else:
                 logx("IconList._update_current_fragment_icons: fragment has no usable delegate", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"IconList._update_current_fragment_icons: error: {e}", False)
 
     def _show_icons_universal(self, repo_name: str, icons: list, repo_id: str = ""):
@@ -849,10 +863,12 @@ class InstallIconsUI:
                                 back_button.setOnClickListener(OnClickListener(_on_back_click))
                         except Exception:
                             pass
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"icons: failed to setup action bar: {e}", False)
             _setup_action_bar()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"icons: failed to show universal: {e}", False)
 
     class IconListFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
@@ -903,12 +919,14 @@ class InstallIconsUI:
                                     break
                         else:
                             self.install_ui._open_all_repos_icons()
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"IconList: _on_restore error: {e}", False)
 
                 self._no_internet_banner._on_network_restored_callback = _on_restore
                 self._no_internet_banner.register()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"IconList: NoInternetBanner register error: {e}", False)
 
         def onFragmentDestroy(self, *_):
@@ -917,7 +935,8 @@ class InstallIconsUI:
                 if banner:
                     banner.unregister()
                     self._no_internet_banner = None
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"IconList: NoInternetBanner unregister error: {e}", False)
             try:
                 if hasattr(self, 'content_view') and self.content_view is not None:
@@ -959,7 +978,8 @@ class InstallIconsUI:
                             self._finish_loading()
                         elif self.results_container is not None:
                             self.build_list_with_sort(self.current_sort_type)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"IconList: deferred _build_chrome error: {e}", False)
             # let the open animation start smoothly before the heavy build
             run_on_ui_thread(_deferred, 30)
@@ -1014,7 +1034,8 @@ class InstallIconsUI:
 
             try:
                 self.search.setOnEditorActionListener(_icons_editor_listener(self, act))
-            except Exception as ex:
+            except Exception as _cython_exc_ex:
+                ex = _cython_exc_ex
                 logx(f"icons: setOnEditorActionListener failed: {ex}", True)
 
 
@@ -1188,7 +1209,8 @@ class InstallIconsUI:
             chrome = None
             try:
                 chrome = _icons_build_chrome_kotlin(self, act)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"icons: kotlin chrome error: {e}", False)
             if chrome is None:
                 main_layout, scroll, clear_btn = self._build_chrome_python(act)
@@ -1227,7 +1249,8 @@ class InstallIconsUI:
                     _lp = FrameLayout.LayoutParams(_size, _size, Gravity.CENTER)
                     loading_container.addView(_spinner, _lp)
                     self.content_view.addView(loading_container, FrameLayout.LayoutParams(-1, -1))
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"icons: loading spinner error: {e}", False)
 
                 # store callback so _update_current_fragment_icons can call it after data arrives
@@ -1251,9 +1274,11 @@ class InstallIconsUI:
                                     banner = getattr(self, '_no_internet_banner', None)
                                     if banner:
                                         banner.on_config_loaded()
-                                except Exception as e:
+                                except Exception as _cython_exc_e:
+                                    e = _cython_exc_e
                                     logx(f"IconList: NoInternetBanner on_config_loaded error: {e}", False)
-                            except Exception as e:
+                            except Exception as _cython_exc_e:
+                                e = _cython_exc_e
                                 logx(f"IconList.finish_loading inner error: {e}", False)
 
                         if _loading_container_ref is not None:
@@ -1273,7 +1298,8 @@ class InstallIconsUI:
                                 _loading_container_ref.animate().alpha(0.0).setDuration(250).withEndAction(
                                     _RemoveRunnable(self.content_view, _loading_container_ref)
                                 ).start()
-                            except Exception as e:
+                            except Exception as _cython_exc_e:
+                                e = _cython_exc_e
                                 logx(f"IconList.finish_loading: animate failed: {e}", False)
                                 try:
                                     self.content_view.removeView(_loading_container_ref)
@@ -1282,7 +1308,8 @@ class InstallIconsUI:
                                 _on_spinner_removed()
                         else:
                             _on_spinner_removed()
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"IconList.finish_loading: error: {e}", False)
 
                 self._finish_loading = finish_loading
@@ -1331,7 +1358,8 @@ class InstallIconsUI:
                     banner.content_view = self.content_view
                     if not self.show_loading_initial:
                         banner.on_config_loaded()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"IconList: NoInternetBanner attach error: {e}", False)
 
             return self.content_view
@@ -1359,7 +1387,8 @@ class InstallIconsUI:
                 try:
                     f = get_last_fragment()
                     if f: f.finishFragment()
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"icons: failed to finish fragment: {e}", False)
                 return True
             return False
@@ -1452,7 +1481,8 @@ class InstallIconsUI:
 
                 self.results_container.addView(empty_container, LayoutHelper.createLinear(-1, -2))
                 self.is_loading = False
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"icons: empty state error: {e}", False)
 
         def _add_items_with_animation(self, items_to_add):
@@ -1496,7 +1526,8 @@ class InstallIconsUI:
                     except Exception:
                         pass
                 self.is_loading = False
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"icons: add items error: {e}", False)
                 self.is_loading = False
 
@@ -1513,7 +1544,8 @@ class InstallIconsUI:
                             self.visible_icons.append(icon)
                             items_to_add.append(self.make_item(icon))
                     run_on_ui_thread(lambda: self._add_items_with_animation(items_to_add))
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"icons: initial batch error: {e}", False)
                     self.is_loading = False
             threading.Thread(target=load_batch, daemon=True).start()
@@ -1535,7 +1567,8 @@ class InstallIconsUI:
                             self.visible_icons.append(icon)
                             items_to_add.append(self.make_item(icon))
                     run_on_ui_thread(lambda: self._add_items_with_animation(items_to_add))
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"icons: batch load error: {e}", False)
                     self.is_loading = False
             threading.Thread(target=load_batch, daemon=True).start()
@@ -1648,7 +1681,8 @@ class InstallIconsUI:
                         for iv, _ in registry:
                             _restore_alpha(iv)
                     AndroidUtilities.runOnUIThread(ticker_runnable[0], 2000)
-                except Exception as ex:
+                except Exception as _cython_exc_ex:
+                    ex = _cython_exc_ex
                     logx(f"icons ticker: tick error: {ex}", True)
 
             ticker_runnable[0] = _runnable(tick)
@@ -1658,7 +1692,8 @@ class InstallIconsUI:
             def post_start():
                 try:
                     AndroidUtilities.runOnUIThread(ticker_runnable[0], 2000)
-                except Exception as ex:
+                except Exception as _cython_exc_ex:
+                    ex = _cython_exc_ex
                     logx(f"icons ticker: post_start error: {ex}", True)
             run_on_ui_thread(post_start)
 
@@ -1802,7 +1837,8 @@ class InstallIconsUI:
                             bmp = Bitmap.createBitmap(px, px, Bitmap.Config.ARGB_8888)
                             canvas = Canvas(bmp)
                             svg.renderToCanvas(canvas)
-                        except Exception as e:
+                        except Exception as _cython_exc_e:
+                            e = _cython_exc_e
                             logx(f"icons svg render error: {e}", False)
                             return None
                     else:
@@ -1821,7 +1857,8 @@ class InstallIconsUI:
                         while len(cache) > _PREVIEW_CACHE_CAP:
                             cache.popitem(last=False)
                     return bmp
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"icons preview load error: {e}", False)
                     return None
 
@@ -1874,7 +1911,8 @@ class InstallIconsUI:
                 try:
                     from ...core.Core import install_icon_pack
                     install_icon_pack(_icon)
-                except Exception as ex:
+                except Exception as _cython_exc_ex:
+                    ex = _cython_exc_ex
                     logx(f"icons: card click error: {ex}", True)
             card.setOnClickListener(OnClickListener(_on_click))
 
@@ -1900,14 +1938,16 @@ class InstallIconsUI:
                             icon_raw,
                             str(strings["link_copied"])
                         ).show()
-                    except Exception as _be:
+                    except Exception as _cython_exc__be:
+                        _be = _cython_exc__be
                         logx(f"icons: copy bulletin error: {_be}", True)
                     try:
                         from ..achievements.service.AchivementsEngine import increment_category
                         increment_category("Copying links")
                     except Exception:
                         pass
-                except Exception as ex:
+                except Exception as _cython_exc_ex:
+                    ex = _cython_exc_ex
                     logx(f"icons: card long click error: {ex}", True)
                 return True
             card.setOnLongClickListener(OnLongClickListener(_on_long_click))

@@ -16,12 +16,14 @@ from org.telegram.ui.Stories.recorder import ButtonWithCounterView
 from android.net import Uri
 try:
     from org.telegram.messenger.browser import Browser
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"updateSheet: import Browser failed: {e}")
     Browser = None
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"updateSheet: import strings failed: {e}")
 
 INTERNAL_CFG_URL = "https://raw.githubusercontent.com/shareui/packit/main/configs/internal_cfg.json"
@@ -39,7 +41,8 @@ def _parse_version(ver: str) -> tuple:
         clean = re.sub(r"\.{2,}", ".", clean).strip(".")
         parts = [int(x) for x in clean.split(".") if x]
         return tuple(parts)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"updateSheet: _parse_version error for '{ver}': {e}", False)
         return (0,)
 
@@ -73,7 +76,8 @@ def _get_dismissed_ver() -> str:
         v = LocalConfig.get("update_dismissed_ver", "")
         logx(f"updateSheet: dismissed_ver='{v}'", True)
         return v
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"updateSheet: _get_dismissed_ver error: {e}", False)
         return ""
 
@@ -83,7 +87,8 @@ def _save_dismissed_ver(ver: str):
         from ...utils.LocalConfig import LocalConfig
         LocalConfig.set("update_dismissed_ver", ver)
         logx(f"updateSheet: saved dismissed_ver='{ver}'", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"updateSheet: _save_dismissed_ver error: {e}", False)
 
 
@@ -125,7 +130,8 @@ def _show_update_sheet(new_ver: str, changelog: str, sticker: str, download_url:
         iv.setRoundRadius(AndroidUtilities.dp(16))
         try:
             iv.getImageReceiver().setCrossfadeWithOldImage(True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"updateSheet: setCrossfadeWithOldImage error: {e}", False)
         from ...utils.Stickers import load_sticker
         load_sticker(iv, sticker, sticker_size_dp)
@@ -155,7 +161,8 @@ def _show_update_sheet(new_ver: str, changelog: str, sticker: str, download_url:
                 changelog_tv.setLinkTextColor(sheet.getThemedColor(Theme.key_windowBackgroundWhiteBlueText))
                 changelog_tv.setMovementMethod(LinkMovementMethod.getInstance())
                 logx("updateSheet: changelog fullyFormatText ok", True)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"updateSheet: fullyFormatText failed, fallback plain text: {e}", False)
                 changelog_tv.setText(changelog)
             linear.addView(changelog_tv, LayoutHelper.createFrame(-1, -2.0, 0, 24.0, 8.0, 24.0, 0.0))
@@ -242,7 +249,8 @@ def check_and_show():
 
             logx("updateSheet: scheduling sheet show on UI thread", True)
             run_on_ui_thread(lambda: _show_update_sheet(new_ver, changelog, sticker, download_url))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"updateSheet: task error: {e}\n{traceback.format_exc()}", False)
 
     threading.Thread(target=_task, daemon=True).start()

@@ -7,7 +7,8 @@ import os
 
 try:
     from elyx import settings, assets
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"FontManager: import elyx failed: {e}", False)
     settings = None
     assets = None
@@ -34,7 +35,8 @@ def _getFontsDir():
         if sample is not None:
             res_dir = _os.path.dirname(sample.path_str)
             return _os.path.join(res_dir, _FONTS_DIR_NAME)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"FontManager: _getFontsDir error: {e}", False)
     return None
 
@@ -48,7 +50,8 @@ def listFontFiles():
         files = [f for f in os.listdir(fonts_dir) if f.lower().endswith(".ttf")]
         files.sort()
         return files
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"FontManager: listFontFiles error: {e}", False)
         return []
 
@@ -61,7 +64,8 @@ def getFontPath(filename):
             return None
         path = os.path.join(fonts_dir, filename)
         return path if os.path.isfile(path) else None
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"FontManager: getFontPath error: {e}", False)
         return None
 
@@ -74,7 +78,8 @@ def _loadTypeface(filename):
         if not path:
             return None
         return Typeface.createFromFile(path)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"FontManager: _loadTypeface error: {e}", False)
         return None
 
@@ -104,7 +109,8 @@ def getCurrentTypeface():
             # file exists but failed to load — reset
             logx(f"FontManager: failed to load '{filename}', resetting to default", True)
             settings.set(_SETTING_KEY, "")
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"FontManager: getCurrentTypeface error: {e}", False)
     return _current_typeface
 
@@ -130,7 +136,8 @@ def setFont(filename):
         else:
             settings.set(_SETTING_KEY, "")
             _current_typeface = None
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"FontManager: setFont error: {e}", False)
 
 
@@ -143,7 +150,8 @@ def applyToView(view):
             return
         if isinstance(view, TextView):
             view.setTypeface(tf)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"FontManager: applyToView error: {e}", False)
 
 

@@ -1,17 +1,41 @@
-builds/
-**/build/
-**/cache/
-.elyx/cache/
-utilities/
-**/CMakeCache.txt
-**/CMakeFiles/
+# temp **/cruel/local/*
+cruel/*
+
+# build artifacts: chaquopy
+packit/src/python/**/*.c
+packit/src/python/**/*.so
+
+# build artifacts: native libs
+packit/native/armeabi-v7a/libpackitdb.so
+packit/native/armeabi-v7a/libexport.so
+packit/native/armeabi-v7a/libbithash.so
+packit/native/armeabi-v7a/libachiv.so
+packit/native/armeabi-v7a/libpacklight.so
+packit/native/armeabi-v7a/libscl.so
+packit/native/armeabi-v7a/libsearch.so
+packit/native/arm64-v8a/libachiv.so
+packit/native/arm64-v8a/libbithash.so
+packit/native/arm64-v8a/libexport.so
+packit/native/arm64-v8a/libpackitdb.so
+packit/native/arm64-v8a/libpacklight.so
+packit/native/arm64-v8a/libscl.so
+packit/native/arm64-v8a/libsearch.so
 **/native-build/
 **/libs/build-arm64-v8a/*
 **/libs/build-armeabi-v7a/*
+
+# build artifacts: python wheel
+packit/wheels/packutil-*.whl
 **/*.egg-info/*
 
+# build artifacts: get_imports
+tools/result/imports.py
+tools/result/unique_imports.py
+
+# build artifacts: cmake
+**/CMakeCache.txt
+**/CMakeFiles/
+
+# build artifacts: kotlin
 **/kotlin-build/
 **/kotlin/**/*.class
-
-# **/cruel/local/*
-cruel/*

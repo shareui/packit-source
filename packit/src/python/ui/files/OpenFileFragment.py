@@ -15,23 +15,28 @@ from hook_utils import find_class
 
 try:
     from org.telegram.ui.ActionBar import Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"openFileFragment: import Theme failed: {e}")
 try:
     from org.telegram.ui.Components import LayoutHelper
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"openFileFragment: import LayoutHelper failed: {e}")
 try:
     from org.telegram.messenger import AndroidUtilities
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"openFileFragment: import AndroidUtilities failed: {e}")
 try:
     from com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"openFileFragment: import UniversalFragment failed: {e}")
 try:
     from org.telegram.ui.ActionBar import BottomSheet
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"openFileFragment: import BottomSheet failed: {e}")
 
 _BINARY_SAMPLE_SIZE = 8192
@@ -42,7 +47,8 @@ def _is_binary(path):
         with open(path, "rb") as f:
             chunk = f.read(_BINARY_SAMPLE_SIZE)
         return b"\x00" in chunk
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"openFileFragment: _is_binary error: {e}", False)
         return False
 
@@ -178,7 +184,8 @@ def _show_binary_sheet(activity):
         except Exception:
             pass
         sheet.show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"openFileFragment: _show_binary_sheet error: {e}", False)
 
 
@@ -223,7 +230,8 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
             from ...core.DexLoader import openFileCancel
             if self._viewer_view is not None:
                 openFileCancel(self._viewer_view)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"openFileFragment: destroy cancel error: {e}", False)
         try:
             if self._content_view is not None:
@@ -235,12 +243,14 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
                 self._edit_tv = None
                 self._viewer_view = None
                 self._viewer_container = None
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"openFileFragment: onFragmentDestroy error: {e}", False)
         try:
             if self._on_finish is not None:
                 self._on_finish()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"openFileFragment: onFragmentDestroy on_finish error: {e}", False)
 
     def getTitle(self):
@@ -267,7 +277,8 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
                 frag = get_last_fragment()
                 if frag:
                     frag.finishFragment()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"openFileFragment: failed to finish fragment: {e}", False)
             return True
         return False
@@ -376,21 +387,24 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
             try:
                 with open(self._path, "r", encoding="utf-8", errors="replace") as f:
                     text = f.read()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"openFileFragment: read error: {e}", False)
             if self._load_cancelled:
                 return
             self._text = text
             self._original_text = text
             self._process_and_attach()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"openFileFragment: _load_bg error: {e}", False)
 
     def _process_and_attach(self):
         # background queue: tokenize self._text, then attach the viewer on UI
         try:
             tt, ts, te, ck, cv = self._tokenize()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"openFileFragment: tokenize error: {e}", False)
             tt, ts, te, ck, cv = [], [], [], [], []
         if self._load_cancelled:
@@ -436,7 +450,8 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
             for typ, col in _resolveColors().items():
                 ck.append(int(typ))
                 cv.append(int(col))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"openFileFragment: _tokenize error: {e}", False)
             return [], [], [], [], []
         return tt, ts, te, ck, cv
@@ -473,7 +488,8 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
             self._viewer_container.addView(view, 0, FrameLayout.LayoutParams(-1, -1))
             self._loading = False
             logx("openFileFragment: kotlin viewer attached", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"openFileFragment: _attach_viewer error: {e}", False)
             self._fallback_render()
 
@@ -521,7 +537,8 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
             self._loading = False
             self._startHighlight()
             logx("openFileFragment: fallback renderer attached", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"openFileFragment: _fallback_render error: {e}", False)
 
     # ---------------------------------------------- fallback syntax highlight
@@ -564,7 +581,8 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
                 return
             from android_utils import run_on_ui_thread
             run_on_ui_thread(lambda: self._applyHighlightChunked(text, tokBuf, ranges, cnt, colors, 0))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"openFileFragment: _highlightBg error: {e}", False)
 
     _SPAN_CHUNK = 1000
@@ -593,7 +611,8 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
                     self._highlighted = self._spannable
                     self._content_tv.setText(self._spannable)
                 self._spannable = None
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"openFileFragment: _applyHighlightChunked error: {e}", False)
             self._spannable = None
 
@@ -628,7 +647,8 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
                     self._edit_scroll.setVisibility(View.GONE)
                 if self._viewer_view is not None:
                     self._viewer_view.setVisibility(View.VISIBLE)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"openFileFragment: _toggle_edit error: {e}", False)
 
     def _ensure_edit_tv(self):
@@ -670,7 +690,8 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
             self._edit_scroll = scroll
             self._edit_scroll.setVisibility(View.GONE)
             self._viewer_container.addView(self._edit_scroll, FrameLayout.LayoutParams(-1, -1))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"openFileFragment: _ensure_edit_tv error: {e}", False)
 
     def _do_save(self):
@@ -688,7 +709,8 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
             self._loading = True
             run_on_queue(self._process_and_attach)
             logx(f"openFileFragment: saved {self._path}", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"openFileFragment: _do_save error: {e}", False)
 
     def _do_reset(self):
@@ -698,7 +720,8 @@ class OpenFileFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate
             self._edit_tv.setText(self._original_text)
             self._edit_tv.setSelection(0)
             logx("openFileFragment: reset to original", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"openFileFragment: _do_reset error: {e}", False)
 
 
@@ -741,10 +764,13 @@ def open_file(path: str, binary: bool = False, on_finish=None):
                                 back_button.setOnClickListener(OnClickListener(_on_back_click))
                         except Exception:
                             pass
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"openFileFragment: Failed to add back button: {e}", False)
             delegate._frag_ref[0] = new_frag
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"openFileFragment: open_file setup error: {e}", False)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"openFileFragment: open_file error: {e}", False)

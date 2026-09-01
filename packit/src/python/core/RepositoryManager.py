@@ -9,13 +9,15 @@ import json
 from client_utils import get_last_fragment, run_on_queue
 try:
     from elyx import settings, strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import elyx import settings, strings failed: {e}")
     from ..utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 
 try:
     from org.telegram.messenger import ApplicationLoader
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
     from ..utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 
@@ -241,7 +243,8 @@ class RepositoryManager:
             if on_done:
                 try:
                     on_done(restored)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"repom: restoreDefaultRepository on_done error: {e}", False)
         run_serial_io(task)
     
@@ -325,7 +328,8 @@ class RepositoryManager:
 
                         CachedRepos.write(rm_rid, data)
                         logx(f"updateAllCaches: updated cache for '{rm_rid}'", True)
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"updateAllCaches: error for {url}: {e}", False)
 
                 # Remove in reverse order to keep indices valid
@@ -335,13 +339,15 @@ class RepositoryManager:
                 if changed:
                     self.setRepositories(repos)
                 logx("updateAllCaches: done", True)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"updateAllCaches: task error: {e}", False)
             finally:
                 if on_complete:
                     try:
                         on_complete()
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"updateAllCaches: on_complete error: {e}", False)
 
         run_serial_io(task)

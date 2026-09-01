@@ -21,12 +21,14 @@ try:
     from org.telegram.ui.ActionBar import BottomSheet, Theme
     from org.telegram.ui.Components import LayoutHelper
     from org.telegram.messenger import AndroidUtilities
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"repoSheet: import telegram classes failed: {e}")
 
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"repoSheet: import elyx strings failed: {e}")
 
 from . import RepoIcon
@@ -56,7 +58,8 @@ def _updated_label(mtime) -> str:
             return ""
         from org.telegram.messenger import LocaleController
         return str(LocaleController.formatLocationUpdateDate(seconds))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"repoSheet: updated label unavailable: {e}", True)
         return ""
 
@@ -130,7 +133,8 @@ def show_repo_sheet(act, repo: dict, info: dict = None):
                     sub.setText(LocaleUtils.fullyFormatText(sub_text))
                     sub.setLinkTextColor(_theme("key_windowBackgroundWhiteBlueText"))
                     sub.setMovementMethod(LinkMovementMethod.getInstance())
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"repoSheet: maintainer format unavailable: {e}", True)
                     sub.setText(sub_text)
                 col.addView(sub, LayoutHelper.createLinear(-1, -2, 0, 3, 0, 0))
@@ -151,7 +155,8 @@ def show_repo_sheet(act, repo: dict, info: dict = None):
             sheet.setCustomView(root)
             applyFontToTree(root)
             sheet.show()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"repoSheet: show error: {e}", False)
 
     run_on_ui_thread(_show)

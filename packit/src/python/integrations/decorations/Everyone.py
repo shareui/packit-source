@@ -10,7 +10,8 @@ import urllib.request
 from hook_utils import find_class
 try:
     from org.telegram.messenger import ApplicationLoader
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     ApplicationLoader = None
     logx(f"[everyone] import ApplicationLoader failed: {e}", False)
 
@@ -43,7 +44,8 @@ def _load_from_cache() -> bool:
         with _lock:
             _everyone_ids = set(ids)
         return True
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"[everyone] cache load error: {e}", False)
         return False
 
@@ -66,7 +68,8 @@ def _fetch_and_save():
         path = _get_cache_path()
         with open(path, "w", encoding="utf-8") as f:
             json.dump({"everyone": ids}, f)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"[everyone] fetch error: {e}", False)
 
 
@@ -89,7 +92,8 @@ def _patch_message(msg):
         msg.mentioned = True
         msg.media_unread = True
         logx(f"[everyone] mentioned patched from {sender_id}", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"[everyone] patch error: {e}", False)
 
 
@@ -101,7 +105,8 @@ class PutMessagesHook:
                 return
             for i in range(messages.size()):
                 _patch_message(messages.get(i))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"[everyone] hook error: {e}", False)
 
 
@@ -112,7 +117,8 @@ def setup_hook(plugin) -> list:
         if MessagesStorage is None:
             return refs
         refs = plugin.hook_all_methods(MessagesStorage, "putMessages", PutMessagesHook())
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"[everyone] setup_hook error: {e}", False)
     return refs
 

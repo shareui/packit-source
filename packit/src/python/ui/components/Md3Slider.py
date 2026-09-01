@@ -25,12 +25,14 @@ class Md3Slider:
             f.get(self.view).setProgress(self.view.getProgress(int(value)), bool(animated))
             self.view.updateTexts(int(value), bool(animated))
             return
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"md3Slider: set_value reflection failed: {e}", True)
         try:
             # non-animated re-set through the public API
             self.view.set(int(value), self._options, self._callback)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"md3Slider: set_value fallback failed: {e}", False)
 
 
@@ -62,7 +64,8 @@ def createMd3Slider(ctx, min_val, max_val, value, on_change, to_string=None):
                         res = to_string(int(label_type), int(val))
                         if res is not None:
                             return str(res)
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"md3Slider: to_string error: {e}", True)
                     return str(val)
 
@@ -73,20 +76,23 @@ def createMd3Slider(ctx, min_val, max_val, value, on_change, to_string=None):
                 field = options.getClass().getDeclaredField("toString")
                 field.setAccessible(True)
                 field.set(options, _Fmt2())
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"md3Slider: toString field set failed: {e}", False)
 
         class _OnChange(dynamic_proxy(Utilities.Callback)):
             def run(self, val_obj):
                 try:
                     on_change(int(val_obj))
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"md3Slider: on_change error: {e}", False)
 
         callback = _OnChange()
         view = SlideIntChooseView(ctx, None)
         view.set(int(value), options, callback)
         return Md3Slider(view, options, callback)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"md3Slider: create failed: {e}", False)
         return None

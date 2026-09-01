@@ -13,12 +13,14 @@ import os
 
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"deeplinks.plugin: import strings failed: {e}")
 
 try:
     from org.telegram.messenger import ApplicationLoader
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"deeplinks.plugin: import ApplicationLoader failed: {e}")
 
 
@@ -63,7 +65,8 @@ def handle(url, repoManager):
             return
 
         _openPluginProfile(repo, pluginId, repoId, repoManager)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"deeplinks.plugin: error: {e}", False)
 
 
@@ -116,7 +119,8 @@ def _openPluginProfile(repo: dict, pluginId: str, repoId: str, repoManager):
                 show_plugin_profile(_p, installUI, _all, repo_id=_rid)
 
             run_on_ui_thread(_show)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"deeplinks.plugin: fetch error: {e}", False)
             run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings["dl_plugin_load_error"])))
 

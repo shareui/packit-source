@@ -30,13 +30,15 @@ def setup_plugins_activity_fab(plugin):
                     if frag_view is None:
                         return
                     run_on_ui_thread(lambda: _inject_fab(plugin, frag_view))
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"addPluginFab: after_hooked_method error: {e}", False)
 
         hook_ref = plugin.hook_method(create_view_method, PluginsActivityCreateViewHook())
         logx("addPluginFab: PluginsActivity.createView hooked", True)
         return hook_ref
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"addPluginFab: setup_plugins_activity_fab error: {e}", False)
         return None
 
@@ -110,7 +112,8 @@ def _inject_fab(plugin, frag_view):
             try:
                 from ...ui.plugins.Fragment import InstallUI
                 InstallUI(plugin).open()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"addPluginFab: on_fab_click error: {e}", False)
 
         fab.setOnClickListener(OnClickListener(on_fab_click))
@@ -129,7 +132,8 @@ def _inject_fab(plugin, frag_view):
         _attach_scroll_listener(frag_view, fab, fab_lp, fab_margin, state_ref)
 
         logx("addPluginFab: FAB injected into PluginsActivity", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"addPluginFab: _inject_fab error: {e}", False)
 
 
@@ -162,7 +166,8 @@ def _keep_above_navigation_bar(fab, base_margin):
                 return
             lp.bottomMargin = base_margin + _nav_bar_inset(insets)
             fab.setLayoutParams(lp)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"addPluginFab: apply inset error: {e}", False)
 
     try:
@@ -176,7 +181,8 @@ def _keep_above_navigation_bar(fab, base_margin):
                 return insets
 
         fab.setOnApplyWindowInsetsListener(_InsetsListener())
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"addPluginFab: insets listener error: {e}", False)
 
     # apply straight away: the parent may have already dispatched insets before
@@ -184,7 +190,8 @@ def _keep_above_navigation_bar(fab, base_margin):
     try:
         _apply(fab.getRootWindowInsets())
         fab.requestApplyInsets()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"addPluginFab: initial inset error: {e}", False)
 
 
@@ -228,7 +235,8 @@ def _attach_scroll_listener(frag_view, fab, fab_lp, fab_margin, state_ref):
                 try:
                     fab.setVisibility(View.GONE)
                     state_ref["animating"] = False
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"addPluginFab: on_hide_end error: {e}", False)
 
             phase1.addListener(_make_end_listener(on_hide_end))
@@ -261,7 +269,8 @@ def _attach_scroll_listener(frag_view, fab, fab_lp, fab_margin, state_ref):
             def on_show_end():
                 try:
                     state_ref["animating"] = False
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"addPluginFab: on_show_end error: {e}", False)
 
             phase2.addListener(_make_end_listener(on_show_end))
@@ -285,11 +294,13 @@ def _attach_scroll_listener(frag_view, fab, fab_lp, fab_margin, state_ref):
                 try:
                     if newState == 0:  # SCROLL_STATE_IDLE
                         update_fab_visibility(rv)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"addPluginFab: onScrollStateChanged error: {e}", False)
 
         list_view.addOnScrollListener(FabScrollListener.new_java_instance())
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"addPluginFab: _attach_scroll_listener error: {e}", False)
 
 
@@ -307,7 +318,8 @@ def _attach_press_animation(fab, state_ref):
                     fab.animate().scaleX(0.88).scaleY(0.88).alpha(0.72).setDuration(120).start()
                 elif action in (MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL):
                     fab.animate().scaleX(1.0).scaleY(1.0).alpha(1.0).setDuration(220).start()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"addPluginFab: press touch error: {e}", False)
             return False
 
@@ -316,7 +328,8 @@ def _attach_press_animation(fab, state_ref):
                 return _on_touch(v, event)
 
         fab.setOnTouchListener(_TL())
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"addPluginFab: _attach_press_animation error: {e}", False)
 
 
@@ -328,7 +341,8 @@ def _make_end_listener(on_end):
         def onAnimationEnd(self, a, *args):
             try:
                 on_end()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"addPluginFab: AnimatorListener.onAnimationEnd error: {e}", False)
 
         def onAnimationStart(self, a, *args): pass

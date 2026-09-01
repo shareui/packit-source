@@ -86,7 +86,8 @@ def _migrate_packitcache():
         if os.path.exists(old) and not os.path.exists(new):
             os.rename(old, new)
             logx("PackIt: renamed packitCache -> packit", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"PackIt: rename packitCache error: {e}", False)
 
 
@@ -109,14 +110,16 @@ def _check_paths():
         for name, path in paths.items():
             exists = os.path.exists(path)
             logx(f"PackIt paths: {name} {'OK' if exists else 'NOT FOUND'} -> {path}", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"PackIt paths: check failed: {e}", False)
 
 
 def loadPlugin(plugin):
     try:
         from elyx import settings
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"PackIt: import settings failed: {e}", False)
         return
 
@@ -137,7 +140,8 @@ def loadPlugin(plugin):
     try:
         from .utils.InstallIndex import purge_missing
         purge_missing()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"PackIt: installIndex purge error: {e}", False)
     from .integrations.decorations import IsBeta
     from .integrations.decorations import Everyone as _everyone
@@ -150,11 +154,13 @@ def loadPlugin(plugin):
         data, _ = sync_completed(loaded)
         if load_ok:
             _save_account(data)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"PackIt: achievements sync error: {e}", False)
     try:
         plugin._check_identity_achievement()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"PackIt: identity achievement check error: {e}", False)
     plugin.repoManager.updateAllCaches()
     if settings.get("show_startup_status", False):
@@ -215,7 +221,8 @@ def _show_startup_bulletin(plugin):
         text = f"PackIt: init {plugin._init_time:.3f}s startup {startupTime:.3f}s total {totalTime:.3f}s"
         import threading
         threading.Timer(1.5, lambda: run_on_ui_thread(lambda: BulletinHelper.show_info(text))).start()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"PackIt: _show_startup_bulletin error: {e}", False)
 
 
@@ -223,7 +230,8 @@ def _check_for_update(plugin):
     try:
         from .integrations.chatlist.PackitUpdateSheet import check_and_show
         check_and_show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"PackIt: update check error: {e}", False)
 
 
@@ -231,7 +239,8 @@ def _check_startup_updates(plugin):
     try:
         from .ui.updates.StartupSheet import check_and_show_startup_updates
         check_and_show_startup_updates(plugin=plugin)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"PackIt: startup updates check error: {e}", False)
 
 
@@ -273,7 +282,8 @@ def _check_update_notifications_bulletin(plugin):
                 def run(self):
                     try:
                         self._fn()
-                    except Exception as _e:
+                    except Exception as _cython_exc__e:
+                        _e = _cython_exc__e
                         logx(f"PackIt: update bulletin runnable error: {_e}", True)
 
             def show():
@@ -286,7 +296,8 @@ def _check_update_notifications_bulletin(plugin):
                         from .utils.Media import playSound
                         _snd = assets.sounds.available_updates.path_str
                         playSound(_snd, "sfx_available_updates")
-                    except Exception as _e:
+                    except Exception as _cython_exc__e:
+                        _e = _cython_exc__e
                         logx(f"PackIt: update bulletin sound error: {_e}", True)
                     if single_update is not None:
                         def _install():
@@ -328,7 +339,8 @@ def _check_update_notifications_bulletin(plugin):
                                     return
                                 from .core.Core import install_plugin
                                 run_on_ui_thread(lambda: install_plugin(plugin_item, all_plugins=all_plugins, rm_rid=repo_id))
-                            except Exception as _e:
+                            except Exception as _cython_exc__e:
+                                _e = _cython_exc__e
                                 logx(f"PackIt: update bulletin install error: {_e}", True)
                         from client_utils import run_on_queue
                         _action = lambda: run_on_queue(_install)
@@ -337,18 +349,21 @@ def _check_update_notifications_bulletin(plugin):
                             try:
                                 from .ui.updates.Fragment import show_updates_fragment
                                 show_updates_fragment()
-                            except Exception as _e:
+                            except Exception as _cython_exc__e:
+                                _e = _cython_exc__e
                                 logx(f"PackIt: update bulletin open error: {_e}", True)
                     factory = _pbf(fragment)
                     bulletin = factory.createSimpleBulletin(
                         R_tg.raw.info, text, btn_text, _Runnable(_action)
                     )
                     bulletin.show(True)
-                except Exception as _e:
+                except Exception as _cython_exc__e:
+                    _e = _cython_exc__e
                     logx(f"PackIt: update bulletin show error: {_e}", True)
 
             run_on_ui_thread(show)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"PackIt: _check_update_notifications_bulletin error: {e}", False)
 
     threading.Thread(target=task, daemon=True).start()
@@ -390,7 +405,8 @@ def on_send_message_hook(plugin, account: int, params: Any):
                 if os.path.exists(path):
                     os.remove(path)
             params.message = "Achievements deleted!"
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             params.message = f"Failed to delete achievements: {e}"
         return HookResult(strategy=HookStrategy.MODIFY, params=params)
 
@@ -406,7 +422,8 @@ def on_plugin_unload(plugin):
                 plugin.unhook_method(plugin.packit_hook_constructor_ref)
             except Exception:
                 pass
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"Error cleaning up badge manager: {e}", False)
 
 
@@ -414,7 +431,7 @@ def create_settings(plugin):
     return plugin.settingsBuilder.buildMainSettings()
 
 
-_AUTOCOMPLETE_METHODS = {
+AUTOCOMPLETE_METHODS = {
     "_packit_get_class": _packit_get_class,
     "_packit_hook_enter_view_constructor": _packit_hook_enter_view_constructor,
     "_packit_attach_text_watcher": _packit_attach_text_watcher,

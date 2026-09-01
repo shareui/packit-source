@@ -16,7 +16,8 @@ _META_KEYS = ("client", "staticVer", "sourceHash")
 def _readMeta():
     try:
         from elyx import metainfo
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"buildInfo: failed to import elyx metainfo: {e}", False)
         return {}
     meta = {}
@@ -51,7 +52,8 @@ def getCurrClientPkg():
     try:
         from org.telegram.messenger import ApplicationLoader
         return str(ApplicationLoader.applicationContext.getPackageName())
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"buildInfo: failed to get current package: {e}", False)
         return None
         
@@ -68,6 +70,7 @@ def getClientVersion():
     try:
         from org.telegram.messenger import BuildVars
         return str(BuildVars.BUILD_VERSION_STRING)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"buildInfo: failed to get client version: {e}", False)
         return None

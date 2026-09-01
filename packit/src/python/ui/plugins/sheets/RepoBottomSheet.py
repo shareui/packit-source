@@ -13,22 +13,26 @@ from client_utils import get_last_fragment
 from hook_utils import find_class
 try:
     from org.telegram.ui.ActionBar import BottomSheet, Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.ui.ActionBar import BottomSheet, Theme failed: {e}")
     from ....utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.ui.Components import LayoutHelper
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.ui.Components import LayoutHelper failed: {e}")
     from ....utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.messenger import AndroidUtilities
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities failed: {e}")
     from ....utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
     from ....utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 
@@ -252,7 +256,8 @@ def show_repo_sheet(install_ui, repos, on_select=None):
             except Exception:
                 pass
             sheet.show()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"repo: repo sheet error: {e}", False)
 
     run_on_ui_thread(_show)

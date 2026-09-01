@@ -235,7 +235,8 @@ def build_index(plugins: list):
                 logx(f"search: native index built for {len(plugins)} plugins (handle={handle})", True)
                 return _NativeIndex(handle)
             logx("search: native build_index returned invalid handle, falling back to python", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"search: native build_index failed, falling back to python: {e}", False)
 
     logx(f"search: python index built for {len(plugins)} plugins", True)
@@ -261,7 +262,8 @@ def score(plugin: dict, query: str, index, isRussian: bool, fuzzy: bool = False)
                 finally:
                     _lib.search_free_str(ptr)
             logx("search: native score returned null, falling back to python", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"search: native score failed, falling back to python: {e}", False)
         return (6, 0, 0.0)
 

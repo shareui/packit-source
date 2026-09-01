@@ -25,5 +25,6 @@ def check_message(text: str):
             unlock_secret("connect_is_bullshit")
         elif lower == _TRIGGER_OPSEC:
             unlock_secret("opsec")
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"[text] check_message error: {e}", False)

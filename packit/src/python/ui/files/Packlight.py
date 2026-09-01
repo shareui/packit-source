@@ -96,7 +96,8 @@ def _resolveColors():
             _TK_CALL:      Theme.getColor(Theme.key_color_lightblue),
             _TK_DECORATOR: Theme.getColor(Theme.key_color_orange),
         }
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"packlight: _resolveColors error: {e}", False)
         return {}
 
@@ -114,7 +115,8 @@ def _applySpans(spannable, tokBuf, ranges, cnt, colors, offset=0):
             if cs == 0xFFFFFFFF or ce == 0xFFFFFFFF or cs >= ce:
                 continue
             spannable.setSpan(ForegroundColorSpan(color), cs, ce, EXCL_EXCL)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"packlight: _applySpans error: {e}", False)
 
 
@@ -132,7 +134,8 @@ def tokenize(text: str, tokenizeFn):
         ranges = _CharRangeBuf()
         lib.packlight_tokens_to_chars(encoded, srcLen, tokBuf, cnt, ranges, _MAX_TOKENS)
         return tokBuf, ranges, cnt
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"packlight: tokenize error: {e}", False)
         return None
 

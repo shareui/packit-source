@@ -3,7 +3,8 @@
 
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"utils: import elyx import strings failed: {e}")
 
 def _count_active_repos(repo_manager) -> int:

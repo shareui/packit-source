@@ -65,7 +65,8 @@ def _make_expandable(other_settings, ctx):
             item=item,
             on_click=lambda view: other_settings._es_toggle_and_reload("sfx_enabled"),
         )
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"sfx: expandable create error: {e}", False)
         return None
 
@@ -91,7 +92,8 @@ def _make_child(ctx, key, text, default):
             _reload()
 
         return Custom(item=item, on_click=on_click)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"sfx: child {key} create error: {e}", False)
         return None
 
@@ -139,7 +141,8 @@ def _make_volume_slider(ctx):
             )
             view = slider.view if slider is not None else None
         return Custom(view=view) if view is not None else None
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"sfx: volume slider create error: {e}", False)
         return None
 

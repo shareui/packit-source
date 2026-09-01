@@ -20,12 +20,14 @@ from android.graphics.drawable import GradientDrawable
 from android_utils import OnClickListener
 try:
     from org.telegram.messenger import AndroidUtilities, R as R_tg
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities, R as R_tg failed: {e}")
     from .ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
     from .ImportFailed import showImportFailedAlert as _sifa; _sifa()
 from android.net import Uri
@@ -95,7 +97,8 @@ def _translate_text(text: str, target_lang: str) -> str:
                 ) if data and data[0] else chunk
             else:
                 part = chunk
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"translate: chunk error: {e}", False)
             part = chunk
         translated_parts.append(part)
@@ -129,14 +132,16 @@ def translate_plugin(plugin_info: dict, text_override: str = None):
                     loading.set_cancelable(False)
                     dlg_ref[0] = loading.create()
                     dlg_ref[0].show()
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"translate: show_spinner error: {e}", False)
 
             def dismiss_spinner():
                 try:
                     if dlg_ref[0]:
                         dlg_ref[0].dismiss()
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"translate: dismiss_spinner error: {e}", False)
 
             run_on_ui_thread(show_spinner)
@@ -146,7 +151,8 @@ def translate_plugin(plugin_info: dict, text_override: str = None):
             run_on_ui_thread(dismiss_spinner)
             run_on_ui_thread(lambda: _show_translate_sheet(act, plugin_info, target_lang, translated))
 
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"translate: error: {e}", False)
             try:
                 run_on_ui_thread(lambda: _pbf(get_last_fragment().getParentActivity().getWindow().getDecorView(), None).createErrorBulletin(strings["translation_failed"]).show())
@@ -264,5 +270,6 @@ def _show_translate_sheet(act, plugin_info, lang, translated_text):
         except Exception:
             pass
         translate_sheet.show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"translate: show sheet error: {e}", False)

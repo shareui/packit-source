@@ -11,17 +11,20 @@ from android.widget import ImageView
 from elyx import strings
 try:
     from org.telegram.messenger import AndroidUtilities, R as R_tg
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     if DEBUG_LOGS:
         logx(f"hashBottomSheet: import error: {e}", False)
 try:
     from org.telegram.ui.ActionBar import Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     if DEBUG_LOGS:
         logx(f"hashBottomSheet: import Theme error: {e}", False)
 try:
     from org.telegram.ui.Components import LayoutHelper
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     if DEBUG_LOGS:
         logx(f"hashBottomSheet: import LayoutHelper error: {e}", False)
 
@@ -95,7 +98,8 @@ def _installFromRepo(pluginId: str, pluginsUrl: str, repoManager, act):
     try:
         from org.telegram.messenger import ApplicationLoader
         from com.exteragram.messenger.plugins import PluginsController
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         if DEBUG_LOGS:
             logx(f"hashBottomSheet: _installFromRepo import error: {e}", False)
         return
@@ -164,13 +168,15 @@ def _installFromRepo(pluginId: str, pluginsUrl: str, repoManager, act):
                     if not fragment:
                         return
                     PluginsController.getInstance().showInstallDialog(fragment, tempPath, True)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     if DEBUG_LOGS:
                         logx(f"hashBottomSheet: openDialog error: {e}", False)
                     BulletinHelper.show_error(strings["sec_install_dialog_failed"])
 
             run_on_ui_thread(openDialog)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             if DEBUG_LOGS:
                 logx(f"hashBottomSheet: _installFromRepo error: {e}", False)
             dismissDlg()
@@ -209,7 +215,8 @@ def _applyPressScale(view):
                 return False
 
         view.setOnTouchListener(_T())
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         if DEBUG_LOGS:
             logx(f"hashBottomSheet: _applyPressScale error: {e}", False)
 
@@ -303,7 +310,8 @@ def _showErrorSheet(act, msg: str):
             lp.gravity = Gravity.CENTER_HORIZONTAL
             lp.bottomMargin = dp(12)
             root.addView(lottie, lp)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             if DEBUG_LOGS:
                 logx(f"hashBottomSheet: error lottie: {e}", False)
 
@@ -333,7 +341,8 @@ def _showErrorSheet(act, msg: str):
         sheet = builder.create()
         sheetRef[0] = sheet
         sheet.show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         if DEBUG_LOGS:
             logx(f"hashBottomSheet: _showErrorSheet error: {e}", False)
 
@@ -382,7 +391,8 @@ def _showResult(act, pluginId: str, localHash: str, localVersion: str | None,
                     state = "mismatch"
                     msg = strings["sec_hash_mismatch"]
 
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             if DEBUG_LOGS:
                 logx(f"hashBottomSheet: _showResult work error: {e}", False)
             state = "error"
@@ -462,7 +472,8 @@ def _showResultSheet(act, state: str, msg: str, localHash: str, showInstall: boo
             lp.gravity = Gravity.CENTER_HORIZONTAL
             lp.bottomMargin = dp(10)
             root.addView(lottie, lp)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             if DEBUG_LOGS:
                 logx(f"hashBottomSheet: lottie {lottieRaw} error: {e}", False)
 
@@ -558,7 +569,8 @@ def _showResultSheet(act, state: str, msg: str, localHash: str, showInstall: boo
         s = builder.create()
         sheetRef[0] = s
         s.show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         if DEBUG_LOGS:
             logx(f"hashBottomSheet: _showResultSheet error: {e}", False)
 
@@ -566,7 +578,8 @@ def _showResultSheet(act, state: str, msg: str, localHash: str, showInstall: boo
 def _doInstall(sheet, pluginId: str, pluginsUrl: str, repoManager, act):
     try:
         sheet.dismiss()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         if DEBUG_LOGS:
             logx(f"hashBottomSheet: sheet dismiss error: {e}", False)
     _installFromRepo(pluginId, pluginsUrl, repoManager, act)
@@ -597,7 +610,8 @@ def _showRepoSelector(act, filePath: str, repoManager, sheet):
             repos = _loadCachedRepos()
             if DEBUG_LOGS:
                 logx(f"hashBottomSheet: repos={[r[0] for r in repos]}", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             if DEBUG_LOGS:
                 logx(f"hashBottomSheet: work error: {e}", False)
             run_on_ui_thread(lambda: dlg.dismiss())
@@ -809,7 +823,8 @@ def _showRepoSelectorSheet(act, repos: list, pluginId: str, localHash: str,
         s = builder.create()
         sheetRef[0] = s
         s.show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         if DEBUG_LOGS:
             logx(f"hashBottomSheet: _showRepoSelectorSheet error: {e}", False)
 
@@ -834,7 +849,8 @@ class ConstructorHook(MethodHook):
             _pending[sheet.hashCode()] = (filePath, _repoManager, sheet)
             if DEBUG_LOGS:
                 logx(f"hashBottomSheet: stored filePath={filePath}", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             if DEBUG_LOGS:
                 logx(f"hashBottomSheet: ConstructorHook error: {e}", False)
 
@@ -872,18 +888,21 @@ class SetCustomViewHook(MethodHook):
             hash_btn = ImageView(act)
             try:
                 hash_btn.setImageResource(getattr(R_tg.drawable, "msg_sendfile"))
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 if DEBUG_LOGS:
                     logx(f"hashBottomSheet: msg_sendfile failed: {e}", False)
                 try:
                     hash_btn.setImageResource(getattr(R_tg.drawable, "msg_secret"))
-                except Exception as e2:
+                except Exception as _cython_exc_e2:
+                    e2 = _cython_exc_e2
                     if DEBUG_LOGS:
                         logx(f"hashBottomSheet: fallback icon failed: {e2}", True)
 
             try:
                 hash_btn.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon))
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 if DEBUG_LOGS:
                     logx(f"hashBottomSheet: setColorFilter error: {e}", False)
 
@@ -895,7 +914,8 @@ class SetCustomViewHook(MethodHook):
             try:
                 from org.telegram.ui.Components import ScaleStateListAnimator
                 ScaleStateListAnimator.apply(hash_btn, 0.15, 1.5)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 if DEBUG_LOGS:
                     logx(f"hashBottomSheet: ScaleStateListAnimator error: {e}", False)
 
@@ -903,7 +923,8 @@ class SetCustomViewHook(MethodHook):
                 selector_color = Theme.getColor(Theme.key_dialogButtonSelector)
                 bg = Theme.createSelectorDrawable(selector_color, 1, AndroidUtilities.dp(20))
                 hash_btn.setBackground(bg)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 if DEBUG_LOGS:
                     logx(f"hashBottomSheet: setBackground error: {e}", False)
 
@@ -912,7 +933,8 @@ class SetCustomViewHook(MethodHook):
             if DEBUG_LOGS:
                 logx("hashBottomSheet: hash_btn added to frame", True)
 
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             if DEBUG_LOGS:
                 logx(f"hashBottomSheet: SetCustomViewHook error: {e}", False)
 
@@ -966,7 +988,8 @@ def setup_hash_button_hook(plugin, repoManager):
         if DEBUG_LOGS:
             logx(f"hashBottomSheet: setup done, hooks={len(hooks)}", True)
         return hooks
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         if DEBUG_LOGS:
             logx(f"hashBottomSheet: setup error: {e}", False)
         return None

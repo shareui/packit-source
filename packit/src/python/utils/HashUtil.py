@@ -88,7 +88,8 @@ def _hashFileBithash(path: str) -> str:
 
         result = lib.bitHash_finish(ctypes.byref(state))
         return format(result, "016x")
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"hashutil: bithash compute error: {e}", False)
         return _hashFileSha256(path)
 

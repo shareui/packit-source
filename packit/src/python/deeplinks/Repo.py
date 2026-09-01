@@ -14,7 +14,8 @@ from android.text.method import LinkMovementMethod
 from java import dynamic_proxy
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
     from ..utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 from hook_utils import find_class
@@ -24,12 +25,14 @@ try:
     from org.telegram.ui.Components import LayoutHelper
     from org.telegram.messenger import AndroidUtilities
     from org.telegram.ui.Stories.recorder import ButtonWithCounterView
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"repo deeplink: import tg classes failed: {e}")
     from ..utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from com.exteragram.messenger.utils.text import LocaleUtils
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"repo deeplink: import LocaleUtils failed: {e}")
     from ..utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 from urllib.parse import urlparse, parse_qs
@@ -76,7 +79,8 @@ def _balance_lines(tv):
     try:
         from android.text import Layout
         tv.setBreakStrategy(Layout.BREAK_STRATEGY_BALANCED)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"repo deeplink: balanced break unavailable: {e}", True)
 
 
@@ -117,7 +121,8 @@ def handle(url, repoManager):
                 R_tg.raw.camera_flip,
                 strings.repo_add_fetching
             ).show()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"repo deeplink: bulletin error: {e}", False)
 
         def fetch_task():
@@ -139,13 +144,15 @@ def handle(url, repoManager):
                         logx(f"repo deeplink: plugin count unavailable: {list_error}", True)
                     else:
                         pluginCount = len(entries)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"repo deeplink: fetch error: {e}", False)
 
             run_on_ui_thread(lambda: _show_confirm_sheet(repometa, pluginCount, name, link, repoManager))
 
         run_on_queue(fetch_task)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"repo deeplink: handle error: {e}", False)
 
 
@@ -190,7 +197,8 @@ def _show_confirm_sheet(repometa, pluginCount, name, link, repoManager):
                 act, {"id": rm_rid, "name": rm_name, "url": link}, 76, 22, rm_icon)
             linear.addView(icon_view, LayoutHelper.createLinear(
                 76, 76, Gravity.CENTER_HORIZONTAL, 0, 22, 0, 0))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"repo deeplink: icon error: {e}", False)
 
         # the repository's name, not "Add repository?" — the question is what
@@ -251,7 +259,8 @@ def _show_confirm_sheet(repometa, pluginCount, name, link, repoManager):
                 chips_row.addView(_sheet_chip(act, rm_url_display), _sheet_chip_lp(3))
             if chips_row.getChildCount():
                 linear.addView(chips_row, LayoutHelper.createFrame(-1, -2, 0, 16.0, 14.0, 16.0, 0.0))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"repo deeplink: chips error: {e}", False)
 
         # What is left of the disclaimer once the concrete facts are drawn
@@ -301,9 +310,11 @@ def _show_confirm_sheet(repometa, pluginCount, name, link, repoManager):
                     try:
                         from ..ui.achievements.service.AchivementsEngine import increment_category
                         increment_category("Repositories")
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"repo deeplink: achievements increment error: {e}", False)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"repo deeplink: on_add error: {e}", False)
                 sheet.dismiss()
 
@@ -327,5 +338,6 @@ def _show_confirm_sheet(repometa, pluginCount, name, link, repoManager):
         scroll.addView(frame)
         sheet.setCustomView(scroll)
         sheet.show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"repo deeplink: _show_confirm_sheet error: {e}", False)

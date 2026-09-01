@@ -32,7 +32,8 @@ def _safe_ripple_class():
         try:
             from hook_utils import find_class
             _SAFE_CLS = find_class("org.telegram.ui.Cells.BaseCell$RippleDrawableSafe")
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"ripple: RippleDrawableSafe unavailable: {e}", False)
             _SAFE_CLS = None
     return _SAFE_CLS
@@ -44,11 +45,13 @@ def safe_ripple(color_state_list, content, mask):
     if cls is not None:
         try:
             return cls(color_state_list, content, mask)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"ripple: safe ripple construction failed: {e}", False)
     try:
         from android.graphics.drawable import RippleDrawable
         return RippleDrawable(color_state_list, content, mask)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"ripple: plain ripple construction failed: {e}", False)
     return content

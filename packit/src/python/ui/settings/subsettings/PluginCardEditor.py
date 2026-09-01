@@ -16,23 +16,28 @@ from java import dynamic_proxy, jarray, jfloat
 
 try:
     from elyx import settings, strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"PluginCardEditor: import elyx failed: {e}")
 try:
     from org.telegram.ui.ActionBar import Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"PluginCardEditor: import Theme failed: {e}")
 try:
     from org.telegram.ui.Components import LayoutHelper
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"PluginCardEditor: import LayoutHelper failed: {e}")
 try:
     from org.telegram.messenger import AndroidUtilities
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"PluginCardEditor: import AndroidUtilities failed: {e}")
 try:
     from org.telegram.ui.Components import BulletinFactory
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"PluginCardEditor: import BulletinFactory failed: {e}")
     BulletinFactory = None
 
@@ -214,7 +219,8 @@ class _HighlightDelegate:
                 h = target_view.getHeight()
                 logx(f"highlight: self=({sx},{sy}) target=({tx},{ty}) -> ({x},{y}) {w}x{h}", True)
                 end = RectF(float(x), float(y), float(x + w), float(y + h))
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"highlight: setTarget error: {e}", False)
                 return
         self._start_anim(RectF(self._current_rect), end)
@@ -250,7 +256,8 @@ class _HighlightDelegate:
             anim.addUpdateListener(_Upd(start, end))
             anim.start()
             self._anim = anim
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"highlight: anim error: {e}", False)
             self._current_rect.set(end)
             self._alpha = 0.0 if end.isEmpty() else 1.0
@@ -298,7 +305,8 @@ def _make_highlight_view(context):
         uv.setFocusable(False)
         delegate.view = uv
         return uv, delegate
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"highlight: _make_highlight_view error: {e}", False)
         return None, None
 
@@ -361,7 +369,8 @@ def _make_ghost_overlay(context, on_click, radius_dp=6):
         uv.setOnClickListener(OnClickListener(on_click))
         _view[0] = uv
         return uv
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"ghost overlay error: {e}", False)
         return None
 
@@ -624,7 +633,8 @@ class PluginCardPreview:
             if hl_view is not None:
                 self.highlight = hl_delegate
                 row.addView(hl_view, FrameLayout.LayoutParams(-1, -1))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"PCE: highlight create error: {e}", False)
 
         outer.setPadding(
@@ -689,7 +699,8 @@ class PluginCardPreview:
             
             pill.addView(content, FrameLayout.LayoutParams(-2, -2))
             return pill
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"PCE: _create_pill_button error: {e}", False)
             return View(self.context)
 
@@ -721,7 +732,8 @@ class PluginCardPreview:
             pill.setPadding(AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6), AndroidUtilities.dp(6))
             pill.setLayoutParams(LinearLayout.LayoutParams(AndroidUtilities.dp(36), AndroidUtilities.dp(36)))
             return pill
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"PCE: _create_icon_pill error: {e}", False)
 
             pill = View(self.context)
@@ -839,7 +851,8 @@ class PluginCardPreview:
                         if icon:
                             gray_color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
                             icon.setColorFilter(gray_color)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"PCE: Error setting gray state for details button: {e}", False)
 
         if key == 'more':
@@ -850,7 +863,8 @@ class PluginCardPreview:
                     if icon:
                         normal_color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
                         icon.setColorFilter(normal_color)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"PCE: Error setting more button color: {e}", False)
 
     def _refreshHighlight(self):
@@ -863,7 +877,8 @@ class PluginCardPreview:
             radius = 12 if key == 'icon' else (int(_gs(_KEY_CARD_RADIUS)) if key == 'card' else 6)
         try:
             self.highlight.setTarget(self.currentView, radius)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"PCE: _refreshHighlight error: {e}", False)
 
     def select(self, view, key):
@@ -876,7 +891,8 @@ class PluginCardPreview:
                 else:
                     radius = 12 if key == 'icon' else (int(_gs(_KEY_CARD_RADIUS)) if key == 'card' else 6)
                 self.highlight.setTarget(view, radius)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"PCE: select error: {e}", False)
         self.on_select(key)
 
@@ -898,7 +914,8 @@ class PluginCardPreview:
             card.setBackground(bg)
             p = AndroidUtilities.dp(_gs(_KEY_CARD_PADDING))
             card.setPadding(p, p, p, p)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"PCE: _apply_card_style error: {e}", False)
 
     def _apply_icon_style(self):
@@ -908,7 +925,8 @@ class PluginCardPreview:
                 bg = icon_frame.getBackground()
                 if bg and hasattr(bg, 'setCornerRadius'):
                     bg.setCornerRadius(float(AndroidUtilities.dp(_gs(_KEY_STICKER_RADIUS))))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"PCE: _apply_icon_style error: {e}", False)
 
     def _apply_visibility(self, animated=False):
@@ -928,7 +946,8 @@ class PluginCardPreview:
                     except Exception:
                         pass
                     TransitionManager.beginDelayedTransition(card, ts)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"PCE: transition error: {e}", False)
 
             show_icon  = _gs(_KEY_SHOW_ICON)
@@ -1024,7 +1043,8 @@ class PluginCardPreview:
             for i in range(self.elements['tags_row'].getChildCount() - 1):
                 self.elements['tags_row'].getChildAt(i).setVisibility(View.VISIBLE if show_tags else View.GONE)
             self.elements['tags_ph'].setVisibility(View.GONE if show_tags else View.VISIBLE)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"PCE: _apply_visibility error: {e}", False)
 
     def refresh(self):
@@ -1062,7 +1082,8 @@ class PluginCardPreview:
                         else:
                             gray_color = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText)
                             icon.setColorFilter(gray_color)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"PCE: Error updating details button color: {e}", False)
 
             relocate_keys = [
@@ -1086,7 +1107,8 @@ class PluginCardPreview:
                             icon.setColorFilter(normal_color)
                         else:
                             more_btn.setVisibility(View.GONE)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"PCE: Error updating more button: {e}", False)
             
             # recalculate highlight after transition (220ms) settles
@@ -1095,7 +1117,8 @@ class PluginCardPreview:
                 self.view.postDelayed(_R(self._refreshHighlight), 240)
             except Exception:
                 pass
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"PCE: refresh error: {e}", False)
 
 
@@ -1168,7 +1191,8 @@ class PluginCardEditorPage:
             # isShadow(-4) = true, so the section renderer skips this cell entirely.
             from org.telegram.ui.Components import UItem as _UItem
             return [Custom(item=_UItem.asCustomShadow(container))]
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"PluginCardEditor: build error: {e}", False)
             return []
 
@@ -1398,7 +1422,8 @@ class PluginCardEditorPage:
                                 container = fragment.getParentActivity().getWindow().getDecorView()
                                 resource_provider = fragment.getResourceProvider()
                                 _pbf(container, resource_provider).createErrorBulletin(strings["max_buttons_allowed"]).show()
-                        except Exception as e:
+                        except Exception as _cython_exc_e:
+                            e = _cython_exc_e
                             logx(f"PCE: Failed to show button limit popup: {e}", False)
                         return
                         
@@ -1409,7 +1434,8 @@ class PluginCardEditorPage:
                                 container = fragment.getParentActivity().getWindow().getDecorView()
                                 resource_provider = fragment.getResourceProvider()
                                 _pbf(container, resource_provider).createErrorBulletin(strings["max_buttons_allowed"]).show()
-                        except Exception as e:
+                        except Exception as _cython_exc_e:
+                            e = _cython_exc_e
                             logx(f"PCE: Failed to show button limit popup: {e}", False)
                         return
                     
@@ -1420,7 +1446,8 @@ class PluginCardEditorPage:
 
             cell.setOnClickListener(CellClick())
             self.settings_root.addView(cell, LayoutHelper.createLinear(-1, -2))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"PCE: _check_relocate_button error: {e}", False)
 
     def _check_details_button(self, ctx, key, label):
@@ -1450,7 +1477,8 @@ class PluginCardEditorPage:
                                 container = fragment.getParentActivity().getWindow().getDecorView()
                                 resource_provider = fragment.getResourceProvider()
                                 _pbf(container, resource_provider).createErrorBulletin(strings["max_buttons_allowed"]).show()
-                        except Exception as e:
+                        except Exception as _cython_exc_e:
+                            e = _cython_exc_e
                             logx(f"PCE: Failed to show button limit popup: {e}", False)
                         return
                     
@@ -1461,7 +1489,8 @@ class PluginCardEditorPage:
 
             cell.setOnClickListener(CellClick())
             self.settings_root.addView(cell, LayoutHelper.createLinear(-1, -2))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"PCE: _check_details_button error: {e}", False)
 
     def _check(self, ctx, key, label):
@@ -1484,7 +1513,8 @@ class PluginCardEditorPage:
 
             cell.setOnClickListener(CellClick())
             self.settings_root.addView(cell, LayoutHelper.createLinear(-1, -2))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"PCE: _check error: {e}", False)
 
     def _slider(self, ctx, label, key, min_val, max_val, default):
@@ -1534,7 +1564,8 @@ class PluginCardEditorPage:
         try:
             from ...components.Md3Slider import createMd3Slider
             md3 = createMd3Slider(ctx, min_val, max_val, val, on_change)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"PCE: md3 slider create error: {e}", False)
 
         if md3 is not None:

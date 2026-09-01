@@ -37,7 +37,8 @@ def _hash_matches(p: dict) -> bool:
             bithash=str(p.get("bithash") or ""),
             label=str(p.get("id") or local_path),
         )
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"installIndex.purge: hash check error for '{local_path}': {e}", False)
         return True
 
@@ -51,7 +52,8 @@ def purge_missing():
         repos = _json.loads(repos_raw)
         if not isinstance(repos, list):
             repos = []
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"installIndex.purge: cannot read repos: {e}", False)
         return
 
@@ -115,7 +117,8 @@ def purge_missing():
                 logx(f"installIndex.purge: removed {removed_missing} missing plugin(s) from '{rm_rid}-index.json'", True)
             if removed_hash:
                 logx(f"installIndex.purge: removed {removed_hash} hash-mismatch plugin(s) from '{rm_rid}-index.json'", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"installIndex.purge: error processing '{rm_rid}': {e}", False)
 
 
@@ -148,7 +151,8 @@ def commit_pending():
 
     try:
         from .Paths import getPluginsDir, getRepoIndexPath
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"installIndex: cannot import paths: {e}", False)
         return
 
@@ -189,7 +193,8 @@ def commit_pending():
             if _getBitHashLib() is not None:
                 bithash_val = _hashFileBithash(candidate_path)
             logx(f"installIndex: hashed '{plugin_id}' sha256='{hash_val[:16]}...' bithash='{bithash_val[:16] if bithash_val else ''}'", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"installIndex: failed to hash plugin file for '{plugin_id}': {e}", False)
             hash_val = str(plugin_info.get("hash") or "")
             bithash_val = str(plugin_info.get("bithash") or "")
@@ -231,7 +236,8 @@ def commit_pending():
 
         replaced = before_count != after_dedup
         logx(f"installIndex: wrote '{plugin_id}' to '{rm_rid}-index.json' (replaced={replaced}, total={len(plugins)}, local_path='{local_path}')", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"installIndex: write error for '{plugin_id}': {e}", False)
 
 
@@ -243,7 +249,8 @@ def commit_elyx_pending(plugin_info: dict, rm_rid: str, original_path: str = "")
 
     try:
         from .Paths import getPackitArchivesDir
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"installIndex.elyx: cannot import paths: {e}", False)
         return
 
@@ -273,7 +280,8 @@ def commit_elyx_pending(plugin_info: dict, rm_rid: str, original_path: str = "")
             import shutil
             shutil.copy2(original_path, archive_path)
             logx(f"installIndex.elyx: saved original archive to '{archive_path}'", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"installIndex.elyx: failed to copy original archive for '{plugin_id}': {e}", False)
 
     # check file is present (either we copied it or elyxcore placed it)
@@ -295,7 +303,8 @@ def commit_elyx_pending(plugin_info: dict, rm_rid: str, original_path: str = "")
             if _getBitHashLib() is not None:
                 bithash_val = _hashFileBithash(hash_source)
             logx(f"installIndex.elyx: hashed '{plugin_id}' sha256='{hash_val[:16]}...' bithash='{bithash_val[:16] if bithash_val else ''}'", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"installIndex.elyx: failed to hash archive for '{plugin_id}': {e}", False)
             hash_val = str(plugin_info.get("hash") or "")
             bithash_val = str(plugin_info.get("bithash") or "")
@@ -339,5 +348,6 @@ def commit_elyx_pending(plugin_info: dict, rm_rid: str, original_path: str = "")
 
         replaced = before_count != after_dedup
         logx(f"installIndex.elyx: wrote '{plugin_id}' to '{rm_rid}-index.json' (replaced={replaced}, total={len(plugins)}, local_path='{local_path}')", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"installIndex.elyx: write error for '{plugin_id}': {e}", False)

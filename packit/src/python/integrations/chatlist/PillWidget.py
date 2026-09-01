@@ -72,7 +72,8 @@ class PackitPill(Base):
         try:
             from org.telegram.ui.Components import ScaleStateListAnimator
             ScaleStateListAnimator.apply(layout)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"PillWidget: ScaleStateListAnimator error: {e}", False)
 
         self.updateColors()
@@ -90,7 +91,8 @@ class PackitPill(Base):
     def onPillClicked(self):
         try:
             run_on_ui_thread(lambda: _execute_action(_plugin_ref[0], _get_saved_action()))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"PillWidget: onPillClicked error: {e}", False)
 
     @joverride()
@@ -99,7 +101,8 @@ class PackitPill(Base):
             pill_java = self.java
             run_on_ui_thread(lambda: _show_long_click_menu(_plugin_ref[0], pill_java))
             return True
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"PillWidget: onPillLongClicked error: {e}", False)
             return False
 
@@ -120,7 +123,8 @@ class PackitPill(Base):
             if self.icon_view:
                 self.icon_view.setColorFilter(color, PorterDuff.Mode.SRC_IN)
             self.updateLoadingColors()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"PillWidget: updateColors error: {e}", False)
 
     @joverride()
@@ -150,7 +154,8 @@ def setup_pill_widget(plugin):
         run_on_ui_thread(lambda: _register_pill(plugin))
         logx("PillWidget: setup scheduled", True)
         return True
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"PillWidget: setup error: {e}", False)
         return None
 
@@ -170,7 +175,8 @@ def _setup_save_hook(plugin):
 
         plugin.hook_method(method, SaveLayoutHook())
         logx("PillWidget: savePillsLayout hook installed", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"PillWidget: _setup_save_hook error: {e}", False)
 
 
@@ -243,7 +249,8 @@ def _ensure_visibility():
                 pass
         PillStackConfig.savePillsLayout()
         logx(f"PillWidget: ensure_visibility state={state}", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"PillWidget: _ensure_visibility error: {e}", False)
 
 
@@ -274,7 +281,8 @@ def _sync_state_from_config():
         except Exception:
             pass
         logx("PillWidget: sync -> pill not found in either list", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"PillWidget: _sync_state_from_config error: {e}", False)
 
 
@@ -295,7 +303,8 @@ def _register_pill(plugin):
         _sync_pillstack()
         _notify_update()
         logx(f"PillWidget: registered id={_PILL_ID}", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"PillWidget: _register_pill error: {e}", False)
 
 
@@ -303,7 +312,8 @@ def _unregister_pill():
     try:
         PillRegistry.unregister(_PILL_ID)
         logx("PillWidget: unregistered", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"PillWidget: _unregister_pill error: {e}", False)
 
 
@@ -384,7 +394,8 @@ def _sync_pillstack():
         except Exception:
             pass
         logx("PillWidget: pillstack synced", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"PillWidget: _sync_pillstack error: {e}", False)
 
 
@@ -393,10 +404,12 @@ def _notify_update():
         def _do():
             try:
                 PillStackConfig.notifySettingsChanged()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"PillWidget: _notify_update inner error: {e}", False)
         run_on_ui_thread(_do)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"PillWidget: _notify_update error: {e}", False)
 
 
@@ -423,7 +436,8 @@ def _open_settings(plugin):
             from ui.bulletin import BulletinHelper
             from elyx import strings
             BulletinHelper.show_error(strings.plugin_not_found)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"PillWidget: _open_settings error: {e}", False)
 
 
@@ -431,7 +445,8 @@ def _open_install(plugin):
     try:
         from ...ui.plugins.Fragment import InstallUI
         InstallUI(plugin).open()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"PillWidget: _open_install error: {e}", False)
 
 
@@ -439,7 +454,8 @@ def _open_icons(plugin):
     try:
         from ...ui.icons.Fragment import InstallIconsUI
         InstallIconsUI(plugin).open()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"PillWidget: _open_icons error: {e}", False)
 
 
@@ -453,7 +469,8 @@ def _open_pill_stack_settings():
         frag = get_last_fragment()
         if frag:
             frag.presentFragment(PillStackPreferencesActivity())
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"PillWidget: _open_pill_stack_settings error: {e}", False)
 
 
@@ -535,7 +552,8 @@ def _show_long_click_menu(plugin, pill):
                         act = frag.getParentActivity() if frag else None
                         if act:
                             Browser.openUrl(act, Uri.parse(str(strings.tg_channel_url)), True, True, True, None, None, False, False, False)
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"PillWidget: open channel error: {e}", False)
             return R()
 
@@ -557,5 +575,6 @@ def _show_long_click_menu(plugin, pill):
         options.setDrawScrim(False)
         options.setDimAlpha(0)
         options.show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"PillWidget: _show_long_click_menu error: {e}", False)

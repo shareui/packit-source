@@ -34,7 +34,8 @@ def applyFont(view):
             return
         if isinstance(view, TextView):
             view.setTypeface(tf)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"viewUtils: applyFont error: {e}", False)
 
 
@@ -73,7 +74,8 @@ def highlightQuery(text, query, color):
                 Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
             )
         return ss
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"viewUtils: highlightQuery error: {e}", True)
         return None
 
@@ -87,7 +89,8 @@ def applyFontToTree(view_group):
         if tf is None:
             return
         _applyRecursive(view_group, tf)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"viewUtils: applyFontToTree error: {e}", False)
 
 

@@ -17,7 +17,8 @@ def _open_pill_stack_settings(view):
         frag = get_last_fragment()
         if frag:
             frag.presentFragment(PillStackPreferencesActivity())
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"updplugins: _open_pill_stack_settings error: {e}", False)
 
 

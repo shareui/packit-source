@@ -29,7 +29,8 @@ def submit(task):
                     fn = _queue.get()
                     try:
                         fn()
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"imagePool: worker error: {e}", True)
                     finally:
                         _queue.task_done()
@@ -50,7 +51,8 @@ def fetch(url: str, timeout: int = 15):
             logx(f"imagePool: HTTP {r.status_code} for {url}", True)
             return None
         return r.content
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"imagePool: fetch error for {url}: {e}", False)
         return None
 
@@ -82,7 +84,8 @@ def decode(data, px: int, is_svg: bool = False):
             opts.inSampleSize = max(1, min(opts.outWidth // px, opts.outHeight // px))
         opts.inJustDecodeBounds = False
         return BitmapFactory.decodeByteArray(data, 0, len(data), opts)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"imagePool: decode error: {e}", False)
         return None
 

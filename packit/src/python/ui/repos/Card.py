@@ -24,7 +24,8 @@ try:
     from org.telegram.messenger import AndroidUtilities
     from org.telegram.ui.ActionBar import Theme
     from org.telegram.ui.Components import LayoutHelper
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"repos card: import telegram classes failed: {e}")
     AndroidUtilities = None
     Theme = None
@@ -32,7 +33,8 @@ except Exception as e:
 
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"repos card: import elyx strings failed: {e}")
 
 from . import RepoIcon
@@ -241,7 +243,8 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
             sub_tv.setText(LocaleUtils.fullyFormatText(text))
             sub_tv.setLinkTextColor(_theme("key_windowBackgroundWhiteBlueText"))
             sub_tv.setMovementMethod(LinkMovementMethod.getInstance())
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"repos card: maintainer format unavailable: {e}", True)
             sub_tv.setText(text)
         sub_tv.setVisibility(0 if text else 8)  # VISIBLE / GONE
@@ -285,7 +288,8 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
                     return False
 
             sw_wrap.setOnTouchListener(_Press())
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"repos card: switch ripple unavailable: {e}", True)
 
         # right-aligned inside the wrapper, not centred: the wrapper is 19dp
@@ -424,7 +428,8 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
         state["enabled"] = is_on
         try:
             card.setBackground(_card_background(is_on))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"repos card: background repaint error: {e}", False)
         try:
             if switch is not None:
@@ -479,7 +484,8 @@ def make_repo_card(ctx, repo: dict, info: dict, callbacks: dict, handle: dict = 
                 # right after its own tap, and re-setting alpha mid-animation
                 # would snap it
                 _fill_chips(now, state["info"])
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"repos card: update error: {e}", False)
 
     card.setOnClickListener(OnClickListener(
@@ -506,7 +512,8 @@ def _build_switch(ctx, checked: bool):
                 Theme.key_switchTrack, Theme.key_switchTrackChecked,
                 Theme.key_windowBackgroundWhite, Theme.key_windowBackgroundWhite,
             )
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"repos card: switch colors unavailable: {e}", True)
         sw.setChecked(checked, False)
         # the wrapper around it takes the taps; the switch keeps the client's
@@ -514,7 +521,8 @@ def _build_switch(ctx, checked: bool):
         sw.setClickable(False)
         sw.setFocusable(False)
         return sw
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"repos card: switch unavailable: {e}", False)
         return None
 

@@ -62,7 +62,8 @@ class PackItDeeplinkHook(MethodHook):
                 param.setResult(None)
                 run_on_ui_thread(lambda: self.show_packit_notification(url))
                 return
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"[PackIt] Error in deeplink hook: {e}", False)
 
     def show_packit_notification(self, url):
@@ -84,7 +85,8 @@ class PackItDeeplinkHook(MethodHook):
             Terraria.handle(url)
             Aytist.handle(url)
             Suggestion.handle(url, self.plugin)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"[PackIt] Error showing notification: {e}", False)
             try:
                 fragment = get_last_fragment()
@@ -106,7 +108,8 @@ class PackItDeeplinkHook(MethodHook):
             self.pending_intent = None
             self.pending_param = None
             self.is_processing = False
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"[PackIt] Error proceeding deeplink: {e}", False)
             self.is_processing = False
 
@@ -127,6 +130,7 @@ def setup_deeplink_hook(plugin):
             )
             method.setAccessible(True)
             return plugin.hook_method(method, PackItDeeplinkHook(plugin))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"[PackIt] Error setting up deeplink hook: {e}", False)
     return None

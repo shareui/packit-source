@@ -14,40 +14,49 @@ from hook_utils import find_class
 
 try:
     from org.telegram.ui.ActionBar import Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"filesActivity: import Theme failed: {e}")
 try:
     from org.telegram.ui.Components import LayoutHelper
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"filesActivity: import LayoutHelper failed: {e}")
 try:
     from org.telegram.messenger import AndroidUtilities, ApplicationLoader
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"filesActivity: import AndroidUtilities failed: {e}")
 try:
     from com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"filesActivity: import UniversalFragment failed: {e}")
 try:
     from org.telegram.ui.ActionBar import ActionBarPopupWindow
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"filesActivity: import ActionBarPopupWindow failed: {e}")
 try:
     from androidx.core.content import ContextCompat
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"filesActivity: import ContextCompat failed: {e}")
 try:
     from android.graphics.drawable import GradientDrawable, RippleDrawable
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"filesActivity: import drawables failed: {e}")
 try:
     from android.graphics import Color as AColor, PorterDuff
     from android.content.res import ColorStateList as AColorStateList
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"filesActivity: import graphics failed: {e}")
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"filesActivity: import elyx.strings failed: {e}")
 
 
@@ -68,7 +77,8 @@ def _open_file(path, icon_view=None, delegate=None):
                 icon_view.setImageDrawable(spinner)
                 icon_view.clearColorFilter()
                 icon_view.setEnabled(False)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"filesActivity: _set_spinner error: {e}", False)
 
         def _restore_icon(icon_id):
@@ -77,7 +87,8 @@ def _open_file(path, icon_view=None, delegate=None):
                     icon_view.setImageResource(icon_id)
                     icon_view.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText))
                 icon_view.setEnabled(True)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"filesActivity: _restore_icon error: {e}", False)
 
         icon_id = [0]
@@ -85,7 +96,8 @@ def _open_file(path, icon_view=None, delegate=None):
             try:
                 icon_id[0] = _resolve_icon("msg_sendfile")
                 run_on_ui_thread(lambda: _set_spinner())
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"filesActivity: _open_file spinner setup error: {e}", False)
 
         def _task():
@@ -125,13 +137,15 @@ def _open_file(path, icon_view=None, delegate=None):
                         pass
 
                 run_on_ui_thread(_present)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"filesActivity: _open_file task error: {e}", False)
                 if icon_view is not None:
                     run_on_ui_thread(lambda: _restore_icon(icon_id[0]))
 
         run_on_queue(_task)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"filesActivity: _open_file error: {e}", False)
 
 
@@ -156,7 +170,8 @@ def _get_cache_root():
     try:
         from ...utils.Paths import getCacheRoot
         return getCacheRoot()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"filesActivity: _get_cache_root error: {e}", False)
         return ""
 
@@ -175,7 +190,8 @@ def _list_dir(path):
         dirs = sorted([e for e in entries if os.path.isdir(os.path.join(path, e))])
         files = sorted([e for e in entries if os.path.isfile(os.path.join(path, e))])
         return dirs, files
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"filesActivity: _list_dir error: {e}", False)
         return [], []
 
@@ -232,7 +248,8 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                 self._list_root = None
                 self._breadcrumb_bar = None
                 logx("filesActivity: onFragmentDestroy views cleared", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"filesActivity: onFragmentDestroy error: {e}", False)
 
     def _register_back_callback(self):
@@ -260,7 +277,8 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             self._back_callback = cb
             act.getOnBackPressedDispatcher().addCallback(act, cb.java)
             logx("filesActivity: back callback registered", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"filesActivity: _register_back_callback error: {e}", False)
             self._back_callback = None
 
@@ -271,7 +289,8 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                 cb.remove()
                 self._back_callback = None
                 logx("filesActivity: back callback unregistered", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"filesActivity: _unregister_back_callback error: {e}", False)
 
     def getTitle(self):
@@ -319,7 +338,8 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                     frag = get_last_fragment()
                     if frag:
                         frag.finishFragment()
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"filesActivity: failed to finish fragment: {e}", False)
             return True
         return False
@@ -511,7 +531,8 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                 from ui.bulletin import BulletinHelper
                 AndroidUtilities.addToClipboard(path)
                 BulletinHelper.show_info(str(strings["copied_to_clipboard"]))
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"filesActivity: on_copy error: {e}", False)
 
         _show_entry_menu(act, anchor, path, on_rename, on_delete, on_copy)
@@ -564,7 +585,8 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                         if s == path or s.startswith(path + os.sep):
                             self._stack[j] = s.replace(path, new_path, 1)
                     run_on_ui_thread(lambda: self._render())
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"filesActivity: rename error: {e}", False)
                 if dialog_ref[0]:
                     dialog_ref[0].dismiss()
@@ -601,7 +623,8 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             dialog.setOnShowListener(_ShowListener())
             dialog.setOnDismissListener(_DismissListener())
             dialog.show()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"filesActivity: _do_rename error: {e}", False)
 
     def _do_create_file(self):
@@ -649,7 +672,8 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                 try:
                     open(new_path, "a").close()
                     run_on_ui_thread(lambda: self._render())
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"filesActivity: create file error: {e}", False)
                 if dialog_ref[0]:
                     dialog_ref[0].dismiss()
@@ -686,7 +710,8 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             dialog.setOnShowListener(_ShowListener())
             dialog.setOnDismissListener(_DismissListener())
             dialog.show()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"filesActivity: _do_create_file error: {e}", False)
 
     def _inject_fab(self):
@@ -774,7 +799,8 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             self._content_view.addView(fab, fab_lp)
             fab.bringToFront()
             logx("filesActivity: FAB injected", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"filesActivity: _inject_fab error: {e}", False)
 
     def _do_delete(self, path):
@@ -803,16 +829,19 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                     ):
                         self._stack.pop()
                     run_on_ui_thread(lambda: self._render())
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"filesActivity: delete error: {e}", False)
 
             builder.set_positive_button(str(strings["fs_delete_title"]), on_yes)
             try:
                 builder.make_button_red(AlertDialogBuilder.BUTTON_POSITIVE)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"filesActivity: make_button_red error: {e}", False)
             builder.show()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"filesActivity: _do_delete error: {e}", False)
 
     def _render(self):
@@ -871,7 +900,8 @@ class FilesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                 if i < len(files) - 1:
                     list_root.addView(_make_divider(act, t["divider"]), LayoutHelper.createLinear(-1, 1, dp(56), 0, 0, 0))
 
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"filesActivity: _render error: {e}", False)
 
 
@@ -970,7 +1000,8 @@ def _get_file_info(path):
         else:
             _, ext = os.path.splitext(path)
             info["extension"] = ext.lower() if ext else "(none)"
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"filesActivity: _get_file_info error: {e}", False)
     return info
 
@@ -981,7 +1012,8 @@ def _show_file_info(act, path):
         info = _get_file_info(path)
         name = os.path.basename(path)
         show_info_dialog(act, name, info)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"filesActivity: _show_file_info error: {e}", False)
 
 
@@ -1089,7 +1121,8 @@ def _show_entry_menu(act, anchor_view, path, on_rename, on_delete, on_copy):
         popup_y = location[1] - popup_layout.getMeasuredHeight()
         popup_window.showAtLocation(anchor_view, Gravity.TOP | Gravity.LEFT, popup_x, popup_y)
         popup_window.dimBehind()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"filesActivity: _show_entry_menu error: {e}", False)
 
 
@@ -1108,7 +1141,8 @@ def _hook_swipe_back(plugin, frag_instance, delegate):
         ref = plugin.hook_method(method, _CanBeginSlide())
         logx("filesActivity: canBeginSlide hook registered", True)
         return ref
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"filesActivity: _hook_swipe_back error: {e}", False)
         return None
 
@@ -1142,7 +1176,8 @@ def show_files_browser(plugin=None):
                     if back_icon:
                         action_bar.setBackButtonImage(back_icon)
                         action_bar.setBackButtonContentDescription("Back")
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"filesActivity: Failed to add back button: {e}", False)
                 try:
                     back_button = action_bar.getBackButton()
@@ -1150,11 +1185,13 @@ def show_files_browser(plugin=None):
                         def _on_back_click(v):
                             new_frag.finishFragment()
                         back_button.setOnClickListener(OnClickListener(_on_back_click))
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"filesActivity: Failed to set back button click listener: {e}", False)
 
             delegate._frag_ref[0] = new_frag
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"filesActivity: show_files_browser actionBar error: {e}", False)
 
         if plugin is not None:
@@ -1166,10 +1203,12 @@ def show_files_browser(plugin=None):
                     try:
                         plugin.unhook_method(hook_ref)
                         logx("filesActivity: canBeginSlide hook removed", True)
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"filesActivity: unhook error: {e}", False)
                     orig_destroy(*a)
 
                 delegate.onFragmentDestroy = _on_destroy
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"filesActivity: show_files_browser error: {e}", False)

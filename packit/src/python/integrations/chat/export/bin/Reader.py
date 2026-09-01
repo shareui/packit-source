@@ -32,7 +32,8 @@ def _write_blocks(blocks: dict, account_id: str):
 def _merge_achievements(payload: str, account_id: str):
     try:
         incoming = json.loads(payload)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"exportBin: achievements parse error: {e}", False)
         return
 

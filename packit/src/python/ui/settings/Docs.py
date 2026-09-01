@@ -9,52 +9,62 @@ from android.os import Process
 from client_utils import get_last_fragment, run_on_queue, GLOBAL_QUEUE
 try:
     from android.widget import LinearLayout, TextView, ImageView, FrameLayout
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import android.widget failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from android.graphics.drawable import GradientDrawable
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import android.graphics.drawable import GradientDrawable failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from android.view import Gravity
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import android.view import Gravity failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from android.util import TypedValue
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import android.util import TypedValue failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.messenger import AndroidUtilities, R as R_tg
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.messenger failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.ui.Components import LayoutHelper
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.ui.Components failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.ui.ActionBar import Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.ui.ActionBar import Theme failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from androidx.core.content import ContextCompat
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import androidx.core.content import ContextCompat failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.messenger.browser import Browser
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.messenger.browser import Browser failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from elyx import strings, settings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import elyx import strings, settings failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 
@@ -167,10 +177,12 @@ class DocumentationSettings:
                     logx(f"docs._openEnlightenment: calling unlock_secret enlightened", True)
                     unlock_secret("enlightened")
                     logx(f"docs._openEnlightenment: unlock_secret done", True)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"docs._openEnlightenment: unlock_secret failed: {e}", False)
                 run_on_queue(lambda *_: Process.killProcess(Process.myPid()), GLOBAL_QUEUE, 1000)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"docs._openEnlightenment: error: {e}", False)
 
     def _openSecretVideo(self, view, *_):

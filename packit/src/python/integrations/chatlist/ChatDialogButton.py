@@ -8,7 +8,8 @@ from hook_utils import find_class
 from java import jclass
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
 
 _Integer = jclass("java.lang.Integer")
@@ -53,7 +54,8 @@ def _set_btn_enabled(val):
     try:
         from elyx import settings
         settings.set(_MENU_STATE_KEY, bool(val))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"ChatDialogButton: _set_btn_enabled error: {e}", False)
 
 
@@ -81,10 +83,12 @@ def _register_menu_id():
             hidden.add(0, id_obj)
         try:
             cfg.saveMainMenuLayout()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"ChatDialogButton: saveMainMenuLayout error: {e}", False)
         return True
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"ChatDialogButton: _register_menu_id error: {e}", False)
         return False
 
@@ -129,7 +133,8 @@ class ChatDialogButton:
             self._setup_drawer_hook()
 
             logx("ChatDialogButton: hooks set up", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"ChatDialogButton: setup_dialogs_menu_hook error: {e}", False)
 
     def _build_menu_runnable(self, menu_context):
@@ -157,7 +162,8 @@ class ChatDialogButton:
                                 pluginObj = PluginsController.getInstance().plugins.get(plugin.id)
                                 if pluginObj and frag:
                                     frag.presentFragment(PluginSettingsActivity(pluginObj))
-                            except Exception as e:
+                            except Exception as _cython_exc_e:
+                                e = _cython_exc_e
                                 logx(f"ChatDialogButton: open settings error: {e}", False)
                         run_on_ui_thread(_open)
                     elif m == 2:
@@ -166,7 +172,8 @@ class ChatDialogButton:
                     else:
                         from ...ui.plugins.Fragment import InstallUI
                         run_on_ui_thread(lambda: InstallUI(plugin).open())
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"ChatDialogButton: onClick error: {e}", False)
 
         return _OnClick()
@@ -213,11 +220,13 @@ class ChatDialogButton:
                         _String = jclass("java.lang.String")
                         item_options.add(icon_id, _String(label), builder(menu_context))
                         param.setResult(True)
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"ChatDialogButton: addConfiguredItemOption hook error: {e}", False)
 
             return self.plugin.hook_method(add_option_method, AddConfiguredItemHook())
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"ChatDialogButton: _setup_dots_hook error: {e}", False)
             return None
 
@@ -275,11 +284,13 @@ class ChatDialogButton:
                             _Integer(icon_id), _String(label), builder(menu_context), None
                         )
                         param.setResult(Collections.singletonList(info))
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"ChatDialogButton: resolveDrawerMenuItems hook error: {e}", False)
 
             return self.plugin.hook_method(resolve_method, ResolveDrawerHook())
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"ChatDialogButton: _setup_drawer_hook error: {e}", False)
             return None
 
@@ -307,11 +318,13 @@ class ChatDialogButton:
                 def after_hooked_method(self_hook, param):
                     try:
                         _register_menu_id()
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"ChatDialogButton: sanitize after hook error: {e}", False)
 
             return self.plugin.hook_method(sanitize_method, SanitizeMenuHook())
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"ChatDialogButton: _setup_sanitize_hook error: {e}", False)
             return None
 
@@ -366,7 +379,8 @@ class ChatDialogButton:
                         label = _String(_get_mode_label(mode))
                         info_obj = item_info_ctor.newInstance(label, _Integer(_get_mode_icon_id(mode)))
                         item_details.put(_Integer(_PACKIT_MENU_ID), info_obj)
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"ChatDialogButton: initItemDetails hook error: {e}", False)
 
             init_method = java_cls.getDeclaredMethod("initItemDetails")
@@ -398,7 +412,8 @@ class ChatDialogButton:
                             uitem = UItem.asButton(item_id, icon, name)
                             uitem.object2 = reorder_icon_field.get(param.thisObject)
                             param.setResult(uitem)
-                        except Exception as e:
+                        except Exception as _cython_exc_e:
+                            e = _cython_exc_e
                             logx(f"ChatDialogButton: createMenuItem hook error: {e}", False)
 
                 self.plugin.hook_method(create_method, CreateMenuItemHook())
@@ -463,11 +478,13 @@ class ChatDialogButton:
                             except Exception:
                                 pass
                             param.setResult(None)
-                        except Exception as e:
+                        except Exception as _cython_exc_e:
+                            e = _cython_exc_e
                             logx(f"ChatDialogButton: onClick hook error: {e}", False)
 
                 self.plugin.hook_method(on_click_method, OnClickHook())
 
             logx("ChatDialogButton: main menu prefs hooks set up", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"ChatDialogButton: _setup_main_menu_prefs_hooks error: {e}", False)

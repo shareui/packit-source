@@ -18,11 +18,13 @@ def _open_url(url: str):
                 from org.telegram.messenger.browser import Browser
                 act = get_last_fragment().getParentActivity()
                 Browser.openUrl(act, Uri.parse(url), True, True, True, None, None, False, False, False)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"apikeys: _open_url ui error: {e}", False)
 
         run_on_ui_thread(_do)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"apikeys: _open_url error: {e}", False)
 
 
@@ -32,7 +34,8 @@ def _get_device_id() -> str:
         from org.telegram.messenger import ApplicationLoader
         ctx = ApplicationLoader.applicationContext
         return str(Settings.Secure.getString(ctx.getContentResolver(), Settings.Secure.ANDROID_ID)) or "default"
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"apikeys: _get_device_id error: {e}", False)
         return "default"
 
@@ -75,7 +78,8 @@ def _get_gemini_key_preview() -> "str | None":
         if len(key) <= 5:
             return key
         return key[:2] + ".." + key[-3:]
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"apikeys: _get_gemini_key_preview error: {e}", False)
         return None
 
@@ -111,7 +115,8 @@ def _save_gemini_key(keyValue: str):
             logx(f"apikeys: packitkey_store returned {result}", True)
         else:
             logx("apikeys: gemini key saved", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"apikeys: _save_gemini_key error: {e}", False)
 
 
@@ -135,7 +140,8 @@ def _delete_gemini_key():
             logx(f"apikeys: packitkey_delete returned {result}", True)
         else:
             logx("apikeys: gemini key deleted", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"apikeys: _delete_gemini_key error: {e}", False)
 
 
@@ -171,12 +177,14 @@ def _on_reset_gemini_cache(view):
                 if os.path.exists(path):
                     os.remove(path)
                 logx("apikeys: gemini cache cleared", True)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"apikeys: _on_reset_gemini_cache delete error: {e}", False)
             try:
                 from com.exteragram.messenger.plugins import PluginsController
                 PluginsController.getInstance().loadPluginSettings("shareui_packit")
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"apikeys: settings reload failed: {e}", False)
             BulletinHelper.show_success(str(strings.api_key_reset_success), get_last_fragment())
 
@@ -186,7 +194,8 @@ def _on_reset_gemini_cache(view):
         builder.set_positive_button(str(strings.reset_button), _on_confirm)
         builder.set_negative_button(str(strings.cancel_button), lambda b, w: b.dismiss())
         builder.show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"apikeys: _on_reset_gemini_cache error: {e}", False)
 
 
@@ -207,7 +216,8 @@ def _on_reset_gemini_key(view):
                 try:
                     from com.exteragram.messenger.plugins import PluginsController
                     PluginsController.getInstance().loadPluginSettings("shareui_packit")
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"apikeys: settings reload failed: {e}", False)
                 BulletinHelper.show_success(str(strings.api_key_reset_success), post_frag)
             else:
@@ -220,7 +230,8 @@ def _on_reset_gemini_key(view):
         builder.set_negative_button(str(strings.cancel_button), lambda b, w: b.dismiss())
         builder.make_button_red(AlertDialogBuilder.BUTTON_POSITIVE)
         builder.show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"apikeys: _on_reset_gemini_key error: {e}", False)
 
 
@@ -243,7 +254,8 @@ def _on_add_gemini_key(view):
                 try:
                     from com.exteragram.messenger.plugins import PluginsController
                     PluginsController.getInstance().loadPluginSettings("shareui_packit")
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"apikeys: settings reload failed: {e}", False)
                 BulletinHelper.show_success(str(strings.api_key_saved_success), saved_frag)
             else:
@@ -258,7 +270,8 @@ def _on_add_gemini_key(view):
             on_confirm=_on_confirm,
             outline_label=str(strings.api_key_dialog_outline_label),
         )
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"apikeys: _on_add_gemini_key error: {e}", False)
 
 

@@ -13,7 +13,8 @@ class GlobalState:
             try:
                 from elyx import settings
                 cls._cache[key] = settings.get(key, default)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"GlobalState.get error for {key}: {e}", False)
                 return default
         return cls._cache[key]
@@ -24,7 +25,8 @@ class GlobalState:
         try:
             from elyx import settings
             settings.set(key, value)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"GlobalState.set error for {key}: {e}", False)
 
     @classmethod

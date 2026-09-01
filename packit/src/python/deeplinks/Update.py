@@ -9,12 +9,14 @@ from client_utils import get_last_fragment, run_on_queue
 from android_utils import run_on_ui_thread
 try:
     from org.telegram.messenger import ApplicationLoader
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
     from ..utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
     from ..utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 from urllib.parse import urlparse, parse_qs
@@ -62,7 +64,8 @@ def _run_update(repoManager):
 
                     CachedRepos.write(rmRid, data)
                     logx(f"update deeplink: updated cache for '{rmRid}'", True)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"update deeplink: error for {url}: {e}", False)
 
             for i in sorted(toRemove, reverse=True):
@@ -72,7 +75,8 @@ def _run_update(repoManager):
                 repoManager.setRepositories(repos)
 
             run_on_ui_thread(lambda: BulletinHelper.show_success(strings.update_repos_success))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"update deeplink: task error: {e}", False)
 
     run_on_queue(task)
@@ -114,10 +118,12 @@ def _run_update_single(repoManager, repoId: str):
                     repoManager.setRepositories(repos)
 
                 run_on_ui_thread(lambda: BulletinHelper.show_success(strings.update_repos_success))
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"update deeplink: error for {url}: {e}", False)
-                run_on_ui_thread(lambda: BulletinHelper.show_error(str(e)))
-        except Exception as e:
+                run_on_ui_thread(lambda e=e: BulletinHelper.show_error(str(e)))
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"update deeplink: single task error: {e}", False)
 
     run_on_queue(task)
@@ -135,5 +141,6 @@ def handle(url, repoManager):
             _run_update_single(repoManager, repoId.strip())
         elif url == "tg://packit?update":
             _run_update(repoManager)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"update deeplink: handle error: {e}", False)

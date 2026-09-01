@@ -14,7 +14,8 @@ from org.telegram.ui.Components import LayoutHelper
 from org.telegram.ui.Stories.recorder import ButtonWithCounterView
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"buildNotCorrect: import strings failed: {e}", False)
 
 _HASH_CONFIG_KEY = "build_not_correct_dismissed_hash"
@@ -24,7 +25,8 @@ def _getDismissedHash() -> str:
     try:
         from ...utils.LocalConfig import LocalConfig
         return LocalConfig.get(_HASH_CONFIG_KEY, "")
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"buildNotCorrect: _getDismissedHash error: {e}", False)
         return ""
 
@@ -33,7 +35,8 @@ def _saveDismissedHash(hashVal: str):
     try:
         from ...utils.LocalConfig import LocalConfig
         LocalConfig.set(_HASH_CONFIG_KEY, hashVal)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"buildNotCorrect: _saveDismissedHash error: {e}", False)
 
 
@@ -180,7 +183,8 @@ def _buildSheet(title: str, message: str, rows: list, buildHash: str):
                     from android.net import Uri
                     from org.telegram.messenger.browser import Browser
                     Browser.openUrl(activity, Uri.parse("https://t.me/packitGround/8/11481"), True, True, True, None, None, False, False, False)
-                except Exception as _e:
+                except Exception as _cython_exc__e:
+                    _e = _cython_exc__e
                     logx(f"buildNotCorrect: openUrl error: {_e}", True)
 
         versions_btn.setOnClickListener(_VersionsClick())
@@ -218,7 +222,8 @@ def _buildSheet(title: str, message: str, rows: list, buildHash: str):
         sheet.setCustomView(root)
         sheet.show()
         logx("buildNotCorrect: sheet shown", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"buildNotCorrect: _buildSheet error: {e}", False)
 
 
@@ -289,7 +294,8 @@ def _checkAndShow():
             ]
 
         run_on_ui_thread(lambda: _buildSheet(title, message, rows, buildHash or ""))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"buildNotCorrect: _checkAndShow error: {e}", False)
 
 

@@ -13,22 +13,26 @@ from android_utils import OnClickListener
 from client_utils import get_last_fragment
 try:
     from elyx import settings, strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import elyx import settings, strings failed: {e}")
     from ....utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.ui.ActionBar import BottomSheet, Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.ui.ActionBar import BottomSheet, Theme failed: {e}")
     from ....utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.ui.Components import LayoutHelper
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.ui.Components import LayoutHelper failed: {e}")
     from ....utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.messenger import AndroidUtilities
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities failed: {e}")
     from ....utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 
@@ -239,5 +243,6 @@ def show_sort_menu(install_ui, act, current_sort_type, build_list_with_sort):
         except Exception:
             pass
         sort_sheet.show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"sort: sort menu error: {e}", False)

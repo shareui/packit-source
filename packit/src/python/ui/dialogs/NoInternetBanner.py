@@ -64,7 +64,8 @@ def _on_network_available():
         try:
             logx(f"NoInternetBanner: calling on_network_restored on listener[{i}] id={id(listener)}", True)
             listener.on_network_restored()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"NoInternetBanner: _on_network_available listener error: {e}", False)
 
 
@@ -76,7 +77,8 @@ def _on_network_lost():
         try:
             logx(f"NoInternetBanner: calling on_network_lost on listener[{i}] id={id(listener)}", True)
             listener.on_network_lost()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"NoInternetBanner: _on_network_lost listener error: {e}", False)
 
 
@@ -104,7 +106,8 @@ def _create_network_callback():
         _network_callback_instance = _PackItNetworkCallback.new_instance()
         logx("NoInternetBanner: NetworkCallback created", True)
         return _network_callback_instance
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"NoInternetBanner: _create_network_callback error: {e}", False)
         import traceback
         logx(traceback.format_exc(), True)
@@ -133,10 +136,12 @@ def _register_callback():
                 global _is_network_available
                 _is_network_available = False
                 logx("NoInternetBanner: initial network is offline", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"NoInternetBanner: failed to get active network: {e}", False)
             
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"NoInternetBanner: _register_callback error: {e}", False)
         import traceback
         logx(traceback.format_exc(), True)
@@ -172,7 +177,8 @@ def _poll_network_recovery(banner_id):
                     logx("NoInternetBanner: poll — network restored detected, firing _on_network_available", True)
                     run_on_ui_thread(_on_network_available)
                     break
-        except Exception as ex:
+        except Exception as _cython_exc_ex:
+            ex = _cython_exc_ex
             logx(f"NoInternetBanner: poll error: {ex}", True)
 
 
@@ -190,7 +196,8 @@ def _unregister_callback():
         _callback_registered = False
         _network_callback_instance = None
         logx("NoInternetBanner: callback unregistered", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"NoInternetBanner: _unregister_callback error: {e}", False)
 
 
@@ -312,7 +319,8 @@ class NoInternetBanner:
                 )
                 icon_lp.rightMargin = AndroidUtilities.dp(10)
                 inner.addView(icon, icon_lp)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"NoInternetBanner: icon error: {e}", False)
 
             # Text
@@ -386,7 +394,8 @@ class NoInternetBanner:
 
             self.banner_view = container
             return container
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"NoInternetBanner: _create_banner error: {e}", False)
             import traceback
             logx(traceback.format_exc(), True)
@@ -430,12 +439,14 @@ class NoInternetBanner:
 
                 anim_set.setFillAfter(True)
                 banner.startAnimation(anim_set)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"NoInternetBanner: show animation error: {e}", False)
 
             self._visible = True
             logx("NoInternetBanner: banner shown", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"NoInternetBanner: _show_banner error: {e}", False)
             import traceback
             logx(traceback.format_exc(), True)
@@ -485,13 +496,15 @@ class NoInternetBanner:
 
                 anim_set.setAnimationListener(_AnimEndListener())
                 banner.startAnimation(anim_set)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"NoInternetBanner: hide animation error: {e}", False)
                 self._remove_banner(banner)
 
             self._visible = False
             logx("NoInternetBanner: banner hiding", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"NoInternetBanner: _hide_banner error: {e}", False)
 
     def _remove_banner(self, banner):
@@ -503,7 +516,8 @@ class NoInternetBanner:
                     parent.removeView(banner)
             if self.banner_view is banner:
                 self.banner_view = None
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"NoInternetBanner: _remove_banner error: {e}", False)
 
     def _hide_immediate(self):

@@ -9,17 +9,20 @@ from base_plugin import MethodHook
 from client_utils import get_last_fragment
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"settingsActivityHook: import strings failed: {e}", False)
 try:
     from com.exteragram.messenger.plugins import PluginsController
     from com.exteragram.messenger.plugins.ui import PluginSettingsActivity
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"settingsActivityHook: import PluginsController/PSA failed: {e}", False)
 try:
     from org.telegram.messenger import R as R_tg
     from org.telegram.ui.Components import UItem
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"settingsActivityHook: import tg classes failed: {e}", False)
 
 # must not collide with existing ids (-1..19 used by SettingsActivity)
@@ -44,7 +47,8 @@ def _tint_packit_icon(icon_view):
         from org.telegram.ui.ActionBar import Theme
         if not Theme.isCurrentThemeMonet():
             icon_view.setColorFilter(_ICON_FG_COLOR, PorterDuff.Mode.SRC_IN)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"settingsActivityHook: _tint_packit_icon error: {e}", False)
 
 
@@ -106,7 +110,8 @@ def setup_settings_activity_hook(plugin):
                     icon_id = 0
                     try:
                         icon_id = int(R_tg.drawable.msg_download_remix)
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"settingsActivityHook: icon resolve error: {e}", False)
 
                     label = str(strings.packit_settings) if hasattr(strings, "packit_settings") else "PackIt Settings"
@@ -141,11 +146,13 @@ def setup_settings_activity_hook(plugin):
                         pkg = str(ApplicationLoader.applicationContext.getPackageName())
                         if pkg == "com.radolyn.ayugram":
                             insert_offset = 2
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"settingsActivityHook: package check error: {e}", False)
 
                     items.add(extera_idx + insert_offset, packit_item)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"settingsActivityHook: FillItemsHook error: {e}", False)
 
         class OnClickHook(MethodHook):
@@ -167,11 +174,13 @@ def setup_settings_activity_hook(plugin):
                                 frag.presentFragment(PluginSettingsActivity(plugin_obj))
                             else:
                                 logx(f"settingsActivityHook: plugin_obj={plugin_obj} frag={frag}", True)
-                        except Exception as e:
+                        except Exception as _cython_exc_e:
+                            e = _cython_exc_e
                             logx(f"settingsActivityHook: open settings error: {e}", False)
 
                     run_on_ui_thread(open)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"settingsActivityHook: OnClickHook error: {e}", False)
 
         class BindViewHook(MethodHook):
@@ -194,7 +203,8 @@ def setup_settings_activity_hook(plugin):
                         pass
                     if is_packit:
                         _tint_packit_icon(icon_view)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"settingsActivityHook: BindViewHook error: {e}", False)
 
         class UpdateColorsHook(MethodHook):
@@ -208,14 +218,16 @@ def setup_settings_activity_hook(plugin):
                     if tag is None or str(tag) != _ICON_TAG:
                         return
                     _tint_packit_icon(icon_view)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"settingsActivityHook: UpdateColorsHook error: {e}", False)
 
         try:
             fill_method = SA.getClass().getDeclaredMethod("fillItems", ArrayList, UniversalAdapter)
             fill_method.setAccessible(True)
             hooks.append(plugin.hook_method(fill_method, FillItemsHook()))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"settingsActivityHook: fillItems hook error: {e}", False)
 
         try:
@@ -232,7 +244,8 @@ def setup_settings_activity_hook(plugin):
             if bind_method:
                 bind_method.setAccessible(True)
                 hooks.append(plugin.hook_method(bind_method, BindViewHook()))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"settingsActivityHook: bindView hook error: {e}", False)
 
         try:
@@ -249,7 +262,8 @@ def setup_settings_activity_hook(plugin):
             if update_colors_method:
                 update_colors_method.setAccessible(True)
                 hooks.append(plugin.hook_method(update_colors_method, UpdateColorsHook()))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"settingsActivityHook: updateColors hook error: {e}", False)
 
         try:
@@ -264,10 +278,12 @@ def setup_settings_activity_hook(plugin):
             if click_method:
                 click_method.setAccessible(True)
                 hooks.append(plugin.hook_method(click_method, OnClickHook()))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"settingsActivityHook: onClick hook error: {e}", False)
 
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"settingsActivityHook: setup error: {e}", False)
 
     return hooks

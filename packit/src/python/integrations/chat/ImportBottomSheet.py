@@ -29,7 +29,8 @@ def _make_icon_view(activity, icon_str: str, size_dp: int):
         from ...utils.Stickers import load_sticker
         load_sticker(iv, icon_str, size_dp)
         return iv
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"ImportBottomSheet._make_icon_view: {e}", False)
         return None
 
@@ -164,7 +165,8 @@ def show(plugins: list, count: int, file_path: str = "", total_count: int = 0, s
                             Gravity.CENTER
                         )
                         container.addView(icon_view, stub_lp)
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"ImportBottomSheet: fallback icon error: {e}", False)
 
                 cb = None
@@ -188,7 +190,8 @@ def show(plugins: list, count: int, file_path: str = "", total_count: int = 0, s
                     cb_lp.bottomMargin = AndroidUtilities.dp(cb_margin_dp)
                     cb_lp.rightMargin = AndroidUtilities.dp(cb_margin_dp)
                     container.addView(cb, cb_lp)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"ImportBottomSheet: checkbox create error: {e}", False)
 
                 icon_row.addView(container, lp_container)
@@ -306,7 +309,8 @@ def show(plugins: list, count: int, file_path: str = "", total_count: int = 0, s
                 )
                 lp_rf.topMargin = pad_top
                 outer.addView(right_fade, lp_rf)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"ImportBottomSheet: fade overlay error: {e}", False)
             # shrink factor per slot away from center (0.12 = 12% per step, min 0.6)
             scale_per_slot = 0.12
@@ -756,7 +760,8 @@ def show(plugins: list, count: int, file_path: str = "", total_count: int = 0, s
                         try:
                             from .ConfirmImportBottomSheet import show as showConfirm
                             showConfirm(file_path, selected, total_count=total_count or len(plugins), settings=settings)
-                        except Exception as e:
+                        except Exception as _cython_exc_e:
+                            e = _cython_exc_e
                             logx(f"ImportBottomSheet: open confirm error: {e}", False)
 
                 import_btn.setOnClickListener(_ImportClick())
@@ -768,7 +773,8 @@ def show(plugins: list, count: int, file_path: str = "", total_count: int = 0, s
                 import_lp.leftMargin = pad_h
                 import_lp.rightMargin = pad_h
                 root.addView(import_btn, import_lp)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"ImportBottomSheet: import btn error: {e}", False)
 
             # close button
@@ -793,13 +799,15 @@ def show(plugins: list, count: int, file_path: str = "", total_count: int = 0, s
                 close_lp.leftMargin = pad_h
                 close_lp.rightMargin = pad_h
                 root.addView(close_btn, close_lp)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"ImportBottomSheet: close btn error: {e}", False)
 
             sheet.setCustomView(root)
             sheet.show()
 
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"ImportBottomSheet.show: {e}\n{traceback.format_exc()}", False)
 
     run_on_ui_thread(_show)

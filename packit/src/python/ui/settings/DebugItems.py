@@ -13,14 +13,16 @@ def _show_bulletin(msg: str):
         from android_utils import run_on_ui_thread
         from ui.bulletin import BulletinHelper
         run_on_ui_thread(lambda: BulletinHelper.show_info(msg))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"debugItems: _show_bulletin: {e}", False)
 
 
 def _test_native_error():
     try:
         _ = 123 / 0
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"debugItems: test native error triggered: {e}", False)
         from ...core.NativeLoader import showNativeErrorSheet
         showNativeErrorSheet("libpackitdb.so", str(e))
@@ -64,7 +66,8 @@ def _migrate_achievements():
         compressed = bytes(buf[:out_len.value])
         try:
             raw = zlib.decompress(compressed)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"debugItems: migrate: decompress error: {e}", False)
             _show_bulletin(f"Decompress error: {e}")
             return
@@ -81,7 +84,8 @@ def _migrate_achievements():
         _save_account(data, account_id)
         logx(f"debugItems: migrate: done for {account_id}", True)
         _show_bulletin("Migration done")
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"debugItems: _migrate_achievements: {e}", False)
         _show_bulletin(f"Error: {e}")
 
@@ -155,7 +159,8 @@ def _show_class_input_dialog(title: str, on_submit):
         dialog_ref[0] = dialog
         dialog.setOnShowListener(_ShowListener())
         dialog.show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"debugItems._show_class_input_dialog: {e}", False)
 
 
@@ -228,7 +233,8 @@ def _dump_class_info(class_name: str, methods: bool = True, fields: bool = True)
                         entry = str(entries.nextElement())
                         if entry.endswith(f".{simple_name}") or entry == simple_name:
                             candidates.append(entry)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"inspect: dex scan failed: {e}", False)
             if candidates:
                 logx(f"inspect: dex candidates for '{simple_name}': {candidates}", True)
@@ -243,21 +249,26 @@ def _dump_class_info(class_name: str, methods: bool = True, fields: bool = True)
                         params = [p.getName() for p in m.getParameterTypes()]
                         ret = m.getReturnType().getName()
                         logx(f"method {m.getName()} {params} -> {ret}", True)
-                    except Exception as me:
+                    except Exception as _cython_exc_me:
+                        me = _cython_exc_me
                         logx(f"method dump error: {me}", True)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"getDeclaredMethods failed: {e}", False)
         if fields:
             try:
                 for f in java_cls.getDeclaredFields():
                     try:
                         logx(f"field {f.getName()} {f.getType().getName()}", True)
-                    except Exception as fe:
+                    except Exception as _cython_exc_fe:
+                        fe = _cython_exc_fe
                         logx(f"field dump error: {fe}", True)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"getDeclaredFields failed: {e}", False)
         logx(f"inspect done: {class_name}", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"debugItems._dump_class_info: {e}", False)
 
 
@@ -274,7 +285,8 @@ def _check_build_info():
         logx(f"buildInfo.getCurrClientPkg: {getCurrClientPkg()}", True)
         logx(f"buildInfo.getBuildStaticVersion: {getBuildStaticVersion()}", True)
         logx(f"buildInfo.getClientVersion: {getClientVersion()}", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"debugItems._check_build_info: {e}", False)
 
 
@@ -308,7 +320,8 @@ def _migrate_installdate_to_b64():
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f)
         _show_bulletin("Migrated to b64")
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"debugItems._migrate_installdate_to_b64: {e}", False)
         _show_bulletin(f"Error: {e}")
 
@@ -353,7 +366,8 @@ def show_debug_menu():
             def onClick(self, dialog, which):
                 try:
                     ITEMS[which][1]()
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"debugItems.on_click: {e}", False)
 
         builder = AlertDialog.Builder(act)
@@ -361,5 +375,6 @@ def show_debug_menu():
         builder.setItems(labels, _OnClick())
         builder.setNegativeButton("Cancel", None)
         builder.show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"debugItems.show_debug_menu: {e}", False)

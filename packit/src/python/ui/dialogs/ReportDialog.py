@@ -11,16 +11,19 @@ from java import dynamic_proxy
 
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"reportDialog: import elyx.strings failed: {e}", False)
 try:
     from org.telegram.ui.ActionBar import Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"reportDialog: import Theme failed: {e}", False)
 try:
     from org.telegram.ui.Components import LayoutHelper
     from org.telegram.messenger import AndroidUtilities
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"reportDialog: import AndroidUtilities/LayoutHelper failed: {e}", False)
 
 _ANIM_DURATION = 220
@@ -41,7 +44,8 @@ def _register_back_cb(act, on_back):
         cb = _Cb.new_instance(True)
         act.getOnBackPressedDispatcher().addCallback(act, cb.java)
         return cb
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"reportDialog: _register_back_cb error: {e}", False)
         return None
 
@@ -50,7 +54,8 @@ def _unregister_back_cb(cb):
     try:
         if cb is not None:
             cb.remove()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"reportDialog: _unregister_back_cb error: {e}", False)
 
 
@@ -78,7 +83,8 @@ def _animate_in(overlay, card):
         s = AnimatorSet()
         s.playTogether(fade_overlay, fade_card, scale_x, scale_y)
         s.start()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"reportDialog: _animate_in error: {e}", False)
 
 
@@ -113,7 +119,8 @@ def _animate_out(overlay_ref, card, decor):
         s.playTogether(fade_overlay, fade_card, scale_x, scale_y)
         s.addListener(_EndListener())
         s.start()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"reportDialog: _animate_out error: {e}", False)
         try:
             decor.removeView(overlay_ref[0])
@@ -149,7 +156,8 @@ def _submit_report(forum_username: str, topic_msg_id: int, plugin_name: str, plu
                     R_tg.raw.done,
                     str(strings["report_dialog_sent"])
                 ).show()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"reportDialog: _show_success bulletin error: {e}", False)
 
         def _show_failure():
@@ -160,7 +168,8 @@ def _submit_report(forum_username: str, topic_msg_id: int, plugin_name: str, plu
                 _pbf(decor, None).createErrorBulletin(
                     str(strings["report_dialog_failed"])
                 ).show()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"reportDialog: _show_failure bulletin error: {e}", False)
 
         def _do_submit():
@@ -212,7 +221,8 @@ def _submit_report(forum_username: str, topic_msg_id: int, plugin_name: str, plu
                             _name_off = _cur_offset()
                             plain_parts.append(plugin_name)
                             pending_bold_labels.append(("Plugin:", _name_off - _u16("Plugin: "), None, plugin_name))
-                        except Exception as _ie:
+                        except Exception as _cython_exc__ie:
+                            _ie = _cython_exc__ie
                             item_errors.append(("Plugin", _ie))
 
                         # Status — may fail
@@ -228,7 +238,8 @@ def _submit_report(forum_username: str, topic_msg_id: int, plugin_name: str, plu
                             plain_parts.append("\nStatus: ")
                             plain_parts.append(_status)
                             pending_bold_labels.append(("Status:", None, None, None))
-                        except Exception as _ie:
+                        except Exception as _cython_exc__ie:
+                            _ie = _cython_exc__ie
                             logx(f"reportDialog: status item error: {_ie}", True)
                             item_errors.append(("Status", _ie))
 
@@ -237,7 +248,8 @@ def _submit_report(forum_username: str, topic_msg_id: int, plugin_name: str, plu
                             plain_parts.append("\nReason: ")
                             plain_parts.append(reason)
                             pending_bold_labels.append(("Reason:", None, None, None))
-                        except Exception as _ie:
+                        except Exception as _cython_exc__ie:
+                            _ie = _cython_exc__ie
                             item_errors.append(("Reason", _ie))
 
                         # Report description — always present
@@ -245,7 +257,8 @@ def _submit_report(forum_username: str, topic_msg_id: int, plugin_name: str, plu
                             plain_parts.append("\nReport description:\n")
                             plain_parts.append(description)
                             pending_bold_labels.append(("Report description:", None, None, None))
-                        except Exception as _ie:
+                        except Exception as _cython_exc__ie:
+                            _ie = _cython_exc__ie
                             item_errors.append(("Description", _ie))
 
                         # item errors footer
@@ -347,7 +360,8 @@ def _submit_report(forum_username: str, topic_msg_id: int, plugin_name: str, plu
 
                         send_request(req, RequestCallback(_on_sent))
                         logx("reportDialog: report request sent", True)
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"reportDialog: _send_to_topic error: {e}", False)
                         run_on_ui_thread(lambda: (on_done(), _show_failure()))
 
@@ -384,18 +398,21 @@ def _submit_report(forum_username: str, topic_msg_id: int, plugin_name: str, plu
                             send_request(join_req, RequestCallback(_on_joined))
                         else:
                             _send_to_topic(channel_id, chat.access_hash)
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"reportDialog: _on_resolved error: {e}", False)
 
                 resolve_req = TLRPC.TL_contacts_resolveUsername()
                 resolve_req.username = forum_username
                 logx(f"reportDialog: resolving forum @{forum_username}", True)
                 send_request(resolve_req, RequestCallback(_on_resolved))
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"reportDialog: _do_submit error: {e}", False)
 
         run_on_queue(_do_submit, PLUGINS_QUEUE)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"reportDialog: _submit_report error: {e}", False)
 
 
@@ -464,7 +481,8 @@ def show_report_dialog(act, plugin_name: str, repo_id: str, plugin_id: str = "")
                 s.playTogether(fade, scale)
                 s.addListener(_End())
                 s.start()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"reportDialog: close_dropdown error: {e}", False)
                 try:
                     decor.removeView(dropdown_ref[0])
@@ -630,7 +648,8 @@ def show_report_dialog(act, plugin_name: str, repo_id: str, plugin_id: str = "")
                 anchor_y = row_loc[1] - decor_loc[1]
                 anchor_w = selector_row_ref[0].getWidth()
                 anchor_h = selector_row_ref[0].getHeight()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"reportDialog: dropdown position error: {e}", False)
                 return
 
@@ -775,7 +794,8 @@ def show_report_dialog(act, plugin_name: str, repo_id: str, plugin_id: str = "")
                         # setTranslationY avoids layout pass on every scroll frame
                         thumb.setTranslationY(float(thumb_top))
                         thumb.setAlpha(1.0)
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"reportDialog: scrollbar update error: {e}", False)
 
                 class _ScrollListener(dynamic_proxy(ViewTreeObserver.OnScrollChangedListener)):
@@ -811,7 +831,8 @@ def show_report_dialog(act, plugin_name: str, repo_id: str, plugin_id: str = "")
                 s = AnimatorSet()
                 s.playTogether(fade, scale)
                 s.start()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"reportDialog: dropdown open anim error: {e}", False)
                 popup.setAlpha(1.0)
                 popup.setScaleY(1.0)
@@ -901,7 +922,8 @@ def show_report_dialog(act, plugin_name: str, repo_id: str, plugin_id: str = "")
                 spinner.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
                 spinner.setPadding(0, dp(14), 0, dp(14))
                 submit_btn_ref[0].addView(spinner, FrameLayout.LayoutParams(-1, dp(20 + 28), Gravity.CENTER))
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"reportDialog: _set_submit_loading error: {e}", False)
                 try:
                     from android.widget import ProgressBar
@@ -992,7 +1014,8 @@ def show_report_dialog(act, plugin_name: str, repo_id: str, plugin_id: str = "")
                 s.addListener(_EndCb())
                 error_anim_ref[vid] = s
                 s.start()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"reportDialog: _shake_error error: {e}", False)
 
         def _on_submit(v):
@@ -1044,5 +1067,6 @@ def show_report_dialog(act, plugin_name: str, repo_id: str, plugin_id: str = "")
         decor.addView(overlay, ViewGroup.LayoutParams(-1, -1))
         back_cb_ref[0] = _register_back_cb(act, _dismiss)
         run_on_ui_thread(lambda: _animate_in(overlay, card))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"reportDialog: show_report_dialog error: {e}", False)

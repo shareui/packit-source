@@ -5,7 +5,8 @@ from ui.bulletin import BulletinHelper
 from client_utils import get_last_fragment
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
     from ..utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 

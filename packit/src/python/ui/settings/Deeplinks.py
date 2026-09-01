@@ -5,7 +5,8 @@ from ui.settings import Header, Text, Divider
 from ui.bulletin import BulletinHelper
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 from client_utils import get_last_fragment
@@ -13,7 +14,8 @@ from android.content import Intent
 from android.net import Uri
 try:
     from org.telegram.messenger import ApplicationLoader
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 from ..dialogs.DeeplinkBottomSheets import show_deeplink_sheet

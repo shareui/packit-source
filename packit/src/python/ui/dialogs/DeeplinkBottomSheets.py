@@ -15,22 +15,26 @@ from hook_utils import find_class
 from java import dynamic_proxy
 try:
     from org.telegram.ui.ActionBar import BottomSheet, Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.ui.ActionBar import BottomSheet, Theme failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.ui.Components import LayoutHelper
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.ui.Components import LayoutHelper failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.messenger import AndroidUtilities
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 
@@ -324,9 +328,11 @@ def show_deeplink_sheet(link_alias):
                             getattr(R_tg.raw, "voip_invite", 0), 
                             strings.link_copied
                         ).show()
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"Failed to show bulletin: {e}", False)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"Failed to copy link: {e}", False)
             
             copy_icon.setOnClickListener(OnClickListener(copy_link))
@@ -480,7 +486,8 @@ def show_deeplink_sheet(link_alias):
                 pass
             sheet.show()
             
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"Error showing deeplink sheet: {e}", False)
 
     run_on_ui_thread(_show)

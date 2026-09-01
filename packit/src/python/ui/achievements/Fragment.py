@@ -11,14 +11,16 @@ from android_utils import run_on_ui_thread, OnClickListener
 from client_utils import get_last_fragment
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"achievementsUi: import elyx strings failed: {e}")
 try:
     from org.telegram.ui.ActionBar import Theme, BottomSheet
     from org.telegram.ui.Components import LayoutHelper
     from org.telegram.messenger import AndroidUtilities, R as R_tg
     from com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"achievementsUi: import android/tg classes failed: {e}")
 
 OnGlobalLayoutListener = jclass("android.view.ViewTreeObserver$OnGlobalLayoutListener")
@@ -37,7 +39,8 @@ def _add_actionbar_glow(fv):
         overlay.setBackground(glow)
         overlay.setClickable(False)
         fv.addView(overlay, LayoutHelper.createFrame(-1, 24, 0x30, 0, 0, 0, 0))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"_add_actionbar_glow: {e}", False)
 
 
@@ -54,7 +57,8 @@ def _add_bottom_glow(fv):
         overlay.setBackground(glow)
         overlay.setClickable(False)
         fv.addView(overlay, LayoutHelper.createFrame(-1, 24, 0x50, 0, 0, 0, 0))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"_add_bottom_glow: {e}", False)
 
 
@@ -355,7 +359,8 @@ def _make_achievement_card(act, achievement: dict, on_hint_click):
             try:
                 from .service.AchivementsEngine import unlock_secret
                 unlock_secret("curiosity")
-            except Exception as _e:
+            except Exception as _cython_exc__e:
+                _e = _cython_exc__e
                 logx(f"_make_achievement_card: unlock_secret failed: {_e}", True)
             is_secret_locked = False
         if not is_secret_locked:
@@ -394,7 +399,8 @@ class _AchievementListFragment(dynamic_proxy(UniversalFragment.UniversalFragment
                     logx("achiev: parent is None, skip removeView", True)
             else:
                 logx("achiev: _root_view is None or missing", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"achiev: onFragmentDestroy error: {e}", False)
 
     def beforeCreateView(self):
@@ -406,7 +412,8 @@ class _AchievementListFragment(dynamic_proxy(UniversalFragment.UniversalFragment
                     parent.removeView(self._root_view)
                     logx("achiev: _AchievementListFragment removed old root_view", True)
                 self._root_view = None
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"achiev: _AchievementListFragment cleanup error: {e}", False)
         frag = get_last_fragment()
         act = frag.getParentActivity() if frag else None
@@ -453,7 +460,8 @@ class _AchievementListFragment(dynamic_proxy(UniversalFragment.UniversalFragment
             _add_actionbar_glow(root)
             _add_bottom_glow(root)
             return root
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"achiev: _AchievementListFragment.beforeCreateView error: {e}", False)
             return None
 
@@ -489,7 +497,8 @@ class _AchievementListFragment(dynamic_proxy(UniversalFragment.UniversalFragment
                 frag = get_last_fragment()
                 if frag:
                     frag.finishFragment()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"achiev: failed to finish fragment (list): {e}", False)
             return True
         return False
@@ -526,7 +535,8 @@ class _CategoryFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegat
                     logx("achiev: parent is None, skip removeView", True)
             else:
                 logx("achiev: _root_view is None or missing", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"achiev: _CategoryFragment.onFragmentDestroy error: {e}", False)
 
     def beforeCreateView(self):
@@ -538,7 +548,8 @@ class _CategoryFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegat
                     parent.removeView(self._root_view)
                     logx("achiev: _CategoryFragment removed old root_view", True)
                 self._root_view = None
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"achiev: _CategoryFragment cleanup error: {e}", False)
         frag = get_last_fragment()
         act = frag.getParentActivity() if frag else None
@@ -600,9 +611,11 @@ class _CategoryFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegat
                                     new_frag.setTitle(str(strings[category_key]) if category_key in strings else str(strings[c]), False, 0)
                                 else:
                                     new_frag.setTitle(str(strings[c]) if c in strings else c, False, 0)
-                            except Exception as _e:
+                            except Exception as _cython_exc__e:
+                                _e = _cython_exc__e
                                 logx(f"achievementsUi: category actionbar setup error: {_e}", True)
-                        except Exception as e:
+                        except Exception as _cython_exc_e:
+                            e = _cython_exc_e
                             logx(f"achievementsUi: open category fragment failed: {e}", False)
                     return on_click
 
@@ -621,7 +634,8 @@ class _CategoryFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegat
             _add_actionbar_glow(root)
             _add_bottom_glow(root)
             return root
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"achiev: _CategoryFragment.beforeCreateView error: {e}", False)
             return None
 
@@ -654,7 +668,8 @@ class _CategoryFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegat
                 frag = get_last_fragment()
                 if frag:
                     frag.finishFragment()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"achiev: failed to finish fragment (category): {e}", False)
             return True
         return False
@@ -727,7 +742,8 @@ def show_hint_sheet(achievement: dict):
             hint_tv.setText(LocaleUtils.fullyFormatText(hint_text))
             hint_tv.setMovementMethod(LinkMovementMethod.getInstance())
             hint_tv.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText))
-        except Exception as _e:
+        except Exception as _cython_exc__e:
+            _e = _cython_exc__e
             logx(f"achievements: fullyFormatText hint failed: {_e}", True)
             hint_tv.setText(hint_text)
         hint_tv.setTextColor(Theme.getColor(Theme.key_dialogTextGray2))
@@ -766,7 +782,8 @@ def show_hint_sheet(achievement: dict):
         except Exception:
             pass
         sheet.show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"achievementsUi.show_hint_sheet: {e}", False)
 
 
@@ -812,7 +829,9 @@ def show_achievements(categories: dict, cat_names: list):
                     except Exception:
                         pass
             new_frag.setTitle(strings["profile_achievements"], False, 0)
-        except Exception as _e:
+        except Exception as _cython_exc__e:
+            _e = _cython_exc__e
             logx(f"achievementsUi: show_achievements actionbar setup error: {_e}", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"achievementsUi.show_achievements: {e}", False)

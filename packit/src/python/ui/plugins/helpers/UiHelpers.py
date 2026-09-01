@@ -11,15 +11,18 @@ from hook_utils import find_class
 from client_utils import get_last_fragment
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"uiHelpers: import elyx import strings failed: {e}")
 try:
     from org.telegram.ui.ActionBar import Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"uiHelpers: import org.telegram.ui.ActionBar import Theme failed: {e}")
 try:
     from org.telegram.messenger import AndroidUtilities
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"uiHelpers: import org.telegram.messenger import AndroidUtilities failed: {e}")
 
 def apply_press_scale(view):
@@ -266,5 +269,6 @@ def create_center_loading_animation(parent_layout):
         loading_container.addView(spinner, lp)
 
         return loading_container, spinner
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         return None, None

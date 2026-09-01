@@ -15,7 +15,8 @@ def _kill_process(*_):
     try:
         from android.os import Process
         Process.killProcess(Process.myPid())
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"decryptorUi._kill_process: {e}", False)
 
 
@@ -69,7 +70,8 @@ class _DocumentHandler(MethodHook):
                         account_data = {}
 
                     import_level, import_xp, _ = get_level_info(account_data)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"decryptorUi: failed to extract level info: {e}", False)
 
             from client_utils import get_last_fragment
@@ -128,7 +130,8 @@ def BulletinHelper_show_wrong_account(strings):
     try:
         from ui.bulletin import BulletinHelper
         BulletinHelper.show_error(strings["import_db_wrong_account"])
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"decryptorUi: show_wrong_account: {e}", False)
 
 
@@ -150,6 +153,7 @@ def setup_packit_file_hook(plugin) -> list:
 
         hooks.append(plugin.hook_method(method, _DocumentHandler(plugin), Integer.MAX_VALUE))
         logx("decryptorUi: hook registered", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"decryptorUi: setup error: {e}", False)
     return hooks

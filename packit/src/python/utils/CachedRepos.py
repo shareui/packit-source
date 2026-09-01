@@ -42,7 +42,8 @@ def read(rm_rid):
         with open(file_path, "r", encoding="utf-8") as f:
             data = _jsonx.loads(f.read())
         return data if isinstance(data, dict) else None
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"cachedRepos: unreadable cache for '{rm_rid}': {e}", True)
         return None
 
@@ -56,7 +57,8 @@ def write(rm_rid, data) -> bool:
         with open(path(rm_rid), "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
         return True
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"cachedRepos: cannot write cache for '{rm_rid}': {e}", False)
         return False
 
@@ -72,7 +74,8 @@ def forget(rm_rid) -> bool:
             return False
         os.remove(file_path)
         return True
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"cachedRepos: cannot delete cache for '{rm_rid}': {e}", False)
         return False
 
@@ -102,7 +105,8 @@ def all_cached() -> list:
             data = read(rm_rid)
             if isinstance(data, dict):
                 out.append((rm_rid, data))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"cachedRepos: cannot list the cache: {e}", False)
     return out
 

@@ -133,7 +133,8 @@ class BadgeManager:
                     self._dex_loaded = True
                     logx("[Packit Badges] using precompiled dex", True)
                     return
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"[Packit Badges] dex load failed, falling back to python: {e}", False)
 
             # fallback: pure-python implementation (below)
@@ -150,7 +151,8 @@ class BadgeManager:
 
             threading.Thread(target=self._update_from_url, daemon=True).start()
             self._install_hooks()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"[Packit Badges] setup error: {e}", False)
 
     def _update_from_url(self):
@@ -163,7 +165,8 @@ class BadgeManager:
             _set_cache(new_cache)
             _save_to_prefs(self.context, config)
             logx(f"[Packit Badges] updated {len(_cache)} entry(s) from url", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"[Packit Badges] update error: {e}", False)
 
     def _install_hooks(self):
@@ -178,28 +181,32 @@ class BadgeManager:
                 logx(f"[Packit Badges] hooked onBindViewHolder ({len(refs)} overload(s))", True)
             else:
                 logx("[Packit Badges] onBindViewHolder hook failed", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"[Packit Badges] hook install error: {e}", False)
 
         try:
             from .ChatBadge import setup_chat_badge_hook
             chat_refs = setup_chat_badge_hook(self.plugin, _lookup)
             self._hook_refs.extend(chat_refs)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"[Packit Badges] chat hook error: {e}", False)
 
         try:
             from .ChatTitleIcon import setup_title_icon_hook
             title_refs = setup_title_icon_hook(self.plugin, _lookup)
             self._hook_refs.extend(title_refs)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"[Packit Badges] title icon hook error: {e}", False)
 
         try:
             from .ProfileTitleIcon import setup_profile_title_icon_hook
             profile_refs = setup_profile_title_icon_hook(self.plugin, _lookup)
             self._hook_refs.extend(profile_refs)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"[Packit Badges] profile title icon hook error: {e}", False)
 
     def cleanup(self):
@@ -208,14 +215,16 @@ class BadgeManager:
                 try:
                     from ...core.DexLoader import unloadBadges
                     unloadBadges()
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"[Packit Badges] dex unload error: {e}", False)
                 self._dex_loaded = False
             for ref in self._hook_refs:
                 if ref:
                     self.plugin.unhook_method(ref)
             self._hook_refs.clear()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"[Packit Badges] cleanup error: {e}", False)
 
 
@@ -256,7 +265,8 @@ class _BindHook(MethodHook):
                 return
 
             _apply_cell(holder.itemView, entry["emoji_id"], entry["text"])
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"[Packit Badges] BindHook error: {e}", False)
 
 
@@ -281,5 +291,6 @@ def _apply_cell(cell, emoji_id, text):
 
         cell.setFixedSize(0)
         cell.setText(sb)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"[Packit Badges] apply cell error: {e}", False)

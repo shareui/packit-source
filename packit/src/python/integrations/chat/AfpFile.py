@@ -25,7 +25,8 @@ class _AfpFileHandler(MethodHook):
             file_path = str(param.args[0].getAbsolutePath())
             param.setResult(False)
             threading.Thread(target=self._read, args=(file_path, filename), daemon=True).start()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"afpFile: before_hooked_method error: {e}", False)
 
     def _read(self, file_path: str, filename: str):
@@ -52,14 +53,16 @@ class _AfpFileHandler(MethodHook):
                     except Exception:
                         pass
             os.makedirs(tmp_dir, exist_ok=True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"afpFile: tmp_dir setup error: {e}", False)
             return
 
         try:
             with zipfile.ZipFile(file_path, "r") as zf:
                 zf.extractall(tmp_dir)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"afpFile: unzip error: {e}", False)
             return
 
@@ -72,7 +75,8 @@ class _AfpFileHandler(MethodHook):
             with open(config_path, "r", encoding="utf-8") as f:
                 config_src = f.read()
             config_doc = parse(config_src, parseOpts)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"afpFile: config.scl parse error: {e}", False)
             return
 
@@ -82,7 +86,8 @@ class _AfpFileHandler(MethodHook):
                 logx("afpFile: type field missing in config.scl", True)
                 return
             afp_type = type_val.asString()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"afpFile: type read error: {e}", False)
             return
 
@@ -125,7 +130,8 @@ class _AfpFileHandler(MethodHook):
                                 info["app_version"] = app_version_val.asString()
                             plugins.append(info)
                             i += 1
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"afpFile: local.scl parse error: {e}", False)
 
         if not plugins:
@@ -137,7 +143,8 @@ class _AfpFileHandler(MethodHook):
                 logx("afpFile: count field missing in config.scl", True)
                 return
             count = count_val.asInt()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"afpFile: count read error: {e}", False)
             return
 
@@ -152,7 +159,8 @@ class _AfpFileHandler(MethodHook):
         try:
             from .ImportBottomSheet import show as showImportSheet
             showImportSheet(plugins, count, file_path, total_count=count, settings=has_settings)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"afpFile: show ImportBottomSheet error: {e}", False)
 
 
@@ -174,6 +182,7 @@ def setup_afp_file_hook(plugin) -> list:
 
         hooks.append(plugin.hook_method(method, _AfpFileHandler(plugin), Integer.MAX_VALUE))
         logx("afpFile: hook registered", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"afpFile: setup error: {e}", False)
     return hooks

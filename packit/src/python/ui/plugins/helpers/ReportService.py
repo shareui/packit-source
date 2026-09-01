@@ -32,7 +32,8 @@ def report_plugin(plugin_info: dict, activity, repo_id: str = ""):
                 decor = act.getWindow().getDecorView()
                 msg = str(strings["report_dialog_missing_field"]).replace("{field}", field)
                 _pbf(decor, None).createErrorBulletin(msg).show()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"report_plugin: bulletin error: {e}", False)
 
         if not forum_username:
@@ -48,5 +49,6 @@ def report_plugin(plugin_info: dict, activity, repo_id: str = ""):
         _rid = rid
         _pid = pid
         run_on_ui_thread(lambda: show_report_dialog(act, _name, _rid, _pid))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"report_plugin: error: {e}", False)

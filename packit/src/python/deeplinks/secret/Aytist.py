@@ -25,7 +25,8 @@ def handle(url):
         from ...ui.achievements.service.AchivementsEngine import unlock_secret
         unlock_secret("aytist")
         run_on_ui_thread(_startSpawnChain)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"deeplinks.aytist: handle error: {e}", False)
 
 
@@ -60,7 +61,8 @@ def _startSpawnChain():
                 lambda idx=i: _spawnOneVideo(act, decor, screenW, screenH, idx),
                 _SPAWN_DELAY_MS * i,
             )
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         import traceback
         logx(f"deeplinks.aytist: startSpawnChain error: {e}\n{traceback.format_exc()}", False)
 
@@ -96,7 +98,8 @@ def _spawnOneVideo(act, decor, screenW, screenH, idx):
                 try:
                     mp.setVolume(1.0, 1.0)
                     mp.start()
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"deeplinks.aytist: onPrepared error [{idx}]: {e}", False)
 
         class _CompletionListener(dynamic_proxy(MediaPlayer.OnCompletionListener)):
@@ -117,6 +120,7 @@ def _spawnOneVideo(act, decor, screenW, screenH, idx):
         lp = ViewGroup.LayoutParams(sizePx, sizePx)
         decor.addView(container, lp)
         videoView.start()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         import traceback
         logx(f"deeplinks.aytist: spawnOneVideo error [{idx}]: {e}\n{traceback.format_exc()}", False)

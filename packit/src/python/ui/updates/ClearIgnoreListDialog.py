@@ -11,16 +11,19 @@ from java import dynamic_proxy
 
 try:
     from elyx import strings, settings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"clearIgnoreListDialog: import elyx failed: {e}", False)
 try:
     from org.telegram.ui.ActionBar import Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"clearIgnoreListDialog: import Theme failed: {e}", False)
 try:
     from org.telegram.ui.Components import LayoutHelper
     from org.telegram.messenger import AndroidUtilities, ApplicationLoader
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"clearIgnoreListDialog: import AndroidUtilities/LayoutHelper failed: {e}", False)
 
 
@@ -42,7 +45,8 @@ def _register_back_cb(act, on_back):
         cb = _Cb.new_instance(True)
         act.getOnBackPressedDispatcher().addCallback(act, cb.java)
         return cb
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"clearIgnoreListDialog: _register_back_cb error: {e}", False)
         return None
 
@@ -50,7 +54,8 @@ def _unregister_back_cb(cb):
     try:
         if cb is not None:
             cb.remove()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"clearIgnoreListDialog: _unregister_back_cb error: {e}", False)
 
 
@@ -78,7 +83,8 @@ def _animate_in(overlay, card):
         s = AnimatorSet()
         s.playTogether(fade_overlay, fade_card, scale_x, scale_y)
         s.start()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"clearIgnoreListDialog: _animate_in error: {e}", False)
 
 
@@ -115,7 +121,8 @@ def _animate_out(overlay_ref, card, decor, on_end=None):
         s.playTogether(fade_overlay, fade_card, scale_x, scale_y)
         s.addListener(_EndListener())
         s.start()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"clearIgnoreListDialog: _animate_out error: {e}", False)
         try:
             decor.removeView(overlay_ref[0])
@@ -198,15 +205,18 @@ def _clear_all_ignore_lists():
                 data["ignore_list"] = []
                 with open(path, "w", encoding="utf-8") as f:
                     json.dump(data, f, ensure_ascii=False, indent=2)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"clearIgnoreListDialog: clear repo '{rm_rid}' error: {e}", False)
         logx("clearIgnoreListDialog: all ignore lists cleared", True)
         try:
             from ui.bulletin import BulletinHelper
             run_on_ui_thread(lambda: BulletinHelper.show_success(str(strings["clear_ignore_list_done"])))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"clearIgnoreListDialog: bulletin error: {e}", False)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"clearIgnoreListDialog: _clear_all_ignore_lists error: {e}", False)
 
 
@@ -236,15 +246,18 @@ def _remove_plugin_from_ignore_lists(pid: str):
                 data["ignore_list"] = filtered
                 with open(path, "w", encoding="utf-8") as f:
                     json.dump(data, f, ensure_ascii=False, indent=2)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"clearIgnoreListDialog: remove plugin '{pid}' from repo '{rm_rid}' error: {e}", False)
         logx(f"clearIgnoreListDialog: plugin '{pid}' removed from all ignore lists", True)
         try:
             from ui.bulletin import BulletinHelper
             run_on_ui_thread(lambda: BulletinHelper.show_success(str(strings["clear_ignore_list_specific_done"])))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"clearIgnoreListDialog: specific bulletin error: {e}", False)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"clearIgnoreListDialog: _remove_plugin_from_ignore_lists error: {e}", False)
 
 
@@ -369,7 +382,8 @@ def show_clear_ignore_list_dialog(act, on_close=None):
 
                 edit_text.requestFocus()
                 AndroidUtilities.showKeyboard(edit_text)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"clearIgnoreListDialog: _on_specific_click error: {e}", False)
 
         specific_btn.setOnClickListener(OnClickListener(_on_specific_click))
@@ -397,7 +411,8 @@ def show_clear_ignore_list_dialog(act, on_close=None):
                 for i in range(clear_all_btn.getChildCount()):
                     child = clear_all_btn.getChildAt(i)
                     child.setText(str(strings["clear_ignore_list_remove"]))
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"clearIgnoreListDialog: label swap error: {e}", False)
 
         # patch specific click to also swap the label
@@ -429,5 +444,6 @@ def show_clear_ignore_list_dialog(act, on_close=None):
         decor.addView(overlay, ViewGroup.LayoutParams(-1, -1))
         back_cb_ref[0] = _register_back_cb(act, _dismiss)
         run_on_ui_thread(lambda: _animate_in(overlay, card))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"clearIgnoreListDialog: show_clear_ignore_list_dialog error: {e}", False)

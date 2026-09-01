@@ -26,7 +26,8 @@ def _selected_size(file_path: str, plugins: list) -> int:
                 if path and path in names:
                     total += zf.getinfo(path).file_size
         return total
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"ConfirmImportBottomSheet: size error: {e}", False)
         return 0
 
@@ -46,14 +47,16 @@ def _merge_plugin_settings(file_path: str, plugin_ids: list):
                 logx("ConfirmImportBottomSheet: settings.json not found in archive", True)
                 return
             archive_settings = json.loads(zf.read("settings.json").decode("utf-8"))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"ConfirmImportBottomSheet: failed to read settings.json from archive: {e}", False)
         return
 
     try:
         from org.telegram.messenger import ApplicationLoader
         client_path = ApplicationLoader.applicationContext.getFilesDir().getAbsolutePath() + "/plugins/plugin_settings.json"
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"ConfirmImportBottomSheet: failed to get filesDir: {e}", False)
         return
 
@@ -62,7 +65,8 @@ def _merge_plugin_settings(file_path: str, plugin_ids: list):
             client_settings = json.load(f)
     except FileNotFoundError:
         client_settings = {}
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"ConfirmImportBottomSheet: failed to read client plugin_settings.json: {e}", False)
         return
 
@@ -81,7 +85,8 @@ def _merge_plugin_settings(file_path: str, plugin_ids: list):
         with open(client_path, "w", encoding="utf-8") as f:
             json.dump(client_settings, f, ensure_ascii=False, indent=2)
         logx(f"ConfirmImportBottomSheet: wrote settings for {merged} plugin(s)", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"ConfirmImportBottomSheet: failed to write client plugin_settings.json: {e}", False)
 
 
@@ -194,7 +199,8 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                 chip_lp.gravity = Gravity.CENTER_HORIZONTAL
                 chip_lp.topMargin = AndroidUtilities.dp(8)
                 root.addView(chip, chip_lp)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"ConfirmImportBottomSheet: chip error: {e}", False)
 
             import_with_settings = [False]
@@ -225,7 +231,8 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                         )
                         cb_lp.rightMargin = AndroidUtilities.dp(8)
                         settings_row.addView(cb, cb_lp)
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"ConfirmImportBottomSheet: checkbox error: {e}", False)
 
                     settings_label = TextView(activity)
@@ -254,7 +261,8 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                     settings_row_lp.gravity = Gravity.CENTER_HORIZONTAL
                     settings_row_lp.topMargin = AndroidUtilities.dp(12)
                     root.addView(settings_row, settings_row_lp)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"ConfirmImportBottomSheet: settings row error: {e}", False)
 
             # import button
@@ -285,7 +293,8 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                                 try:
                                     d.size = float(AndroidUtilities.dp(20))
                                     d.thickness = float(AndroidUtilities.dp(2))
-                                except Exception as e:
+                                except Exception as _cython_exc_e:
+                                    e = _cython_exc_e
                                     logx(f"ConfirmImportBottomSheet: spinner size error: {e}", False)
                                 spin_iv = ImageView(activity)
                                 spin_iv.setImageDrawable(d)
@@ -297,16 +306,19 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                                 overlay_lp.gravity = Gravity.CENTER
                                 btn_wrapper.addView(spin_iv, overlay_lp)
                                 spinner_overlay_ref[0] = spin_iv
-                            except Exception as e:
+                            except Exception as _cython_exc_e:
+                                e = _cython_exc_e
                                 logx(f"ConfirmImportBottomSheet: spinner create error: {e}", False)
                         else:
                             if spinner_overlay_ref[0] is not None:
                                 try:
                                     btn_wrapper.removeView(spinner_overlay_ref[0])
-                                except Exception as e:
+                                except Exception as _cython_exc_e:
+                                    e = _cython_exc_e
                                     logx(f"ConfirmImportBottomSheet: spinner remove error: {e}", False)
                                 spinner_overlay_ref[0] = None
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"ConfirmImportBottomSheet: _set_btn_loading error: {e}", False)
 
                 class _ImportClick(dynamic_proxy(View.OnClickListener)):
@@ -406,7 +418,8 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                                                     try:
                                                         from org.telegram.messenger import AndroidUtilities as AU2
                                                         AU2.addToClipboard(copy_text)
-                                                    except Exception as ex:
+                                                    except Exception as _cython_exc_ex:
+                                                        ex = _cython_exc_ex
                                                         logx(f"ConfirmImportBottomSheet: err copy error: {ex}", True)
                                                     tv.setText(str(strings["afp_copied"]))
                                                     def _restore(ref=tv, orig=err_text):
@@ -440,7 +453,8 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                                                 pass
                                     try:
                                         frame.getViewTreeObserver().addOnGlobalLayoutListener(_LayoutListener())
-                                    except Exception as e:
+                                    except Exception as _cython_exc_e:
+                                        e = _cython_exc_e
                                         logx(f"ConfirmImportBottomSheet: lock_frame_height error: {e}", False)
 
                                 def _trim_err(err_str: str) -> str:
@@ -535,7 +549,8 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                                     try:
                                         from org.telegram.messenger import AndroidUtilities as AU2
                                         AU2.addToClipboard(all_text)
-                                    except Exception as ex:
+                                    except Exception as _cython_exc_ex:
+                                        ex = _cython_exc_ex
                                         logx(f"ConfirmImportBottomSheet: copy error: {ex}", True)
                                     copy_btn.setText(str(strings["afp_copied"]), True)
 
@@ -566,7 +581,8 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
 
                                 err_sheet.setCustomView(err_root)
                                 err_sheet.show()
-                            except Exception as e:
+                            except Exception as _cython_exc_e:
+                                e = _cython_exc_e
                                 logx(f"ConfirmImportBottomSheet: errors sheet error: {e}\n{traceback.format_exc()}", False)
 
                         def on_plugin_done(plugin_name, error, plugin_id=None):
@@ -592,7 +608,8 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                                             lambda: _show_errors_sheet(failed),
                                             fragment
                                         )
-                                    except Exception as e:
+                                    except Exception as _cython_exc_e:
+                                        e = _cython_exc_e
                                         logx(f"ConfirmImportBottomSheet: bulletin error: {e}", False)
                                 run_on_ui_thread(_show)
                             else:
@@ -653,7 +670,8 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                                                         continue
                                                 else:
                                                     logx(f"ConfirmImportBottomSheet: app_version '{app_version_expr}' has no known operator, skipping check", True)
-                                            except Exception as e:
+                                            except Exception as _cython_exc_e:
+                                                e = _cython_exc_e
                                                 logx(f"ConfirmImportBottomSheet: app_version check error for '{plugin_name}': {e}", False)
                                         logx(f"ConfirmImportBottomSheet: app_version ok for '{plugin_name}'", True)
 
@@ -663,14 +681,16 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                                         try:
                                             zf.extract(arc_path, tmp_dir)
                                             extracted = os.path.join(tmp_dir, arc_path)
-                                        except Exception as e:
+                                        except Exception as _cython_exc_e:
+                                            e = _cython_exc_e
                                             logx(f"ConfirmImportBottomSheet: extract error for {arc_path}: {e}", False)
                                             on_plugin_done(plugin_name, e)
                                             continue
                                         logx(f"ConfirmImportBottomSheet: starting install for '{plugin_name}' id='{plugin_id}'", True)
                                         onlyLocalInstallNoUi(extracted, plugin_id,
                                                              lambda err, _n=plugin_name, _id=plugin_id: on_plugin_done(_n, err, _id))
-                            except Exception as e:
+                            except Exception as _cython_exc_e:
+                                e = _cython_exc_e
                                 logx(f"ConfirmImportBottomSheet: _run_installs error: {e}\n{traceback.format_exc()}", False)
                                 for p in plugins:
                                     on_plugin_done(p.get("name") or "unknown", e)
@@ -689,7 +709,8 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                 import_lp.leftMargin = pad_h
                 import_lp.rightMargin = pad_h
                 root.addView(btn_wrapper, import_lp)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"ConfirmImportBottomSheet: import btn error: {e}", False)
 
             # close button
@@ -713,13 +734,15 @@ def show(file_path: str, plugins: list, total_count: int = 0, settings: bool = T
                 close_lp.leftMargin = pad_h
                 close_lp.rightMargin = pad_h
                 root.addView(close_btn, close_lp)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"ConfirmImportBottomSheet: close btn error: {e}", False)
 
             sheet.setCustomView(root)
             sheet.show()
 
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"ConfirmImportBottomSheet.show: {e}\n{traceback.format_exc()}", False)
 
     run_on_ui_thread(_show)

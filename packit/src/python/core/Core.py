@@ -17,17 +17,20 @@ except Exception:
     _strings = None
 try:
     from org.telegram.messenger import ApplicationLoader, AndroidUtilities
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
     from ..utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from com.exteragram.messenger.plugins import PluginsController
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import com.exteragram.messenger.plugins import PluginsController failed: {e}")
     from ..utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.messenger import NotificationCenter
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.messenger import NotificationCenter failed: {e}")
     from ..utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 import time
@@ -68,7 +71,8 @@ def _fire_install_listeners(plugin_id: str):
     for fn in listeners:
         try:
             fn(plugin_id)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"core: install listener error: {e}", False)
 
 
@@ -160,7 +164,8 @@ def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button,
                 else:
                     from ..utils.InstallIndex import commit_pending
                     commit_pending()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"core: index commit error: {e}", False)
 
         def _on_plugins_updated():
@@ -181,7 +186,8 @@ def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button,
                         observer_ref[0], NotificationCenter.pluginsUpdated
                     )
                     observer_ref[0] = None
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"core: removeObserver error: {e}", False)
             # write the install index from this reliable post-install signal
             # (covers both native and elyx installs), then fire callbacks
@@ -193,7 +199,8 @@ def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button,
                 try:
                     from ..ui.achievements.service.AchivementsEngine import increment_category
                     increment_category("Installing plugins")
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"core: elyx achievement increment error: {e}", False)
             try:
                 if on_finish:
@@ -209,7 +216,8 @@ def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button,
                     logx("core: calling show_restart_dialog", True)
                     from ..ui.dialogs.RestartDialog import show_restart_dialog
                     show_restart_dialog(restart, fragment)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"core: restart dialog error: {e}", False)
 
         try:
@@ -224,7 +232,8 @@ def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button,
             obs = _InstallObserver()
             NotificationCenter.getGlobalInstance().addObserver(obs, NotificationCenter.pluginsUpdated)
             observer_ref[0] = obs
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"core: addObserver error: {e}", False)
             # fallback: fire on_finish with False so caller isn't stuck
             try:
@@ -243,7 +252,8 @@ def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button,
             eng = None
             try:
                 eng = PluginsController.getPluginEngine(_JFile(temp_path))
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"core: getPluginEngine check error: {e}", False)
             if eng is not None:
                 logx(f"core: elyx install via host showInstallDialog ('{temp_path}')", True)
@@ -265,7 +275,8 @@ def _open_install_dialog(temp_path, plugin_info, fragment, loading_view, button,
                 set_pending(plugin_info, rm_rid)
             PluginsController.getInstance().showInstallDialog(fragment, temp_path, True)
 
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"core: _open_install_dialog error: {e}", False)
         BulletinHelper.show_error(_s("core_failed_install_dialog", error=e))
         try:
@@ -392,7 +403,8 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
                         return
                     else:
                         logx(f"core: cache miss for '{plugin_id}': hash mismatch, re-downloading", True)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"core: cache check error for '{plugin_id}': {e}", False)
 
             r = requests.get(url, stream=True, timeout=30, headers={"User-Agent": "PackIt/1.0 (Android; github.com/shareui/packit)"})
@@ -461,7 +473,8 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
                     shutil.copy2(temp_path, cache_path)
                     os.chmod(cache_path, 0o644)
                     logx(f"core: cached '{plugin_id}' to {cache_path}", True)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     # cache is best-effort; permission errors on some devices are expected
                     logx(f"core: skipping cache for '{plugin_id}': {e}", False)
 
@@ -475,7 +488,8 @@ def _do_install(plugin_info: dict, icon_view=None, button=None, original_icon_id
                 temp_path, plugin_info, fragment,
                 loading_view, button, icon_view, original_icon_id, on_finish, rm_rid
             ))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"core.install_plugin: error downloading '{plugin_id}' from '{url}': {e}", False)
             _dismiss_dialog(dlg)
             run_on_ui_thread(lambda: BulletinHelper.show_error(_s("core_download_error")))
@@ -553,14 +567,16 @@ def install_icon_pack(icon_info: dict):
                         return
                     IconManager.INSTANCE.handleIconPack(frag, tmp_path)
                     logx(f"core.install_icon_pack: handleIconPack invoked for '{pack_id}'", True)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"core.install_icon_pack: handleIconPack error: {e}", False)
                     run_on_ui_thread(lambda: BulletinHelper.show_error(_s("core_installation_failed")))
 
             # tmp file is read asynchronously by the host coroutine; leave it
             # for the normal icon-pack cache cleanup instead of deleting now.
             run_on_ui_thread(open_native_installer)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"core.install_icon_pack: error: {e}", False)
             _dismiss_dialog(dlg)
             run_on_ui_thread(lambda: BulletinHelper.show_error(_s("core_iconpack_download_error")))
@@ -582,7 +598,8 @@ def install_plugin_silent(file_path: str, plugin_data: dict, repo_id: str, on_co
             isinstance(t, (list, tuple)) and len(t) > 0 and t[0] == "Elyx"
             for t in tags
         )
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"core.install_plugin_silent: tag check error for '{pid}': {e}", False)
 
     logx(f"core.install_plugin_silent: is_elyx={is_elyx} for '{pid}'", True)
@@ -604,12 +621,14 @@ def install_plugin_silent(file_path: str, plugin_data: dict, repo_id: str, on_co
                 logx(f"core.install_plugin_silent: elyx install complete for '{pid}'", True)
                 try:
                     commit_elyx_pending(plugin_data, repo_id, original_path=file_path)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"core.install_plugin_silent: commit_elyx_pending error for '{pid}': {e}", False)
                 if on_complete:
                     try:
                         on_complete()
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"core.install_plugin_silent: on_complete error for '{pid}': {e}", False)
 
             def _elyx_error(error):
@@ -617,11 +636,13 @@ def install_plugin_silent(file_path: str, plugin_data: dict, repo_id: str, on_co
                 if on_error:
                     try:
                         on_error(error)
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"core.install_plugin_silent: on_error error for '{pid}': {e}", False)
 
             ElyxEngine.instance.load_from_archive(elyx_plugin, True, _elyx_complete, _elyx_error)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"core.install_plugin_silent: elyx path error for '{pid}': {e}", False)
             if on_error:
                 try:
@@ -640,7 +661,8 @@ def install_plugin_silent(file_path: str, plugin_data: dict, repo_id: str, on_co
 
         try:
             set_pending(plugin_data, repo_id)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"core.install_plugin_silent: set_pending error for '{pid}': {e}", False)
 
         def _on_enabled(error):
@@ -654,12 +676,14 @@ def install_plugin_silent(file_path: str, plugin_data: dict, repo_id: str, on_co
                 return
             try:
                 commit_pending()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"core.install_plugin_silent: commit_pending error for '{pid}': {e}", False)
             if on_complete:
                 try:
                     on_complete()
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"core.install_plugin_silent: on_complete error for '{pid}': {e}", False)
 
         def _on_installed(error):
@@ -673,7 +697,8 @@ def install_plugin_silent(file_path: str, plugin_data: dict, repo_id: str, on_co
                     pass
 
         run_on_ui_thread(lambda: python_engine.loadPluginFromFile(file_path, None, Callback(_on_installed)))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"core.install_plugin_silent: error for '{pid}': {e}", False)
         if on_error:
             try:
@@ -704,7 +729,8 @@ def onlyLocalInstallNoUi(file_path: str, plugin_id: str, on_done):
             run_on_ui_thread(lambda: on_done(error))
 
         run_on_ui_thread(lambda: python_engine.loadPluginFromFile(file_path, None, Callback(on_installed)))
-    except Exception as err:
+    except Exception as _cython_exc_err:
+        err = _cython_exc_err
         logx(f"core.onlyLocalInstallNoUi: error for '{plugin_id}': {err}", True)
         run_on_ui_thread(lambda: on_done(err))
 

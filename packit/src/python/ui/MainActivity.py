@@ -5,7 +5,8 @@ from packutil import logx
 from ui.settings import Header, Text, Divider
 try:
     from elyx import strings, metainfo
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import elyx import strings, metainfo failed: {e}")
     from ..utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 from .settings.Deeplinks import DeeplinksSettings
@@ -20,17 +21,20 @@ from android_utils import run_on_ui_thread
 from hook_utils import find_class, get_private_field
 try:
     from org.telegram.ui.ActionBar import Theme, BottomSheet
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.ui.ActionBar import Theme, BottomSheet failed: {e}")
     from ..utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.ui.Components import LayoutHelper, UItem, BackupImageView, EffectsTextView, BulletinFactory
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.ui.Components import LayoutHelper, UItem, BackupImageView, EffectsTextView, BulletinFactory failed: {e}")
     from ..utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from com.exteragram.messenger.plugins.models import HeaderSetting
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import com.exteragram.messenger.plugins.models import HeaderSetting failed: {e}")
     from ..utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 from android.widget import FrameLayout, TextView, LinearLayout, ScrollView
@@ -39,7 +43,8 @@ from android.view import Gravity
 from android.util import TypedValue
 try:
     from org.telegram.messenger import AndroidUtilities, ImageLocation, MediaDataController, R
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities, ImageLocation, MediaDataController, R failed: {e}")
     from ..utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 from .plugins.Fragment import InstallUI
@@ -47,7 +52,8 @@ from .icons.Fragment import InstallIconsUI
 from client_utils import get_last_fragment
 try:
     from org.telegram.messenger.browser import Browser
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.messenger.browser import Browser failed: {e}")
     from ..utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 from android.net import Uri
@@ -112,7 +118,8 @@ class SettingsBuilder:
                             item.settingItem = HeaderSetting("packit_header")
                             try:
                                 item.setTransparent(True)
-                            except Exception as e:
+                            except Exception as _cython_exc_e:
+                                e = _cython_exc_e
                                 logx(f"MainActivity: setTransparent header error: {e}", False)
                             items.add(0, item)
                             items.add(1, UItem.asShadow())
@@ -122,10 +129,12 @@ class SettingsBuilder:
                             f_item = UItem.asCustom(footer)
                             try:
                                 f_item.setTransparent(True)
-                            except Exception as e:
+                            except Exception as _cython_exc_e:
+                                e = _cython_exc_e
                                 logx(f"MainActivity: setTransparent footer error: {e}", False)
                             items.add(f_item)
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"MainActivity: hook after_hooked_method error: {e}", False)
 
             PSA = find_class("com.exteragram.messenger.plugins.ui.PluginSettingsActivity")
@@ -133,7 +142,8 @@ class SettingsBuilder:
                 method = PSA.getClass().getDeclaredMethod("fillItems", find_class("java.util.ArrayList"), find_class("org.telegram.ui.Components.UniversalAdapter"))
                 method.setAccessible(True)
                 return self.plugin.hook_method(method, PackitSettingsHeaderHook(self))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"MainActivity: _setup_settings_header_hook error: {e}", False)
         return None
 
@@ -154,7 +164,8 @@ class SettingsBuilder:
                 try:
                     from .settings.DebugItems import show_debug_menu
                     show_debug_menu()
-                except Exception as _e:
+                except Exception as _cython_exc__e:
+                    _e = _cython_exc__e
                     logx(f"MainActivity: sticker long click error: {_e}", True)
                 return True
 
@@ -195,15 +206,16 @@ class SettingsBuilder:
         try:
             from .updates.Fragment import show_updates_fragment
             show_updates_fragment(self.plugin)
-        except Exception as e:
-            
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"MainActivity: _check_updates error: {e}", False)
     
     def _open_repositories(self, view):
         try:
             from .repos import show_repos_fragment
             show_repos_fragment(self.repoManager)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"MainActivity: _open_repositories error: {e}", False)
 
     def _install_icons(self, view):
@@ -407,6 +419,7 @@ class SettingsBuilder:
             root.addView(chip, clp)
 
             return root
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"MainActivity: _create_footer_view error: {e}", False)
             return None

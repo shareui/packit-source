@@ -14,22 +14,26 @@ from android.widget import ImageView
 from elyx import strings
 try:
     from org.telegram.messenger import AndroidUtilities, R as R_tg
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     if DEBUG_LOGS:
         logx(f"securityUi: import error: {e}", False)
 try:
     from org.telegram.ui.ActionBar import Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     if DEBUG_LOGS:
         logx(f"securityUi: import Theme error: {e}", False)
 try:
     from org.telegram.ui.Components import LayoutHelper
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     if DEBUG_LOGS:
         logx(f"securityUi: import LayoutHelper error: {e}", False)
 try:
     from android.view import View
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     View = find_class("android.view.View")
 
 SIGNATURES_URL = "https://raw.githubusercontent.com/shareui/packit/refs/heads/main/configs/signatures.json"
@@ -414,7 +418,8 @@ def _scanPlugin(source: str, signatures: list) -> dict:
     try:
         for method, decoded_text in _unwrapObfuscatedLayers(source):
             _scanSource(decoded_text, signatures, results, label_prefix=f"[{method}] ")
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         if DEBUG_LOGS:
             logx(f"securityUi: obfuscation unwrap error: {e}", False)
 
@@ -499,7 +504,8 @@ def _appendCleanState(act, root):
         lp.gravity = Gravity.CENTER_HORIZONTAL
         lp.bottomMargin = dp(10)
         container.addView(lottie, lp)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         if DEBUG_LOGS:
             logx(f"securityUi: lottie error: {e}", False)
 
@@ -551,7 +557,8 @@ def _appendLevelBlock(act, root, level: str, patterns: list):
         gd.setCornerRadius(dp(12))
         gd.setColor((0x18 << 24) | (r << 16) | (g << 8) | b)
         block.setBackground(gd)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         if DEBUG_LOGS:
             logx(f"securityUi: block bg error: {e}", False)
 
@@ -632,7 +639,8 @@ def _applyPressScale(view):
                 return False
 
         view.setOnTouchListener(_TouchListener())
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         if DEBUG_LOGS:
             logx(f"securityUi: _applyPressScale error: {e}", False)
 
@@ -667,7 +675,8 @@ def _buildPackitkeyWarning(act) -> object:
         gd.setCornerRadius(dp(12))
         gd.setColor((0x18 << 24) | (r << 16) | (g << 8) | b)
         container.setBackground(gd)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         if DEBUG_LOGS:
             logx(f"securityUi: packitkey warning bg error: {e}", False)
 
@@ -802,7 +811,8 @@ def _showResults(results: dict, act):
             try:
                 from ....utils.LocalConfig import LocalConfig
                 LocalConfig.set("signatures", True)
-            except Exception as ex:
+            except Exception as _cython_exc_ex:
+                ex = _cython_exc_ex
                 if DEBUG_LOGS:
                     logx(f"securityUi: LocalConfig.set signatures error: {ex}", True)
             try:
@@ -811,7 +821,8 @@ def _showResults(results: dict, act):
                 Browser.openUrl(act, Uri.parse("https://t.me/packitGround/13/999"), True, True, True, None, None, False, False, False)
                 if sheetRef[0]:
                     sheetRef[0].dismiss()
-            except Exception as ex:
+            except Exception as _cython_exc_ex:
+                ex = _cython_exc_ex
                 if DEBUG_LOGS:
                     logx(f"securityUi: open link error: {ex}", True)
 
@@ -877,7 +888,8 @@ def _showResults(results: dict, act):
         sheetRef[0] = sheet
         sheet.show()
 
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         if DEBUG_LOGS:
             logx(f"securityUi: _showResults error: {e}", False)
         # fallback
@@ -920,7 +932,8 @@ def _onPolicyClick(act, filePath: str):
             signatures = _fetchSignatures()
             results = _buildTestResults(signatures) if TEST_UI else _scanPlugin(source, signatures)
             run_on_ui_thread(lambda: (dlg.dismiss(), _showResults(results, act)))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             if DEBUG_LOGS:
                 logx(f"securityUi: scan error: {e}", False)
             run_on_ui_thread(lambda: (dlg.dismiss(), _showResults({}, act)))
@@ -941,7 +954,8 @@ class ConstructorHook(MethodHook):
             _pending[sheet.hashCode()] = filePath
             if DEBUG_LOGS:
                 logx(f"securityUi: stored filePath={filePath}", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             if DEBUG_LOGS:
                 logx(f"securityUi: ConstructorHook error: {e}", False)
 
@@ -1007,7 +1021,8 @@ class SetCustomViewHook(MethodHook):
             lp = LayoutHelper.createFrame(40, 40.0, 53, 0.0, 60.0, 16.0, 0.0)
             frame.addView(policy_btn, lp)
 
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             if DEBUG_LOGS:
                 logx(f"securityUi: SetCustomViewHook error: {e}", False)
 
@@ -1045,7 +1060,8 @@ def setup_policy_button_hook(plugin):
             hooks.append(plugin.hook_method(method, SetCustomViewHook()))
 
         return hooks
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         if DEBUG_LOGS:
             logx(f"securityUi: setup error: {e}", False)
         return None

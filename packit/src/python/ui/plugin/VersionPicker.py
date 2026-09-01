@@ -9,7 +9,8 @@ from android_utils import run_on_ui_thread, OnClickListener, OnLongClickListener
 from client_utils import get_last_fragment
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"versionPicker: import elyx failed: {e}")
 try:
     from org.telegram.ui.ActionBar import Theme
@@ -35,7 +36,8 @@ def _register_back_cb(act, on_back):
         cb = _Cb.new_instance(True)
         act.getOnBackPressedDispatcher().addCallback(act, cb.java)
         return cb
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"versionPicker: _register_back_cb error: {e}", False)
         return None
 
@@ -43,7 +45,8 @@ def _unregister_back_cb(cb):
     try:
         if cb is not None:
             cb.remove()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"versionPicker: _unregister_back_cb error: {e}", False)
 
 
@@ -212,7 +215,8 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
                 s = AnimatorSet()
                 s.playTogether(fade_overlay, fade_card, scale_x, scale_y)
                 s.start()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"version_picker: animate_in error: {e}", False)
 
         install_started = [False]
@@ -246,7 +250,8 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
                 s.playTogether(fade_overlay, fade_card, scale_x, scale_y)
                 s.addListener(_EndListener())
                 s.start()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"version_picker: animate_out error: {e}", False)
                 try:
                     decor.removeView(overlay_ref[0])
@@ -430,7 +435,8 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
                 bottom_alpha = min(1.0, float(max_scroll - scroll_y) / 50.0)
                 top_fade.setAlpha(top_alpha)
                 bottom_fade.setAlpha(bottom_alpha)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"version_picker: fade update error: {e}", False)
 
         class _ScrollListener(dynamic_proxy(View.OnScrollChangeListener)):
@@ -487,7 +493,8 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
                     arrow_iv_ref[0].animate().rotation(180.0).setDuration(200).start()
                 except Exception:
                     arrow_iv_ref[0].setRotation(180.0)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"version_picker: expand error: {e}", False)
                 list_wrap.setVisibility(View.VISIBLE)
 
@@ -519,7 +526,8 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
                     arrow_iv_ref[0].animate().rotation(0.0).setDuration(180).start()
                 except Exception:
                     arrow_iv_ref[0].setRotation(0.0)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"version_picker: collapse error: {e}", False)
                 list_wrap.setVisibility(View.GONE)
 
@@ -589,7 +597,7 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
             else:
                 row_tv.setTextColor(text_color)
 
-                def _make_hint(_row=row, _mv=min_ver):
+                def _make_hint(_row=row, _mv=av):
                     hint_ref = [None]
                     def _on_unavail_click(v):
                         try:
@@ -631,10 +639,12 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
                                     hint.setJointPx(0.0, float(-AndroidUtilities.dp(32)) + center_x)
                                     hint.setDuration(3500)
                                     hint.show()
-                                except Exception as he:
+                                except Exception as _cython_exc_he:
+                                    he = _cython_exc_he
                                     logx(f"version_picker: hint show error: {he}", True)
                             run_on_ui_thread(_show)
-                        except Exception as e:
+                        except Exception as _cython_exc_e:
+                            e = _cython_exc_e
                             logx(f"version_picker: unavail hint error: {e}", False)
                     return _on_unavail_click
                 row.setOnClickListener(OnClickListener(_make_hint()))
@@ -665,10 +675,12 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
                                 icon_raw,
                                 str(strings["pp_version_link_copied"])
                             ).show()
-                        except Exception as be:
+                        except Exception as _cython_exc_be:
+                            be = _cython_exc_be
                             logx(f"version_picker: bulletin error: {be}", True)
                         return True
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"version_picker: long click error: {e}", False)
                         return False
                 return _on_long_click
@@ -765,10 +777,12 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
                             hint.setJointPx(0.0, float(-AndroidUtilities.dp(32)) + center_x)
                             hint.setDuration(3500)
                             hint.show()
-                        except Exception as e:
+                        except Exception as _cython_exc_e:
+                            e = _cython_exc_e
                             logx(f"version_picker: dl_hint show error: {e}", False)
                     run_on_ui_thread(_show_dl_hint)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"version_picker: dl_hint error: {e}", False)
                 return
             versioned = dict(plugin)
@@ -826,8 +840,9 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
                             lp2.height = -2
                             _dl_btn.setLayoutParams(lp2)
                         _dl_btn.post(_unwrap)
-                    except Exception as e:
-                        _log(f"versionPicker: restore button error: {e}")
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
+                        logx(f"versionPicker: restore button error: {e}", False)
                 _t.Timer(1.0, lambda: run_on_ui_thread(_restore)).start()
 
             install_started[0] = True
@@ -857,6 +872,7 @@ def _show_version_picker(act, plugin, install_ui, all_plugins, btn, label, btn_t
                 _expand_list()
 
         run_on_ui_thread(_post_show)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"pluginProfile: _show_version_picker error: {e}", False)
         do_install(plugin, install_ui, all_plugins, btn, label, btn_text_color, act)

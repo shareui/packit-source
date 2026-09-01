@@ -14,7 +14,6 @@ except Exception:
 
 CHECK_SO_PATHS = False
 
-_BASE = "/plugins/ElyxPlugins/shareui_packit/packit/native"
 
 _SUPPORTED_ARCHS = ("arm64-v8a", "armeabi-v7a")
 
@@ -29,7 +28,8 @@ def detectArch() -> str:
     try:
         from android.os import Build
         abi = str(Build.SUPPORTED_ABIS[0])
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"nativeLoader: arch detection error: {e}", False)
         abi = "arm64-v8a"
     _arch = abi if abi in _SUPPORTED_ARCHS else "arm64-v8a"
@@ -38,9 +38,9 @@ def detectArch() -> str:
 
 
 def _soPath(libName: str) -> str:
-    from ..utils.Paths import _filesDir
+    from cruel import get_source_dir
     arch = detectArch()
-    return _filesDir() + _BASE + "/" + arch + "/" + libName + ".so"
+    return str(get_source_dir() / "packit" / "native" / arch / f"{libName}.so")
 
 
 def checkSoPaths():
@@ -97,7 +97,8 @@ def showNativeErrorSheet(libName: str, error: str):
                     except Exception:
                         _abi = str(Build.CPU_ABI)
                     _android = str(Build.VERSION.RELEASE)
-                except Exception as _ie:
+                except Exception as _cython_exc__ie:
+                    _ie = _cython_exc__ie
                     logx(f"nativeLoader: device info error: {_ie}", True)
                     _app_ver = "N/A"
                     _package = "N/A"
@@ -121,7 +122,8 @@ def showNativeErrorSheet(libName: str, error: str):
                 )
                 try:
                     AndroidUtilities.addToClipboard(clip_text)
-                except Exception as _ce:
+                except Exception as _cython_exc__ce:
+                    _ce = _cython_exc__ce
                     logx(f"nativeLoader: clipboard copy error: {_ce}", True)
 
                 sheet = BottomSheet(activity, False, rp)
@@ -182,7 +184,8 @@ def showNativeErrorSheet(libName: str, error: str):
                             act = frag.getParentActivity()
                             if act and Browser:
                                 Browser.openUrl(act, uri, True, True, True, None, None, False, False, False)
-                        except Exception as _e:
+                        except Exception as _cython_exc__e:
+                            _e = _cython_exc__e
                             logx(f"nativeLoader: showNativeErrorSheet report click error: {_e}", True)
 
                 report_btn.setOnClickListener(_ReportClick())
@@ -205,11 +208,13 @@ def showNativeErrorSheet(libName: str, error: str):
                 scroll.addView(linear)
                 sheet.setCustomView(scroll)
                 sheet.show()
-            except Exception as _e:
+            except Exception as _cython_exc__e:
+                _e = _cython_exc__e
                 logx(f"nativeLoader: showNativeErrorSheet _show error: {_e}", True)
 
         run_on_ui_thread(_show)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"nativeLoader: showNativeErrorSheet error: {e}", False)
 
 
@@ -219,7 +224,8 @@ def loadBitHash() -> "ctypes.CDLL | None":
         lib.bitHash_oneshot.restype = ctypes.c_uint64
         lib.bitHash_oneshot.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_uint64]
         return lib
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"nativeLoader: libbithash load error: {e}", False)
         showNativeErrorSheet("libbithash.so", str(e))
         return None
@@ -238,7 +244,8 @@ def loadSearch() -> "ctypes.CDLL | None":
         lib.search_free_str.restype = None
         lib.search_free_str.argtypes = [ctypes.c_void_p]
         return lib
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"nativeLoader: libsearch load error: {e}", False)
         showNativeErrorSheet("libsearch.so", str(e))
         return None
@@ -247,7 +254,8 @@ def loadSearch() -> "ctypes.CDLL | None":
 def loadPackLight() -> "ctypes.CDLL | None":
     try:
         return ctypes.CDLL(_soPath("libpacklight"))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"nativeLoader: libpacklight load error: {e}", False)
         showNativeErrorSheet("libpacklight.so", str(e))
         return None
@@ -293,7 +301,8 @@ def loadPackitDb() -> "ctypes.CDLL | None":
         lib.packdb_entry_count.restype = ci
         lib.packdb_entry_count.argtypes = [vp]
         return lib
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"nativeLoader: libpackitdb load error: {e}", False)
         showNativeErrorSheet("libpackitdb.so", str(e))
         return None
@@ -316,7 +325,8 @@ def loadPackitKey() -> "ctypes.CDLL | None":
         lib.packitkey_exists.restype = ci
         lib.packitkey_exists.argtypes = [cp, cp, cp]
         return lib
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"nativeLoader: libpackitkey load error: {e}", False)
         showNativeErrorSheet("libpackitkey.so", str(e))
         return None
@@ -342,7 +352,8 @@ def loadExport() -> "ctypes.CDLL | None":
         lib.packit_last_error.restype = ctypes.c_char_p
         lib.packit_last_error.argtypes = []
         return lib
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"nativeLoader: libexport load error: {e}", False)
         showNativeErrorSheet("libexport.so", str(e))
         return None

@@ -11,7 +11,8 @@ import ctypes
 
 try:
     from org.telegram.messenger import ApplicationLoader, UserConfig
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"exportBin.writer: import failed: {e}")
 
 _BLOCK_KEYS = ["achievements", "installDate", "localConfig", "saved_plugins"]
@@ -34,7 +35,8 @@ def _get_user_id() -> int:
         account = getattr(UserConfig, "selectedAccount", 0)
         uc = UserConfig.getInstance(account)
         return int(uc.getClientUserId())
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"exportBin.writer._get_user_id: {e}", False)
         return 0
 
@@ -48,7 +50,8 @@ def _get_install_ts() -> int:
             ts = int(data.get("ts", 0))
             logx(f"exportBin: install_ts={ts}", True)
             return ts
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"exportBin.writer._get_install_ts: {e}", False)
     logx("exportBin: install_ts=0 (not found)", True)
     return 0
@@ -69,7 +72,8 @@ def _read_achievements_block() -> str:
         content = json.dumps({account_id: data}, ensure_ascii=False)
         logx(f"exportBin: achievements block read ({len(content)} bytes)", True)
         return content
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"exportBin: achievements block read error: {e}", False)
         return "{}"
 
@@ -81,7 +85,8 @@ def _read_saved_plugins_block() -> str:
         content = json.dumps(data, ensure_ascii=False)
         logx(f"exportBin: saved_plugins block read ({len(data)} items)", True)
         return content
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"exportBin: saved_plugins block read error: {e}", False)
         return "[]"
 
@@ -101,7 +106,8 @@ def _read_block(key: str) -> str:
         json.loads(content)
         logx(f"exportBin: block '{key}' read ({len(content)} bytes)", True)
         return content
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"exportBin: block '{key}' read error: {e}", False)
         return "{}"
 

@@ -224,7 +224,8 @@ def _makeBuildInfoCard(ctx):
         container.setPadding(dp(12), dp(6), dp(12), dp(6))
         container.addView(outer, FrameLayout.LayoutParams(-1, -2))
         return container
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"debug: _makeBuildInfoCard error: {e}", False)
         return None
 
@@ -245,7 +246,8 @@ def _buildInfoItem():
         except Exception:
             pass
         return item
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"debug: _buildInfoItem error: {e}", False)
         return None
 
@@ -265,7 +267,8 @@ def _onWriteLogsChange(enabled):
             lambda *_: os.kill(os.getpid(), signal.SIGKILL),
             frag
         )
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"write_logs: bulletin error: {e}", False)
 
 
@@ -331,11 +334,13 @@ def _sendLatestLog(view):
                 share_alert.setDelegate(ShareDelegate())
                 logx("sendLatestLog: showDialog", True)
                 fragment.showDialog(share_alert)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"sendLatestLog: open_share error: {e}", False)
 
         run_on_ui_thread(open_share)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"sendLatestLog: error: {e}", False)
 
 
@@ -347,7 +352,8 @@ def _copyLatestLogPath(view):
             AndroidUtilities.addToClipboard(logPath)
             from ui.bulletin import BulletinHelper
             BulletinHelper.show_success(str(strings.copy_latestlog_path_done))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"copyLatestLogPath: error: {e}", False)
 
 
@@ -417,17 +423,20 @@ def _viewLatestLog(view):
                     share_file = File(sharing_dir, "latestlog.txt")
                     shutil.copyfile(logPath, share_file.getAbsolutePath())
                     view_file = share_file
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"viewLatestLog: sharing copy error: {e}", False)
                 mo = create_mo.invoke(inst, view_file, "latestlog.txt")
                 if mo is None:
                     return
                 run_on_ui_thread(lambda: frag.createArticleViewer(False).open(mo))
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"viewLatestLog: build/open error: {e}", False)
 
         threading.Thread(target=_build_and_open, daemon=True).start()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"viewLatestLog: error: {e}", False)
 
 
@@ -438,7 +447,8 @@ def _forceCleanLog(view):
         if logPath and os.path.exists(logPath):
             os.remove(logPath)
         BulletinHelper.show_success(str(strings.force_clean_log_done))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"forceCleanLog: error: {e}", False)
         BulletinHelper.show_error(str(strings.force_clean_log_error))
 
@@ -513,7 +523,8 @@ def build_debug_page():
         if buildInfo is not None:
             items.append(Divider())
             items.append(buildInfo)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"debug: build info append error: {e}", False)
 
     return items

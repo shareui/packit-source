@@ -7,13 +7,15 @@ from base_plugin import MethodHook
 from java import jclass
 try:
     from org.telegram.ui import ChatActivity
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.ui import ChatActivity failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 from hook_utils import find_class
 try:
     from elyx import settings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import elyx import settings failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 

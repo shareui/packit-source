@@ -62,7 +62,8 @@ def loads(text):
     """json.loads that tolerates trailing commas. Raises like json.loads does."""
     try:
         return json.loads(text)
-    except ValueError as strict_error:
+    except ValueError as _cython_exc_strict_error:
+        strict_error = _cython_exc_strict_error
         repaired = _strip_trailing_commas(text)
         if repaired == text:
             raise

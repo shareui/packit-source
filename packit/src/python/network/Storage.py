@@ -84,7 +84,8 @@ def fetch_json(url: str, timeout: int = TIMEOUT):
         return None, "file not found"
     try:
         r = requests.get(url, timeout=timeout, headers=HEADERS)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"Storage: request failed for '{url}': {e}", False)
         return None, str(e)
     if r.status_code != 200:
@@ -92,7 +93,8 @@ def fetch_json(url: str, timeout: int = TIMEOUT):
         return None, _STATUS_REASONS.get(r.status_code, f"HTTP {r.status_code}")
     try:
         return _jsonx.loads(r.text), None
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"Storage: bad json at '{url}': {e}", True)
         return None, "invalid json"
 
@@ -199,7 +201,8 @@ def load_icon(url: str, px: int):
             os.makedirs(getRepoIconCacheDir(), exist_ok=True)
             with open(path, "wb") as f:
                 f.write(data)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"Storage: icon cache write failed: {e}", True)
 
     bmp = ImagePool.decode(data, px, ImagePool.looks_like_svg(url, data))

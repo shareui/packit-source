@@ -2,7 +2,7 @@
 title = "PackIt"
 description = "{plugin_description} [shareui/packit-source](https://github.com/shareui/packit-source)"
 id = "shareui_packit"
-version = "1.0.0-dev.1-crul"
+version = "1.0.0-crul"
 version_num = 1
 author = "@packitX"
 app_version = ">=12.9.2"
@@ -22,13 +22,13 @@ entry = "packit/src/python/BasePlugin.py"
 pysrc = "packit/src/python"
 
 [requirements.pypi]
-# name = ">=1.2.3" leave string empty to download latest
+# tinydb = ""
 
 [requirements.local]
 packutil = "packit/wheels/packutil-(0.1.1).whl"
 
 [requirements.plugins]
-# name = { url = "https://t.me/doctashare/63", version = "1.2.3" }
+# test = { url = "https://t.me/doctashare/63", version = "1.2.3" }
 
 # ============================================== BUILDS =================================================
 [build.asmrel]
@@ -37,8 +37,8 @@ opt = 2
 remove_pymeta = true # randomising: co_filename, co_firstlineno, co_linetable, co_name, co_qualname,
 pycompile = true
 include = ["packit/**/*"]
-exclude = ["packit/src/cxx", "packit/src/kotlin", "packit/src/wheels"]
-build_schema_version = 9
+exclude = ["packit/src/cxx", "packit/src/kotlin", "packit/src/wheels", "packit/src/python/**/*.c", "packit/src/python/**/*.so", "packit/src/python/build"]
+build_schema_version = 30
 ref = "asmrel"
 desc = "Builds the plugin and signs it with the developer's key"
 
@@ -48,8 +48,8 @@ opt = 0
 remove_pymeta = false # randomising: co_filename, co_name, co_qualname, co_firstlineno, co_linetable
 pycompile = true
 include = ["packit/**/*"]
-exclude = ["packit/src/cxx", "packit/src/kotlin", "packit/src/wheels"]
-build_schema_version = 9
+exclude = ["packit/src/cxx", "packit/src/kotlin", "packit/src/wheels", "packit/src/python/**/*.c", "packit/src/python/**/*.so", "packit/src/python/build"]
+build_schema_version = 30
 ref = "asmdbg"
 desc = "Builds the plugin and without signs it with the developer's key"
 
@@ -59,10 +59,21 @@ opt = 0
 remove_pymeta = false
 pycompile = false
 include = ["packit/**/*"]
-exclude = ["packit/src/cxx", "packit/src/kotlin"]
+exclude = ["packit/src/cxx", "packit/src/kotlin", "packit/src/python/**/*.c", "packit/src/python/**/*.so", "packit/src/python/build"]
 desc = "Checking your project via validation tasks"
 ref = "check"
-build_schema_version = 9
+build_schema_version = 30
+
+[build.chaquorel]
+path = "cruel/builds/chaquorel.py"
+opt = 0
+remove_pymeta = false
+pycompile = true
+include = ["packit/**/*"]
+exclude = ["packit/src/cxx", "packit/src/kotlin", "packit/src/wheels", "packit/src/python/**/*.c", "packit/src/python/**/*.so", "packit/src/python/build"]
+desc = "Builds the plugin using Chaquopy Cython for Android"
+ref = "chaquorel"
+build_schema_version = 30
 
 # ============================================== FLAGS =================================================
 [flags.asmrel]
@@ -72,3 +83,8 @@ adbpush = ["adbpush", "a", "Push the output file on connected device"]
 adbpush = ["adbpush", "a", "Push the output file on connected device"]
 
 [flags.check]
+
+[flags.chaquorel]
+adbpush = ["adbpush", "a", "Push the output file on connected device"]
+v8 = ["v8", "8", "Build only for arm64-v8a architecture"]
+v7 = ["v7", "7", "Build only for armeabi-v7a architecture"]

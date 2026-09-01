@@ -29,7 +29,8 @@ def get_svg_drawable(asset_name: str, fallback_res_name: str, width: int = 24, h
         frag = get_last_fragment()
         res = frag.getParentActivity().getResources() if frag else None
         return BitmapDrawable(res, bitmap)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"drawable.get_svg_drawable: '{asset_name}' failed ({e}), using fallback '{fallback_res_name}'", False)
         return _get_fallback(fallback_res_name)
 
@@ -40,7 +41,8 @@ def tint_drawable(drawable, color_key: str):
         from android.graphics import PorterDuff
         from org.telegram.ui.ActionBar import Theme
         drawable.mutate().setColorFilter(Theme.getColor(getattr(Theme, color_key)), PorterDuff.Mode.SRC_IN)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"drawable.tint_drawable: {e}", False)
     return drawable
 
@@ -61,6 +63,7 @@ def _get_fallback(res_name: str):
         if ctx is None:
             return None
         return ctx.getResources().getDrawable(res_id, ctx.getTheme())
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"drawable._get_fallback: '{res_name}' error: {e}", False)
         return None

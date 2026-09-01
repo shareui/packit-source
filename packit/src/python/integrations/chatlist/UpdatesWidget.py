@@ -47,7 +47,8 @@ def _apply_press_anim(layout, enabled: bool):
             ScaleStateListAnimator.apply(layout)
         else:
             layout.setStateListAnimator(None)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"UpdatesWidget: _apply_press_anim error: {e}", False)
 
 
@@ -112,7 +113,8 @@ class UpdatesPill(Base):
         try:
             pill_self = self
             run_on_ui_thread(lambda: _on_click(_plugin_ref[0], pill_self))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"UpdatesWidget: onPillClicked error: {e}", False)
 
     @joverride()
@@ -121,7 +123,8 @@ class UpdatesPill(Base):
             pill_java = self.java
             run_on_ui_thread(lambda: _show_menu(_plugin_ref[0], pill_java))
             return True
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"UpdatesWidget: onPillLongClicked error: {e}", False)
             return False
 
@@ -145,7 +148,8 @@ class UpdatesPill(Base):
                 self.icon_view.setColorFilter(-1, PorterDuff.Mode.SRC_IN)  # white
             self.updateLoadingColors()
             _apply_press_anim(self.llayout, has_updates)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"UpdatesWidget: updateColors error: {e}", False)
 
     @joverride()
@@ -177,7 +181,8 @@ def setup_updates_widget(plugin):
         _prefetch_and_register(plugin)
         logx("UpdatesWidget: setup scheduled", True)
         return True
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"UpdatesWidget: setup error: {e}", False)
         return None
 
@@ -197,7 +202,8 @@ def _setup_save_hook(plugin):
 
         plugin.hook_method(method, SaveLayoutHook())
         logx("UpdatesWidget: savePillsLayout hook installed", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"UpdatesWidget: _setup_save_hook error: {e}", False)
 
 
@@ -211,7 +217,8 @@ def _prefetch_and_register(plugin):
             _updates_count[0] = len(updates)
             _updates_list[0] = updates
             logx(f"UpdatesWidget: prefetch done, count={_updates_count[0]}", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"UpdatesWidget: prefetch error: {e}", False)
         run_on_ui_thread(lambda: _register_pill(plugin))
 
@@ -287,7 +294,8 @@ def _ensure_visibility():
                 pass
         PillStackConfig.savePillsLayout()
         logx(f"UpdatesWidget: ensure_visibility state={state}", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"UpdatesWidget: _ensure_visibility error: {e}", False)
 
 
@@ -318,7 +326,8 @@ def _sync_state_from_config():
         except Exception:
             pass
         logx("UpdatesWidget: sync -> pill not found in either list", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"UpdatesWidget: _sync_state_from_config error: {e}", False)
 
 
@@ -344,7 +353,8 @@ def _register_pill(plugin):
         _sync_pillstack()
         _notify_update()
         logx(f"UpdatesWidget: registered id={_PILL_ID}", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"UpdatesWidget: _register_pill error: {e}", False)
 
 
@@ -394,7 +404,8 @@ def _install_single(plugin, item):
         try:
             from ...core.Core import remove_install_listener
             remove_install_listener(_on_installed)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"UpdatesWidget: remove_install_listener error: {e}", False)
         _run_check(plugin, _active_pill_ref[0])
 
@@ -435,7 +446,8 @@ def _install_single(plugin, item):
             add_install_listener(_on_installed)
             from android_utils import run_on_ui_thread
             run_on_ui_thread(lambda: install_plugin(plugin_data, all_plugins=all_plugins, rm_rid=repo_id))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"UpdatesWidget: _install_single task error: {e}", False)
 
     run_on_queue(task)
@@ -445,7 +457,8 @@ def _open_updates(plugin):
     try:
         from ...ui.updates.Fragment import show_updates_fragment
         show_updates_fragment(plugin)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"UpdatesWidget: _open_updates error: {e}", False)
 
 
@@ -458,7 +471,8 @@ def _run_check(plugin, pill=None):
             if pill is not None:
                 pill.animateSizeChange()
                 pill.startLoading()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"UpdatesWidget: start_loading error: {e}", False)
 
     def finish_loading(count, updates):
@@ -470,7 +484,8 @@ def _run_check(plugin, pill=None):
                 pill.stopLoading()
                 pill.updateColors()
             _notify_update()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"UpdatesWidget: finish_loading error: {e}", False)
 
     run_on_ui_thread(start_loading)
@@ -481,7 +496,8 @@ def _run_check(plugin, pill=None):
             updates = _filter_ignored(None, _check_updates(None))
             count = len(updates)
             run_on_ui_thread(lambda: finish_loading(count, updates))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"UpdatesWidget: _run_check task error: {e}", False)
             run_on_ui_thread(lambda: finish_loading(_updates_count[0], _updates_list[0]))
 
@@ -543,7 +559,8 @@ def _sync_pillstack():
         except Exception:
             pass
         logx("UpdatesWidget: pillstack synced", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"UpdatesWidget: _sync_pillstack error: {e}", False)
 
 
@@ -552,10 +569,12 @@ def _notify_update():
         def _do():
             try:
                 PillStackConfig.notifySettingsChanged()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"UpdatesWidget: _notify_update inner error: {e}", False)
         run_on_ui_thread(_do)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"UpdatesWidget: _notify_update error: {e}", False)
 
 
@@ -569,7 +588,8 @@ def _open_pill_stack_settings():
         frag = get_last_fragment()
         if frag:
             frag.presentFragment(PillStackPreferencesActivity())
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"UpdatesWidget: _open_pill_stack_settings error: {e}", False)
 
 
@@ -610,7 +630,8 @@ def _show_menu(plugin, pill):
                 act = frag.getParentActivity() if frag else None
                 if act:
                     Browser.openUrl(act, Uri.parse(str(strings["tg_channel_url"])), True, True, True, None, None, False, False, False)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"UpdatesWidget: open channel error: {e}", False)
 
         icon_channel = int(getattr(R_tg.drawable, "msg_channel", 0))
@@ -623,5 +644,6 @@ def _show_menu(plugin, pill):
         options.setDrawScrim(False)
         options.setDimAlpha(0)
         options.show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"UpdatesWidget: _show_menu error: {e}", False)

@@ -12,5 +12,6 @@ def handle(url):
         try:
             currentFragment = get_last_fragment()
             BulletinHelper.show_success("Docs triggered", currentFragment)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"[PackIt] Error: {e}", False)

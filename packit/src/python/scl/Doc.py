@@ -62,7 +62,8 @@ class Doc:
     def toToml(self):
         try:
             return _native.toToml(self._ptr)
-        except RuntimeError as e:
+        except RuntimeError as _cython_exc_e:
+            e = _cython_exc_e
             raise TomlError(str(e)) from e
 
     @staticmethod

@@ -88,7 +88,8 @@ def show_tg_channel_sheet(activity, resource_provider):
                 try:
                     from ...achievements.service.AchivementsEngine import unlock_secret
                     unlock_secret("subscriber")
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"tgChannelSheet: achievement unlock error: {e}", False)
                 try:
                     url = "https://t.me/addlist/pgo-Kwox6_g2Nzlk"

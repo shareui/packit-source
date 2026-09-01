@@ -14,19 +14,23 @@ from elyx import strings
 
 try:
     from org.telegram.ui.ActionBar import Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"suggest: import Theme failed: {e}", False)
 try:
     from org.telegram.ui.Components import LayoutHelper
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"suggest: import LayoutHelper failed: {e}", False)
 try:
     from org.telegram.messenger import AndroidUtilities, R as R_tg
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"suggest: import AndroidUtilities failed: {e}", False)
 try:
     from com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"suggest: import UniversalFragment failed: {e}", False)
 
 
@@ -34,7 +38,8 @@ def _resolve_icon(name):
     try:
         R = find_class("org.telegram.messenger.R")
         return getattr(R.drawable, name)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _resolve_icon {name} failed: {e}", False)
         return 0
 
@@ -63,7 +68,8 @@ def _apply_ripple(view, corner_dp=12, bounded=True):
             mask
         )
         view.setBackground(ripple)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _apply_ripple error: {e}", False)
 
 
@@ -82,9 +88,11 @@ def _make_upload_card(act):
                 dp(1),
                 Theme.getColor(Theme.key_windowBackgroundWhiteGrayText) & 0x60FFFFFF | 0x30000000
             )
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: card stroke error: {e}", False)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: card_bg error: {e}", False)
         card_bg = None
 
@@ -144,7 +152,8 @@ def _make_selected_file_card(act, file_name, file_size_bytes=None):
         bg.setCornerRadius(dp(12))
         primary = Theme.getColor(Theme.key_featuredStickers_addButton)
         bg.setColor(primary & 0x1AFFFFFF | 0x12000000)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: selected card bg error: {e}", False)
         bg = None
 
@@ -172,7 +181,8 @@ def _make_selected_file_card(act, file_name, file_size_bytes=None):
     try:
         from android.text import TextUtils
         name_tv.setEllipsize(TextUtils.TruncateAt.MIDDLE)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: ellipsize error: {e}", False)
     row.addView(name_tv, LayoutHelper.createLinear(0, -2, 1.0, Gravity.CENTER_VERTICAL))
 
@@ -257,7 +267,8 @@ def _animate_card_transition(upload_card, selected_container):
         full = AnimatorSet()
         full.playTogether(*animators)
         full.start()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _animate_card_transition error: {e}", False)
         try:
             upload_card.setVisibility(View.GONE)
@@ -277,7 +288,8 @@ def _get_file_size(uri, ctx):
                     return int(val)
             finally:
                 cursor.close()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _get_file_size error: {e}", False)
     return None
 
@@ -301,7 +313,8 @@ def _get_display_name(uri, ctx):
                     return str(cursor.getString(col) or "")
             finally:
                 cursor.close()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _get_display_name error: {e}", False)
     return str(uri)
 
@@ -323,7 +336,8 @@ def _make_add_another_card(act, card_height_px):
         bg.setCornerRadius(dp(100))
         bg.setColor(_to_color(0x18000000 | (primary & 0x00FFFFFF)))
         bg.setStroke(dp(1), _to_color(0x60000000 | (primary & 0x00FFFFFF)))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: add_another bg error: {e}", False)
         bg = None
 
@@ -402,7 +416,8 @@ def _hook_activity_result(plugin, act, request_codes, result_callback):
                     req = int(param.args[0])
                     res = int(param.args[1])
                     data = param.args[2]
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"suggest: onActivityResult args error: {e}", False)
                     return
                 if (req & 0xFFFF) not in request_codes:
@@ -411,7 +426,8 @@ def _hook_activity_result(plugin, act, request_codes, result_callback):
                     return
                 try:
                     uri = data.getData()
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"suggest: getData error: {e}", False)
                     return
                 if uri is None:
@@ -420,7 +436,8 @@ def _hook_activity_result(plugin, act, request_codes, result_callback):
                 threading.Thread(target=result_callback, args=(uri, req & 0xFFFF), daemon=True).start()
 
         return plugin.hook_method(target_method, _ActResHook())
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _hook_activity_result error: {e}", False)
         return None
 
@@ -442,13 +459,15 @@ def _hook_is_internal_uri(plugin, allowed_paths: set):
                     if path in allowed_paths:
                         logx(f"suggest: isInternalUri override -> False for {path}", True)
                         param.setResult(False)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"suggest: _InternalUriHook error: {e}", False)
 
         hooks = plugin.hook_all_methods(cls, "isInternalUri", _InternalUriHook())
         logx(f"suggest: hooked isInternalUri ({len(hooks)} overload(s))", True)
         return hooks
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _hook_is_internal_uri error: {e}", False)
         return None
 
@@ -466,7 +485,8 @@ def _launch_file_picker(act, request_code):
                 pass
             act.startActivityForResult(intent, request_code)
             return
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: ACTION_OPEN_DOCUMENT failed, fallback: {e}", False)
         intent = Intent(Intent.ACTION_GET_CONTENT)
         intent.addCategory(Intent.CATEGORY_OPENABLE)
@@ -476,7 +496,8 @@ def _launch_file_picker(act, request_code):
         except Exception:
             pass
         act.startActivityForResult(intent, request_code)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _launch_file_picker error: {e}", False)
 
 
@@ -490,7 +511,8 @@ def _shake_view(view):
         shaker.setDuration(400)
         shaker.setInterpolator(CycleInterpolator(1.0))
         shaker.start()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _shake_view error: {e}", False)
 
 
@@ -501,7 +523,8 @@ def _hide_keyboard(act):
         focused = act.getCurrentFocus()
         token = focused.getWindowToken() if focused is not None else act.getWindow().getDecorView().getWindowToken()
         imm.hideSoftInputFromWindow(token, 0)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _hide_keyboard error: {e}", False)
 
 
@@ -523,7 +546,8 @@ def _animate_reveal(view, delay_ms=0):
         if delay_ms > 0:
             aset.setStartDelay(delay_ms)
         aset.start()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _animate_reveal error: {e}", False)
         try:
             view.setAlpha(1.0)
@@ -584,7 +608,8 @@ def _update_md3_radio_chip(chip, checked: bool):
 
         chip.setBackground(bg)
         _apply_ripple(chip, corner_dp=100)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _update_md3_radio_chip error: {e}", False)
 
 
@@ -632,7 +657,8 @@ def _make_md3_chip(act):
 
         _update_md3_chip(chip, False)
         return chip
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _make_md3_chip error: {e}", False)
         return None
 
@@ -682,7 +708,8 @@ def _update_md3_chip(chip, checked: bool):
 
         chip.setBackground(bg)
         _apply_ripple(chip, corner_dp=100)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _update_md3_chip error: {e}", False)
 
 
@@ -699,7 +726,8 @@ def _make_outlined_et_bg():
             _to_color(0x40000000 | (Theme.getColor(Theme.key_windowBackgroundWhiteGrayText) & 0x00FFFFFF))
         )
         return bg
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _make_outlined_et_bg error: {e}", False)
         return None
 
@@ -712,7 +740,8 @@ def _make_section_card(act, radius_dp=12):
         bg.setCornerRadius(AndroidUtilities.dp(radius_dp))
         bg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite))
         return bg
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _make_section_card error: {e}", False)
         return None
 
@@ -834,7 +863,8 @@ def _parse_plugin_meta(path: str) -> dict:
             val = _meta_parse_value(raw)
             if val is not None:
                 meta[key] = val
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _parse_plugin_meta error: {e}", False)
     return meta
 
@@ -869,7 +899,8 @@ def _copy_uri_to_temp(uri, act, display_name: str = "") -> str:
         stream.close()
         logx(f"suggest: _copy_uri_to_temp wrote {total} bytes -> {tmp.name}", True)
         return tmp.name
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _copy_uri_to_temp error: {e}", False)
         return ""
 
@@ -934,7 +965,8 @@ def _parse_eaf_description(eaf_path: str) -> str:
                         if end != -1:
                             v = v[end + 1:].strip()
                     return v
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _parse_eaf_description error: {e}", False)
     return ""
 
@@ -959,7 +991,8 @@ def _try_parse_plugin_meta(uri, act, suggest_config, on_description=None, on_upd
                     if description and on_description is not None:
                         try:
                             on_description(description)
-                        except Exception as e:
+                        except Exception as _cython_exc_e:
+                            e = _cython_exc_e
                             logx(f"suggest: on_description callback error: {e}", False)
                     return
                 meta = _parse_plugin_meta(tmp_path)
@@ -973,7 +1006,8 @@ def _try_parse_plugin_meta(uri, act, suggest_config, on_description=None, on_upd
             if description and on_description is not None:
                 try:
                     on_description(description)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"suggest: on_description callback error: {e}", False)
 
             plugin_id = meta.get("id")
@@ -1011,14 +1045,17 @@ def _try_parse_plugin_meta(uri, act, suggest_config, on_description=None, on_upd
                             if on_update_found is not None:
                                 try:
                                     on_update_found(repo_version, meta_version)
-                                except Exception as e:
+                                except Exception as _cython_exc_e:
+                                    e = _cython_exc_e
                                     logx(f"suggest: on_update_found callback error: {e}", False)
                             return
                     except Exception:
                         continue
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"suggest: meta repo lookup error: {e}", False)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: _try_parse_plugin_meta worker error: {e}", False)
 
     threading.Thread(target=_worker, daemon=True).start()
@@ -1028,7 +1065,8 @@ def _fill_description(et, text: str):
     try:
         et.setText(text)
         et.setSelection(len(text))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _fill_description error: {e}", False)
 
 
@@ -1047,7 +1085,8 @@ def _load_forked_plugins(repo_data: dict) -> list:
             return []
         plugins, error = Storage.fetch_plugins(plugins_url)
         return [] if error else plugins
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _load_forked_plugins error: {e}", False)
         return []
 
@@ -1084,7 +1123,8 @@ def _make_forked_not_found_popup(act):
         bg.setShape(GradientDrawable.RECTANGLE)
         bg.setCornerRadius(dp(16))
         bg.setColor(Theme.getColor(Theme.key_dialogBackground))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: not_found popup bg error: {e}", False)
         bg = None
 
@@ -1127,7 +1167,8 @@ def _make_forked_popup(act, plugins: list, on_select):
         bg.setCornerRadius(dp(16))
         bg.setColor(Theme.getColor(Theme.key_dialogBackground))
         bg.setElevation(float(dp(8))) if hasattr(bg, 'setElevation') else None
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: popup bg error: {e}", False)
         bg = None
 
@@ -1168,7 +1209,8 @@ def _make_forked_popup(act, plugins: list, on_select):
                 row.addView(icon_view, icon_lp)
                 from ...utils.Stickers import load_sticker
                 load_sticker(icon_view, icon_str, icon_size_dp)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"suggest: popup icon error: {e}", False)
                 _add_stub_icon(act, row, icon_size_dp, dp)
         else:
@@ -1265,7 +1307,8 @@ def _add_stub_icon(act, row, size_dp, dp):
         icon_lp = LL.LayoutParams(dp(size_dp), dp(size_dp))
         icon_lp.rightMargin = dp(10)
         row.addView(stub, icon_lp)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _add_stub_icon error: {e}", False)
 
 
@@ -1283,7 +1326,8 @@ def _register_back_cb(act, on_back):
         cb = _Cb.new_instance(True)
         act.getOnBackPressedDispatcher().addCallback(act, cb.java)
         return cb
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _register_back_cb error: {e}", False)
         return None
 
@@ -1292,7 +1336,8 @@ def _unregister_back_cb(cb):
     try:
         if cb is not None:
             cb.remove()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _unregister_back_cb error: {e}", False)
 
 
@@ -1322,12 +1367,14 @@ def _register_keyboard_back(act, et):
                     if self2._was_open[0] and not is_open:
                         et.clearFocus()
                     self2._was_open[0] = is_open
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"suggest: keyboard watcher error: {e}", False)
 
         watcher = _KeyboardWatcher()
         root.getViewTreeObserver().addOnGlobalLayoutListener(watcher)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _register_keyboard_back setup error: {e}", False)
 
 
@@ -1356,7 +1403,8 @@ def _clear_draft_files(rm_rid: str):
     try:
         d = _get_draft_files_dir(rm_rid)
         shutil.rmtree(d, ignore_errors=True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _clear_draft_files error: {e}", False)
 
 
@@ -1365,7 +1413,8 @@ def _save_draft(rm_rid: str, data: dict):
         path = _get_draft_path(rm_rid)
         with open(path, "w", encoding="utf-8") as f:
             f.write(_json.dumps(data, ensure_ascii=False))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _save_draft error: {e}", False)
 
 
@@ -1374,7 +1423,8 @@ def _load_draft(rm_rid: str) -> dict:
         path = _get_draft_path(rm_rid)
         with open(path, "r", encoding="utf-8") as f:
             return _json.loads(f.read())
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _load_draft error: {e}", False)
     return {}
 
@@ -1384,7 +1434,8 @@ def _clear_draft(rm_rid: str):
         path = _get_draft_path(rm_rid)
         if _os.path.isfile(path):
             _os.unlink(path)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _clear_draft error: {e}", False)
     _clear_draft_files(rm_rid)
 
@@ -1395,7 +1446,8 @@ def _has_draft(rm_rid: str) -> bool:
         result = _os.path.isfile(path)
         logx(f"suggest: _has_draft rm_rid={rm_rid!r} path={path} exists={result}", True)
         return result
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _has_draft error: {e}", False)
         return False
 
@@ -1426,7 +1478,8 @@ def _copy_uri_to_draft_file(uri, act, rm_rid: str, slot: str, display_name: str 
         stream.close()
         logx(f"suggest: draft file saved slot={slot} name={file_name} -> {dest}", True)
         return dest
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _copy_uri_to_draft_file error: {e}", False)
         return ""
 
@@ -1503,7 +1556,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 sp = self._repo_data.get("suggest_plugins") if isinstance(self._repo_data, dict) else None
                 if isinstance(sp, dict):
                     self._suggest_config = sp
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: onFragmentCreate load error: {e}", False)
 
     def onFragmentDestroy(self, *_):
@@ -1516,7 +1570,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             if self._picker_hook_ref is not None and self._plugin is not None:
                 try:
                     self._plugin.unhook_method(self._picker_hook_ref)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"suggest: unhook error: {e}", False)
                 self._picker_hook_ref = None
         except Exception:
@@ -1527,7 +1582,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 if parent is not None:
                     parent.removeView(self.content_view)
                 self.content_view = None
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: onFragmentDestroy removeView error: {e}", False)
         self._suggest_config = None
         self._extra_uris = []
@@ -1581,7 +1637,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     fragment = get_last_fragment()
                     if fragment:
                         fragment.finishFragment()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"suggest: failed to finish fragment: {e}", False)
 
     def _on_file_picked(self, uri, request_code):
@@ -1606,7 +1663,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         _pbf(decor, None).createErrorBulletin(
                             "The first file should be .eaf/.plugin"
                         ).show()
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"suggest: error bulletin error: {e}", False)
                 run_on_ui_thread(_show_ext_error)
                 return
@@ -1683,7 +1741,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     # show submit button sliding up from bottom
                     try:
                         self._show_submit_btn(act)
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"suggest: _show_submit_btn error: {e}", False)
 
                     # delay so button appears after the transition animation (max ~380ms) finishes
@@ -1787,7 +1846,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                                         container.removeView(old_btn_ref)
                                     self_ref._add_another_btn_ref[0] = None
                                     self_ref._refresh_add_another_btn(act, container)
-                                except Exception as e:
+                                except Exception as _cython_exc_e:
+                                    e = _cython_exc_e
                                     logx(f"suggest: extra anim end error: {e}", False)
                             def onAnimationStart(self2, a, *args): pass
                             def onAnimationCancel(self2, a, *args): pass
@@ -1796,14 +1856,16 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         self._add_another_btn_ref[0] = None
                         aset.addListener(_ExtraAnimEnd())
                         aset.start()
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"suggest: extra file anim error: {e}", False)
                         if btn is not None:
                             container.removeView(btn)
                             self._add_another_btn_ref[0] = None
                         self._refresh_add_another_btn(act, container)
                         self._refresh_add_another_btn(act, container)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"suggest: _update_ui error: {e}", False)
 
         run_on_ui_thread(_update_ui)
@@ -1856,7 +1918,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 container_loc = [0, 0]
                 container.getLocationOnScreen(container_loc)
                 logx(f"suggest: container Y before btn add = {container_loc[1]}, childCount={container.getChildCount()}, height={container.getHeight()}", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: rules_tv pre-log error: {e}", False)
 
         btn.setAlpha(0.0)
@@ -1870,7 +1933,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 rules_tv.getLocationOnScreen(loc)
                 logx(f"suggest: rules_tv Y after btn add = {loc[1]}, transY={rules_tv.getTranslationY()}", True)
                 logx(f"suggest: container height after = {container.getHeight()}, childCount={container.getChildCount()}", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: rules_tv post-log error: {e}", False)
 
         try:
@@ -1929,7 +1993,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             aset = AnimatorSet()
             aset.playTogether(expand, fade)
             aset.start()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: add_another_btn appear anim error: {e}", False)
             btn.setAlpha(1.0)
             lp.height = -2
@@ -2027,7 +2092,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
                 lp_desc = LinearLayout.LayoutParams(-1, -2)
                 section.addView(desc_card, lp_desc)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"suggest: desc_card error: {e}", False)
 
             # note card
@@ -2098,7 +2164,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 lp_note = LinearLayout.LayoutParams(-1, -2)
                 lp_note.topMargin = dp(12)
                 section.addView(note_card, lp_note)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"suggest: note_card error: {e}", False)
 
             # socials card
@@ -2192,7 +2259,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                                     ic.removeView(row)
                                     self_ref3._social_inputs = [x for x in self_ref3._social_inputs if x[0] is not row]
                                     _hide_keyboard(act)
-                                except Exception as e2:
+                                except Exception as _cython_exc_e2:
+                                    e2 = _cython_exc_e2
                                     logx(f"suggest: social delete error: {e2}", True)
 
                             row, et = _make_social_input_row(act, str(strings.suggest_social_placeholder), _on_delete)
@@ -2206,7 +2274,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
                             _animate_reveal(row, delay_ms=0)
                             _hide_keyboard(act)
-                        except Exception as e3:
+                        except Exception as _cython_exc_e3:
+                            e3 = _cython_exc_e3
                             logx(f"suggest: _on_add_social error: {e3}", True)
 
                     add_btn_row.setOnClickListener(OnClickListener(_on_add_social))
@@ -2215,7 +2284,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     lp_soc = LinearLayout.LayoutParams(-1, -2)
                     lp_soc.topMargin = dp(12)
                     section.addView(socials_card, lp_soc)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"suggest: socials_card error: {e}", False)
 
             # forked card: toggle + plugin name input, shown after file selection
@@ -2315,11 +2385,13 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                                 timer = threading.Timer(0.25, _run)
                                 self2._timer[0] = timer
                                 timer.start()
-                            except Exception as e:
+                            except Exception as _cython_exc_e:
+                                e = _cython_exc_e
                                 logx(f"suggest: forked text watcher error: {e}", False)
 
                     name_et.addTextChangedListener(_ForkedTextWatcher())
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"suggest: forked text watcher setup error: {e}", False)
 
                 lp_name = LinearLayout.LayoutParams(-1, -2)
@@ -2358,7 +2430,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                             else:
                                 sc.animate().alpha(0.0).setDuration(150).start()
                                 sc.setVisibility(View.GONE)
-                        except Exception as e:
+                        except Exception as _cython_exc_e:
+                            e = _cython_exc_e
                             logx(f"suggest: chip click error: {e}", False)
 
                     forked_toggle.setOnClickListener(OnClickListener(_on_chip_click))
@@ -2366,8 +2439,9 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 lp_forked = LinearLayout.LayoutParams(-1, -2)
                 lp_forked.topMargin = dp(12)
                 section.addView(forked_card, lp_forked)
-              except Exception as e:
-                logx(f"suggest: forked card error: {e}", False)
+              except Exception as _cython_exc_e:
+                  e = _cython_exc_e
+                  logx(f"suggest: forked card error: {e}", False)
 
             # source code card
             allow_source = False
@@ -2502,7 +2576,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                             sub.setVisibility(View.VISIBLE if is_now else View.GONE)
                         if lw is not None:
                             lw.setVisibility(View.GONE)
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"suggest: sc mod chip error: {e}", False)
 
                 def _on_everyone_chip_click(v):
@@ -2523,7 +2598,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                             sub.setVisibility(View.GONE)
                         if lw is not None:
                             lw.setVisibility(View.VISIBLE if is_now else View.GONE)
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"suggest: sc everyone chip error: {e}", False)
 
                 mod_chip.setOnClickListener(OnClickListener(_on_mod_chip_click))
@@ -2548,7 +2624,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         else:
                             cont.animate().alpha(0.0).setDuration(150).start()
                             cont.setVisibility(View.GONE)
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"suggest: sc toggle error: {e}", False)
 
                 sc_toggle.setOnClickListener(OnClickListener(_on_sc_toggle_click))
@@ -2556,8 +2633,9 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 lp_sc = LinearLayout.LayoutParams(-1, -2)
                 lp_sc.topMargin = dp(12)
                 section.addView(sc_card, lp_sc)
-              except Exception as e:
-                logx(f"suggest: source_code card error: {e}", False)
+              except Exception as _cython_exc_e:
+                  e = _cython_exc_e
+                  logx(f"suggest: source_code card error: {e}", False)
 
             # paid toggle card
             allow_paid = False
@@ -2609,7 +2687,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         is_now = not bool(t.getTag())
                         t.setTag(is_now)
                         _update_md3_chip(t, is_now)
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"suggest: paid toggle error: {e}", False)
 
                 paid_toggle.setOnClickListener(OnClickListener(_on_paid_toggle_click))
@@ -2617,15 +2696,17 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 lp_paid = LinearLayout.LayoutParams(-1, -2)
                 lp_paid.topMargin = dp(12)
                 section.addView(paid_card, lp_paid)
-              except Exception as e:
-                logx(f"suggest: paid card error: {e}", False)
+              except Exception as _cython_exc_e:
+                  e = _cython_exc_e
+                  logx(f"suggest: paid card error: {e}", False)
             try:
                 scroll = self.content_view.getChildAt(0)
                 content_ll = scroll.getChildAt(0)
                 lp_section = LinearLayout.LayoutParams(-1, -2)
                 lp_section.topMargin = dp(16)
                 content_ll.addView(section, lp_section)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"suggest: section attach error: {e}", False)
 
             self._fields_section_ref[0] = section
@@ -2641,7 +2722,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             if self._pending_draft:
                 self._apply_draft(self._pending_draft, act)
                 self._pending_draft = None
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: _show_fields_section error: {e}", False)
 
     def _show_changelog_card(self, act, repo_ver: str, meta_ver: str):
@@ -2739,7 +2821,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             count = fields.getChildCount()
             insert_idx = max(0, count - 1)
             fields.addView(card, insert_idx, lp)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: _show_changelog_card error: {e}", False)
 
     def _dismiss_forked_popup(self):
@@ -2755,7 +2838,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     decor.removeView(popup)
                 except Exception:
                     pass
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: _dismiss_forked_popup error: {e}", False)
         self._forked_popup_ref[0] = None
         _unregister_back_cb(self._back_cb_ref[0])
@@ -2827,11 +2911,13 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 aset = AnimatorSet()
                 aset.playTogether(a_alpha, a_ty)
                 aset.start()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"suggest: forked popup anim error: {e}", False)
                 popup.setAlpha(1.0)
                 popup.setTranslationY(0.0)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: _update_forked_popup error: {e}", False)
 
     def _on_forked_plugin_selected(self, plugin: dict):
@@ -2880,7 +2966,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 primary = Theme.getColor(Theme.key_featuredStickers_addButton)
                 bg.setColor(primary & 0x15FFFFFF | 0x0D000000)
                 card.setBackground(bg)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"suggest: forked selected card bg error: {e}", False)
 
             # icon
@@ -2898,7 +2985,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     card.addView(icon_view, icon_lp)
                     from ...utils.Stickers import load_sticker
                     load_sticker(icon_view, icon_str, icon_size_dp)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"suggest: forked selected icon error: {e}", False)
                     _add_stub_icon(act, card, icon_size_dp, dp)
             else:
@@ -2981,7 +3069,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         target2.setVisibility(View.VISIBLE)
                     if et2 is not None:
                         et2.requestFocus()
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"suggest: forked reset error: {e}", False)
 
             del_btn.setOnClickListener(OnClickListener(_on_reset))
@@ -2994,7 +3083,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
             card.setAlpha(0.0)
             card.animate().alpha(1.0).setDuration(180).start()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: _show_forked_selected_card error: {e}", False)
 
 
@@ -3051,11 +3141,13 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                             # keyboard closed — restore if we scrolled
                             if last_offset[0] != 0:
                                 last_offset[0] = 0
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"suggest: keyboard scroll error: {e}", False)
 
             root.getViewTreeObserver().addOnGlobalLayoutListener(_KeyboardScrollListener())
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: _attach_keyboard_scroll error: {e}", False)
 
     def _collect_draft(self) -> dict:
@@ -3160,7 +3252,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     container.addView(selected, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0))
                     container.setVisibility(View.VISIBLE)
                     upload_card.setVisibility(View.GONE)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: _apply_draft files error: {e}", False)
         try:
             for ef in draft.get("draft_extra_files", []):
@@ -3175,7 +3268,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         selected = _make_selected_file_card(act, ename, esize)
                         lp = LayoutHelper.createLinear(-1, -2, 0, 4, 0, 0)
                         container.addView(selected, lp)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: _apply_draft extra files error: {e}", False)
         # restore text fields
         try:
@@ -3184,7 +3278,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 et = self._desc_edit_ref[0]
                 if et is not None:
                     _fill_description(et, desc)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: _apply_draft desc error: {e}", False)
         try:
             note = draft.get("note", "")
@@ -3192,7 +3287,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 note_et = self._note_edit_ref[0]
                 if note_et is not None:
                     note_et.setText(note)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: _apply_draft note error: {e}", False)
         try:
             socials = draft.get("socials", [])
@@ -3206,7 +3302,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                             row, et2 = rr[0]
                             container.removeView(row)
                             self._social_inputs = [x for x in self._social_inputs if x[0] is not row]
-                        except Exception as e2:
+                        except Exception as _cython_exc_e2:
+                            e2 = _cython_exc_e2
                             logx(f"suggest: draft social delete error: {e2}", True)
 
                     row, et_s = _make_social_input_row(act, str(strings.suggest_social_placeholder), _on_delete)
@@ -3216,7 +3313,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     lp = LinearLayout.LayoutParams(-1, -2)
                     lp.topMargin = AndroidUtilities.dp(8)
                     container.addView(row, lp)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: _apply_draft socials error: {e}", False)
         try:
             changelog_url = draft.get("changelog_url", "")
@@ -3224,7 +3322,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 url_et = self._changelog_edit_ref[0]
                 if url_et is not None:
                     url_et.setText(changelog_url)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: _apply_draft changelog error: {e}", False)
         try:
             forked_enabled = draft.get("forked_enabled", False)
@@ -3239,7 +3338,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             if forked_plugin and isinstance(forked_plugin, dict):
                 self._forked_selected_plugin[0] = forked_plugin
                 self._show_forked_selected_card(act, forked_plugin)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: _apply_draft forked error: {e}", False)
         try:
             sc_enabled = draft.get("source_code_enabled", False)
@@ -3271,7 +3371,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 link_et = self._source_code_link_et_ref[0]
                 if link_et is not None:
                     link_et.setText(link)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: _apply_draft source_code error: {e}", False)
         try:
             paid = draft.get("paid", False)
@@ -3279,7 +3380,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             if paid and paid_toggle is not None:
                 paid_toggle.setTag(True)
                 _update_md3_chip(paid_toggle, True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: _apply_draft paid error: {e}", False)
 
     def _save_current_draft(self):
@@ -3301,7 +3403,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 logx(f"suggest: draft saved for {self._rm_rid}", True)
             else:
                 logx(f"suggest: nothing to save, skipping draft", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: _save_current_draft error: {e}", False)
 
     def _do_submit(self):
@@ -3334,7 +3437,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             et = self._desc_edit_ref[0]
             if et is not None:
                 desc = str(et.getText()).strip()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest._do_submit: desc read error: {e}", False)
         if not desc:
             desc = "Default"
@@ -3345,7 +3449,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 val = str(et.getText()).strip()
                 if val:
                     socials.append(val)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest._do_submit: socials read error: {e}", False)
 
         socials_block = "\n".join(f"• {s}" for s in socials) if socials else "None"
@@ -3361,7 +3466,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     changelog = url
                 else:
                     changelog = "Not updated"
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest._do_submit: changelog read error: {e}", False)
 
         forked_link = "None"
@@ -3375,7 +3481,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 rm_rid = repometa.get("rm_rid") if isinstance(repometa, dict) else None
                 if plugin_id and rm_rid:
                     forked_link = f"tg://packit?plugin={plugin_id}&repo={rm_rid}"
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest._do_submit: forked read error: {e}", False)
 
         note = ""
@@ -3383,7 +3490,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             note_et = self._note_edit_ref[0]
             if note_et is not None:
                 note = str(note_et.getText()).strip()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest._do_submit: note read error: {e}", False)
 
         source_code = "None"
@@ -3398,7 +3506,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     link_et = self._source_code_link_et_ref[0]
                     link_val = str(link_et.getText()).strip() if link_et is not None else ""
                     source_code = link_val if link_val else "everyone"
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest._do_submit: source_code read error: {e}", False)
 
         paid = False
@@ -3406,7 +3515,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             paid_toggle = self._paid_toggle_ref[0]
             if paid_toggle is not None:
                 paid = bool(paid_toggle.getTag())
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest._do_submit: paid read error: {e}", False)
 
         use_json = False
@@ -3517,14 +3627,16 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                             for h in uri_hook:
                                 self_ref._plugin.unhook_method(h)
                             logx("suggest: unhooked isInternalUri", True)
-                        except Exception as e:
+                        except Exception as _cython_exc_e:
+                            e = _cython_exc_e
                             logx(f"suggest: unhook isInternalUri error: {e}", False)
                     # delete staged copies and non-draft temp files
                     for p in ([staged_main] if staged_main else []) + [s for s in staged_extras if s]:
                         try:
                             os.unlink(p)
                             logx(f"suggest: cleaned up staged {p}", True)
-                        except Exception as ex:
+                        except Exception as _cython_exc_ex:
+                            ex = _cython_exc_ex
                             logx(f"suggest: cleanup staged error {p}: {ex}", True)
                     # drafts live in filesDir and must survive; anything else is
                     # a temp copy made for this submit
@@ -3533,7 +3645,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                             try:
                                 os.unlink(p)
                                 logx(f"suggest: cleaned up temp {p}", True)
-                            except Exception as ex:
+                            except Exception as _cython_exc_ex:
+                                ex = _cython_exc_ex
                                 logx(f"suggest: cleanup error {p}: {ex}", True)
 
                 # resolve username to get access_hash, then send
@@ -3587,13 +3700,15 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
                                 import threading
                                 threading.Thread(target=_deferred_cleanup, daemon=True).start()
-                            except Exception as e:
+                            except Exception as _cython_exc_e:
+                                e = _cython_exc_e
                                 logx(f"suggest: send_on_main error: {e}", False)
                                 BulletinHelper.show_error(str(strings.suggest_send_error))
                                 self_ref._restore_submit_btn()
 
                         run_on_ui_thread(_send_on_main)
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"suggest: send error: {e}", False)
                         _cleanup()
                         run_on_ui_thread(lambda: (
@@ -3605,7 +3720,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 req = TLRPC.TL_contacts_resolveUsername()
                 req.username = acc_user
                 send_request(req, RequestCallback(_on_resolved))
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"suggest._do_submit task error: {e}", False)
                 run_on_ui_thread(lambda: (
                     BulletinHelper.show_error(str(strings.suggest_send_error)),
@@ -3638,7 +3754,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             aset = AnimatorSet()
             aset.playTogether(ty, alpha)
             aset.start()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: _show_submit_btn anim error: {e}", False)
             try:
                 wrapper.setVisibility(View.VISIBLE)
@@ -3669,7 +3786,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             spinner.setScaleType(ImageView.ScaleType.CENTER_INSIDE)
             spinner.setPadding(0, dp(14), 0, dp(14))
             btn.addView(spinner, FrameLayout.LayoutParams(-1, dp(20 + 28), Gravity.CENTER))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: _set_submit_loading error: {e}", False)
             try:
                 from android.widget import ProgressBar
@@ -3694,7 +3812,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 btn.addView(lbl, FL.LayoutParams(-1, -2, Gravity.CENTER))
             btn.setEnabled(True)
             btn.setClickable(True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: _restore_submit_btn error: {e}", False)
 
     def _finish_fragment(self):
@@ -3706,7 +3825,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 f = get_last_fragment()
                 if f:
                     f.finishFragment()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: _finish_fragment error: {e}", False)
 
     def beforeCreateView(self):
@@ -3715,7 +3835,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 parent = self.content_view.getParent()
                 if parent is not None:
                     parent.removeView(self.content_view)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"suggest: stale view cleanup error: {e}", False)
             self.content_view = None
 
@@ -3750,7 +3871,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 title_tv.setTypeface(title_tv.getTypeface(), 1)
                 title_tv.setGravity(Gravity.START)
                 content.addView(title_tv, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 16))
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"suggest: title_tv error: {e}", False)
 
             outer = LinearLayout(act)
@@ -3848,7 +3970,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
                 self._rules_tv_ref[0] = rules_row
                 outer.addView(rules_row, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 0))
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"suggest: rules_tv error: {e}", False)
 
             content.addView(outer, LayoutHelper.createLinear(-1, -2, 0, 0, 0, 0))
@@ -3919,7 +4042,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 submit_btn.setOnClickListener(OnClickListener(lambda v: self_ref_submit._do_submit()))
                 self._submit_btn_ref = submit_btn
                 self._submit_lbl_ref[0] = submit_lbl
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"suggest: submit_btn error: {e}", False)
 
             self._attach_keyboard_scroll(act, root)
@@ -3931,7 +4055,8 @@ class SuggestFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 self._show_submit_btn(act)
 
             return root
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: beforeCreateView build error: {e}", False)
             return None
 
@@ -3973,7 +4098,8 @@ def show_suggest_fragment(repo_data: dict, plugin=None):
                 return
 
         _do_open_suggest(repo_data, plugin, rm_rid, None)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: show_suggest_fragment error: {e}", False)
 
 
@@ -4009,10 +4135,13 @@ def _do_open_suggest(repo_data: dict, plugin, rm_rid: str, draft):
                                 back_button.setOnClickListener(OnClickListener(_on_back_click))
                         except Exception:
                             pass
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"suggest: back button error: {e}", False)
             delegate._fragment_ref[0] = new_fragment
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"suggest: actionBar setup error: {e}", False)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggest: _do_open_suggest error: {e}", False)

@@ -34,12 +34,14 @@ def setup_universal_fragment_fix(plugin):
                     if view is None:
                         return
                     param.thisObject.fragmentView = view
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"universalFragmentFix: after_hooked_method error: {e}", False)
 
         hook_ref = plugin.hook_method(create_view_method, CreateViewFragmentViewHook())
         logx("universalFragmentFix: UniversalFragment.createView hooked", True)
         return hook_ref
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"universalFragmentFix: setup error: {e}", False)
         return None

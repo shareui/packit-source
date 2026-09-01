@@ -30,7 +30,8 @@ def parse(text):
     try:
         from markdown_utils import parse_markdown
         return parse_markdown(normalize(text))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"markdown: parse failed: {e}", False)
         return None
 

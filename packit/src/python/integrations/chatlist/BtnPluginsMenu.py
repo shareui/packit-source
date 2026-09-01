@@ -5,7 +5,8 @@ from android_utils import run_on_ui_thread
 from base_plugin import MenuItemData, MenuItemType
 try:
     from elyx import settings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import elyx import settings failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 
@@ -24,10 +25,12 @@ def _open_packit_settings(plugin):
                 plugin_obj = PluginsController.getInstance().plugins.get(plugin.id)
                 if plugin_obj and frag:
                     frag.presentFragment(PluginSettingsActivity(plugin_obj))
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 import android_utils as _au; _au.log(f"BtnPluginsMenu: open settings error: {e}")
         _rout(_open)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         import android_utils as _au; _au.log(f"BtnPluginsMenu: _open_packit_settings error: {e}")
 
 

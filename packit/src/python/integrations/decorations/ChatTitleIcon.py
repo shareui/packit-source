@@ -30,7 +30,8 @@ class _SetTitleIconsHook(MethodHook):
             right = param.args[1] if len(param.args) > 1 else None
             # store on container object via tag
             container.setTag(right)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"[Packit Badges] SetTitleIconsHook error: {e}", False)
 
 
@@ -80,7 +81,8 @@ class _UpdateTitleIconsHook(MethodHook):
             # retrieve saved rightIcon from tag
             right = container.getTag()
             container.setTitleIcons(drawable, right)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"[Packit Badges] TitleIconHook error: {e}", False)
 
 
@@ -111,6 +113,7 @@ def setup_title_icon_hook(plugin, cache_lookup):
             logx("[Packit Badges] updateTitleIcons hook failed", True)
 
         return refs
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"[Packit Badges] title icon hook setup error: {e}", False)
         return []

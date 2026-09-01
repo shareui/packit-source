@@ -8,12 +8,14 @@ from datetime import date
 
 try:
     from elyx import assets
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import elyx import assets failed: {e}")
     from .ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.messenger import ApplicationLoader
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
     from .ImportFailed import showImportFailedAlert as _sifa; _sifa()
 
@@ -59,7 +61,8 @@ def _ensure_install_date():
                 with open(path, "w", encoding="utf-8") as f:
                     json.dump(data, f)
                 logx(f"localConfig: migrated installDate ts={data['ts']}", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"localConfig._ensure_install_date migrate: {e}", False)
         return
     try:
@@ -70,7 +73,8 @@ def _ensure_install_date():
         with open(path, "w", encoding="utf-8") as f:
             json.dump({"date": b64_date, "ts": ts}, f)
         logx(f"localConfig: install date recorded ts={ts}", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"localConfig._ensure_install_date: error: {e}", False)
 
 
@@ -88,7 +92,8 @@ def days_since_install() -> int:
             date_str = data["date"]
         install = date.fromisoformat(date_str)
         return (date.today() - install).days
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"localConfig.days_since_install: error: {e}", False)
         return 0
 
@@ -136,7 +141,8 @@ class LocalConfig:
 
             logx(f"localConfig.init: done, final keys={list(data.keys())}", True)
 
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"localConfig.init: error: {e}", False)
 
     @staticmethod
@@ -144,7 +150,8 @@ class LocalConfig:
         try:
             with open(_get_config_path(), "r", encoding="utf-8") as f:
                 return json.load(f).get(key, default)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"localConfig.get: error reading '{key}': {e}", False)
             return default
 
@@ -157,5 +164,6 @@ class LocalConfig:
             data[key] = value
             with open(config_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"localConfig.set: error setting '{key}': {e}", False)

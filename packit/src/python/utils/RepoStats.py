@@ -34,7 +34,8 @@ def read(rm_rid: str) -> dict:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
         return data if isinstance(data, dict) else {}
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"repoStats: read error for '{rm_rid}': {e}", True)
         return {}
 
@@ -56,7 +57,8 @@ def remember(rm_rid: str, **counts):
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"repoStats: write error for '{rm_rid}': {e}", True)
 
 
@@ -74,6 +76,7 @@ def installed_count(rm_rid: str) -> int:
             data = json.load(f)
         plugins = data.get("installed_plugins") if isinstance(data, dict) else None
         return len(plugins) if isinstance(plugins, list) else 0
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"repoStats: index read error for '{rm_rid}': {e}", True)
         return 0

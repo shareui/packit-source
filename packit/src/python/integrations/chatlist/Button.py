@@ -6,17 +6,20 @@ from client_utils import get_last_fragment
 from ui.bulletin import BulletinHelper
 try:
     from com.exteragram.messenger.plugins import PluginsController
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import com.exteragram.messenger.plugins import PluginsController failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from com.exteragram.messenger.plugins.ui import PluginSettingsActivity
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import com.exteragram.messenger.plugins.ui import PluginSettingsActivity failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 
@@ -77,9 +80,11 @@ class ChatButton(BtnCAB, BtnPluginsMenu, ChatDialogButton):
                         fragment.presentFragment(PluginSettingsActivity(plugin))
                     else:
                         BulletinHelper.show_error(strings.plugin_not_found)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     BulletinHelper.show_error(strings.error_opening_settings.format(e))
             
             run_on_ui_thread(_open_settings)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             BulletinHelper.show_error(strings.error_generic.format(e))

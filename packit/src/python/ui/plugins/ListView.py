@@ -17,19 +17,23 @@ from client_utils import get_last_fragment
 from packutil import logx
 try:
     from elyx import settings, strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"listView: import elyx failed: {e}")
 try:
     from org.telegram.ui.ActionBar import Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"listView: import Theme failed: {e}")
 try:
     from org.telegram.ui.Components import LayoutHelper, EditTextBoldCursor
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"listView: import LayoutHelper, EditTextBoldCursor failed: {e}")
 try:
     from org.telegram.messenger import AndroidUtilities, R as R_tg
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"listView: import AndroidUtilities, R_tg failed: {e}")
 
 from .helpers import UiHelpers
@@ -210,11 +214,13 @@ def _on_ai_pill_click(self, act):
                     total = len(self.plugins)
                     self.subtitle.setText(f"{len(ordered)}/{_build_plugin_count_label(total)}")
                 self._load_initial_batch()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"listView: on_ai_results error: {e}", False)
 
         show_ai_search_sheet(self.install_ui, act, on_ai_results=_on_ai_results)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"listView: ai search sheet error: {e}", False)
 
 
@@ -639,7 +645,8 @@ def build_list_view(self) -> View:
     chrome = None
     try:
         chrome = _build_chrome_kotlin(self, act)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"listView: kotlin chrome error: {e}", False)
     if chrome is None:
         main_layout, scroll, clear_btn = _build_chrome_python(self, act)
@@ -948,7 +955,8 @@ def build_list_view(self) -> View:
             banner.content_view = self.content_view
             if not self.show_loading_initial:
                 banner.on_config_loaded()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"listView: NoInternetBanner attach error: {e}", False)
 
     return self.content_view

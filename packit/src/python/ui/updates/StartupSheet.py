@@ -14,20 +14,24 @@ from client_utils import get_last_fragment, run_on_queue
 
 try:
     from org.telegram.ui.ActionBar import BottomSheet, Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"startupSheet: import BottomSheet/Theme failed: {e}", False)
 try:
     from org.telegram.ui.Components import LayoutHelper, BackupImageView
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"startupSheet: import LayoutHelper/BackupImageView failed: {e}", False)
 try:
     from org.telegram.messenger import AndroidUtilities, ApplicationLoader, ImageLocation, MediaDataController
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"startupSheet: import AndroidUtilities failed: {e}", False)
 
 try:
     from elyx import strings, settings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"startupSheet: import elyx failed: {e}", False)
 
 from .Fragment import (
@@ -129,7 +133,8 @@ def _make_item_card(act, item: dict, plugin_ref, on_action):
             header_row.addView(icon_view, icon_lp)
             from ...utils.Stickers import load_sticker
             load_sticker(icon_view, icon_str, icon_size_dp)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"startupSheet: icon error for '{pid}': {e}", False)
 
     center_col = LinearLayout(act)
@@ -277,7 +282,8 @@ def _make_item_card(act, item: dict, plugin_ref, on_action):
                     except Exception:
                         pass
                     update_icon_iv.setImageDrawable(d)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"startupSheet: spinner create error: {e}", False)
                     update_tv.setVisibility(View.VISIBLE)
                     update_icon_iv.setVisibility(View.GONE)
@@ -297,7 +303,8 @@ def _make_item_card(act, item: dict, plugin_ref, on_action):
                 except Exception:
                     icon_color = 0xFFFFFFFF
                 update_icon_iv.setColorFilter(icon_color)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"startupSheet: _set_update_btn_state error: {e}", False)
 
     update_btn.setOnClickListener(OnClickListener(lambda v: on_action("update", item, _set_update_btn_state)))
@@ -456,7 +463,8 @@ def _show_sheet(updates: list, plugin, on_sheet_closed=None):
                 logx("startupSheet: all items done, dismissing sheet", True)
                 try:
                     sheet.dismiss()
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"startupSheet: _check_all_done dismiss error: {e}", False)
 
         def _on_action(action: str, item: dict, set_btn_state=None):
@@ -526,7 +534,8 @@ def _show_sheet(updates: list, plugin, on_sheet_closed=None):
                 sheet.dismiss()
                 if on_sheet_closed:
                     on_sheet_closed(None)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"startupSheet: _ignore_all error: {e}", False)
 
         ignore_all_btn.setOnClickListener(OnClickListener(_ignore_all))
@@ -563,7 +572,8 @@ def _show_sheet(updates: list, plugin, on_sheet_closed=None):
 
         sheet.setCustomView(scroll)
         sheet.show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"startupSheet: _show_sheet error: {e}", False)
         if on_sheet_closed:
             on_sheet_closed(None)
@@ -582,7 +592,8 @@ def _apply_actions_and_refresh(acted_items, plugin):
             elif action == "update":
                 has_updates = True
                 _do_install(item, plugin, set_btn_state)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"startupSheet: _apply_actions_and_refresh error: {e}", False)
 
     # if only updates were triggered (no ignores), skip refresh — installs are async
@@ -598,7 +609,8 @@ def _apply_actions_and_refresh(acted_items, plugin):
                     updates, plugin,
                     on_sheet_closed=_make_closed_handler(plugin)
                 ))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"startupSheet: refresh task error: {e}", False)
 
     threading.Thread(target=task, daemon=True).start()
@@ -700,7 +712,8 @@ def _do_install(item: dict, plugin, set_btn_state=None):
                     run_on_ui_thread(lambda: set_btn_state("idle"))
 
             install_plugin_silent(file_path, plugin_data, repo_id, on_complete=on_complete, on_error=on_error)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"startupSheet: _do_install task error for '{pid}': {e}", False)
             if set_btn_state:
                 run_on_ui_thread(lambda: set_btn_state("idle"))
@@ -714,7 +727,8 @@ def check_and_show_startup_updates(plugin=None):
             try:
                 from ...utils.InstallIndex import purge_missing
                 purge_missing()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"startupSheet: purge_missing error: {e}", False)
 
             updates = _filter_ignored(None, _check_updates(None))
@@ -728,7 +742,8 @@ def check_and_show_startup_updates(plugin=None):
                 updates, plugin,
                 on_sheet_closed=_make_closed_handler(plugin)
             ))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"startupSheet: check error: {e}", False)
 
     threading.Thread(target=task, daemon=True).start()

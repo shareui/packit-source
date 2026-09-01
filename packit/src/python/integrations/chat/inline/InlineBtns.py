@@ -13,7 +13,8 @@ from java import jint
 
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"inlineBtns: import strings failed: {e}")
 
 # must not collide with ButtonCustom constants (1-8)
@@ -55,7 +56,8 @@ def _is_packit_inline_message(message_object):
         if result:
             logx("inlineBtns: packit_inline message confirmed", True)
         return result
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"inlineBtns: _is_packit_inline_message error: {e}", False)
         return False
 
@@ -90,7 +92,8 @@ def _build_translate_button_class():
 
         logx("inlineBtns: PackitTranslateButton class built", True)
         return PackitTranslateButton
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"inlineBtns: _build_translate_button_class error: {e}", False)
         return None
 
@@ -130,7 +133,8 @@ def _build_send_file_button_class():
 
         logx("inlineBtns: PackitSendFileButton class built", True)
         return PackitSendFileButton
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"inlineBtns: _build_send_file_button_class error: {e}", False)
         return None
 
@@ -204,7 +208,8 @@ def _do_translate_inline(message_object):
             try:
                 edit_message(message_object, text=pending_text)
                 logx("inlineBtns: pending text set", True)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"inlineBtns: set_pending error: {e}", False)
 
         run_on_ui_thread(set_pending)
@@ -224,12 +229,14 @@ def _do_translate_inline(message_object):
                     # last resort: at least put the translated text in place
                     edit_message(message_object, text=rebuilt_text)
                 logx("inlineBtns: translated message set", True)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"inlineBtns: set_translated error: {e}", False)
 
         run_on_ui_thread(set_translated)
 
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"inlineBtns: _do_translate_inline error: {e}", False)
 
 
@@ -281,7 +288,8 @@ def _rebuild_keyboard_without_send_file(message_object):
         from hook_utils import set_private_field
         set_private_field(message_object, "inlineKeyboardSource", new_source)
         logx("inlineBtns: send file button removed from keyboard", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"inlineBtns: _rebuild_keyboard_without_send_file error: {e}", False)
 
 
@@ -303,7 +311,8 @@ def _resolve_topic_message(dialog_id):
         topic_msg = MsgObj(frag.getCurrentAccount(), topic.topicStartMessage, False, False)
         topic_msg.isTopicMainMessage = True
         return topic_msg
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"inlineBtns: topic resolve error: {e}", False)
         return None
 
@@ -352,7 +361,8 @@ def _do_send_file_inline(message_object, plugin_ref):
                 plugins_data = _fetch_repo_plugins(plugins_url)
                 plugin_info = plugins_data.get(plugin_id) or {}
                 link = plugin_info.get("link") or plugin_info.get("raw")
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"inlineBtns: _do_send_file_inline: repo resolve error: {e}", False)
 
         if not link:
@@ -376,14 +386,16 @@ def _do_send_file_inline(message_object, plugin_ref):
                 builder.set_cancelable(False)
                 dlg_ref[0] = builder.create()
                 dlg_ref[0].show()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"inlineBtns: show_loading error: {e}", False)
 
         def dismiss_loading():
             try:
                 if dlg_ref[0]:
                     dlg_ref[0].dismiss()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"inlineBtns: dismiss_loading error: {e}", False)
 
         _run(show_loading)
@@ -429,11 +441,13 @@ def _do_send_file_inline(message_object, plugin_ref):
                 try:
                     send_document(dialog_id, file_path, **send_kwargs)
                     logx(f"inlineBtns: sent document to dialog_id={dialog_id} topic={topic_msg_obj is not None}", True)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"inlineBtns: send_document on main error: {e}", False)
 
             _run(_send_on_main)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"inlineBtns: send document error: {e}", False)
             _run(dismiss_loading)
             _run(lambda: _show_send_file_error(strings["send_as_file_failed"]))
@@ -444,7 +458,8 @@ def _do_send_file_inline(message_object, plugin_ref):
         # remove send file button from keyboard
         _run(lambda: _rebuild_keyboard_without_send_file(message_object))
 
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"inlineBtns: _do_send_file_inline error: {e}", False)
         try:
             from android_utils import run_on_ui_thread as _run
@@ -457,7 +472,8 @@ def _show_send_file_error(msg):
     try:
         from ui.bulletin import BulletinHelper
         BulletinHelper.show_error(str(msg))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"inlineBtns: _show_send_file_error: {e}", False)
 
 
@@ -545,7 +561,8 @@ class _MeasureInlineButtonsHook(MethodHook):
             from hook_utils import set_private_field
             set_private_field(message_object, "inlineKeyboardSource", new_source)
 
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"inlineBtns: _MeasureInlineButtonsHook error: {e}", False)
 
 
@@ -570,7 +587,8 @@ class _DidPressCustomBotButtonHook(MethodHook):
             try:
                 btn_id = button.id
                 logx(f"inlineBtns: button.id={btn_id}", True)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"inlineBtns: cannot read button.id: {e}", False)
                 return
 
@@ -585,7 +603,8 @@ class _DidPressCustomBotButtonHook(MethodHook):
 
             try:
                 message_object = cell.getMessageObject()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"inlineBtns: getMessageObject error: {e}", False)
                 return
 
@@ -612,7 +631,8 @@ class _DidPressCustomBotButtonHook(MethodHook):
                     daemon=True
                 ).start()
 
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"inlineBtns: _DidPressCustomBotButtonHook error: {e}", False)
 
 
@@ -651,5 +671,6 @@ def setup_inline_translate_button(plugin):
         plugin.hook_all_methods(ChatMessageCellDelegate, "didPressCustomBotButton", _DidPressCustomBotButtonHook())
         logx("inlineBtns: setup done", True)
 
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"inlineBtns: setup error: {e}", False)

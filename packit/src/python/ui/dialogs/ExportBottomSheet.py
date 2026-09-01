@@ -13,6 +13,7 @@ from android.widget import LinearLayout, TextView, FrameLayout, ImageView, Scrol
 from android.view import View, Gravity, MotionEvent
 from android.graphics.drawable import GradientDrawable
 from android.graphics import Color
+from android.content.res import ColorStateList
 from java import dynamic_proxy
 from android.util import TypedValue
 from android_utils import run_on_ui_thread, OnClickListener
@@ -20,14 +21,16 @@ from client_utils import get_last_fragment
 
 try:
     from org.telegram.ui.ActionBar import BottomSheet, Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"ExportBottomSheet: import BottomSheet/Theme failed: {e}")
     BottomSheet = None
     Theme = None
 
 try:
     from org.telegram.ui.Components import LayoutHelper, BackupImageView, CheckBox2
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"ExportBottomSheet: import LayoutHelper failed: {e}")
     LayoutHelper = None
     BackupImageView = None
@@ -35,26 +38,30 @@ except Exception as e:
 
 try:
     from org.telegram.messenger import AndroidUtilities
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"ExportBottomSheet: import AndroidUtilities failed: {e}")
     AndroidUtilities = None
 
 try:
     from org.telegram.messenger import MediaDataController, ImageLocation
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"ExportBottomSheet: import MediaDataController/ImageLocation failed: {e}")
     MediaDataController = None
     ImageLocation = None
 
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"ExportBottomSheet: import elyx failed: {e}")
     strings = None
 
 try:
     from ui.bulletin import BulletinHelper
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"ExportBottomSheet: import BulletinHelper failed: {e}")
     BulletinHelper = None
 
@@ -120,7 +127,8 @@ def _readPluginMeta(filepath):
                 m = re.search(pattern, content, re.MULTILINE)
                 if m:
                     meta[key] = m.group(1)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"ExportBottomSheet._readPluginMeta: {e}\n{traceback.format_exc()}", False)
     return meta
 
@@ -153,7 +161,8 @@ def _hostPluginsByFile() -> dict:
                 index[os.path.basename(path) if path else f"{plugin_id}.plugin"] = plugin
             except Exception:
                 continue
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"ExportBottomSheet._hostPluginsByFile: {e}", False)
     return index
 
@@ -168,7 +177,8 @@ def loadPlugins():
             from org.telegram.messenger import ApplicationLoader
             files_dir = ApplicationLoader.applicationContext.getFilesDir().getAbsolutePath()
             plugins_dir = os.path.join(files_dir, "plugins")
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"ExportBottomSheet.loadPlugins: cannot resolve plugins dir: {e}\n{traceback.format_exc()}", False)
             return []
 
@@ -194,7 +204,8 @@ def loadPlugins():
                 if not version:
                     version = _jstr(plugin.getVersion())
             result.append((fname, name, version, icon))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"ExportBottomSheet.loadPlugins: {e}\n{traceback.format_exc()}", False)
     return result
 
@@ -255,7 +266,8 @@ def _makeCheckbox2(act, checked):
         cb.setDrawBackgroundAsArc(14)
         cb.setChecked(checked, False)
         return cb
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"ExportBottomSheet._makeCheckbox2: {e}", False)
         return None
 
@@ -290,7 +302,8 @@ def _createCheckRow(act, label, version_str, icon_str, checked, on_change):
             row.addView(icon_view, LayoutHelper.createLinear(icon_size_dp, icon_size_dp, Gravity.CENTER_VERTICAL, 0, 0, 10, 0))
             from ...utils.Stickers import load_sticker
             load_sticker(icon_view, icon_str, icon_size_dp)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"ExportBottomSheet._createCheckRow: icon error: {e}\n{traceback.format_exc()}", False)
 
     name_tv = TextView(act)
@@ -582,7 +595,8 @@ def show(plugins, on_export):
                 plugins_scroll.setVerticalFadingEdgeEnabled(True)
                 plugins_scroll.setHorizontalFadingEdgeEnabled(False)
                 plugins_scroll.setFadingEdgeLength(AndroidUtilities.dp(20))
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"ExportBottomSheet: fading edge error: {e}", False)
             
             dark_lp = LinearLayout.LayoutParams(-1, scroll_height_px + AndroidUtilities.dp(24))
@@ -765,7 +779,8 @@ def show(plugins, on_export):
                     right_fade,
                     FrameLayout.LayoutParams(AndroidUtilities.dp(16), -1, Gravity.RIGHT)
                 )
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"ExportBottomSheet: options fade overlay error: {e}", False)
 
             outer.addView(options_wrap, LayoutHelper.createLinear(-1, -2, pad_h, 4, pad_h, 4))
@@ -795,7 +810,8 @@ def show(plugins, on_export):
 
             sheet.show()
 
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"ExportBottomSheet.show: {e}\n{traceback.format_exc()}", False)
 
     run_on_ui_thread(_show)

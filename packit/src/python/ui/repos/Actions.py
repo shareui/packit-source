@@ -17,16 +17,19 @@ from hook_utils import find_class
 
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"repos actions: import elyx strings failed: {e}")
 try:
     from ui.alert import AlertDialogBuilder
     from ui.bulletin import BulletinHelper
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"repos actions: import ui helpers failed: {e}")
 try:
     from org.telegram.messenger import R as R_tg
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"repos actions: import R failed: {e}")
 
 from ...utils.Bulletins import factory as _pbf
@@ -40,7 +43,8 @@ def _bulletin(raw_name: str, text):
         container = frag.getParentActivity().getWindow().getDecorView()
         rp = frag.getResourceProvider()
         _pbf(container, rp).createSimpleBulletin(getattr(R_tg.raw, raw_name), str(text)).show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"repos actions: bulletin error: {e}", True)
 
 
@@ -51,13 +55,15 @@ def open_url(act, url: str):
         from android.net import Uri
         from org.telegram.messenger.browser import Browser
         Browser.openUrl(act, Uri.parse(url))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"repos actions: open_url error: {e}", False)
         try:
             from android.content import Intent
             from android.net import Uri
             act.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-        except Exception as e2:
+        except Exception as _cython_exc_e2:
+            e2 = _cython_exc_e2
             logx(f"repos actions: open_url fallback error: {e2}", False)
 
 
@@ -68,7 +74,8 @@ def copy_link(repo: dict):
         if url and AndroidUtilities.addToClipboard(url):
             _bulletin("voip_invite", strings.repo_link_copied)
             return
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"repos actions: copy_link error: {e}", False)
     BulletinHelper.show_error(str(strings.failed_to_copy))
 
@@ -115,7 +122,8 @@ def share_repository(act, repo: dict):
         alert = ShareAlert(act, None, share_url, True, share_url, False)
         alert.setDelegate(ShareDelegate())
         frag.showDialog(alert)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"repos actions: share error: {e}", False)
         BulletinHelper.show_error(str(strings.failed_to_copy))
 
@@ -138,10 +146,12 @@ def delete_repository(act, delegate, repo: dict):
         builder.set_negative_button(str(strings.close_button), lambda b, w: b.dismiss())
         try:
             builder.make_button_red(AlertDialogBuilder.BUTTON_POSITIVE)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"repos actions: red button error: {e}", True)
         builder.show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"repos actions: delete error: {e}", False)
 
 
@@ -154,7 +164,8 @@ def refresh_all(delegate):
 
     try:
         delegate.repoManager.updateAllCaches(on_complete=_done)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"repos actions: refresh_all error: {e}", False)
 
 
@@ -174,7 +185,8 @@ def export_repositories(act, delegate):
         if AndroidUtilities.addToClipboard(text):
             _bulletin("voip_invite", strings.repositories_exported)
             return
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"repos actions: export error: {e}", False)
     BulletinHelper.show_error(str(strings.failed_to_copy))
 
@@ -215,7 +227,8 @@ def _easter_egg(act, message):
         builder.set_message(str(message))
         builder.set_positive_button(str(strings.close_button), lambda b, w: b.dismiss())
         builder.show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"repos actions: easter egg error: {e}", False)
 
 
@@ -241,7 +254,8 @@ def clear_all_except_first(act, delegate):
         except Exception:
             pass
         builder.show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"repos actions: clear all error: {e}", False)
 
 
@@ -267,7 +281,8 @@ def reset_repositories(act, delegate):
         except Exception:
             pass
         builder.show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"repos actions: reset error: {e}", False)
 
 
@@ -300,7 +315,8 @@ def show_card_menu(act, delegate, repo: dict, anchor):
     ]
     try:
         show_plugin_context_menu(anchor.getRootView(), anchor, items)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"repos actions: card menu error: {e}", False)
 
 
@@ -324,5 +340,6 @@ def show_bulk_menu(act, delegate, anchor):
     ]
     try:
         show_plugin_context_menu(anchor.getRootView(), anchor, items)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"repos actions: bulk menu error: {e}", False)

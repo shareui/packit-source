@@ -7,7 +7,8 @@ import os
 from android.media import MediaPlayer, AudioManager
 try:
     from elyx import settings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import elyx import settings failed: {e}")
     from .ImportFailed import showImportFailedAlert as _sifa; _sifa()
 from java import dynamic_proxy
@@ -42,7 +43,8 @@ def playSound(soundPath: str, soundKey: str = None, check_pending: bool = True, 
         player.setAudioStreamType(AudioManager.STREAM_MUSIC)
         player.setDataSource(soundPath)
         player.prepare()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"media: failed to prepare player: {e}", False)
         try:
             player.reset()
@@ -54,7 +56,8 @@ def playSound(soundPath: str, soundKey: str = None, check_pending: bool = True, 
     try:
         player.setVolume(vol, vol)
         player.start()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"media: failed to start player: {e}", False)
         try:
             player.reset()
@@ -74,5 +77,6 @@ def playSound(soundPath: str, soundKey: str = None, check_pending: bool = True, 
 
     try:
         player.setOnCompletionListener(_Listener())
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"media: failed to set completion listener: {e}", False)

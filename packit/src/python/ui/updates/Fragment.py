@@ -17,22 +17,26 @@ from client_utils import get_last_fragment, run_on_queue
 # penis
 try:
     from org.telegram.ui.ActionBar import Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"pluginsUpdates: import Theme failed: {e}", False)
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.ui.Components import LayoutHelper
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"pluginsUpdates: import LayoutHelper failed: {e}", False)
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.messenger import AndroidUtilities, ApplicationLoader
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"pluginsUpdates: import AndroidUtilities/ApplicationLoader failed: {e}", False)
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"pluginsUpdates: import UniversalFragment failed: {e}", False)
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 
@@ -41,7 +45,8 @@ from android_utils import OnClickListener
 import requests
 try:
     from elyx import settings, strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"pluginsUpdates: import elyx.settings failed: {e}", False)
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 
@@ -56,7 +61,8 @@ def _get_repos() -> list:
         raw = settings.get("repositories", "[]")
         repos = json.loads(raw)
         return repos if isinstance(repos, list) else []
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"pluginsUpdates: _get_repos error: {e}", False)
         return []
 
@@ -71,7 +77,8 @@ def _read_index(pkg: str, rm_rid: str) -> list:
             data = json.load(f)
         plugins = data.get("installed_plugins")
         return plugins if isinstance(plugins, list) else []
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"pluginsUpdates: _read_index error for '{rm_rid}': {e}", False)
         return []
 
@@ -181,7 +188,8 @@ def _check_updates(pkg: str) -> list:
                     from ...utils.AppVersion import check_app_version
                     if not check_app_version(repo_app_ver):
                         continue
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"pluginsUpdates: app_version check error for '{pid}': {e}", False)
 
             local_hash = str(entry.get("hash") or "")
@@ -246,7 +254,8 @@ def _get_ignore_list(pkg: str, repo_id: str) -> list:
             data = json.load(f)
         lst = data.get("ignore_list")
         return lst if isinstance(lst, list) else []
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"pluginsUpdates: _get_ignore_list error for '{repo_id}': {e}", False)
         return []
 
@@ -263,7 +272,8 @@ def _save_ignore_list(pkg: str, repo_id: str, lst: list):
         data["ignore_list"] = lst
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"pluginsUpdates: _save_ignore_list error for '{repo_id}': {e}", False)
 
 
@@ -336,7 +346,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             for fn in list(self._active_listeners):
                 remove_install_listener(fn)
             self._active_listeners.clear()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: onFragmentDestroy listeners cleanup error: {e}", False)
         try:
             if self._content_view is not None:
@@ -344,7 +355,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 if parent is not None:
                     parent.removeView(self._content_view)
                 self._content_view = None
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: onFragmentDestroy error: {e}", False)
 
     def onBackPressed(self):
@@ -368,7 +380,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 frag = get_last_fragment()
                 if frag:
                     frag.finishFragment()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"pluginsUpdates: finishFragment error: {e}", False)
             return True
         return False
@@ -419,7 +432,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             self._content_view.addView(spinner_container, FrameLayout.LayoutParams(-1, -1, Gravity.CENTER))
             self._spinner = spinner_view
             self._spinner_container = spinner_container
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: spinner error: {e}", False)
             fallback = ProgressBar(act)
             fallback_lp = FrameLayout.LayoutParams(AndroidUtilities.dp(48), AndroidUtilities.dp(48))
@@ -447,13 +461,15 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
         try:
             accent = Theme.getColor(Theme.key_featuredStickers_addButton)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: _add_button_bar accent color error: {e}", False)
             accent = 0xFF2196F3
 
         try:
             accent_text = Theme.getColor(Theme.key_featuredStickers_buttonText)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: _add_button_bar accent_text color error: {e}", False)
             accent_text = 0xFFFFFFFF
 
@@ -498,7 +514,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     d.setBounds(0, 0, icon_size, icon_size)
                     d.setColorFilter(accent_text, PorterDuff.Mode.SRC_IN)
                     btn.setCompoundDrawablesRelative(d, None, None, None)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"pluginsUpdates: _make_icon_btn '{res_name}' error: {e}", False)
             return btn
 
@@ -551,7 +568,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 d.setColorFilter(accent_text, PorterDuff.Mode.SRC_IN)
                 empty_refresh_btn.setCompoundDrawablesRelative(d, None, None, None)
                 empty_refresh_btn.setCompoundDrawablePadding(dp(6))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: empty_refresh_btn icon error: {e}", False)
         er_bg = GradientDrawable()
         er_bg.setShape(GradientDrawable.RECTANGLE)
@@ -643,7 +661,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         try:
             from .ClearIgnoreListDialog import show_clear_ignore_list_dialog
             show_clear_ignore_list_dialog(self._act, on_close=self._on_refresh_click)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: _open_ignore_list_dialog error: {e}", False)
 
     def _on_ignore_all_click(self):
@@ -656,7 +675,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 try:
                     for item in updates:
                         _ignore_until_next(None, item["id"], item.get("repo_id", ""), item.get("repo_version", ""))
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"pluginsUpdates: _on_ignore_all_click task error: {e}", False)
                 run_on_ui_thread(self._on_refresh_click)
 
@@ -665,7 +685,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         try:
             from .HideAllDialog import show_hide_all_dialog
             show_hide_all_dialog(self._act, on_confirm)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: _on_ignore_all_click error: {e}", False)
 
     def _on_refresh_click(self):
@@ -739,7 +760,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         fragment_ref._card_count[0] = 0
                         fragment_ref._done_count[0] = 0
                         fragment_ref._start_load()
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"pluginsUpdates: _on_refresh_click reset error: {e}", False)
                 def onAnimationStart(self, *args): pass
                 def onAnimationCancel(self, *args): pass
@@ -747,7 +769,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
             out_set.addListener(_OutDone())
             out_set.start()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: _on_refresh_click error: {e}", False)
 
     def _has_any_ignored(self) -> bool:
@@ -760,7 +783,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                     continue
                 if _get_ignore_list(None, rm_rid):
                     return True
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: _has_any_ignored error: {e}", False)
         return False
 
@@ -791,7 +815,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             s = AnimatorSet()
             s.playTogether(fade, sx, sy, tr)
             s.start()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: _show_bar error: {e}", False)
             try:
                 row = self._bar_island
@@ -837,7 +862,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 self._bar_empty_island.setVisibility(gone)
                 self._bar_full_island.setVisibility(visible)
                 self._bar_right_btn.setVisibility(visible)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: _apply_bar_empty_mode error: {e}", False)
 
     def _set_bar_empty_mode(self, empty: bool):
@@ -904,7 +930,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         in_set = AnimatorSet()
                         in_set.playTogether(fly_in, fade_in)
                         in_set.start()
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"pluginsUpdates: bar anim in error: {e}", False)
 
                 def onAnimationStart(self, *args): pass
@@ -913,7 +940,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
             out_set.addListener(_OutListener())
             out_set.start()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: _set_bar_empty_mode error: {e}", False)
             self._apply_bar_empty_mode(empty)
 
@@ -927,7 +955,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 try:
                     from ...utils.InstallIndex import purge_missing
                     purge_missing()
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"pluginsUpdates: purge_missing error: {e}", False)
 
                 # collect all index entries across all repos
@@ -956,7 +985,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         try:
                             from ..plugins.Fragment import InstallUI
                             InstallUI(self._plugin).open()
-                        except Exception as e:
+                        except Exception as _cython_exc_e:
+                            e = _cython_exc_e
                             logx(f"pluginsUpdates: _open_catalog error: {e}", False)
                     chip = str(strings("updates_empty_available_chip", count=total_available)) if total_available > 0 else None
                     run_on_ui_thread(lambda: self._show_empty(
@@ -983,7 +1013,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         self._show_updates(updates)
 
                 run_on_ui_thread(on_done)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"pluginsUpdates: task error: {e}", False)
                 run_on_ui_thread(lambda: (setattr(self, '_is_loading', False), self._show_empty(str(strings["updates_failed_to_check"]), "error", title=str(strings["updates_error_title"]))) if alive[0] else None)
 
@@ -993,7 +1024,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         try:
             if self._spinner_container is not None:
                 self._spinner_container.setVisibility(4)  # GONE
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: _hide_spinner error: {e}", False)
 
     def _show_empty(self, message: str, anim_name: str = "done", action_label: str = None, action_icon: str = None, on_action=None, title: str = None, chip_text: str = None):
@@ -1027,7 +1059,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 lottie_lp.gravity = Gravity.CENTER_HORIZONTAL
                 lottie_lp.bottomMargin = dp(12)
                 card.addView(lottie, lottie_lp)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"pluginsUpdates: _show_empty lottie error: {e}", False)
 
             tv = TextView(act)
@@ -1089,7 +1122,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                             d.setColorFilter(accent_text, PorterDuff.Mode.SRC_IN)
                             btn.setCompoundDrawablesRelative(d, None, None, None)
                             btn.setCompoundDrawablePadding(dp(6))
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"pluginsUpdates: _show_empty action icon error: {e}", False)
 
                 btn_bg = GradientDrawable()
@@ -1137,7 +1171,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             card_lp.rightMargin = dp(16)
             card_lp.topMargin = dp(-80)
             self._content_view.addView(card, card_lp)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: _show_empty error: {e}", False)
 
     def _make_repo_chip(self, act, repo_name: str):
@@ -1244,7 +1279,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 top_row.addView(icon_view, icon_lp)
                 from ...utils.Stickers import load_sticker
                 load_sticker(icon_view, icon_str, icon_size_dp)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"pluginsUpdates: icon init error for '{pid}': {e}", False)
 
         col = LinearLayout(act)
@@ -1432,15 +1468,18 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                             install_ui = InstallUI(plugin)
                             all_plugins = [{"id": k, **v} for k, v in repo_plugins.items() if isinstance(v, dict)]
                             show_plugin_profile(plugin_data, install_ui, all_plugins=all_plugins, repo_id=repo_id)
-                        except Exception as e:
+                        except Exception as _cython_exc_e:
+                            e = _cython_exc_e
                             logx(f"pluginsUpdates: _open_plugin_profile on_ui error: {e}", False)
 
                     run_on_ui_thread(on_ui)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"pluginsUpdates: _open_plugin_profile task error: {e}", False)
 
             run_io(task)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: _open_plugin_profile error: {e}", False)
 
     def _show_ignore_dialog(self, pid: str, repo_id: str, repo_version: str, card_view):
@@ -1451,7 +1490,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 self._apply_ignore(pid, repo_id, repo_version, forever, card_view)
 
             show_hide_dialog(self._act, pid, repo_id, repo_version, on_apply)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: _show_ignore_dialog error: {e}", False)
 
     def _apply_ignore(self, pid: str, repo_id: str, repo_version: str, forever: bool, card_view):
@@ -1461,7 +1501,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             else:
                 _ignore_until_next(None, pid, repo_id, repo_version)
             run_on_ui_thread(lambda: self._remove_card(card_view))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: _apply_ignore error: {e}", False)
 
     def _install_update(self, item: dict, download_btn=None, download_icon_view=None, act=None):
@@ -1500,7 +1541,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         spin_iv.setImageDrawable(d)
                         spin_iv.setScaleType(ImageView.ScaleType.CENTER)
                         download_btn.addView(spin_iv, btn_lp)
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"pluginsUpdates: spinner create error: {e}", False)
                         if download_icon_view is not None:
                             download_btn.addView(download_icon_view, btn_lp)
@@ -1528,7 +1570,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 else:
                     if download_icon_view is not None:
                         download_btn.addView(download_icon_view, btn_lp)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"pluginsUpdates: set_btn_state error: {e}", False)
 
         run_on_ui_thread(lambda: set_btn_state("loading"))
@@ -1581,7 +1624,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 self._active_listeners.append(on_installed)
 
                 run_on_ui_thread(lambda: install_plugin(plugin, all_plugins=all_plugins, rm_rid=repo_id, on_finish=on_finish))
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"pluginsUpdates: _install_update task error: {e}", False)
                 run_on_ui_thread(lambda: set_btn_state("idle"))
 
@@ -1638,7 +1682,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 anim.setStartDelay(i * 40)
                 anim.addListener(_FadeListener(child, self, count))
                 anim.start()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: _remove_all_cards_then_empty error: {e}", False)
             self._show_all_up_to_date()
 
@@ -1704,7 +1749,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         center_anim.setDuration(300)
                         center_anim.setInterpolator(_DI(2.0))
                         center_anim.start()
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"pluginsUpdates: center shift error: {e}", False)
                 def onAnimationStart(self, *args): pass
                 def onAnimationCancel(self, *args): pass
@@ -1714,7 +1760,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             s.playTogether(slide, fade)
             s.addListener(_Done())
             s.start()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: _hide_update_all_btn_animated error: {e}", False)
             try:
                 self._bar_right_btn.setVisibility(4)
@@ -1737,7 +1784,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             fade_in = ObjectAnimator.ofFloat(empty_card, "alpha", 0.0, 1.0)
             fade_in.setDuration(300)
             fade_in.start()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: _show_all_up_to_date error: {e}", False)
 
     def _build_all_up_to_date_card(self):
@@ -1753,7 +1801,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             bg.setCornerRadius(dp(16))
             bg.setColor(Theme.getColor(Theme.key_windowBackgroundGray))
             card.setBackground(bg)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: _build_all_up_to_date_card bg error: {e}", False)
 
         try:
@@ -1767,7 +1816,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             lottie_lp.gravity = Gravity.CENTER_HORIZONTAL
             lottie_lp.bottomMargin = dp(12)
             card.addView(lottie, lottie_lp)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: _build_all_up_to_date_card lottie error: {e}", False)
 
         title_tv = TextView(act)
@@ -1777,7 +1827,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
         title_tv.setGravity(Gravity.CENTER)
         try:
             title_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: _build_all_up_to_date_card title typeface error: {e}", False)
         title_lp = LinearLayout.LayoutParams(-2, -2)
         title_lp.gravity = Gravity.CENTER_HORIZONTAL
@@ -1829,7 +1880,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 val_tv.setGravity(Gravity.CENTER)
                 try:
                     val_tv.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"))
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"pluginsUpdates: stat val typeface error: {e}", False)
 
                 lbl_tv = TextView(act)
@@ -1850,7 +1902,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             stat_lp.gravity = Gravity.CENTER_HORIZONTAL
             stat_lp.topMargin = dp(18)
             card.addView(stat_row, stat_lp)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: _build_all_up_to_date_card stats error: {e}", False)
 
         return card
@@ -1911,7 +1964,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         collapse.addUpdateListener(_UpdateListener())
                         collapse.addListener(_CollapseEndListener())
                         collapse.start()
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"pluginsUpdates: _remove_card collapse error: {e}", False)
                         try:
                             parent = card_view.getParent()
@@ -1927,7 +1981,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
 
             exit_anim.addListener(_ExitListener())
             exit_anim.start()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: _remove_card error: {e}", False)
             try:
                 parent = card_view.getParent()
@@ -1976,7 +2031,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         spin_iv.setImageDrawable(d)
                         spin_iv.setScaleType(ImageView.ScaleType.CENTER)
                         download_btn.addView(spin_iv, btn_lp)
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"pluginsUpdates: _install_update_silent spinner error: {e}", False)
                         if download_icon_view is not None:
                             download_btn.addView(download_icon_view, btn_lp)
@@ -2004,7 +2060,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 else:
                     if download_icon_view is not None:
                         download_btn.addView(download_icon_view, btn_lp)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"pluginsUpdates: _install_update_silent set_btn_state error: {e}", False)
 
         run_on_ui_thread(lambda: set_btn_state("loading"))
@@ -2086,7 +2143,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                         on_done()
 
                 install_plugin_silent(file_path, plugin, repo_id, on_complete=on_complete, on_error=on_error)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"pluginsUpdates: _install_update_silent task error for '{pid}': {e}", False)
                 run_on_ui_thread(lambda: set_btn_state("idle"))
                 if on_done:
@@ -2118,7 +2176,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
                 dl_icon = dl_btn.getChildAt(0) if isinstance(dl_btn, _FL) else None
                 if dl_btn.isEnabled():
                     pending.append((updates[i], dl_btn, dl_icon))
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"pluginsUpdates: _on_update_all_click card {i} error: {e}", False)
 
         if not pending:
@@ -2174,7 +2233,8 @@ class UpdatesFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)
             for item in updates:
                 card, lp = self._make_update_card(act, item)
                 container.addView(card, lp)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: _show_updates error: {e}", False)
 
 
@@ -2208,9 +2268,12 @@ def show_updates_fragment(plugin=None):
                                 back_button.setOnClickListener(OnClickListener(_on_back))
                         except Exception:
                             pass
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"pluginsUpdates: back button error: {e}", False)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"pluginsUpdates: actionBar setup error: {e}", False)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"pluginsUpdates: show_updates_fragment error: {e}", False)

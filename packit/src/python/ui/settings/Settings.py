@@ -8,22 +8,26 @@ from client_utils import get_last_fragment
 from android_utils import run_on_ui_thread, OnClickListener
 try:
     from org.telegram.messenger import ApplicationLoader, AndroidUtilities, R
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader, AndroidUtilities failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.ui.ActionBar import Theme, BottomSheet
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.ui.ActionBar import Theme failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.ui.Components import LayoutHelper
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.ui.Components import LayoutHelper failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from elyx import strings, settings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import elyx import strings, settings failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 from android.widget import LinearLayout, TextView, FrameLayout
@@ -50,7 +54,8 @@ def _reload_plugin_settings():
     try:
         from com.exteragram.messenger.plugins import PluginsController
         PluginsController.getInstance().loadPluginSettings("shareui_packit")
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"settings: reload failed: {e}", False)
 
 
@@ -68,10 +73,12 @@ def _open_url(url):
                     intent = Intent(Intent.ACTION_VIEW)
                     intent.setData(Uri.parse(url))
                     act.startActivity(intent)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"settings: _open_url ui error: {e}", False)
         run_on_ui_thread(_do)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"settings: _open_url error: {e}", False)
 
 def _fmt_inline_str(template):
@@ -188,7 +195,8 @@ class TextSubtextCell(Base):
         icon_id = 0
         try:
             icon_id = int(getattr(find_class("org.telegram.messenger.R").drawable, icon_name))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"TextSubtextCell icon resolve error: {e}", False)
 
         self._titleView.setText(str(text))
@@ -247,7 +255,8 @@ def _buildTextSubtextCell(context, text, subtext, icon, on_click, icon_right=Fal
         cell = TextSubtextCell.new_instance(context)
         cell.set_data(text, subtext, icon, on_click, icon_right=icon_right)
         return cell.java
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"other: _buildTextSubtextCell error: {e}", False)
         return None
 
@@ -303,7 +312,8 @@ class CacheCard(Base):
         try:
             size, count = _getCacheInfo(self._cache_dir)
             self._sizeView.setText(str(strings.cache_size_label).format(size=size, count=count))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"CacheCard refresh error: {e}", False)
 
 
@@ -314,7 +324,8 @@ def _buildCacheCard(context, cacheDir, on_clear, title=None):
         card = CacheCard.new_instance(context)
         card.set_data(cacheDir, cardTitle, on_clear)
         return card.java, card.refresh
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"other: _buildCacheCard error: {e}", False)
         return None, None
 
@@ -350,7 +361,8 @@ def _showEditPathDialog(context, pathView, freeView):
             anim.setAnimation(R.raw.folder_in, 100, 100)
             anim.playAnimation()
             linear.addView(anim, LayoutHelper.createLinear(100, 100, Gravity.CENTER_HORIZONTAL, 0, 16, 0, 0))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"other: folder_in anim error: {e}", False)
 
         title = TextView(context)
@@ -396,7 +408,8 @@ def _showEditPathDialog(context, pathView, freeView):
                 return
             try:
                 settings.set("download_path", newPath)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"other: save download_path error: {e}", False)
             pathView.setText(newPath)
             freeView.setText(str(strings("settings_free_space", space=_getFreeSpace(newPath))))
@@ -430,7 +443,8 @@ def _showEditPathDialog(context, pathView, freeView):
         dialog.setOnDismissListener(_DismissListener())
         dialog.setOnShowListener(_ShowListener())
         dialog.show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"other: _showEditPathDialog error: {e}", False)
 
 def _buildDownloadPathCard(context, currentPath):
@@ -482,7 +496,8 @@ def _buildDownloadPathCard(context, currentPath):
         card.addView(editIcon, LayoutHelper.createLinear(40, 40, Gravity.CENTER_VERTICAL))
 
         return card
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"other: _buildDownloadPathCard error: {e}", False)
         return None
 
@@ -633,7 +648,8 @@ def _buildSearchEngineCards(context, key, default, on_change=None):
         wrapper.addView(hintView, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 0))
 
         return wrapper
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"_buildSearchEngineCards error: {e}", False)
         return None
 
@@ -723,7 +739,8 @@ def _buildSearchEngineToggle(context, key, default, on_change=None):
         wrapper.addView(hintView, LayoutHelper.createLinear(-1, -2))
 
         return wrapper
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"_buildSearchEngineToggle error: {e}", False)
         return None
 
@@ -873,7 +890,8 @@ def _buildHashFunctionCards(context, key, default, on_change=None):
         wrapper.addView(hintView, LayoutHelper.createLinear(-1, -2, 0, 8, 0, 0))
 
         return wrapper
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"_buildHashFunctionCards error: {e}", False)
         return None
 
@@ -1046,7 +1064,8 @@ def _buildDialogsMenuToggle(context, key, default, on_change=None):
             wrapper.addView(card, LayoutHelper.createLinear(-1, -2, 0, margin_top, 0, 0))
 
         return wrapper
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"_buildDialogsMenuToggle error: {e}", False)
         return None
 
@@ -1306,7 +1325,8 @@ def _buildSortMenuDesignToggle(context, key, default, on_change=None):
         card = SortDesignCard.new_instance(context)
         card.setup(key, default, on_change)
         return card.java
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"_buildSortMenuDesignToggle error: {e}", False)
         return None
 
@@ -1348,7 +1368,8 @@ class OtherSettings:
             item.setChecked(is_checked)
             item.setCollapsed(not is_expanded)
             return Custom(item=item, on_click=lambda v, k=key: self._es_toggle_and_reload(k))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"OtherSettings: _make_expandable_switch error: {e}", False)
             return None
 
@@ -1366,7 +1387,8 @@ class OtherSettings:
                 _s.set("_es_dummy", not _s.get("_es_dummy", False), reload_settings=True)
 
             return Custom(item=item, on_click=on_click)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"OtherSettings: _make_es_child error: {e}", False)
             return None
 
@@ -1383,7 +1405,8 @@ class OtherSettings:
                 if view is not None:
                     return Custom(view=view)
             logx("other: _build_dialogs_btn_item falling back to Text", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"other: _build_dialogs_btn_item error: {e}", False)
         return Text(
             text=strings.button_in_dialogs_menu,
@@ -1419,14 +1442,16 @@ class OtherSettings:
                             self._killProcess,
                             frag
                         )
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"other: dialogs menu bulletin error: {e}", False)
 
                 view = _buildDialogsMenuToggle(ctx, key="dialogs_menu_button", default=0, on_change=onDialogsMenuChange)
                 if view is not None:
                     return Custom(view=view)
             logx("other: _build_dialogs_menu_toggle_item falling back", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"other: _build_dialogs_menu_toggle_item error: {e}", False)
         return None
 
@@ -1437,7 +1462,8 @@ class OtherSettings:
                 if view is not None:
                     return Custom(view=view)
             logx("other: _build_sort_menu_design_item falling back to Switch", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"other: _build_sort_menu_design_item error: {e}", False)
         return Switch(
             key="old_sort_menu_design",
@@ -1455,7 +1481,8 @@ class OtherSettings:
                 if view is not None:
                     return Custom(view=view)
             logx("other: _build_search_engine_item falling back to Text", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"other: _build_search_engine_item error: {e}", False)
         return Text(
             text=strings.search_engine,
@@ -1470,7 +1497,8 @@ class OtherSettings:
                 if view is not None:
                     return Custom(view=view)
             logx("other: _build_hash_function_item falling back to Text", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"other: _build_hash_function_item error: {e}", False)
         return Text(
             text=strings.hash_function,
@@ -1484,7 +1512,8 @@ class OtherSettings:
             if frag:
                 MainMenuPreferencesActivity = find_class("com.exteragram.messenger.preferences.appearance.AppNavigationPreferencesActivity")
                 frag.presentFragment(MainMenuPreferencesActivity())
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"OtherSettings: _open_main_menu_settings error: {e}", False)
 
     def _build_pill_stack_item(self, ctx):
@@ -1500,7 +1529,8 @@ class OtherSettings:
                 if view is not None:
                     return Custom(view=view)
             logx("other: _build_pill_stack_item falling back to Text", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"other: _build_pill_stack_item error: {e}", False)
         return Text(
             text=strings.pill_stack_settings,
@@ -1529,7 +1559,8 @@ class OtherSettings:
                 if view is not None:
                     return Custom(view=view)
             logx("other: _build_font_picker_item falling back to Text", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"other: _build_font_picker_item error: {e}", False)
         return Text(
             text=strings.font_picker,
@@ -1544,7 +1575,8 @@ class OtherSettings:
             if not act:
                 return
             showFontPicker(act)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"OtherSettings: _open_font_picker error: {e}", False)
 
     def _open_pill_stack_settings(self, view):
@@ -1556,14 +1588,16 @@ class OtherSettings:
             frag = get_last_fragment()
             if frag:
                 frag.presentFragment(PillStackPreferencesActivity())
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"OtherSettings: _open_pill_stack_settings error: {e}", False)
 
     def _open_files_browser(self):
         try:
             from ..files.Fragment import show_files_browser
             show_files_browser(plugin=self.plugin)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"OtherSettings: _open_files_browser error: {e}", False)
 
     def _getCacheDir(self) -> str:
@@ -1591,13 +1625,15 @@ class OtherSettings:
                     cacheDir = self._getCacheDir()
                     if os.path.exists(cacheDir):
                         shutil.rmtree(cacheDir)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"clear cache error: {e}", False)
 
                 if update_callback:
                     try:
                         update_callback()
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"clear cache update callback error: {e}", False)
 
                 try:
@@ -1619,17 +1655,20 @@ class OtherSettings:
                     restartBuilder.set_positive_button(strings.restart_now, onRestart)
                     restartBuilder.set_negative_button(strings.restart_later, lambda rb, rw: rb.dismiss())
                     restartBuilder.show()
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"clear cache restart dialog error: {e}", False)
 
             builder.set_positive_button(strings.clear_cache_button, onConfirm)
             builder.set_negative_button(strings.cancel_button, lambda b, w: b.dismiss())
             try:
                 builder.make_button_red(AlertDialogBuilder.BUTTON_POSITIVE)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"make_button_red error: {e}", False)
             builder.show()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"clear cache dialog error: {e}", False)
 
     def _onClearPluginCacheClick(self, view, update_callback=None):
@@ -1651,22 +1690,26 @@ class OtherSettings:
                     if os.path.exists(plugin_cache_dir):
                         shutil.rmtree(plugin_cache_dir)
                         logx("other: plugin cache cleared", True)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"other: clear plugin cache error: {e}", False)
                 if update_callback:
                     try:
                         update_callback()
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"other: clear plugin cache update callback error: {e}", False)
 
             builder.set_positive_button(strings.clear_cache_button, onConfirm)
             builder.set_negative_button(strings.cancel_button, lambda b, w: b.dismiss())
             try:
                 builder.make_button_red(AlertDialogBuilder.BUTTON_POSITIVE)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"make_button_red error: {e}", False)
             builder.show()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"other: clear plugin cache dialog error: {e}", False)
 
     def _getContext(self):
@@ -1693,7 +1736,8 @@ class OtherSettings:
                 builder.set_positive_button(strings.restart_now, onRestart)
                 builder.set_negative_button(strings.restart_later, lambda b, w: b.dismiss())
                 builder.show()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"other: _onRestartRequiredSwitch error: {e}", False)
 
         from android_utils import run_on_ui_thread
@@ -1703,7 +1747,8 @@ class OtherSettings:
         try:
             from .subsettings.PluginCardEditor import build_card_editor_page
             return build_card_editor_page()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"OtherSettings: _open_card_editor error: {e}", False)
             return []
 
@@ -1711,7 +1756,8 @@ class OtherSettings:
         try:
             from .subsettings.Interface import build_interface_page
             return build_interface_page(self, self._getContext())
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"OtherSettings: _open_interface_page error: {e}", False)
             return []
 
@@ -1719,7 +1765,8 @@ class OtherSettings:
         try:
             from .subsettings.Sfx import build_sfx_page
             return build_sfx_page(self, self._getContext())
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"OtherSettings: _open_sfx_page error: {e}", False)
             return []
 
@@ -1727,7 +1774,8 @@ class OtherSettings:
         try:
             from .subsettings.Comps import build_comps_page
             return build_comps_page(self, self._getContext())
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"OtherSettings: _open_comps_page error: {e}", False)
             return []
 
@@ -1735,7 +1783,8 @@ class OtherSettings:
         try:
             from .subsettings.Hotkeys import build_hotkeys_page
             return build_hotkeys_page(self, self._getContext())
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"OtherSettings: _open_hotkeys_page error: {e}", False)
             return []
 
@@ -1743,7 +1792,8 @@ class OtherSettings:
         try:
             from .subsettings.PluginProfile import build_plugin_profile_page
             return build_plugin_profile_page()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"OtherSettings: _open_plugin_profile_page error: {e}", False)
             return []
 
@@ -1751,7 +1801,8 @@ class OtherSettings:
         try:
             from .subsettings.Inline import build_inline_page
             return build_inline_page(self, _fmt_inline_str, _reload_plugin_settings, _open_url)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"OtherSettings: _open_inline_page error: {e}", False)
             return []
 
@@ -1759,7 +1810,8 @@ class OtherSettings:
         try:
             from .subsettings.FileSettings import build_file_settings_page
             return build_file_settings_page(self)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"OtherSettings: _open_file_settings_page error: {e}", False)
             return []
 
@@ -1767,7 +1819,8 @@ class OtherSettings:
         try:
             from .subsettings.Misc import build_misc_page
             return build_misc_page(self)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"OtherSettings: _open_misc_page error: {e}", False)
             return []
 
@@ -1775,7 +1828,8 @@ class OtherSettings:
         try:
             from .subsettings.Apikeys import build_apikeys_page
             return build_apikeys_page()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"OtherSettings: _open_apikeys_page error: {e}", False)
             return []
 
@@ -1783,7 +1837,8 @@ class OtherSettings:
         try:
             from .subsettings.Updplugins import build_updplugins_page
             return build_updplugins_page(self)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"OtherSettings: _open_updplugins_page error: {e}", False)
             return []
 
@@ -1791,7 +1846,8 @@ class OtherSettings:
         try:
             from .subsettings.Debug import build_debug_page
             return build_debug_page()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"OtherSettings: _open_debug_page error: {e}", False)
             return []
 
@@ -1803,7 +1859,8 @@ class OtherSettings:
             if not act:
                 return
             show_clear_ignore_list_dialog(act)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"OtherSettings: _onClearIgnoreListClick error: {e}", False)
 
     def build(self):

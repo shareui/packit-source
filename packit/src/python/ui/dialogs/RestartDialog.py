@@ -8,16 +8,19 @@ from client_utils import get_last_fragment
 
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"restartDialog: import elyx.strings failed: {e}", False)
 try:
     from org.telegram.ui.ActionBar import Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"restartDialog: import Theme failed: {e}", False)
 try:
     from org.telegram.ui.Components import LayoutHelper
     from org.telegram.messenger import AndroidUtilities
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"restartDialog: import AndroidUtilities/LayoutHelper failed: {e}", False)
 
 _ANIM_DURATION = 220
@@ -38,7 +41,8 @@ def _register_back_cb(act, on_back):
         cb = _Cb.new_instance(True)
         act.getOnBackPressedDispatcher().addCallback(act, cb.java)
         return cb
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"restartDialog: _register_back_cb error: {e}", False)
         return None
 
@@ -47,7 +51,8 @@ def _unregister_back_cb(cb):
     try:
         if cb is not None:
             cb.remove()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"restartDialog: _unregister_back_cb error: {e}", False)
 
 
@@ -75,7 +80,8 @@ def _animate_in(overlay, card):
         s = AnimatorSet()
         s.playTogether(fade_overlay, fade_card, scale_x, scale_y)
         s.start()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"restartDialog: _animate_in error: {e}", False)
 
 
@@ -113,7 +119,8 @@ def _animate_out(overlay_ref, card, decor, on_end=None):
         s.playTogether(fade_overlay, fade_card, scale_x, scale_y)
         s.addListener(_EndListener())
         s.start()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"restartDialog: _animate_out error: {e}", False)
         try:
             decor.removeView(overlay_ref[0])
@@ -328,7 +335,8 @@ def _show(restart_type: str, fragment):
             try:
                 from ...deeplinks import Pkill
                 Pkill.handle("tg://packit?pkill")
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"restartDialog: pkill error: {e}", False)
 
         restart_btn = _make_action_btn(act, str(strings["restart_now"]), accent_color, is_primary=True)
@@ -355,7 +363,8 @@ def _show(restart_type: str, fragment):
         decor.addView(overlay, ViewGroup.LayoutParams(-1, -1))
         back_cb_ref[0] = _register_back_cb(act, _dismiss)
         run_on_ui_thread(lambda: _animate_in(overlay, card))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"restartDialog: _show error: {e}", False)
 
 

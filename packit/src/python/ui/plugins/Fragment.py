@@ -23,42 +23,50 @@ from client_utils import get_last_fragment, run_on_queue
 from ui.bulletin import BulletinHelper
 try:
     from elyx import settings, strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import elyx import settings, strings failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.ui.ActionBar import Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.ui.ActionBar import Theme failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.ui.Components import LayoutHelper, BackupImageView, EditTextBoldCursor
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.ui.Components import LayoutHelper, BackupImageView, EditTextBoldCursor failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from org.telegram.messenger import AndroidUtilities, MediaDataController, ImageLocation, R as R_tg
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities, MediaDataController, ImageLocation, R as R_tg failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 from android_utils import OnClickListener
 try:
     from com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from com.exteragram.messenger.utils.text import LocaleUtils
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import com.exteragram.messenger.utils.text import LocaleUtils failed: {e}")
 try:
     from org.telegram.ui.ActionBar import ActionBarPopupWindow
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.ui.ActionBar import ActionBarPopupWindow failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from android.net import Uri
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import android.net import Uri failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
@@ -67,32 +75,38 @@ except Exception:
     Browser = None
 try:
     from androidx.core.content import ContextCompat
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import androidx.core.content import ContextCompat failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from android.graphics.drawable import GradientDrawable, RippleDrawable
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import android.graphics.drawable import GradientDrawable, RippleDrawable failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from android.graphics import Color as AColor, PorterDuff
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import android.graphics import Color, PorterDuff failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from android.content.res import ColorStateList as AColorStateList
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import android.content.res import ColorStateList failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from android.view import View as AView, Gravity as AGravity
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import android.view import View, Gravity failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from android.widget import FrameLayout as AFrame, LinearLayout as ALinear, TextView as AText, ImageView as AImage
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import android.widget import FrameLayout, LinearLayout, TextView, ImageView failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 
@@ -255,7 +269,8 @@ class InstallUI:
                             for entry in entries:
                                 all_plugins.append(
                                     {"repo_name": repo_name, "_repo_id": r_id, **entry})
-                        except Exception as e:
+                        except Exception as _cython_exc_e:
+                            e = _cython_exc_e
                             logx(f"InstallUI: repo '{r_id}' load failed: {e}", True)
                     run_on_ui_thread(lambda: self._update_current_fragment_plugins(all_plugins))
                 else:
@@ -272,10 +287,12 @@ class InstallUI:
                     try:
                         from ...utils import RepoStats
                         RepoStats.remember(repo_id, plugins=len(plugins))
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"InstallUI: repo stats write failed: {e}", True)
                     run_on_ui_thread(lambda: self._update_current_fragment_plugins(plugins))
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 BulletinHelper.show_error(str(strings["pl_load_failed"]))
                 run_on_ui_thread(lambda: self._update_current_fragment_plugins([]))
             finally:
@@ -295,7 +312,8 @@ class InstallUI:
             if not fragment:
                 return
             self._show_plugins_universal(self.title if hasattr(self, 'title') else "Plugins", plugins)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             pass
 
     def _open_repo_plugins(self, repo):
@@ -346,7 +364,8 @@ class InstallUI:
                 # data arrived before beforeCreateView, gate does not exist yet, flag it for build_list_view
                 logx(f"InstallUI: _update_current_fragment_plugins id={id(delegate)} branch=flag_before_view plugins={len(delegate.plugins)}", True)
                 delegate._data_ready_before_view = True
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"InstallUI: _update_current_fragment_plugins error: {e}", False)
 
     def _show_plugins_universal(self, repo_name: str, plugins: list, repo_id: str = ""):
@@ -380,9 +399,11 @@ class InstallUI:
                                 pass
                     except Exception:
                         pass
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 pass
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             pass
 
     class PluginListFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
@@ -438,7 +459,8 @@ class InstallUI:
                             lc.setVisibility(AView.VISIBLE)
                             rc.setVisibility(AView.GONE)
                             logx("InstallUI: _on_restore visibility set — loading visible, results gone", True)
-                    except Exception as ex:
+                    except Exception as _cython_exc_ex:
+                        ex = _cython_exc_ex
                         logx(f"InstallUI: _on_restore visibility error: {ex}", True)
                     logx("InstallUI: _on_restore triggering _reload_current_plugins", True)
                     self.install_ui._reload_current_plugins(self.repo_id)
@@ -446,7 +468,8 @@ class InstallUI:
                 self._no_internet_banner._on_network_restored_callback = _on_restore
                 self._no_internet_banner.register()
                 logx(f"InstallUI: NoInternetBanner registered for fragment id={id(self)}", True)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"InstallUI: NoInternetBanner register error: {e}", False)
 
         def onFragmentDestroy(self, *_):
@@ -456,7 +479,8 @@ class InstallUI:
                 if banner:
                     banner.unregister()
                     self._no_internet_banner = None
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"InstallUI: NoInternetBanner unregister error: {e}", False)
             try:
                 if hasattr(self, 'content_view') and self.content_view is not None:
@@ -493,7 +517,8 @@ class InstallUI:
                                 if not act:
                                     return
                                 show_tg_channel_sheet(act, rp)
-                            except Exception as e:
+                            except Exception as _cython_exc_e:
+                                e = _cython_exc_e
                                 pass
 
                         run_on_ui_thread(_show, 500)
@@ -501,7 +526,8 @@ class InstallUI:
                         pass
                 else:
                     pass
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 pass
 
         def _handle_repo_select(self, selected):
@@ -532,7 +558,8 @@ class InstallUI:
                     view = _lv.build_list_view(self)
                     if view is not None:
                         shell.addView(view, FrameLayout.LayoutParams(-1, -1))
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"InstallUI: deferred build_list_view error: {e}", False)
             # let the open animation start smoothly before the heavy build
             run_on_ui_thread(_deferred, 30)
@@ -569,7 +596,8 @@ class InstallUI:
                     fragment = get_last_fragment()
                     if fragment:
                         fragment.finishFragment()
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     pass
 
         def _get_localized_description(self, plugin):
@@ -700,7 +728,8 @@ class InstallUI:
                             p for p in filtered
                             if (str(p.get("id") or "") in saved_ids) == show_saved
                         ]
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"pluginList: saved filter error: {e}", False)
             
             if not q:
@@ -780,7 +809,8 @@ class InstallUI:
                 _banner = getattr(self, '_no_internet_banner', None)
                 if _banner:
                     _banner.on_config_loaded()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"InstallUI: NoInternetBanner on_config_loaded error: {e}", False)
             try:
                 if hasattr(self, 'subtitle'):
@@ -797,7 +827,8 @@ class InstallUI:
                     logx(f"InstallUI: _finish_loading_and_show_plugins id={id(self)} branch=empty_state", True)
                     self._dismiss_loading_container(content_wrapper)
                     self._show_empty_state()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"InstallUI: _finish_loading_and_show_plugins error: {e}", False)
                 try:
                     self._dismiss_loading_container(content_wrapper)
@@ -806,7 +837,8 @@ class InstallUI:
                         self.build_list_with_sort("alpha_az")
                     else:
                         self._show_empty_state()
-                except Exception as e2:
+                except Exception as _cython_exc_e2:
+                    e2 = _cython_exc_e2
                     logx(f"InstallUI: _finish_loading_and_show_plugins fallback error: {e2}", False)
 
         def _dismiss_loading_container(self, content_wrapper=None):
@@ -841,17 +873,20 @@ class InstallUI:
                             if parent is not None:
                                 parent.removeView(self._view)
                                 return
-                        except Exception as e:
+                        except Exception as _cython_exc_e:
+                            e = _cython_exc_e
                             logx(f"InstallUI: _dismiss_loading_container removeView failed: {e}", False)
                     logx("InstallUI: _dismiss_loading_container removeView no parent succeeded", False)
 
             try:
                 lc.animate().alpha(0.0).setDuration(150).withEndAction(_RemoveRunnable(lc, cv, cw)).start()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"InstallUI: _dismiss_loading_container animate().start() failed: {e}", False)
                 try:
                     cv.removeView(lc)
-                except Exception as e2:
+                except Exception as _cython_exc_e2:
+                    e2 = _cython_exc_e2
                     logx(f"InstallUI: _dismiss_loading_container fallback removeView failed: {e2}", False)
 
         def _show_empty_state(self):
@@ -919,7 +954,8 @@ class InstallUI:
                                         self.outer.results_container.setVisibility(View.GONE)
                                 else:
                                     logx(f"InstallUI: retry — no loading_container (is None={self.outer.loading_container is None})", True)
-                            except Exception as ex:
+                            except Exception as _cython_exc_ex:
+                                ex = _cython_exc_ex
                                 logx(f"InstallUI: retry visibility error: {ex}", True)
                             logx("InstallUI: retry — calling _reload_current_plugins", True)
                             self.outer.install_ui._reload_current_plugins(self.outer.repo_id)
@@ -929,12 +965,14 @@ class InstallUI:
                     lp_btn = LayoutHelper.createLinear(-2, -2, 0, 16, 0, 0)
                     lp_btn.gravity = Gravity.CENTER_HORIZONTAL
                     empty_container.addView(retry, lp_btn)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     pass
                 
                 self.results_container.addView(empty_container, LayoutHelper.createLinear(-1, -2))
                 self.is_loading = False
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 pass
 
         def _show_bottom_spinner(self):
@@ -1031,7 +1069,8 @@ class InstallUI:
                 self.is_loading = False
                 if len(self.visible_plugins) < len(self.filtered_plugins):
                     self._rearm_load_trigger()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 self.is_loading = False
 
         def _prewarm_pill(self):
@@ -1087,7 +1126,8 @@ class InstallUI:
                             items_to_add.append(item)
 
                     run_on_ui_thread(lambda: self._add_items_with_animation(items_to_add))
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"InstallUI: _load_initial_batch load_batch error: {e}", False)
                     self.is_loading = False
             threading.Thread(target=load_batch, daemon=True).start()
@@ -1112,7 +1152,8 @@ class InstallUI:
                             items_to_add.append(item)
 
                     run_on_ui_thread(lambda: self._add_items_with_animation(items_to_add, animate=False))
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     self.is_loading = False
             threading.Thread(target=load_batch, daemon=True).start()
 

@@ -14,27 +14,33 @@ from client_utils import get_last_fragment
 from packutil import logx
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"card: import strings failed: {e}")
 try:
     from org.telegram.ui.ActionBar import Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"card: import Theme failed: {e}")
 try:
     from org.telegram.ui.Components import LayoutHelper, BackupImageView
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"card: import LayoutHelper, BackupImageView failed: {e}")
 try:
     from org.telegram.messenger import AndroidUtilities, MediaDataController, ImageLocation, R as R_tg
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"card: import AndroidUtilities etc failed: {e}")
 try:
     from com.exteragram.messenger.utils.text import LocaleUtils
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"card: import LocaleUtils failed: {e}")
 try:
     from android.net import Uri
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"card: import Uri failed: {e}")
 try:
     from org.telegram.messenger.browser import Browser
@@ -117,7 +123,8 @@ def make_plugin_card(self, p):
             stub_lp.rightMargin = AndroidUtilities.dp(12)
             stub_lp.topMargin = AndroidUtilities.dp(5)
             top_row.addView(stub_view, stub_lp)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"PluginList: stub icon error: {e}", False)
     if show_icon:
         try:
@@ -137,7 +144,8 @@ def make_plugin_card(self, p):
                 try:
                     from ..plugin.Fragment import show_plugin_profile
                     show_plugin_profile(plugin, self.install_ui, self.plugins, repo_id=self.repo_id or str(plugin.get("_repo_id") or ""))
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     pass
 
             icon_view.setClickable(True)
@@ -152,7 +160,8 @@ def make_plugin_card(self, p):
             # MediaDataController and BackupImageView.setImage must run on the UI thread
             from ...utils.Stickers import load_sticker
             run_on_ui_thread(lambda: load_sticker(icon_view, icon_str, icon_size_dp))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             pass
 
     col = LinearLayout(act)
@@ -278,7 +287,8 @@ def make_plugin_card(self, p):
                             intent.setData(Uri.parse(url))
                             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             ctx.startActivity(intent)
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         pass
                 tag_tv.setOnClickListener(OnClickListener(onTagClick))
                 self.install_ui._apply_press_scale(tag_tv)
@@ -471,17 +481,20 @@ def make_plugin_card(self, p):
                         hint.setJointPx(0.0, float(-AndroidUtilities.dp(32)) + center_x)
                         hint.setDuration(5500)
                         hint.show()
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         pass
 
                 run_on_ui_thread(_position_and_show)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 pass
 
         try:
             from ..plugin.Fragment import show_plugin_profile
             show_plugin_profile(plugin, self.install_ui, self.plugins, repo_id=self.repo_id or str(plugin.get("_repo_id") or ""))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             pass
 
     def onCardClick(v, plugin=p, row_ref=row, hint_ref=current_hint_ref, available=is_available):
@@ -489,7 +502,8 @@ def make_plugin_card(self, p):
             try:
                 from ..plugin.Fragment import show_plugin_profile
                 show_plugin_profile(plugin, self.install_ui, self.plugins, repo_id=self.repo_id or str(plugin.get("_repo_id") or ""))
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 pass
 
     install_btn.setOnClickListener(OnClickListener(onViewClick))
@@ -540,7 +554,8 @@ def make_plugin_card(self, p):
     try:
         from elyx import assets
         copyLinkSoundPath = assets.sounds.copy_link.path_str
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"card: copy-link sound asset unavailable: {e}", False)
         copyLinkSoundPath = None
     act_for_share = fragment.getParentActivity() if hasattr(fragment, "getParentActivity") else None
@@ -563,7 +578,8 @@ def make_plugin_card(self, p):
                 all_plugins=self.plugins,
                 rm_rid=self.repo_id or str(p.get("_repo_id") or ""),
             )
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"card: install from card error: {e}", False)
 
     def do_download_relocated():
@@ -571,7 +587,8 @@ def make_plugin_card(self, p):
         try:
             from ..achievements.service.AchivementsEngine import increment_category
             increment_category("Downloading")
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             pass
 
     def do_copy_relocated():
@@ -579,7 +596,8 @@ def make_plugin_card(self, p):
         try:
             from ..achievements.service.AchivementsEngine import increment_category
             increment_category("Copying links")
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             pass
 
     def do_share_relocated():
@@ -587,7 +605,8 @@ def make_plugin_card(self, p):
         try:
             from ..achievements.service.AchivementsEngine import increment_category
             increment_category("Sharing")
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             pass
 
     def do_code_relocated():
@@ -595,7 +614,8 @@ def make_plugin_card(self, p):
         try:
             from ..achievements.service.AchivementsEngine import increment_category
             increment_category("Viewing code")
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             pass
 
     def do_translate_relocated():
@@ -606,7 +626,8 @@ def make_plugin_card(self, p):
         try:
             from ..achievements.service.AchivementsEngine import increment_category
             increment_category("Reporting")
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             pass
 
     spacer = View(act)
@@ -691,7 +712,8 @@ def make_plugin_card(self, p):
                 {"icon": "msg_replace",   "text": str(strings["translate"]), "action": do_translate, "show": not getattr(self, "_s_relocate_translate", False)},
                 {"icon": "msg_report",    "text": str(strings["report"]),    "action": do_report,    "show": not getattr(self, "_s_relocate_report",    False), "red": True},
             ])
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             pass
 
     if self._s_show_details_button:

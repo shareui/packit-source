@@ -46,5 +46,7 @@ class Main(BasePlugin):
     def create_settings(self) -> List[Any]:
         return main.create_settings(self)
 
-for _name, _method in main._AUTOCOMPLETE_METHODS.items():
+import logging
+logging.error(f"main is {main}, dir: {dir(main)}")
+for _name, _method in main.AUTOCOMPLETE_METHODS.items():
     setattr(Main, _name, _method)

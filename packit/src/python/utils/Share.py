@@ -56,14 +56,16 @@ def _do_share(plugin_info: dict, display_name: str):
                 loading.set_cancelable(False)
                 dlg_ref[0] = loading.create()
                 dlg_ref[0].show()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"share: show_spinner error: {e}", False)
 
         def dismiss_spinner():
             try:
                 if dlg_ref[0]:
                     dlg_ref[0].dismiss()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"share: dismiss_spinner error: {e}", False)
 
         run_on_ui_thread(show_spinner)
@@ -121,7 +123,8 @@ def _do_share(plugin_info: dict, display_name: str):
                                 container = _frag.getParentActivity().getWindow().getDecorView()
                                 rp = _frag.getResourceProvider()
                                 _pbf(container, rp).createSimpleBulletin(R_tg.raw.voip_invite, _strings["plugin_install_success"]).show()
-                            except Exception as _be:
+                            except Exception as _cython_exc__be:
+                                _be = _cython_exc__be
                                 logx(f"share.ShareDelegate.didShare: {_be}", True)
                         from android_utils import run_on_ui_thread as _run_ui
                         _run_ui(_show_bulletin)
@@ -140,12 +143,14 @@ def _do_share(plugin_info: dict, display_name: str):
                 )
                 share_alert.setDelegate(ShareDelegate())
                 frag.showDialog(share_alert)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"share: open_share error: {e}", False)
                 BulletinHelper.show_error(_ss("share_failed"))
 
         run_on_ui_thread(open_share)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"share: _do_share error: {e}", False)
         from android_utils import run_on_ui_thread
         run_on_ui_thread(lambda: BulletinHelper.show_error(_ss("share_failed")))

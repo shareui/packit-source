@@ -29,7 +29,8 @@ def _start_workers(q, count, name):
             fn = q.get()
             try:
                 fn()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"netQueue: {name} task error: {e}", False)
             finally:
                 q.task_done()

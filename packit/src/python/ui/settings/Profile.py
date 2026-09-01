@@ -12,7 +12,9 @@ import threading
 import time
 try:
     from elyx import strings, settings
-except Exception as e:
+    from org.telegram.messenger import R
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import elyx import strings, settings failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 from ..achievements.service.AchivementsEngine import get_all_with_progress, get_stats
@@ -133,7 +135,8 @@ def _make_profile_header(context):
 
         container.addView(content, LayoutHelper.createFrame(-1, -2, Gravity.CENTER))
         return container
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"profile._make_profile_header: error: {e}", False)
         return None
 
@@ -158,7 +161,8 @@ class ProfileSettings:
             except Exception:
                 pass
             return item
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"profile._make_header_item: error: {e}", False)
             return None
 
@@ -175,7 +179,8 @@ class ProfileSettings:
 
             cat_names = list(categories.keys())
             show_achievements(categories, cat_names)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"profile._show_achievements: error: {e}", False)
 
     def _do_export(self, include_local_config: bool, include_achievements: bool, include_saved_plugins: bool):
@@ -232,7 +237,8 @@ class ProfileSettings:
                                     container = _fragment.getParentActivity().getWindow().getDecorView()
                                     rp = _fragment.getResourceProvider()
                                     _pbf(container, rp).createSimpleBulletin(R_tg.raw.voip_invite, strings["export_db_done_share"]).show()
-                                except Exception as _be:
+                                except Exception as _cython_exc__be:
+                                    _be = _cython_exc__be
                                     logx(f"profile.ShareDelegate.didShare: {_be}", True)
                             run_on_ui_thread(_show_bulletin)
 
@@ -252,12 +258,14 @@ class ProfileSettings:
                     logx("profile.open_share: delegate set, showing dialog", True)
                     fragment.showDialog(share_alert)
                     logx("profile.open_share: showDialog returned", True)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"profile._do_export.open_share: {e}", False)
                     BulletinHelper.show_error(strings["export_db_error"])
 
             run_on_ui_thread(open_share)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"profile._do_export: {e}", False)
             from android_utils import run_on_ui_thread
             run_on_ui_thread(lambda: BulletinHelper.show_error(strings["export_db_error"]))
@@ -266,7 +274,8 @@ class ProfileSettings:
         try:
             from android_utils import run_on_ui_thread
             run_on_ui_thread(self._open_export_sheet)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"profile._show_export_db: error: {e}", False)
 
     def _open_export_sheet(self):
@@ -632,7 +641,8 @@ class ProfileSettings:
 
             sheet.setCustomView(outer)
             sheet.show()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"profile._open_export_sheet: error: {e}", False)
 
     def _make_stats_card(self, context):
@@ -860,11 +870,13 @@ class ProfileSettings:
                                     hint.setJointPx(0.0, jx)
                                     hint.setDuration(5500)
                                     hint.show()
-                                except Exception as e:
+                                except Exception as _cython_exc_e:
+                                    e = _cython_exc_e
                                     logx(f"profile: stat hint position error: {e}", False)
 
                             run_on_ui_thread(_show)
-                        except Exception as e:
+                        except Exception as _cython_exc_e:
+                            e = _cython_exc_e
                             logx(f"profile: stat hint error: {e}", False)
                     return onClick
 
@@ -889,7 +901,8 @@ class ProfileSettings:
                 root.addView(rowFrame, LayoutHelper.createLinear(-1, -2, 0, 0, 0, bottomM))
 
             return root
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"profile._make_stats_card: error: {e}", False)
             return None
 
@@ -907,7 +920,8 @@ class ProfileSettings:
                 statsCard = self._make_stats_card(ctx)
                 if statsCard is not None:
                     items.append(Custom(view=statsCard))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"profile.build: stats card error: {e}", False)
 
         items += [

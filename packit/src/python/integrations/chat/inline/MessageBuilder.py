@@ -13,7 +13,8 @@ from packutil import logx
 
 try:
     from org.telegram.tgnet import TLRPC
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"messageBuilder: import TLRPC failed: {e}")
     TLRPC = None
 
@@ -95,7 +96,8 @@ def build_plugin_message(name, version, author, plugin_id, repo_id, description,
                     tl_entity = ent.to_tlrpc_object()
                     tl_entity.offset = offset + ent.offset
                     entities.append(tl_entity)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"messageBuilder: entity convert error: {e}", False)
         else:
             desc_text = str(description)
@@ -122,7 +124,8 @@ def build_plugin_message(name, version, author, plugin_id, repo_id, description,
 
     try:
         entities.sort(key=lambda e: (int(e.offset), -int(e.length)))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"messageBuilder: entity sort skipped: {e}", True)
 
     return "".join(parts), entities
@@ -152,11 +155,13 @@ def edit_message_with_entities(message_object, text, entities):
             try:
                 helper.editMessage(message_object, None, None, None, None,
                                    None, None, False, False, None)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"messageBuilder: editMessage failed: {e}", False)
 
         run_on_ui_thread(_edit)
         return True
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"messageBuilder: edit_message_with_entities error: {e}", False)
         return False

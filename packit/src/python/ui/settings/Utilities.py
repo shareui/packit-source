@@ -12,7 +12,8 @@ from android_utils import run_on_ui_thread
 
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 
@@ -39,7 +40,8 @@ def _calcPluginsDirSize():
             except Exception:
                 pass
         return count, total_bytes
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"utilities._calcPluginsDirSize: {e}", False)
         return 0, 0
 
@@ -68,14 +70,16 @@ class UtilitiesSettings:
             )
             self._size_loaded = True
             self._reloadSettings()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"utilities._loadSubtextInBackground: {e}", False)
 
     def _reloadSettings(self):
         try:
             from com.exteragram.messenger.plugins import PluginsController
             PluginsController.getInstance().loadPluginSettings("shareui_packit")
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"utilities._reloadSettings: {e}", False)
 
     def _on_export(self, selected_files, export_settings, export_locally):
@@ -99,14 +103,16 @@ class UtilitiesSettings:
                 loading.set_cancelable(False)
                 dlg_ref[0] = loading.create()
                 dlg_ref[0].show()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"utilities._share_afp: show_spinner error: {e}", False)
 
         def dismiss_spinner():
             try:
                 if dlg_ref[0]:
                     dlg_ref[0].dismiss()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"utilities._share_afp: dismiss_spinner error: {e}", False)
 
         def load_and_show():
@@ -114,7 +120,8 @@ class UtilitiesSettings:
                 from ..dialogs.ExportBottomSheet import loadPlugins, show as showExportSheet
                 plugins = loadPlugins()
                 run_on_ui_thread(lambda: (dismiss_spinner(), showExportSheet(plugins, self._on_export)))
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"utilities._share_afp: load_and_show error: {e}", False)
                 run_on_ui_thread(lambda: (dismiss_spinner(), BulletinHelper.show_error(strings["utilities_afp_error"])))
 

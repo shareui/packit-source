@@ -210,8 +210,8 @@ def _buildScrollButtonToggle(context, key, default):
                 row.addView(col, LayoutHelper.createLinear(0, -2, 1.0, Gravity.TOP, 0, 0, 0, 0))
 
         return root
-    except Exception as e:
-        
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"interface: _buildScrollButtonToggle error: {e}", False)
         return None
 

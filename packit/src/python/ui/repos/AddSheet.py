@@ -23,13 +23,15 @@ from java import dynamic_proxy
 
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"repos dialog: import elyx strings failed: {e}")
 try:
     from org.telegram.ui.ActionBar import Theme
     from org.telegram.ui.Components import LayoutHelper, EditTextBoldCursor, OutlineTextContainerView
     from org.telegram.messenger import AndroidUtilities, R as R_tg
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"repos dialog: import telegram classes failed: {e}")
 
 from ..settings.service.AddKeyDialog import (
@@ -123,7 +125,8 @@ def _make_field(act, label: str, hint: str, value: str, uri: bool, max_length: i
             from java import jarray
             from android.text import InputFilter
             edit.setFilters(jarray(InputFilter)([InputFilter.LengthFilter(max_length)]))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"repos addSheet: length filter unavailable: {e}", True)
     if value:
         edit.setText(value)
@@ -275,7 +278,8 @@ def _show_form_dialog(act, title: str, subtitle: str, fields: list, button_text:
             button.setRound()
             button.setText(button_text, False)
             card.addView(button, LayoutHelper.createLinear(-1, 48, 0, 6, 0, 0))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"repos dialog: counter button unavailable: {e}", True)
             button = None
 
@@ -313,7 +317,8 @@ def _show_form_dialog(act, title: str, subtitle: str, fields: list, button_text:
                         error_tv.setVisibility(0)
                         error_tv.setAlpha(0.0)
                         error_tv.animate().alpha(1.0).setDuration(160).start()
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"repos dialog: error paint failed: {e}", False)
                 run_on_ui_thread(_apply)
 
@@ -327,7 +332,8 @@ def _show_form_dialog(act, title: str, subtitle: str, fields: list, button_text:
                             button.setLoading(bool(value))
                         else:
                             button_tv.setAlpha(0.4 if value else 1.0)
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"repos dialog: loading paint failed: {e}", False)
                 run_on_ui_thread(_apply)
 
@@ -354,7 +360,8 @@ def _show_form_dialog(act, title: str, subtitle: str, fields: list, button_text:
             ui.error(None)
             try:
                 on_submit(values, ui)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"repos dialog: submit error: {e}", False)
                 ui.loading(False)
                 ui.error(_s("repo_err_unknown", "{0}").replace("{0}", str(e)))
@@ -380,7 +387,8 @@ def _show_form_dialog(act, title: str, subtitle: str, fields: list, button_text:
                 AndroidUtilities.showKeyboard(edits[0]) if edits else None))
 
         run_on_ui_thread(_open)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"repos dialog: show error: {e}", False)
 
 
@@ -443,7 +451,8 @@ def _added(delegate):
         rp = frag.getResourceProvider()
         _pbf(container, rp).createSimpleBulletin(
             R_tg.raw.shared_link_enter, str(strings.repository_added)).show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"repos dialog: added bulletin error: {e}", True)
     try:
         delegate.reload()

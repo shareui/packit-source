@@ -6,14 +6,16 @@ from packutil import logx
 from .Bulletins import factory as _pbf
 try:
     from org.telegram.messenger import AndroidUtilities, R as R_tg
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities, R as R_tg failed: {e}")
     from .ImportFailed import showImportFailedAlert as _sifa; _sifa()
 from client_utils import get_last_fragment
 from hook_utils import find_class
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
     from .ImportFailed import showImportFailedAlert as _sifa; _sifa()
 
@@ -35,5 +37,6 @@ def copy_share_link(plugin_info: dict, repo_title: str):
         AndroidUtilities.addToClipboard(share_link)
         plugin_name = plugin_info.get("name") or plugin_info.get("id") or "Unknown"
         _pbf(container, resource_provider).createSimpleBulletin(R_tg.raw.voip_invite, strings("plugin_link_copied", plugin_name)).show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"copy: failed to copy link: {e}", False)

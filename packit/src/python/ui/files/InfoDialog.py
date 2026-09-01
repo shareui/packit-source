@@ -9,16 +9,19 @@ from android_utils import run_on_ui_thread, OnClickListener
 
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"infoDialog: import elyx.strings failed: {e}", False)
 try:
     from org.telegram.ui.ActionBar import Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"infoDialog: import Theme failed: {e}", False)
 try:
     from org.telegram.ui.Components import LayoutHelper
     from org.telegram.messenger import AndroidUtilities
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"infoDialog: import AndroidUtilities/LayoutHelper failed: {e}", False)
 
 _ANIM_DURATION = 220
@@ -39,7 +42,8 @@ def _register_back_cb(act, on_back):
         cb = _Cb.new_instance(True)
         act.getOnBackPressedDispatcher().addCallback(act, cb.java)
         return cb
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"infoDialog: _register_back_cb error: {e}", False)
         return None
 
@@ -47,7 +51,8 @@ def _unregister_back_cb(cb):
     try:
         if cb is not None:
             cb.remove()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"infoDialog: _unregister_back_cb error: {e}", False)
 
 
@@ -75,7 +80,8 @@ def _animate_in(overlay, card):
         s = AnimatorSet()
         s.playTogether(fade_overlay, fade_card, scale_x, scale_y)
         s.start()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"infoDialog: _animate_in error: {e}", False)
 
 
@@ -111,7 +117,8 @@ def _animate_out(overlay_ref, card, decor):
         s.playTogether(fade_overlay, fade_card, scale_x, scale_y)
         s.addListener(_EndListener())
         s.start()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"infoDialog: _animate_out error: {e}", False)
         try:
             decor.removeView(overlay_ref[0])
@@ -128,7 +135,8 @@ def _copy_to_clipboard(decor, label: str, text: str):
             R_tg.raw.copy,
             str(strings["info_copied"]).format(label=label)
         ).show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"infoDialog: _copy_to_clipboard error: {e}", False)
 
 
@@ -374,5 +382,6 @@ def show_info_dialog(act, name: str, info: dict):
         decor.addView(overlay, ViewGroup.LayoutParams(-1, -1))
         back_cb_ref[0] = _register_back_cb(act, _dismiss)
         run_on_ui_thread(lambda: _animate_in(overlay, card))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"infoDialog: show_info_dialog error: {e}", False)

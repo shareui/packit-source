@@ -4,19 +4,22 @@
 from packutil import logx
 try:
     from org.telegram.ui.Components import ItemOptions
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"contextMenu: import ItemOptions failed: {e}")
     ItemOptions = None
 
 try:
     from org.telegram.messenger import R as R_tg
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"contextMenu: import R failed: {e}")
     R_tg = None
 
 try:
     from org.telegram.ui.ActionBar import Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"contextMenu: import Theme failed: {e}")
     Theme = None
 
@@ -40,7 +43,8 @@ def _make_runnable(fn) -> Runnable:
         def run(self):
             try:
                 self._f()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"contextMenu: runnable error: {e}", False)
     return _R(fn)
 
@@ -89,5 +93,6 @@ def show_plugin_context_menu(container, anchor_view, items: list):
                 menu.add(icon_res, text, runnable)
 
         menu.show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"contextMenu: show_plugin_context_menu error: {e}", False)

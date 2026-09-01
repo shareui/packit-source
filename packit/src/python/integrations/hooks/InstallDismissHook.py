@@ -22,16 +22,19 @@ class _InstallSuccessHook(MethodHook):
             try:
                 from ...ui.achievements.service.AchivementsEngine import increment_category
                 increment_category("Installing plugins")
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"installSuccessHook: achievements increment error: {e}", False)
             # backstop index write; core's pluginsUpdated observer is the
             # primary path. commit_pending consumes _pending -> idempotent.
             try:
                 from ...utils.InstallIndex import commit_pending
                 commit_pending()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"installSuccessHook: commit_pending error: {e}", False)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"installSuccessHook: error: {e}", False)
 
 
@@ -63,7 +66,8 @@ def setup_install_dismiss_hook(plugin) -> list:
         target.setAccessible(True)
         hooks.append(plugin.hook_method(target, _InstallSuccessHook()))
         logx(f"installDismissHook: install success hook registered ({target.getName()})", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"installDismissHook: setup error: {e}", False)
 
     return hooks

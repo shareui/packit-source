@@ -7,7 +7,8 @@ from android.media import MediaPlayer, AudioManager
 from java import dynamic_proxy
 try:
     from org.telegram.messenger import ApplicationLoader
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 
@@ -19,7 +20,8 @@ def handle(url):
         _playMaxVolume()
         from ...ui.achievements.service.AchivementsEngine import unlock_secret
         unlock_secret("premium")
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"deeplinks.premium: error: {e}", False)
 
 
@@ -40,7 +42,8 @@ def _playMaxVolume():
         # set system volume to max for the duration
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
         player.start()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"deeplinks.premium: player error: {e}", False)
         try:
             player.reset()
@@ -59,5 +62,6 @@ def _playMaxVolume():
 
     try:
         player.setOnCompletionListener(_Listener())
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"deeplinks.premium: completion listener error: {e}", False)

@@ -33,11 +33,17 @@ def getElyxArchivesDir() -> str:
     return _filesDir() + "/plugins/ElyxPlugins/archives"
 
 def getPackitArchivesDir() -> str:
-    return _filesDir() + "/plugins/ElyxPlugins/packit"
+    from cruel import get_share_dir
+    return str(get_share_dir())
 
 def getBitHashSoPath() -> str:
+    from cruel import get_source_dir
     from ..core.NativeLoader import detectArch
-    return _filesDir() + f"/plugins/ElyxPlugins/shareui_packit/packit/native/{detectArch()}/libbithash.so"
+    return str(get_source_dir() / "packit" / "native" / detectArch() / "libbithash.so")
+
+def getPackItPluginDir() -> str:
+    from cruel import get_source_dir
+    return str(get_source_dir())
 
 def getRepoCachePath(repoId: str) -> str:
     return _filesDir() + f"/packit/reposCache/{repoId}.json"
@@ -67,8 +73,7 @@ def getKeysDir() -> str:
 def getGeminiCachePath() -> str:
     return _filesDir() + "/packit/.cache/api/gemini.json"
 
-def getPackItPluginDir() -> str:
-    return _filesDir() + "/plugins/ElyxPlugins/shareui_packit"
+
 
 def _externalCacheDir() -> str:
     from org.telegram.messenger import ApplicationLoader
@@ -93,7 +98,8 @@ def _isWritableDir(path: str) -> bool:
             f.write(b"1")
         os.remove(probe)
         return True
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"paths: {path} not writable: {e}", False)
         return False
 
@@ -143,7 +149,8 @@ def stageFileForUpload(src: str, suffix: str = "") -> str:
             shutil.copyfile(src, dst)
             logx(f"paths: staged {src} -> {dst}", True)
             return dst
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             last = e
             logx(f"paths: staging into {directory} failed: {e}", False)
             try:

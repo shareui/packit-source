@@ -26,6 +26,7 @@ def factory(*fallback_args):
     if frag is not None:
         try:
             return BulletinFactory.of(frag)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"bulletins: fragment factory failed, using fallback: {e}", True)
     return BulletinFactory.of(*fallback_args)

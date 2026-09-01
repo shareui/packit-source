@@ -9,7 +9,8 @@ from client_utils import get_last_fragment
 from ui.bulletin import BulletinHelper
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"suggestion deeplink: import elyx failed: {e}")
 import json
 import os
@@ -51,7 +52,8 @@ def handle(url: str, plugin=None):
             return
 
         run_on_ui_thread(lambda: _open_fragment(data, plugin))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggestion deeplink: handle error: {e}", False)
 
 
@@ -59,5 +61,6 @@ def _open_fragment(data: dict, plugin=None):
     try:
         from ..ui.suggest.Fragment import show_suggest_fragment
         show_suggest_fragment(data, plugin)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"suggestion deeplink: _open_fragment error: {e}", False)

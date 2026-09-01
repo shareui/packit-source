@@ -25,7 +25,8 @@ from android_utils import run_on_ui_thread
 try:
     from org.telegram.messenger import AndroidUtilities
     from org.telegram.ui.ActionBar import Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"repoIcon: import telegram classes failed: {e}")
     AndroidUtilities = None
     Theme = None
@@ -156,7 +157,8 @@ def build_icon_view(ctx, repo: dict, size_dp: int = 48, radius_dp: int = 14, url
             image.setVisibility(0)  # VISIBLE
             mono.setVisibility(8)
             return holder
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"repoIcon: cached bind error: {e}", False)
 
     def _task():
@@ -176,7 +178,8 @@ def build_icon_view(ctx, repo: dict, size_dp: int = 48, radius_dp: int = 14, url
                 image.setAlpha(0.0)
                 image.animate().alpha(1.0).setDuration(160).start()
                 mono.setVisibility(8)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"repoIcon: bind error: {e}", False)
 
         run_on_ui_thread(_apply)

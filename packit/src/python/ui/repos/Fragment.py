@@ -22,24 +22,28 @@ from client_utils import get_last_fragment, run_on_queue
 
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"repos fragment: import elyx strings failed: {e}")
 try:
     from android.widget import FrameLayout, LinearLayout, TextView, ImageView, ScrollView
     from android.view import View, Gravity
     from android.util import TypedValue
     from android.graphics.drawable import GradientDrawable
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"repos fragment: import android widgets failed: {e}")
 try:
     from org.telegram.ui.ActionBar import Theme
     from org.telegram.ui.Components import LayoutHelper
     from org.telegram.messenger import AndroidUtilities, R as R_tg
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"repos fragment: import telegram classes failed: {e}")
 try:
     from com.exteragram.messenger.plugins.ui.components.templates import UniversalFragment
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"repos fragment: import UniversalFragment failed: {e}")
 
 from . import register, unregister
@@ -82,7 +86,8 @@ def read_repo_info(repo: dict) -> dict:
             info["plugins"] = counted["plugins"]
         if isinstance(counted.get("icons"), int):
             info["icons"] = counted["icons"]
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"repos: stats unavailable for '{repo_id}': {e}", True)
 
     cached = CachedRepos.read(repo_id)
@@ -136,7 +141,8 @@ class ReposFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                 if parent is not None:
                     parent.removeView(self._root)
                 self._root = None
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"repos fragment: onFragmentDestroy error: {e}", False)
 
     def beforeCreateView(self):
@@ -146,7 +152,8 @@ class ReposFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                 if parent is not None:
                     parent.removeView(self._root)
                 self._root = None
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"repos fragment: view cleanup error: {e}", False)
 
         frag = get_last_fragment()
@@ -189,7 +196,8 @@ class ReposFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
             self._root = root
             run_on_ui_thread(lambda: self.reload(), 30)
             return root
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"repos fragment: beforeCreateView error: {e}", False)
             return None
 
@@ -248,7 +256,8 @@ class ReposFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
                     return
                 try:
                     self._render(act, repos, infos)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"repos fragment: render error: {e}", False)
 
             run_on_ui_thread(_paint)
@@ -387,7 +396,8 @@ class ReposFragment(dynamic_proxy(UniversalFragment.UniversalFragmentDelegate)):
         try:
             self._summary.setBackground(Theme.createSimpleSelectorRoundRectDrawable(
                 AndroidUtilities.dp(16), card_bg, card_bg))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"repos fragment: summary pill background error: {e}", True)
         row.addView(self._summary, FrameLayout.LayoutParams(
             -2, -2, Gravity.LEFT | Gravity.CENTER_VERTICAL))
@@ -564,9 +574,11 @@ def show_repos_fragment(repoManager):
                             if f:
                                 f.finishFragment()
                         back_button.setOnClickListener(OnClickListener(_on_back))
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"repos fragment: actionbar setup error: {e}", False)
 
         _setup()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"repos fragment: show_repos_fragment error: {e}", False)

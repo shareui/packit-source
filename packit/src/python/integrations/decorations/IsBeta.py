@@ -8,15 +8,18 @@ from android.graphics.drawable import GradientDrawable
 from android.view import Gravity, MotionEvent, View
 from android_utils import run_on_ui_thread, OnClickListener
 from client_utils import get_last_fragment
+from java import dynamic_proxy
 try:
     from org.telegram.ui.ActionBar import Theme, BottomSheet
     from org.telegram.ui.Components import LayoutHelper
     from org.telegram.messenger import AndroidUtilities
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"isBeta: import tg classes failed: {e}")
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
     from ...utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 from ...utils.LocalConfig import LocalConfig
@@ -153,7 +156,8 @@ def _show_beta_dialog():
         # draw initial state then start ticking
         run_on_ui_thread(update_btn)
         run_on_ui_thread(tick, 1000)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"isBeta._show_beta_dialog: error: {e}", False)
 
 
@@ -162,7 +166,8 @@ def _check_beta():
         if LocalConfig.get("isBetaShow", False):
             return
         run_on_ui_thread(_show_beta_dialog)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"isBeta._check_beta: error: {e}", False)
 
 

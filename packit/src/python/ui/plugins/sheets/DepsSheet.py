@@ -13,23 +13,28 @@ from hook_utils import find_class
 from elyx import strings
 try:
     from org.telegram.ui.ActionBar import BottomSheet, Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"deps_sheet: import BottomSheet failed: {e}")
 try:
     from org.telegram.ui.Components import LayoutHelper, BackupImageView
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"deps_sheet: import LayoutHelper failed: {e}")
 try:
     from org.telegram.messenger import AndroidUtilities, MediaDataController, ImageLocation
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"deps_sheet: import AndroidUtilities failed: {e}")
 try:
     from com.exteragram.messenger.plugins import PluginsController
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"deps_sheet: import PluginsController failed: {e}")
 try:
     from org.telegram.messenger import NotificationCenter
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"deps_sheet: import NotificationCenter failed: {e}")
 
 
@@ -49,7 +54,8 @@ def _check_deps_status(deps: list) -> dict:
             if not isinstance(dep_id, str) or not dep_id:
                 continue
             result[dep_id] = controller.getPluginEngine(dep_id) is not None
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"deps_sheet: _check_deps_status error: {e}", False)
     return result
 
@@ -193,7 +199,8 @@ def show_deps_sheet(install_ui, plugin_info: dict, on_confirm, all_plugins: list
                 dismissed_by_button[0] = True
                 try:
                     sheet.dismiss()
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"depsSheet: sheet.dismiss error: {e}", False)
                 fresh = _check_deps_status(deps)
                 if all(fresh.values()):
@@ -209,7 +216,8 @@ def show_deps_sheet(install_ui, plugin_info: dict, on_confirm, all_plugins: list
                         _pbf(container, rp).createErrorBulletin(
                             strings["deps_sheet_need_install"]
                         ).show()
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"depsSheet: bulletin error: {e}", False)
 
             action_btn.setOnClickListener(OnClickListener(on_action))
@@ -272,11 +280,13 @@ def show_deps_sheet(install_ui, plugin_info: dict, on_confirm, all_plugins: list
                             on_cancel(False)
 
                 sheet.setOnDismissListener(_OnDismiss())
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"depsSheet: setOnDismissListener error: {e}", False)
 
             sheet.show()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"deps_sheet: show error: {e}", False)
             on_confirm()
 
@@ -328,7 +338,8 @@ def _make_dep_card(act, dep_id, dep_name, dep_version, dep_author, dep_min_versi
             main_row.addView(icon_view, icon_lp)
             from ....utils.Stickers import load_sticker
             load_sticker(icon_view, dep_icon, icon_size_dp)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"depsSheet: icon init error for '{dep_id}': {e}", False)
 
     # status icon
@@ -477,9 +488,11 @@ def _make_dep_card(act, dep_id, dep_name, dep_version, dep_author, dep_min_versi
                             observer_registered[0], NotificationCenter.pluginsUpdated
                         )
                         observer_registered[0] = None
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"depsSheet: removeObserver error: {e}", False)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"depsSheet: _do_refresh error for '{dep_id}': {e}", False)
 
         def on_install(v):
@@ -500,7 +513,8 @@ def _make_dep_card(act, dep_id, dep_name, dep_version, dep_author, dep_min_versi
                         obs, NotificationCenter.pluginsUpdated
                     )
                     observer_registered[0] = obs
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"depsSheet: addObserver error: {e}", False)
             install_plugin(dep_meta, install_ui=install_ui)
 

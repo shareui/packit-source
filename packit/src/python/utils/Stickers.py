@@ -108,7 +108,8 @@ def _set_placeholder(view, size_dp):
         block.setCornerRadius(float(AndroidUtilities.dp(max(4, int(size_dp) // 6))))
         block.setColor(ctypes.c_int32((0x33 << 24) | (r << 16) | (g << 8) | b).value)
         view.setBackground(block)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"stickers: placeholder error: {e}", False)
 
 
@@ -190,7 +191,8 @@ def _request_set(view, pack, idx, size_dp) -> bool:
                         return
                     if not _bind(view, ss, idx, size_dp):
                         logx(f"stickers: '{pack}/{idx}' unresolved (set missing or too short)", False)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"stickers: bind error for '{pack}/{idx}': {e}", False)
 
             run_on_ui_thread(_apply)
@@ -210,7 +212,8 @@ def _request_set(view, pack, idx, size_dp) -> bool:
             from java.lang import Integer as JInteger
             mdc.getStickerSet(inp, JInteger(0), False, cb)
         return True
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"stickers: getStickerSet route unavailable ({e}), using notifications", False)
         return False
 
@@ -226,7 +229,8 @@ def _flush(name):
         try:
             if not _bind(view, _resolve_set(_mdc(), pack), idx, size_dp):
                 survivors.append(entry)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"stickers: flush apply error: {e}", False)
     bound = len(_pending) - len(survivors)
     _pending[:] = survivors
@@ -257,20 +261,23 @@ def _ensure_observer():
                         return
                     name = str(args[0]) if args else None
                     run_on_ui_thread(lambda: _flush(name))
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"stickers: observer error: {e}", False)
 
         obs = _Obs()
         NotificationCenter.getInstance(_account()).addObserver(obs, NotificationCenter.diceStickersDidLoad)
         _global_obs = obs
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"stickers: addObserver failed: {e}", False)
 
 
 def _load_via_notification(view, pack, idx, size_dp):
     try:
         _mdc().loadStickersByEmojiOrName(pack, False, True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"stickers: loadStickersByEmojiOrName error: {e}", False)
     _pending.append([view, pack, idx, size_dp])
     if len(_pending) > _CAP:
@@ -296,7 +303,8 @@ def load_sticker(view, icon_str, size_dp=130):
         if _request_set(view, pack, idx, size_dp):
             return
         _load_via_notification(view, pack, idx, size_dp)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"stickers: load_sticker error: {e}", False)
 
 

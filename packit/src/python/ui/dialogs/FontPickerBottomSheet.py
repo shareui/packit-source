@@ -12,26 +12,30 @@ from android_utils import OnClickListener
 
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"FontPickerBottomSheet: import elyx failed: {e}", False)
     strings = None
 
 try:
     from org.telegram.ui.ActionBar import BottomSheet, Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"FontPickerBottomSheet: import BottomSheet/Theme failed: {e}", False)
     BottomSheet = None
     Theme = None
 
 try:
     from org.telegram.ui.Components import LayoutHelper
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"FontPickerBottomSheet: import LayoutHelper failed: {e}", False)
     LayoutHelper = None
 
 try:
     from org.telegram.messenger import AndroidUtilities
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     logx(f"FontPickerBottomSheet: import AndroidUtilities failed: {e}", False)
     AndroidUtilities = None
 
@@ -245,7 +249,8 @@ def _loadTypefaceForFile(filename):
         path = getFontPath(filename)
         if path:
             return Typeface.createFromFile(path)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"FontPickerBottomSheet: _loadTypefaceForFile error: {e}", False)
     return None
 
@@ -373,7 +378,8 @@ def _onStylePicked(filename, style_sheet, parent_sheet, act, on_select):
         showFontPicker(act, on_select)
         if on_select:
             on_select(filename)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"FontPickerBottomSheet: _onStylePicked error: {e}", False)
 
 
@@ -419,7 +425,8 @@ def _showStyleSheet(act, family, styles, selected_filename, parent_sheet, on_sel
 
         sheet.setCustomView(root)
         sheet.show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"FontPickerBottomSheet: _showStyleSheet error: {e}", False)
 
 
@@ -430,7 +437,8 @@ def _onDefaultPicked(sheet, act, on_select):
         showFontPicker(act, on_select)
         if on_select:
             on_select("")
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"FontPickerBottomSheet: _onDefaultPicked error: {e}", False)
 
 
@@ -493,5 +501,6 @@ def showFontPicker(act, on_select=None):
 
         sheet.setCustomView(root)
         sheet.show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"FontPickerBottomSheet: showFontPicker error: {e}", False)

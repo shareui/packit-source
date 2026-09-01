@@ -75,7 +75,8 @@ class _TopPanelHook(MethodHook):
             sb.append(" ")
             sb.append(entry["text"])
             hint.setText(sb)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"[Packit Badges] ChatHook error: {e}", False)
 
 
@@ -91,6 +92,7 @@ def setup_chat_badge_hook(plugin, cache_lookup):
         else:
             logx("[Packit Badges] updateTopPanel hook failed", True)
         return refs or []
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"[Packit Badges] chat hook setup error: {e}", False)
         return []

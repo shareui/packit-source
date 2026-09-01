@@ -16,7 +16,6 @@
 from packutil import logx
 import os
 
-_DEX_PATH = "/plugins/ElyxPlugins/shareui_packit/packit/dex/packit.dex"
 
 _BADGES_CLASS = "kawaii.packetik.badges.BadgesNative"
 _OPENFILE_CLASS = "kawaii.packetik.openfile.OpenFileNative"
@@ -28,8 +27,8 @@ _classes = {}       # entrypoint Class objects by name, kept for later calls
 
 
 def _dexPath() -> str:
-    from ..utils.Paths import _filesDir
-    return _filesDir() + _DEX_PATH
+    from cruel import get_source_dir
+    return str(get_source_dir() / "packit" / "dex" / "packit.dex")
 
 
 def _dexLoader(context):
@@ -63,7 +62,8 @@ def _loadClass(className: str, context):
         return None
     try:
         cls = loader.loadClass(className)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"dexLoader: {className} not in packit.dex: {e}", False)
         return None
     _classes[className] = cls
@@ -101,7 +101,8 @@ def loadBadges(context, enabled: bool) -> bool:
         _callStatic(cls, "init", context.getClassLoader(), context, bool(enabled))
         logx("dexLoader: badges init ok", True)
         return True
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"dexLoader: loadBadges error: {e}", False)
         return False
 
@@ -111,7 +112,8 @@ def setBadgesEnabled(enabled: bool):
         cls = _classes.get(_BADGES_CLASS)
         if cls is not None:
             _callStatic(cls, "setEnabled", bool(enabled))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"dexLoader: setBadgesEnabled error: {e}", False)
 
 
@@ -120,7 +122,8 @@ def unloadBadges():
         cls = _classes.get(_BADGES_CLASS)
         if cls is not None:
             _callStatic(cls, "deinit")
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"dexLoader: unloadBadges error: {e}", False)
 
 
@@ -151,7 +154,8 @@ def openFileCreate(context, path, text_size_px, pad_l, pad_t, pad_r, pad_b,
             _ia(token_types), _ia(token_starts), _ia(token_ends),
             _ia(color_keys), _ia(color_vals),
         )
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"dexLoader: openFileCreate error: {e}", False)
         return None
 
@@ -183,7 +187,8 @@ def catalogChromeCreate(context, main_bg, card_bg, card_pressed, text_color,
             _i(icon_clear), _i(icon_search), _i(icon_ai), _i(icon_filter), _i(icon_sort),
             str(ai_label), str(subtitle_text), bool(show_search_btn), bold_typeface,
         )
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"dexLoader: catalogChromeCreate error: {e}", False)
         return None
 
@@ -213,7 +218,8 @@ def catalogIconsChromeCreate(context, main_bg, card_bg, card_pressed, text_color
             _i(icon_clear), _i(icon_search), _i(icon_repo), _i(icon_sort),
             str(subtitle_text), bool(show_search_btn),
         )
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"dexLoader: catalogIconsChromeCreate error: {e}", False)
         return None
 
@@ -233,7 +239,8 @@ def sfxExpandableCreate(context, item_id, text, subtext, checked, collapsed,
             context.getClassLoader(), jint(int(item_id)), str(text), str(subtext),
             bool(checked), bool(collapsed), switch_click,
         )
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"dexLoader: sfxExpandableCreate error: {e}", False)
         return None
 
@@ -251,7 +258,8 @@ def sfxChildCreate(context, item_id, text, checked):
             cls, "createChild",
             context.getClassLoader(), jint(int(item_id)), str(text), bool(checked),
         )
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"dexLoader: sfxChildCreate error: {e}", False)
         return None
 
@@ -271,7 +279,8 @@ def sfxVolumeSliderCreate(context, initial, title, off_label, maximum_label,
             context, jint(int(initial)), str(title), str(off_label),
             str(maximum_label), on_change,
         )
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"dexLoader: sfxVolumeSliderCreate error: {e}", False)
         return None
 
@@ -281,7 +290,8 @@ def openFileCancel(view):
         cls = _classes.get(_OPENFILE_CLASS)
         if cls is not None and view is not None:
             _callStatic(cls, "cancel", view)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"dexLoader: openFileCancel error: {e}", False)
 
 
@@ -290,6 +300,7 @@ def openFileGetText(view):
         cls = _classes.get(_OPENFILE_CLASS)
         if cls is not None and view is not None:
             return _callStatic(cls, "getText", view)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"dexLoader: openFileGetText error: {e}", False)
     return None

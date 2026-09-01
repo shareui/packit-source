@@ -10,12 +10,14 @@ from .ReportService import report_plugin
 from ....utils.Translation import translate_plugin
 try:
     from org.telegram.messenger import AndroidUtilities, R as R_tg
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.messenger import AndroidUtilities, R as R_tg failed: {e}")
     from ....utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
     from ....utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 from android.net import Uri
@@ -52,9 +54,11 @@ def copy_plugin_link(plugin_info: dict, repo_title: str, sound_path: str = None)
         try:
             from ...achievements.service.AchivementsEngine import increment_category
             increment_category("Copying links")
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"copy_plugin_link: achievements increment error: {e}", False)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"copy: failed to copy link: {e}", False)
 
 
@@ -65,9 +69,11 @@ def share_plugin_file(plugin_info: dict, display_name: str, activity):
         try:
             from ...achievements.service.AchivementsEngine import increment_category
             increment_category("Sharing")
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"share_plugin_file: achievements increment error: {e}", False)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"Error sharing plugin: {e}", False)
 
 
@@ -164,7 +170,8 @@ def download_plugin_file(plugin_info: dict):
                 _set_progress(100)
                 _dismiss()
                 _run(lambda: _show_download_ok(dest_path))
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"download: failed: {e}", False)
                 _dismiss()
                 _run(lambda: _show_download_error(str(e)))
@@ -185,9 +192,11 @@ def download_plugin_file(plugin_info: dict):
                 try:
                     from ...achievements.service.AchivementsEngine import increment_category
                     increment_category("Downloading")
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"download: achievements increment error: {e}", False)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"download: show ok error: {e}", False)
 
         def _show_download_error(msg):
@@ -199,11 +208,13 @@ def download_plugin_file(plugin_info: dict):
                 rp = fragment.getResourceProvider()
                 BulletinFactory = find_class("org.telegram.ui.Components.BulletinFactory")
                 _pbf(container, rp).createErrorBulletin(strings("download_failed", msg=msg)).show()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"download: show error error: {e}", False)
 
         threading.Thread(target=_do_download, daemon=True).start()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"download: outer error: {e}", False)
 
 
@@ -230,17 +241,20 @@ def view_plugin_code(plugin_info: dict, activity):
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(intent)
                 logx(f"Opening plugin URL via Intent: {plugin_url}", True)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"Failed to open URL via Intent: {e}", False)
                 _pbf(activity.getWindow().getDecorView(), None).createErrorBulletin(strings["failed_to_open_url"]).show()
                 return
         try:
             from ...achievements.service.AchivementsEngine import increment_category
             increment_category("Viewing code")
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"view_plugin_code: achievements increment error: {e}", False)
                 
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"Error opening plugin URL: {e}", False)
         try:
             _pbf(activity.getWindow().getDecorView(), None).createErrorBulletin(strings["failed_to_open_plugin_url"]).show()

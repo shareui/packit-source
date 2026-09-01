@@ -136,7 +136,8 @@ class _PackitAutocompleteHook(MethodHook):
             def attach_watcher():
                 plugin._packit_attach_text_watcher(enter_view)
             run_on_ui_thread(attach_watcher, delay=500)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"PackitAutocompleteHook error: {e}", False)
 
 def _packit_get_class(self, class_name):
@@ -162,7 +163,8 @@ def _packit_hook_enter_view_constructor(self):
         )
         constructor.setAccessible(True)
         self.packit_hook_constructor_ref = self.hook_method(constructor, _PackitAutocompleteHook(self))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"Packit hook constructor error: {e}", False)
 
 def _packit_attach_text_watcher(self, enter_view):
@@ -205,7 +207,8 @@ def _packit_attach_text_watcher(self, enter_view):
                                 logx(f"packit_autocomplete: double space triggered, replacing with {cmd}", True)
                                 editable.replace(0, editable.length(), cmd + " ")
                                 return
-                    except Exception as e:
+                    except Exception as _cython_exc_e:
+                        e = _cython_exc_e
                         logx(f"packit_autocomplete: double_space error: {e}", False)
 
                     try:
@@ -230,13 +233,15 @@ def _packit_attach_text_watcher(self, enter_view):
                     else:
                         plugin._packit_search_token = None
                         plugin._packit_hide_popup()
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"Packit text watcher error: {e}", False)
         
         watcher = CustomTextWatcher()
         message_edit_text.addTextChangedListener(watcher)
         self.packit_attached_views.add(view_id)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"Packit attach text watcher error: {e}", False)
 
 
@@ -259,7 +264,8 @@ def _packit_load_plugins_from_cache(self):
             repo_name = repo.get("name", "Unknown")
             for entry in entries:
                 plugins_list.append({"repo_id": repo_id, "repo_name": repo_name, **entry})
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"Packit load plugins from cache error: {e}", False)
 
     return plugins_list
@@ -270,7 +276,8 @@ def _packit_show_loading_popup(self):
         # shows a single "Loading..." row so the user sees feedback immediately
         loading_placeholder = [{"name": "Loading...", "description": "", "_loading": True}]
         run_on_ui_thread(lambda: self._packit_show_plugins_popup(loading_placeholder))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"Packit show loading popup error: {e}", False)
 
 
@@ -331,7 +338,8 @@ def _packit_search_in_background(self, search_key, token):
 
         result = [p for _, p in scored[:10]]
         run_on_ui_thread(lambda: self._packit_show_plugins_popup(result))
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"Packit search in background error: {e}", False)
 
 
@@ -357,7 +365,8 @@ def _packit_show_matching_plugins(self, search_key):
             return
         
         self._packit_show_plugins_popup(matching[:10])
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"Packit show matching plugins error: {e}", False)
 
 
@@ -401,7 +410,8 @@ def _packit_show_plugins_popup(self, plugins):
                 create_method.invoke(enter_view)
                 bot_container = get_private_field(enter_view, "botCommandsMenuContainer")
                 bot_adapter = get_private_field(enter_view, "botCommandsAdapter")
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"Packit create bot container error: {e}", False)
         
         if not bot_container or not bot_adapter:
@@ -477,7 +487,8 @@ def _packit_show_plugins_popup(self, plugins):
 
                 try:
                     bot_adapter.notifyDataSetChanged()
-                except Exception as notify_error:
+                except Exception as _cython_exc_notify_error:
+                    notify_error = _cython_exc_notify_error
                     # the recycler became busy between the check and here —
                     # retry on the next frame instead of losing the popup
                     if attempt < 30:
@@ -487,7 +498,8 @@ def _packit_show_plugins_popup(self, plugins):
                     raise
                 bot_container.requestLayout()
                 bot_container.show()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"Packit update plugins adapter error: {e}", False)
 
         run_on_ui_thread(apply_adapter_update)
@@ -538,14 +550,17 @@ def _packit_show_plugins_popup(self, plugins):
                                                         frag_ref.showFieldPanel(False, None, None, None, None, True, 0, None, True, 0, True)
                                                     else:
                                                         logx("Packit: clear_reply - fragment or showFieldPanel not found", True)
-                                                except Exception as e:
+                                                except Exception as _cython_exc_e:
+                                                    e = _cython_exc_e
                                                     logx(f"Packit: clear reply error: {e}", False)
                                             run_on_ui_thread(do_clear_reply, 100)
-                                    except Exception as e:
+                                    except Exception as _cython_exc_e:
+                                        e = _cython_exc_e
                                         logx(f"Packit click action error: {e}", False)
 
                                 run_on_ui_thread(ui_actions)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"Packit click listener error: {e}", False)
 
         class LongClickListener(dynamic_proxy(RecyclerListView.OnItemLongClickListener)):
@@ -573,11 +588,13 @@ def _packit_show_plugins_popup(self, plugins):
                             install_ui = InstallUI(_FakePlugin(plugin.repoManager))
                             bot_container.dismiss()
                             show_plugin_profile(plugin_data, install_ui, plugins_by_index, repo_id=repo_id)
-                        except Exception as e:
+                        except Exception as _cython_exc_e:
+                            e = _cython_exc_e
                             logx(f"Packit long click open profile error: {e}", False)
 
                     run_on_ui_thread(open_profile)
-                except Exception as e:
+                except Exception as _cython_exc_e:
+                    e = _cython_exc_e
                     logx(f"Packit long click listener error: {e}", False)
                 return True
 
@@ -600,15 +617,18 @@ def _packit_show_plugins_popup(self, plugins):
                         if list_params:
                             list_params.width = enter_view_width
                             bot_container.listView.setLayoutParams(list_params)
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"Packit resize popup error: {e}", False)
             bot_container.requestLayout()
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"Packit popup layout error: {e}", False)
         
         self.packit_custom_container = bot_container
         self._packit_hook_container_dismiss(bot_container)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"Packit show plugins popup error: {e}", False)
 
 
@@ -654,7 +674,8 @@ def _packit_hook_container_dismiss(self, bot_container):
                 param.setResult(None)
 
         self.hook_method(dismiss_method, DismissHook())
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"Packit hook container dismiss error: {e}", False)
 
 
@@ -664,7 +685,8 @@ def _packit_hide_popup(self):
         self._packit_popup_update_token = None
         if self.packit_custom_container:
             self.packit_custom_container.dismiss()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"Packit hide popup error: {e}", False)
 
 
@@ -755,7 +777,8 @@ def _packit_send_plugin_info(self, plugin_data):
                     if topic is not None and topic.topicStartMessage is not None:
                         topic_msg_obj = MsgObj(frag.getCurrentAccount(), topic.topicStartMessage, False, False)
                         topic_msg_obj.isTopicMainMessage = True
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"Packit: topic resolve error: {e}", False)
 
         # get reply-to message if user is replying to something
@@ -768,7 +791,8 @@ def _packit_send_plugin_info(self, plugin_data):
                 candidate = get_private_field(enter_view, "replyingMessageObject")
                 if candidate is not None and not getattr(candidate, "isTopicMainMessage", False):
                     reply_msg_obj = candidate
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"Packit: reply resolve error: {e}", False)
 
         plugin_id = plugin_data.get("id", "unknown")
@@ -840,9 +864,11 @@ def _packit_send_plugin_info(self, plugin_data):
                     params.replyToMsg = topic_msg_obj
                     params.replyToTopMsg = topic_msg_obj
                 smh.sendMessage(params)
-            except Exception as e2:
+            except Exception as _cython_exc_e2:
+                e2 = _cython_exc_e2
                 logx(f"Packit send plugin info fallback error: {e2}", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"Packit send plugin info error: {e}", False)
 
 
@@ -861,5 +887,6 @@ def setup_packit_autocomplete(plugin):
         
         plugin._packit_hook_enter_view_constructor()
         logx("Packit autocomplete setup complete", True)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"Packit autocomplete setup error: {e}", False)

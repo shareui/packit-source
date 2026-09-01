@@ -12,7 +12,8 @@ from ..core.Core import install_plugin, install_icon_pack
 from ..ui.plugins.Fragment import InstallUI
 try:
     from elyx import strings
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import elyx import strings failed: {e}")
     from ..utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 import requests
@@ -21,7 +22,8 @@ import os
 
 try:
     from org.telegram.messenger import ApplicationLoader
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     import android_utils as _au; _au.log(f"import org.telegram.messenger import ApplicationLoader failed: {e}")
     from ..utils.ImportFailed import showImportFailedAlert as _sifa; _sifa()
 
@@ -89,7 +91,8 @@ def handle(url, repoManager):
             return
 
         _handleInstallPlugin(repo, pluginId, versionId)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"deeplinks.install: error: {e}", False)
 
 
@@ -100,7 +103,8 @@ def _handleOpenInstall(repoManager):
                 self.repoManager = rm
         installUI = InstallUI(_FakePlugin(repoManager))
         installUI.open()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"deeplinks.install: open error: {e}", False)
 
 
@@ -248,7 +252,8 @@ def _show_incompatible_sheet(requested_version: str, compatible_plugin: dict, al
 
         sheet.setCustomView(root)
         sheet.show()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         logx(f"deeplinks.install: incompatible sheet error: {e}", False)
 
 
@@ -331,7 +336,8 @@ def _handleInstallPlugin(repo: dict, pluginId: str, versionId: str = ""):
                     return
 
             run_on_ui_thread(lambda: install_plugin(plugin, all_plugins=all_plugins))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"deeplinks.install: fetch error: {e}", False)
             run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings["dl_install_error"])))
 
@@ -352,7 +358,8 @@ def _handleInstallPlugin(repo: dict, pluginId: str, versionId: str = ""):
                     R_tg.raw.chats_infotip,
                     str(strings["dl_install_version_loading"]).format(versionId)
                 ).show()
-            except Exception as e:
+            except Exception as _cython_exc_e:
+                e = _cython_exc_e
                 logx(f"deeplinks.install: loading bulletin error: {e}", False)
         run_on_ui_thread(_show_loading_bulletin)
 
@@ -395,7 +402,8 @@ def _handleInstallIconPack(repo: dict, iconId: str):
                 return
 
             run_on_ui_thread(lambda: install_icon_pack(icon))
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             logx(f"deeplinks.install: icon fetch error: {e}", False)
             run_on_ui_thread(lambda: BulletinHelper.show_error(str(strings["dl_iconpack_load_error"])))
 

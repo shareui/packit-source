@@ -12,18 +12,21 @@ from android.net import Uri
 try:
     from org.telegram.messenger import AndroidUtilities, R as R_tg
     from org.telegram.messenger.browser import Browser
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     if DEBUG_LOGS:
         logx(f"linksBottomSheet: import error: {e}", False)
     Browser = None
 try:
     from org.telegram.ui.ActionBar import Theme
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     if DEBUG_LOGS:
         logx(f"linksBottomSheet: import Theme error: {e}", False)
 try:
     from org.telegram.ui.Components import LayoutHelper
-except Exception as e:
+except Exception as _cython_exc_e:
+    e = _cython_exc_e
     if DEBUG_LOGS:
         logx(f"linksBottomSheet: import LayoutHelper error: {e}", False)
 
@@ -102,7 +105,8 @@ def _parseLinks(filePath: str) -> list:
                     "y":       item.get("y", None),
                 })
         return result
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         if DEBUG_LOGS:
             logx(f"linksBottomSheet: _parseLinks parse error: {e}", False)
         return []
@@ -119,7 +123,8 @@ def _openUrl(act, url: str):
             intent.setData(Uri.parse(url))
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             ApplicationLoader.applicationContext.startActivity(intent)
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         if DEBUG_LOGS:
             logx(f"linksBottomSheet: _openUrl error: {e}", False)
 
@@ -137,7 +142,8 @@ class ConstructorHook(MethodHook):
             _pending[sheet.hashCode()] = (filePath, sheet)
             if DEBUG_LOGS:
                 logx(f"linksBottomSheet: stored filePath={filePath}", True)
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             if DEBUG_LOGS:
                 logx(f"linksBottomSheet: ConstructorHook error: {e}", False)
 
@@ -160,7 +166,8 @@ def _getFilePathFromSheet(sheet) -> str:
                     if s.endswith(".plugin") or s.endswith(".eaf"):
                         return s
             cls = cls.getSuperclass()
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         if DEBUG_LOGS:
             logx(f"linksBottomSheet: _getFilePathFromSheet error: {e}", False)
     return ""
@@ -270,7 +277,8 @@ class SetCustomViewHook(MethodHook):
                 if DEBUG_LOGS:
                     logx(f"linksBottomSheet: added button icon={iconName} gravity={gravity} x={x} y={y}", True)
 
-        except Exception as e:
+        except Exception as _cython_exc_e:
+            e = _cython_exc_e
             if DEBUG_LOGS:
                 logx(f"linksBottomSheet: SetCustomViewHook error: {e}", False)
 
@@ -310,7 +318,8 @@ def setup_links_buttons_hook(plugin):
         if DEBUG_LOGS:
             logx(f"linksBottomSheet: setup done, hooks={len(hooks)}", True)
         return hooks
-    except Exception as e:
+    except Exception as _cython_exc_e:
+        e = _cython_exc_e
         if DEBUG_LOGS:
             logx(f"linksBottomSheet: setup error: {e}", False)
         return None
