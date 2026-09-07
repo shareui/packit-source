@@ -274,10 +274,12 @@ def run(pysrc_dir, cruel_bin, project_root, buildlog, cache):
     sources = sorted((p for p in pysrc_dir.rglob('*.py') if '__pycache__' not in p.parts))
     trees = _parse_all(sources)
     used_from = _build_cross_file_usage(trees)
+    digests = cache.file_hashes(cruel_bin, sources)
     total_findings = 0
     files_with_findings = 0
     for source_path in sources:
-        if not cache.is_changed(cruel_bin, project_root, NAMESPACE, source_path):
+        digest = digests[source_path]
+        if not cache.is_changed(cruel_bin, project_root, NAMESPACE, source_path, digest=digest):
             continue
         tree = trees.get(source_path)
         if tree is None:
@@ -294,5 +296,5 @@ def run(pysrc_dir, cruel_bin, project_root, buildlog, cache):
         total_findings += len(findings)
         if findings:
             files_with_findings += 1
-        cache.mark(cruel_bin, project_root, NAMESPACE, source_path)
+        cache.mark(cruel_bin, project_root, NAMESPACE, source_path, digest=digest)
     return (total_findings, files_with_findings)

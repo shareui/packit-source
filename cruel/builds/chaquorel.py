@@ -38,9 +38,19 @@ def check_dependencies(buildlog):
             buildlog.error(f'missing library: {libname}')
             buildlog.info('please, install it with pip 3.11')
             sys.exit(1)
+_CACHED_CRUEL_BIN = None
 
 def find_cruel_bin():
-    return shutil.which('cruel') or 'cruel'
+    global _CACHED_CRUEL_BIN
+    if _CACHED_CRUEL_BIN is not None:
+        return _CACHED_CRUEL_BIN
+    if (crulw := shutil.which('crulw')):
+        _CACHED_CRUEL_BIN = crulw
+        return crulw
+    if (cruel := shutil.which('cruel')):
+        _CACHED_CRUEL_BIN = cruel
+        return cruel
+    sys.exit("error: neither 'crulw' nor 'cruel' binary found in PATH")
 
 def run_hook(hooks, hook_name, buildlog, *args):
     hook = getattr(hooks, hook_name, None)

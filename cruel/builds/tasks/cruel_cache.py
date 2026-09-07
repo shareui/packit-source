@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 from pathlib import Path
 CACHE_DIR = 'cruel/local/cache'
@@ -37,17 +38,38 @@ def file_hash(cruel_bin, path):
     result = subprocess.run([cruel_bin, '__bithash', str(path)], capture_output=True, text=True)
     if result.returncode != 0:
         raise RuntimeError(f'failed to hash {path}: {result.stderr.strip()}')
+    os.environ['CRUEL_VERSION_CHECKED'] = '1'
     return result.stdout.strip()
 
-def is_changed(cruel_bin, project_root, namespace, path):
-    key = str(Path(path).resolve().relative_to(Path(project_root).resolve()).as_posix())
-    entries = _load(project_root, namespace)
-    return entries.get(key) != file_hash(cruel_bin, path)
+def file_hashes(cruel_bin, paths):
+    paths = list(paths)
+    if not paths:
+        return {}
+    result = subprocess.run([cruel_bin, '__bithash', *(str(p) for p in paths)], capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f'failed to hash files: {result.stderr.strip()}')
+    os.environ['CRUEL_VERSION_CHECKED'] = '1'
+    digests = {}
+    for line in result.stdout.splitlines():
+        path_str, _, digest = line.rpartition('\t')
+        if not digest:
+            raise RuntimeError(f'malformed bithash output line: {line!r}')
+        digests[path_str] = digest
+    missing = [str(p) for p in paths if str(p) not in digests]
+    if missing:
+        raise RuntimeError(f'no hash returned for: {missing}')
+    return {p: digests[str(p)] for p in paths}
 
-def mark(cruel_bin, project_root, namespace, path):
+def is_changed(cruel_bin, project_root, namespace, path, digest=None):
     key = str(Path(path).resolve().relative_to(Path(project_root).resolve()).as_posix())
     entries = _load(project_root, namespace)
-    entries[key] = file_hash(cruel_bin, path)
+    digest = digest if digest is not None else file_hash(cruel_bin, path)
+    return entries.get(key) != digest
+
+def mark(cruel_bin, project_root, namespace, path, digest=None):
+    key = str(Path(path).resolve().relative_to(Path(project_root).resolve()).as_posix())
+    entries = _load(project_root, namespace)
+    entries[key] = digest if digest is not None else file_hash(cruel_bin, path)
     _save(project_root, namespace, entries)
 
 def is_record_changed(project_root, namespace, key, value):

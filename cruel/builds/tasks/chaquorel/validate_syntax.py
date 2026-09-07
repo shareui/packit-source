@@ -7,9 +7,11 @@ def run(pysrc_dir, cruel_bin, project_root, buildlog, cache):
     pysrc_dir = Path(pysrc_dir)
     project_root = Path(project_root)
     sources = sorted((p for p in pysrc_dir.rglob('*.py') if '__pycache__' not in p.parts))
+    digests = cache.file_hashes(cruel_bin, sources)
     ok = True
     for source_path in sources:
-        if not cache.is_changed(cruel_bin, project_root, NAMESPACE, source_path):
+        digest = digests[source_path]
+        if not cache.is_changed(cruel_bin, project_root, NAMESPACE, source_path, digest=digest):
             continue
         text = source_path.read_text(encoding='utf-8')
         try:
@@ -23,7 +25,7 @@ def run(pysrc_dir, cruel_bin, project_root, buildlog, cache):
             buildlog.frame(rel_path, lineno, col, length, source_line=e.text.rstrip('\n') if e.text else None)
             ok = False
             continue
-        cache.mark(cruel_bin, project_root, NAMESPACE, source_path)
+        cache.mark(cruel_bin, project_root, NAMESPACE, source_path, digest=digest)
     if not ok:
         sys.exit(1)
     return sources

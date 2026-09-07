@@ -12,9 +12,16 @@ TEMP_SUBDIR = Path('cruel') / 'local' / 'temp' / 'assets'
 CACHE_SUBDIR = Path('cruel') / 'local' / 'cache' / 'zstd'
 DEFAULT_ZSTD_LEVEL = 22
 ZSTD_LEVEL_RANGE = (1, 22)
+_CACHED_CRUEL_BIN = None
 
 def _find_cruel_bin():
-    return shutil.which('cruel') or 'cruel'
+    global _CACHED_CRUEL_BIN
+    if _CACHED_CRUEL_BIN is not None:
+        return _CACHED_CRUEL_BIN
+    if (crulw := shutil.which('crulw')):
+        _CACHED_CRUEL_BIN = crulw
+        return crulw
+    sys.exit("error: 'crulw' binary not found in PATH")
 
 def _load_assets_config(assets_dir, buildlog):
     cfg_path = assets_dir / 'config.toml'
@@ -80,13 +87,14 @@ def run(cfg_path, project_root, buildlog, cache, cruel_bin=None):
     manifest = cache.load_json(project_root, NAMESPACE)
     failures = []
     total = len(files)
+    digests = cache.file_hashes(cruel_bin, files)
     for index, source_path in enumerate(files, start=1):
         rel_path = source_path.relative_to(assets_dir)
         rel_key = str(rel_path.as_posix())
         dest_name = source_path.name + '.zst'
         dest_path = (temp_dir / rel_path).with_name(dest_name) if structured else temp_dir / dest_name
         cached_path = (cache_dir / rel_path).with_name(dest_name)
-        digest = cache.file_hash(cruel_bin, source_path)
+        digest = digests[source_path]
         entry = manifest.get(rel_key)
         if _cache_hit(entry, cached_path, digest, zstd_level):
             buildlog.info(f'  = {rel_path}')

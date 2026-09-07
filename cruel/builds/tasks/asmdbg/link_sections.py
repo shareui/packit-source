@@ -9,9 +9,16 @@ OUTPUT_SUBDIR = Path('cruel') / 'local' / 'output'
 UNSAFE_FILENAME_CHARS = re.compile('[\\/\\\\:*?\\"<>|]')
 SECTION_NAMES = ('pluginmeta', 'description', 'icon', 'refmap', 'fsmeta', 'fs', 'zstdfsmeta', 'zstdfs', 'pypimeta', 'pypi', 'bindata')
 OPTIONAL_SECTION_NAMES = ('icon', 'bindata')
+_CACHED_CRUEL_BIN = None
 
 def _find_cruel_bin():
-    return shutil.which('cruel') or 'cruel'
+    global _CACHED_CRUEL_BIN
+    if _CACHED_CRUEL_BIN is not None:
+        return _CACHED_CRUEL_BIN
+    if (crulw := shutil.which('crulw')):
+        _CACHED_CRUEL_BIN = crulw
+        return crulw
+    sys.exit("error: 'crulw' binary not found in PATH")
 
 def _collect_sections(temp_dir, buildlog):
     sections = {}

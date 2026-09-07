@@ -43,3 +43,4 @@ tools/result/unique_imports.py
 **/kotlin-build/
 **/kotlin/**/*.class
 **/__pycache__/*
+cruel/configs/

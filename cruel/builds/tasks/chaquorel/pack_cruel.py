@@ -25,9 +25,16 @@ PYPI_EXACT_VERSION_PATTERN = re.compile('^==\\s*(.+)$')
 PYPI_BARE_VERSION_PATTERN = re.compile('^\\d[\\w.\\-]*$')
 REFMAP_KEYS = (('entry', 'entry'), ('strings', 'strings'), ('assets', 'assets'), ('pysrc', 'pysrc'))
 BUILD_HASH_SECTIONS = ('description.crulsection', 'refmap.crulsection', 'icon.crulsection', 'fsmeta.crulsection', 'fs.crulsection', 'zstdfsmeta.crulsection', 'zstdfs.crulsection', 'pypimeta.crulsection', 'pypi.crulsection')
+_CACHED_CRUEL_BIN = None
 
 def _find_cruel_bin():
-    return shutil.which('cruel') or 'cruel'
+    global _CACHED_CRUEL_BIN
+    if _CACHED_CRUEL_BIN is not None:
+        return _CACHED_CRUEL_BIN
+    if (crulw := shutil.which('crulw')):
+        _CACHED_CRUEL_BIN = crulw
+        return crulw
+    sys.exit("error: 'crulw' binary not found in PATH")
 
 def _load_locale_file(path):
     if path.suffix == '.json':
@@ -413,6 +420,8 @@ def run(cfg_path, project_root, references, build_section, build_type, buildlog,
     strings_ref = project_root / references['strings']
     metadata = cruel_cfg.get('metadata', {})
     requirements = cruel_cfg.get('requirements', {})
+    if 'external_roots' in build_section:
+        metadata['external_roots'] = build_section['external_roots']
     if 'strings' not in references:
         buildlog.error('strings field not found in [references]')
         sys.exit(1)

@@ -68,96 +68,6 @@ def _get_chaquo_sysroot(project_root, arch, buildlog):
     return cache_dir
 
 
-def _rewrite_java_imports(content, project_root):
-    import ast
-    try:
-        import tomllib
-    except ImportError:
-        import tomli as tomllib
-    from pathlib import Path
-    
-    try:
-        tree = ast.parse(content)
-    except Exception:
-        return content
-
-    include_patterns = {"android", "androidx", "com", "java", "kotlin", "org", "de"}
-    exclude_patterns = set()
-    
-    config_path = Path(project_root) / "cruel" / "configs" / "chaquo.toml"
-    if config_path.is_file():
-        try:
-            with open(config_path, "rb") as f:
-                data = tomllib.load(f)
-            jclass = data.get("convert_to_jclass", {})
-            if "include" in jclass:
-                include_patterns = set(jclass["include"])
-            if "exclude" in jclass:
-                exclude_patterns = set(jclass["exclude"])
-        except Exception:
-            pass
-
-    class Transformer(ast.NodeTransformer):
-        def __init__(self):
-            self.did_change = False
-            
-        def visit_ImportFrom(self, node):
-            if getattr(node, 'level', 0) != 0 or not getattr(node, 'module', None):
-                return node
-            
-            def matches(module_name, patterns):
-                root = module_name.split('.')[0]
-                for pat in patterns:
-                    if module_name == pat or module_name.startswith(pat + ".") or root == pat:
-                        return True
-                return False
-
-            is_included = matches(node.module, include_patterns)
-            is_excluded = matches(node.module, exclude_patterns)
-                    
-            if is_included and not is_excluded and all(alias.name != "*" for alias in node.names):
-                self.did_change = True
-                new_nodes = []
-                for alias in node.names:
-                    target = alias.asname or alias.name
-                    assign_str = f"{target} = __import__('java').jclass('{node.module}.{alias.name}')"
-                    new_nodes.extend(ast.parse(assign_str).body)
-                return new_nodes
-            return node
-
-    t = Transformer()
-    new_tree = t.visit(tree)
-    if t.did_change:
-        ast.fix_missing_locations(new_tree)
-        return ast.unparse(new_tree)
-    return content
-
-    JAVA_PACKAGE_ROOTS = {"android", "androidx", "com", "java", "kotlin", "org", "de"}
-    
-    class Transformer(ast.NodeTransformer):
-        def __init__(self):
-            self.did_change = False
-            
-        def visit_ImportFrom(self, node):
-            if getattr(node, 'level', 0) != 0 or not getattr(node, 'module', None):
-                return node
-            root = node.module.split('.')[0]
-            if root in JAVA_PACKAGE_ROOTS and all(alias.name != "*" for alias in node.names):
-                self.did_change = True
-                new_nodes = []
-                for alias in node.names:
-                    target = alias.asname or alias.name
-                    assign_str = f"{target} = __import__('java').jclass('{node.module}.{alias.name}')"
-                    new_nodes.extend(ast.parse(assign_str).body)
-                return new_nodes
-            return node
-
-    t = Transformer()
-    new_tree = t.visit(tree)
-    if t.did_change:
-        ast.fix_missing_locations(new_tree)
-        return ast.unparse(new_tree)
-    return content
 
 def _compile_one(source_path, so_path, pytemp_dir, project_root, arch, buildlog):
     ndk_home = _find_android_ndk()
@@ -176,17 +86,8 @@ def _compile_one(source_path, so_path, pytemp_dir, project_root, arch, buildlog)
     
     c_file = chaquo_build / f"{source_path.stem}.c"
     
-    try:
-        with open(source_path, "r", encoding="utf-8") as f:
-            source_content = f.read()
-    except Exception:
-        source_content = ""
-        
-    morphed_content = _rewrite_java_imports(source_content, project_root)
-    
     temp_py_file = chaquo_build / f"{source_path.name}"
-    with open(temp_py_file, "w", encoding="utf-8") as f:
-        f.write(morphed_content)
+    shutil.copyfile(source_path, temp_py_file)
     
     cython_cmd = [sys.executable, "-m", "cython", "-3", str(temp_py_file), "-o", str(c_file)]
     # --------------------------------------------------

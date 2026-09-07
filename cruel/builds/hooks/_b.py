@@ -49,7 +49,7 @@ def project_root_from_temp_dir(temp_dir):
 
 
 def find_cruel_bin():
-    return shutil.which('cruel') or 'cruel'
+    return shutil.which('crulw') or 'crulw'
 
 
 def _hash_tree(cruel_bin, root, is_excluded=None):
@@ -57,7 +57,8 @@ def _hash_tree(cruel_bin, root, is_excluded=None):
         p for p in root.rglob('*')
         if p.is_file() and (is_excluded is None or not is_excluded(p.relative_to(root)))
     )
-    parts = [f'{p.relative_to(root).as_posix()}:{_file_hash(cruel_bin, p)}' for p in files]
+    digests = _file_hashes(cruel_bin, files)
+    parts = [f'{p.relative_to(root).as_posix()}:{digests[p]}' for p in files]
     return '|'.join(parts)
 
 
@@ -65,7 +66,31 @@ def _file_hash(cruel_bin, path):
     result = subprocess.run([cruel_bin, '__bithash', str(path)], capture_output=True, text=True)
     if result.returncode != 0:
         raise RuntimeError(f'failed to hash {path}: {result.stderr.strip()}')
+    # first successful call already went through crulw's version check (if any);
+    # skip it on every subsequent call spawned by this build process
+    os.environ['CRUEL_VERSION_CHECKED'] = '1'
     return result.stdout.strip()
+
+
+def _file_hashes(cruel_bin, paths):
+    # hashes many files in a single cruel_bin invocation instead of one process per file
+    paths = list(paths)
+    if not paths:
+        return {}
+    result = subprocess.run([cruel_bin, '__bithash', *(str(p) for p in paths)], capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f'failed to hash files: {result.stderr.strip()}')
+    os.environ['CRUEL_VERSION_CHECKED'] = '1'
+    digests = {}
+    for line in result.stdout.splitlines():
+        path_str, _, digest = line.rpartition('\t')
+        if not digest:
+            raise RuntimeError(f'malformed bithash output line: {line!r}')
+        digests[path_str] = digest
+    missing = [str(p) for p in paths if str(p) not in digests]
+    if missing:
+        raise RuntimeError(f'no hash returned for: {missing}')
+    return {p: digests[str(p)] for p in paths}
 
 
 def _is_wheel_build_artifact(rel_path):

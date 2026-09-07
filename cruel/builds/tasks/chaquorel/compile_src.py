@@ -19,9 +19,16 @@ def _find_python311():
         if result.returncode == 0 and '3.11' in result.stdout + result.stderr:
             return name
     return None
+_CACHED_CRUEL_BIN = None
 
 def _find_cruel_bin():
-    return shutil.which('cruel') or 'cruel'
+    global _CACHED_CRUEL_BIN
+    if _CACHED_CRUEL_BIN is not None:
+        return _CACHED_CRUEL_BIN
+    if (crulw := shutil.which('crulw')):
+        _CACHED_CRUEL_BIN = crulw
+        return crulw
+    sys.exit("error: 'crulw' binary not found in PATH")
 
 def _compile_one(source_path, pyc_path, dfile, python311, opt, remove_pymeta):
     pyc_path.parent.mkdir(parents=True, exist_ok=True)
@@ -95,13 +102,14 @@ def run(pysrc_dir, project_root, opt, pycompile, remove_pymeta, buildlog, cache,
     compiled_paths = {}
     failures = []
     total = len(sources)
+    digests = cache.file_hashes(cruel_bin, sources)
     for index, source_path in enumerate(sources, start=1):
         rel_path = source_path.relative_to(pysrc_dir)
         pyc_path = cache_dir / rel_path.with_suffix('.pyc')
         pyc_rel_path = pyc_path.relative_to(project_root)
         pytemp_path = pytemp_dir / rel_path.with_suffix('.pyc')
         cache_key = f'{rel_path.as_posix()}::opt{opt}::meta{int(remove_pymeta)}'
-        digest = cache.file_hash(cruel_bin, source_path)
+        digest = digests[source_path]
         cache_hit = pyc_path.is_file() and (not cache.is_record_changed(project_root, NAMESPACE, cache_key, digest))
         if cache_hit:
             buildlog.info(f'  = {rel_path}')

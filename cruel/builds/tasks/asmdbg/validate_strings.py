@@ -206,16 +206,18 @@ def _keys_used_in(source_path):
 def _check_pysrc(pysrc_dir, project_root, locales, cruel_bin, buildlog, cache):
     pysrc_dir = Path(pysrc_dir)
     sources = sorted((p for p in pysrc_dir.rglob('*.py') if '__pycache__' not in p.parts))
+    digests = cache.file_hashes(cruel_bin, sources)
     ok = True
     for source_path in sources:
-        if not cache.is_changed(cruel_bin, project_root, NAMESPACE, source_path):
+        digest = digests[source_path]
+        if not cache.is_changed(cruel_bin, project_root, NAMESPACE, source_path, digest=digest):
             continue
         rel_path = source_path.relative_to(project_root)
         lines = source_path.read_text(encoding='utf-8').splitlines()
         for key, lineno, col, has_default in _keys_used_in(source_path):
             source_line = lines[lineno - 1] if 1 <= lineno <= len(lines) else None
             ok = _check_key(key, locales, buildlog, has_default, path=rel_path, lineno=lineno, col=col, source_line=source_line) and ok
-        cache.mark(cruel_bin, project_root, NAMESPACE, source_path)
+        cache.mark(cruel_bin, project_root, NAMESPACE, source_path, digest=digest)
     if not ok:
         sys.exit(1)
 

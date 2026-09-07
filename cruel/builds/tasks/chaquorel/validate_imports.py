@@ -84,11 +84,12 @@ def _source_line(project_root, rel_path, lineno):
 
 def _refresh_cache(sources, pysrc_dir, cruel_bin, project_root, buildlog, cache):
     cached = cache.load_json(project_root, NAMESPACE)
+    digests = cache.file_hashes(cruel_bin, sources)
     fresh = {}
     total = len(sources)
     for index, source_path in enumerate(sources, start=1):
         rel_path = _rel(source_path, project_root)
-        digest = cache.file_hash(cruel_bin, source_path)
+        digest = digests[source_path]
         entry = cached.get(rel_path)
         if entry is not None and entry.get('hash') == digest:
             fresh[rel_path] = entry
@@ -156,7 +157,9 @@ def _missing_module_error(rel_path, imp):
     dots = '.' * imp['level']
     spec = f"{dots}{imp['module'] or ''}"
     return {'path': rel_path, 'lineno': imp['lineno'], 'col': imp['col'], 'headline': f"unresolved import '{spec}'", 'help': 'target module not found'}
+import functools
 
+@functools.lru_cache(maxsize=None)
 def _read_top_level_names(module_path):
     try:
         text = module_path.read_text(encoding='utf-8')

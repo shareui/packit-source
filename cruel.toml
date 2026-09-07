@@ -3,7 +3,7 @@ title = "PackIt"
 description = "{plugin_description} [shareui/packit-source](https://github.com/shareui/packit-source)"
 id = "shareui_packit"
 version = "1.0.0-crul"
-version_num = 6
+version_num = 33
 author = "@packitX"
 app_version = ">=12.9.2"
 sdk_version = ">=1.4.6.0"
@@ -37,10 +37,19 @@ opt = 2
 remove_pymeta = true # randomising: co_filename, co_firstlineno, co_linetable, co_name, co_qualname,
 pycompile = true
 include = ["packit/**/*"]
-exclude = ["packit/src/cxx", "packit/src/kotlin", "packit/src/wheels", "packit/src/python/**/*.c", "packit/src/python/**/*.so", "packit/src/python/build"]
-build_schema_version = 33
+exclude = [
+    "packit/src/cxx", "packit/src/kotlin", 
+    "packit/src/wheels", "packit/src/python/**/*.c", 
+    "packit/src/python/**/*.so", "packit/src/python/build"
+]
+build_schema_version = 40
 ref = "asmrel"
 desc = "Builds the plugin and signs it with the developer's key"
+external_roots = [
+    "android", "androidx", "base_plugin", "client_utils", 
+    "com", "de", "elyx", "hook_utils", 
+    "importlib", "java", "org", "ui"
+]
 
 [build.asmdbg]
 path = "cruel/builds/asmdbg.py"
@@ -48,10 +57,19 @@ opt = 0
 remove_pymeta = false # randomising: co_filename, co_name, co_qualname, co_firstlineno, co_linetable
 pycompile = true
 include = ["packit/**/*"]
-exclude = ["packit/src/cxx", "packit/src/kotlin", "packit/src/wheels", "packit/src/python/**/*.c", "packit/src/python/**/*.so", "packit/src/python/build"]
-build_schema_version = 33
+exclude = [
+    "packit/src/cxx", "packit/src/kotlin", 
+    "packit/src/wheels", "packit/src/python/**/*.c", 
+    "packit/src/python/**/*.so", "packit/src/python/build"
+]
+build_schema_version = 40
 ref = "asmdbg"
 desc = "Builds the plugin and without signs it with the developer's key"
+external_roots = [
+    "android", "androidx", "base_plugin", "client_utils", 
+    "com", "de", "elyx", "hook_utils", 
+    "importlib", "java", "org", "ui"
+]
 
 [build.check]
 path = "cruel/builds/check.py"
@@ -59,10 +77,17 @@ opt = 0
 remove_pymeta = false
 pycompile = false
 include = ["packit/**/*"]
-exclude = ["packit/src/cxx", "packit/src/kotlin", "packit/src/python/**/*.c", "packit/src/python/**/*.so", "packit/src/python/build"]
+exclude = [
+    "packit/src/cxx", "packit/src/kotlin", "packit/src/python/**/*.c", 
+    "packit/src/python/**/*.so", "packit/src/python/build"
+]
 desc = "Checking your project via validation tasks"
 ref = "check"
-build_schema_version = 33
+build_schema_version = 40
+external_roots = ["android", "androidx", "base_plugin", "client_utils", 
+    "com", "de", "elyx", "hook_utils", 
+    "importlib", "java", "org", "ui"
+]
 
 # DO NOT USE NOW
 [build.chaquorel]
@@ -71,10 +96,18 @@ opt = 0
 remove_pymeta = false
 pycompile = true
 include = ["packit/**/*"]
-exclude = ["packit/src/cxx", "packit/src/kotlin", "packit/src/wheels", "packit/src/python/**/*.c", "packit/src/python/**/*.so", "packit/src/python/build"]
+exclude = [
+    "packit/src/cxx", "packit/src/kotlin", 
+    "packit/src/wheels", "packit/src/python/**/*.c", 
+    "packit/src/python/**/*.so", "packit/src/python/build"
+]
 desc = "Builds the plugin using Chaquopy Cython for Android"
 ref = "chaquorel"
-build_schema_version = 33
+build_schema_version = 40
+external_roots = ["android", "androidx", "base_plugin", "client_utils", 
+    "com", "de", "elyx", "hook_utils", 
+    "importlib", "java", "org", "ui"
+]
 
 # ============================================== FLAGS =================================================
 [flags.asmrel]
